@@ -3328,12 +3328,13 @@ let tournaments = function() {
          }
 
          let complete = matches
-            .filter(f => f.match.complete)
+            .filter(f => f.match.winner && f.match.loser)
             .map(m => matchStorageObject(tournament, evt, m, source))
             .filter(f=>f);
+
          complete.forEach(match => match.outcome = player.matchOutcome(match));
 
-         let incomplete = matches.filter(f => !f.match.complete)
+         let incomplete = matches.filter(f => !f.match.winner && !f.match.loser)
             .map(m=>matchStorageObject(tournament, evt, m, source));
 
          return { complete, incomplete }
@@ -3524,8 +3525,6 @@ let tournaments = function() {
          if (match_event) {
             let match = match_event.match;
             match.score = outcome.score;
-            match.complete = outcome.complete;
-
             match.winner_index = outcome.winner;
 
             match.muid = match.muid || UUID.new();
@@ -3571,24 +3570,36 @@ let tournaments = function() {
 
       function scoreTreeDraw(e, existing_scores, outcome) {
          if (!outcome) return e;
+         // let node = null;
 
          if (existing_scores) {
             // if updating existing scores, don't advance position
             let node = drawFx.findMatchNodeByTeamPositions(e.draw, outcome.positions);
+            let result = drawFx.advanceToNode({ node, position: outcome.position, score: outcome.score, complete: outcome.complete });
 
-            if (node && outcome.complete) {
-               let result = drawFx.advanceToNode({ node, position: outcome.position, score: outcome.score });
-               if (result && !result.advanced) { 
-                  gen.popUpMessage(lang.tr('phrases.cannotchangewinner'));
-                  return; 
-               }
+            if (!outcome.complete && result && !result.advanced) {
+               gen.popUpMessage(lang.tr('phrases.matchmustbecomplete'));
+               return; 
+            }
+
+            if (outcome.complete && result && !result.advanced) { 
+               gen.popUpMessage(lang.tr('phrases.cannotchangewinner'));
+               return; 
             }
          } else {
             drawFx.advancePosition({ node: e.draw, position: outcome.position });
          }
 
          // modifyPositionScore removes winner/loser if match incomplete
-         drawFx.modifyPositionScore({ node: e.draw, position: outcome.position, score: outcome.score, complete: outcome.complete, set_scores: outcome.set_scores });
+         drawFx.modifyPositionScore({ 
+            // node: node || e.draw, 
+            node: e.draw, 
+            // position: outcome.position, 
+            positions: outcome.positions,
+            score: outcome.score, 
+            complete: outcome.complete, 
+            set_scores: outcome.set_scores
+         });
 
          if (e.draw_type == 'Q' && outcome) {
             let finalist_dp = tree_draw.info().final_round.map(m=>m.data.dp);
@@ -3618,8 +3629,6 @@ let tournaments = function() {
                let match = match_event.match;
 
                match.score = outcome.score;
-               match.complete = outcome.complete;
-
                match.winner_index = outcome.winner;
 
                match.muid = match.muid || UUID.new();
@@ -5207,7 +5216,7 @@ let tournaments = function() {
          endPicker.setMinDate(new Date(start));
       };
       function updateEndDate() {
-         trny.start = end;
+         trny.end = end;
          startPicker.setEndRange(new Date(end));
          startPicker.setMaxDate(new Date(end));
          endPicker.setEndRange(new Date(end));

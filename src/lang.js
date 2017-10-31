@@ -126,6 +126,8 @@
       scoring: 'Scoring',
       time:    'Time',
       duration:'Duration',
+      qualifiers: 'Qualifiers',
+      none: 'None',
 
       set: 'Settings',
       importexport: 'Import / Export',
@@ -228,11 +230,13 @@
          cannotsignout: 'Cannot Sign Out',
          cannotchangerank: 'Cannot Change Rank',
          cannotchangewinner: 'Cannot Change Winner',
+         matchmustbecomplete: 'Match Must Be Complete!',
          approvedplayer: 'Player Approved for an Event',
          locallycreated: 'Locally Created Tournament',
          noremote: 'No Remote Registrations to Update',
          calculateranking: 'Calculate Ranking Points',
          generateranklist: 'Generate Rank List',
+         norankingdata: 'No Ranking Data',
       },
 
       events: {

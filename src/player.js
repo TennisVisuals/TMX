@@ -298,8 +298,8 @@ let player = function() {
       return data;
    }
 
-   fx.registration = (player) => player.registered_until ? new Date(player.registered_until) > new Date() : undefined;
-   fx.medical = (player) => player.right_to_play_until ? new Date(player.right_to_play_until) > new Date() : undefined;
+   fx.registration = (player) => player.registered_until ? new Date(player.registered_until) > new Date() : true;
+   fx.medical = (player) => player.right_to_play_until ? new Date(player.right_to_play_until) > new Date() : true;
 
    fx.createNewPlayer = createNewPlayer;
    function createNewPlayer({player_data={}, category, callback} = {}) {

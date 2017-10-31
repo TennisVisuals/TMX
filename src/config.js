@@ -322,7 +322,7 @@ let config = function() {
 
       searchBox.contextMenu = (ev) => {
          if (searchBox.category == 'players') {
-            let options = ['First Last', 'LAST First'];
+            let options = [lang.tr('search.firstlast'), lang.tr('search.lastfirst')];
             gen.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: doSomething });
 
             function doSomething(choice, index) {

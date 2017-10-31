@@ -126,6 +126,8 @@
       scoring: 'Scoring',
       time:    'Time',
       duration:'Duration',
+      qualifiers: 'Qualifiers',
+      none: 'None',
 
       set: 'Settings',
       importexport: 'Import / Export',
@@ -228,11 +230,13 @@
          cannotsignout: 'Cannot Sign Out',
          cannotchangerank: 'Cannot Change Rank',
          cannotchangewinner: 'Cannot Change Winner',
+         matchmustbecomplete: 'Match Must Be Complete!',
          approvedplayer: 'Player Approved for an Event',
          locallycreated: 'Locally Created Tournament',
          noremote: 'No Remote Registrations to Update',
          calculateranking: 'Calculate Ranking Points',
          generateranklist: 'Generate Rank List',
+         norankingdata: 'No Ranking Data',
       },
 
       events: {
@@ -406,6 +410,8 @@
       scoring: 'Bodovanje',
       time:    'Vrijeme',
       duration:'Trajanje',
+      qualifiers: 'Kvalifikacije',
+      none: 'Ništa',
 
       set: 'Postavke',
       importexport: 'Import / Export',
@@ -508,11 +514,13 @@
          cannotsignout: 'Nije moguće odjaviti',
          cannotchangerank: 'Ne može promijeniti rang',
          cannotchangewinner: 'Ne može promijeniti pobjednika',
+         matchmustbecomplete: 'Utakmica mora biti dovršena!',
          approvedplayer: 'Igrač odobren za događaj',
          locallycreated: 'Lokalno kreiran turnir',
          noremote: 'Nemoguće učitati daljinske registracije',
          calculateranking: 'Izračunaj rang bodove',
          generateranklist: 'Generiraj rang liste',
+         norankingdata: 'Nema rangnih podataka',
       },
 
       events: {

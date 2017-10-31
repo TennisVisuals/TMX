@@ -1098,7 +1098,7 @@
       `;
       gen.showConfigModal(html);
       dd.attachDropDown({ id: ids.category, options: categories });
-      dd.attachDropDown({ id: ids.rank, label: 'Rank:', options: ranks });
+      dd.attachDropDown({ id: ids.rank, label: `${lang.tr('rnk')}:`, options: ranks });
 
       let container = idObj(ids);
 
@@ -1230,7 +1230,7 @@
 
    gen.tabbedPlayerRankings = (tabdata, container) => {
       if (!tabdata.length) {
-         container.rankings.element.innerHTML = '<h2 class="flexcenter">No Ranking Data</h2>';
+         container.rankings.element.innerHTML = `<h2 class="flexcenter">${lang.tr('phrases.norankingdata')}</h2>`;
          return;
       }
       let html = `
@@ -2497,7 +2497,7 @@
             <div class='column'>
                <div class='entry_label' style='text-align: right'>${lang.tr('draws.brackets')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('draws.bracketsize')}</div>
-               <div class='entry_label qualifiers' style='text-align: right; display: none;'>Qualifiers</div>
+               <div class='entry_label qualifiers' style='text-align: right; display: none;'>${lang.tr('qualifiers')}</div>
             </div>
             <div class='column'>
                <div class='entry_field' id='${ids.brackets}'></div>
@@ -2526,7 +2526,7 @@
       let config = `
          <div class='detail_fields'>
             <div class='column'>
-               <div class='entry_label' style='text-align: right'>Qualifiers</div>
+               <div class='entry_label' style='text-align: right'>${lang.tr('qualifiers')}</div>
             </div>
             <div class='column'>
                <div class='entry_field' id='${ids.qualifiers}'></div>
@@ -2897,11 +2897,11 @@
       `;
       html += `
          <div class='rank_row rank_header'>
-            <div class='rank'>Rank</div>
-            <div class='points'>Points</div>
-            <div class='year'>Year</div>
-            <div class='name'>Name</div>
-            <div class='category'>Cat.</div>
+            <div class='rank'>${lang.tr('rnk')}</div>
+            <div class='points'>${lang.tr('pts')}</div>
+            <div class='year'>${lang.tr('yr')}</div>
+            <div class='name'>${lang.tr('nm')}</div>
+            <div class='category'>${lang.tr('cta')}</div>
          </div>
       `;
       let last_points;
