@@ -1,0 +1,11 @@
+2. Add tournament tab content for tournaments being planned
+   - include judge & other data that needs to go on PDFs
+
+3. PDF for Schedule
+
+4. Add Tournament Days to Schedule Tab
+   - add .day attribute to .schedule object
+
+6. Add Schedule PANE to Event Details editing...
+
+package main.js as a proper component, or break up into appropriate components
