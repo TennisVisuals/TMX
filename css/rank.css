@@ -1,0 +1,131 @@
+.rank_container {
+   width: 100%;
+   font-size: 1em;
+}
+.rank_info {
+   width: 100%;
+   font-size: 2em;
+   margin-bottom: 1em; 
+}
+.rank_columns {
+   display: flex;
+   flex-direction: row;
+   -webkit-flex-direction: row;
+   flex-wrap: wrap;
+}
+.rank_column_headings {
+   display: flex;
+   flex-direction: row;
+   -webkit-flex-direction: row;
+   flex-wrap: wrap;
+}
+.rank_column {
+   width: 50%;
+   min-width: 320px;
+   margin-bottom: 2em;
+   border: 1px solid gray;
+}
+.rank_column_heading {
+   width: 100%;
+   min-height: 1.5em;
+   background: white; 
+
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+.rank_row {
+   width: 100%;
+   min-height: 1.5em;
+   border-right: 1px solid #FFF;
+   background: white; 
+
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+}
+.rank_row:last-of-type {
+   border-bottom: 1px solid #FFF;
+}
+.rank_row:hover { 
+   background: blue; 
+   color: white;
+}
+.rank_row .rank { 
+   width: 15%; 
+   min-width: 3em;
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+}
+.rank_row .plus {
+   color: green;
+}
+.rank_row .minus {
+   color: red;
+}
+.rank_row .points { 
+   width: 10%; 
+   min-width: 4em;
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   overflow: hidden;
+}
+.rank_row .year { 
+   width: 10%; 
+   min-width: 3em;
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+}
+.rank_row .name { 
+   width: 75%; 
+   padding-left: .5em;
+   display: flex;
+   text-align: left;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+}
+.rank_row .category { 
+   width: 10%; 
+   min-width: 3em;
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+}
+.rank_row .detail {
+   width: 35%; 
+   padding-left: .5em;
+   display: flex;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+   overflow: hidden;
+}
+
+.rank_row div {
+   display: flex;
+   margin-left: 1px;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   border-left: 1px solid #FFF;
+}
+.rank_header div { 
+   height: 2em; 
+   color: black;
+   background: #E0E6F8;
+   /*
+   border-top: 1px solid #FFF;
+   border-bottom: 1px solid #FFF;
+   */
+}

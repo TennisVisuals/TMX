@@ -1,0 +1,72 @@
+.settings {
+   margin-right: 1em;
+   height: 100%;
+   display: flex;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+}
+
+.settingsrow {
+   height: 100%;
+   display: flex;
+   flex-direction: row;
+   -webkit-flex-direction: row;
+   justify-content: stretch;
+   -webkit-justify-content: stretch;
+}
+.setting {
+   width: 100%;
+   height: 2em;
+   display: flex;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   justify-content: flex-end;
+   -webkit-justify-content: flex-end;
+}
+.settings_values {
+   width: 100%;
+}
+.settingvalue {
+   width: 100%;
+   height: 2em;
+   display: flex;
+   margin-bottom: 3px;
+   justify-content: flex-start;
+   -webkit-justify-content: flex-start;
+}
+.settingvalue input {
+   font-size: 12pt;
+   height: 100%;
+   width: 100%;
+}
+
+.settingddlb {
+}
+
+.edit_org_image {
+   display: flex;
+   width: 300px;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   -webkit-justify-content: center;
+   justify-content: center;
+}
+
+.settings_icon {
+   width: 2em;
+   height: 2em;
+   margin-left: .3em;
+   margin-right: .3em;
+}
+
+.settings_images {
+   border: 1px solid gray;
+}

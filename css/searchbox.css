@@ -1,0 +1,104 @@
+/* SEARCH */
+
+/* fixed position elements must be external to component */
+#searchentry {
+   width: 100%;
+   height: 4em;
+   position: fixed;
+   left: 0;
+   top: 0;
+   width: 100%;
+   background-color: black;
+   z-index: 10000;
+}
+
+/* can blur be part of component? */
+.blur {
+   border: none;
+   width: 0px;
+   height: 0px;
+   background-color: black;
+   color: black;
+}
+
+input[type="search"] {
+    -webkit-appearance: textfield;
+}
+
+input[type="search"]::-webkit-search-decoration {
+    -webkit-appearance: none;
+}
+
+.searchbox {
+  vertical-align: middle;
+  white-space: nowrap;
+  position: relative;
+  color: white;
+}
+ 
+#searchinput {
+  width: 100%;
+  height: 2.5em;
+  background: #222;
+  border: none;
+  font-size: 10pt;
+  color: #262626;
+  padding-left: 4em;
+  padding-right: 1em;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  color: #fff;
+}
+
+.searchbox .icon{
+  position: absolute;
+  top: 20%;
+  margin-left: .5em;
+  z-index: 1;
+ 
+   -webkit-transition: all .55s ease;
+  -moz-transition: all .55s ease;
+  -ms-transition: all .55s ease;
+  -o-transition: all .55s ease;
+  transition: all .55s ease;
+}
+
+#search:focus, #search:active{ outline:none; }
+.searchbox:hover .icon{
+  color: #93a2ad;
+ 
+  -webkit-transform:scale(1.5); /* Safari and Chrome */
+  -moz-transform:scale(1.5); /* Firefox */
+  -ms-transform:scale(1.5); /* IE 9 */
+  -o-transform:scale(1.5); /* Opera */
+   transform:scale(1.5);
+}
+
+#searchresults {
+   display: flex;
+   width: 100%;
+}
+
+#searchbuffer {
+   height: 4em;
+   display: flex;
+	flex-wrap: wrap;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+}
+
+.searchicon { background-image: url("../icons/search.png"); }
+.searchicon_black { background-image: url("../icons/search_black.png"); }
+.search_tournament_total { background-image: url("../icons/cupwhite.png"); }
+.search_tournament_black { background-image: url("../icons/cupblack.png"); }
+.search_players_total { background-image: url("../icons/playerswhite.png"); }
+.search_players_black { background-image: url("../icons/players.png"); }
+.search_clubs_total { background-image: url("../icons/clubcourtwhite.png"); }
+.search_clubs_black { background-image: url("../icons/clubcourt.png"); }
+
+#searchcount {
+   color: white;
+   padding-right: 1em;
+   min-width: 4em;
+}

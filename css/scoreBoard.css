@@ -1,0 +1,219 @@
+.scoreboard {
+   display: flex;
+   background-color: #000;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+}
+.sbcolumn {
+   display: flex;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+}
+
+.scoring_icon { 
+   height: 1em;
+   width: 1em;
+}
+
+.scoreboard .info .round { margin-left: .5em; }
+.scoreboard .info {
+    min-height: 14px;
+    padding: 5px;
+    font-size: 10px;
+    color: #aaa;
+    text-transform: uppercase;
+    background-color: #222;
+}
+.scoreboard .info span { padding-top: 3px }
+.scoreboard .info div {
+    float: right;
+    width: 1.5em;
+    margin-left: 2px;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    color: #aaa;
+    background-color: #333;
+    border-style: none;
+    outline: 0
+}
+.scoreboard .info div:hover { background-color: #444 }
+
+.scoreboard .sbox {
+   display: flex;
+   width: 100%;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   background-color: #2f2f2f;
+}
+.scoreboard .expanded {
+   display: flex;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   background-color: #2f2f2f;
+   margin: 10px 5px 10px 5px;
+}
+.scoreboard .opponent {
+   height: 50%;
+   display: flex;
+   flex-direction: row;
+	flex-wrap: nowrap;
+	justify-content: space-between;
+	align-items: stretch;
+	align-content: center;
+   background-color: #2f2f2f;
+   color: white;
+}
+.scoreboard .expanded .winner { 
+   background-color: #486149;
+}
+.scoreboard .opponent0 { border-bottom: 2px solid #222; }
+.scoreboard .opponent-name {
+   padding: .5em .6em .6em 
+}
+.scoreboard .opponent-name .pad {
+   padding-right: .4em;
+}
+
+.scoreboard .opponent-scores {
+   display: flex;
+	flex-wrap: nowrap;
+   flex-direction: row;
+	flex-wrap: nowrap;
+	justify-content: flex-end;
+   -webkit-justify-content: flex-end;
+	align-content: center;
+}
+
+.scoreboard .score-selector {
+}
+
+.scoreboard .opponent .score-action span {
+   color: #7FFF00;
+}
+
+.scoreboard .opponent .opponent-scores .score {
+   display: flex;
+   min-width: 1.8em;
+   text-align: right;
+}
+
+.scoreboard .opponent .opponent-scores .setscore {
+   display:flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+	align-content: stretch;
+   -webkit-align-items: center;
+   align-items: center;
+}
+.scoreboard .opponent .opponent-scores .score .setscore {
+   display: flex;
+   padding-left: .5em;
+   text-align: right;
+}
+
+.scoreboard .set_number {
+   width: auto;
+}
+
+.scoreboard .opponent .opponent-scores .score .tbscore {
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+	align-content: stretch;
+   -webkit-align-items: center;
+   align-items: center;
+   font-size: .8em;
+   padding-left: .1em;
+   padding-bottom: 1.3em;
+   text-align: left;
+}
+
+.scoreboard .tbinput input {
+   border: 0;
+   width: 2em;
+   height: 100%;
+   display: none;
+   font-size: 1em;
+   text-align: center;
+}
+
+.scoreboard .last-name { text-transform: uppercase }
+.scoreboard .team_player {
+   display: flex;
+	flex-wrap: wrap;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+   align-items: center;
+   -webkit-align-items: center;
+}
+
+.scoreboard .time { float: right }
+
+.scoreboard .name-detail {
+   display: flex;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+}
+
+.scoreboard .scoreboard-action {
+   background-color: #222;
+   overflow: hidden;
+   width: 100%;
+}
+
+.scoreboard .scoreboard-action .frame {
+   padding: .5em;
+   background-color: #222;
+   height: 100%;
+}
+
+.scoreboard .scoreboard-action .edit {
+   display: none;
+   overflow: hidden;
+   background-color: #222;
+   color: white;
+}
+
+.scoreboard .scoreboard-actions {
+   display: flex;
+   flex-direction: row;
+   -webkit-flex-direction: row;
+   justify-content: space-around;
+   -webkit-justify-content: space-around;
+}
+
+.scoreboard .state {
+    height: 14px;
+    padding: 5px 5px 2px;
+    font-size: 10px;
+    color: #aaa;
+    text-transform: uppercase;
+    background-color: #222;
+}
+.scoreboard .time { float: right }
+
+.scoreboard .info-text { margin-right: 5px }
+
+.scoreboard .info {
+    min-height: 16px;
+    padding: 5px;
+    font-size: 10px;
+    color: #aaa;
+    text-transform: uppercase;
+    background-color: #222;
+}
+.scoreboard .info span { padding-top: 3px }
+.scoreboard .info button { float: right }
+
+.scoreboard button {
+   margin: .2em;
+   padding: .5em;
+   background: gray;
+   outline: none;
+   width: 10em;
+}

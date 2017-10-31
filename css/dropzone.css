@@ -1,0 +1,68 @@
+.dropzone { 
+   font-size: 1rem;
+   background-color: #FBFCFC;
+   padding-bottom: 3em;
+   min-height: 20em;
+}
+.dropzone.has-advanced-upload {
+   outline: 2px dashed #92b0b3;
+   outline-offset: -10px;
+
+   -webkit-transition: outline-offset .15s ease-in-out, background-color .15s linear;
+   transition: outline-offset .15s ease-in-out, background-color .15s linear;
+}
+.dropzone.is-dragover {
+   outline-offset: -20px;
+   outline-color: #c8dadf;
+   background-color: #fff;
+}
+.dropzone__dragndrop,
+.dropzone__icon {
+   display: none;
+}
+.dropzone.has-advanced-upload .dropzone__dragndrop {
+   display: inline;
+}
+.dropzone.has-advanced-upload .dropzone__icon {
+   width: 100%;
+   fill: #92b0b3;
+   display: block;
+}
+@-webkit-keyframes appear-from-inside {
+   from	{ -webkit-transform: translateY( -50% ) scale( 0 ); }
+   75%	{ -webkit-transform: translateY( -50% ) scale( 1.1 ); }
+   to		{ -webkit-transform: translateY( -50% ) scale( 1 ); }
+}
+@keyframes appear-from-inside {
+   from	{ transform: translateY( -50% ) scale( 0 ); }
+   75%		{ transform: translateY( -50% ) scale( 1.1 ); }
+   to		{ transform: translateY( -50% ) scale( 1 ); }
+}
+.js .dropzone__file {
+   width: 0.1px;
+   height: 0.1px;
+   opacity: 0;
+   overflow: hidden;
+   position: absolute;
+   z-index: -1;
+}
+.js .dropzone__file + label {
+   max-width: 80%;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+   cursor: pointer;
+   display: inline-block;
+   overflow: hidden;
+}
+.js .dropzone__file + label:hover strong,
+label:hover strong,
+.dropzone__file:focus + label strong,
+.dropzone__file.has-focus + label strong { color: #39bfd3; }
+.js .dropzone__file:focus + label,
+.js .dropzone__file.has-focus + label {
+   outline: 1px dotted #000;
+   outline: -webkit-focus-ring-color auto 5px;
+}
+.no-js .dropzone__file + label { display: none; }
+
+

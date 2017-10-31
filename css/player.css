@@ -1,0 +1,279 @@
+.centered_column {
+   display: flex;
+   width: 100%;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+
+.playerprofile {
+   width: 100%;
+/*   min-height: 15em; */
+   font-size: 1em;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+.player_info {
+   margin-bottom: 1em;
+}
+.player_actions {
+   width: 100%;
+   display: flex;
+   flex-direction: row;
+   -webkit-flex-direction: row;
+   flex-wrap: wrap;
+   justify-content: center;
+   -webkit-justify-content: center;
+   align-content: center;
+   -webkit-align-content: center;
+}
+.player_add_player {
+   width: 1.5em;
+   height: 0;
+   padding-bottom: 1.5em;
+   margin-left: .3em;
+   margin-right: .3em;
+   background-image: url("../icons/addplayer.png");
+   background-size: 100%;
+}
+
+.player_calc_points {
+   width: 1.5em;
+   height: 0;
+   padding-bottom: 1.5em;
+   margin-left: .3em;
+   margin-right: .3em;
+   background-image: url("../icons/calculate.png");
+   background-size: 100%;
+}
+
+.player_calc_ranks {
+   width: 1.5em;
+   height: 0;
+   padding-bottom: 1.5em;
+   margin-left: .3em;
+   margin-right: .3em;
+   background-image: url("../icons/rank.png");
+   background-size: 100%;
+}
+
+.player_action {
+   height: 2em;
+   font-size: 3em;
+   border-radius: 4px;
+   border: 2px solid #000;
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   margin-right: 1em;
+   margin-bottom: 1em;
+}
+.player_selection {
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: space-around;
+   justify-content: space-around;
+   margin-bottom: 1em;
+   padding: .5em;
+   border: 1px solid #000;
+}
+/*
+.player_date {
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+.player_header {
+   color: white;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+.player_row {
+   width: 100%;
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+   background: lightgray; 
+   border: 1px solid #FFF;
+}
+.player_row:hover { 
+   background: blue; 
+   color: white;
+}
+.player_row .dates {
+   width: 10%;
+   display: flex;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   -webkit-justify-content: space-around;
+   justify-content: space-around;
+}
+.player_row .name { 
+   width: 30%; 
+   padding-left: .5em;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+}
+.player_row .category { 
+   width: 5%; 
+   -webkit-justify-content: center;
+   justify-content: center;
+}
+.player_row .rank { 
+   width: 5%; 
+   -webkit-justify-content: center;
+   justify-content: center;
+}
+.player_row .club { 
+   width: 25%; 
+   padding-left: .5em;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+}
+.player_row .draws { 
+   width: 25%; 
+   padding-left: .5em;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+}
+
+.player_row div {
+   display: flex;
+   margin-left: 1px;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   border-left: 1px solid #FFF;
+}
+*/
+.player_section {
+   width: 100%;
+   margin-bottom: 1em;
+}
+
+.player_data {
+   display: flex;
+   width: 100%;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+
+.pdata { width: 100%; }
+.pdata_row { 
+   width: 100%; 
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+}
+.pdata_label { 
+   width: 50%; 
+   padding-right: 1em;
+   display: flex;
+   -webkit-justify-content: flex-end;
+   justify-content: flex-end;
+}
+.pdata_value { 
+   width: 50%; 
+   padding-left: 1em;
+   display: flex;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+}
+
+/* add players */
+.assignment-actions {
+   margin-left: .5em;
+   margin-right: .5em;
+}
+.playerattrs {
+   margin-right: .5em;
+   height: inherit;
+}
+.playerattr {
+   height: 100%;
+   text-align: right;
+   /*
+   display: flex;
+   -webkit-justify-content: flex-end;
+   justify-content: flex-end;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   */
+}
+.playerattrvalue {
+   margin-bottom: 3px;
+   margin-left: 3px;
+}
+
+.genderddlb {
+   margin-bottom: 3px;
+}
+
+.playerattrvalue .awesomplete {
+   color: white;
+}
+
+.add_player_form input {
+  font-size: 12pt;
+  height: 1.5em;
+}
+
+/* end add players */
+
+.ts-axis path,
+.ts-axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.ts-line {
+  fill: none;
+  stroke-width: 1.5px;
+}
+
+.ts-label, .ts-label-spacer {
+  font: 10px sans-serif;
+  text-anchor: middle;
+}
+
+.ts-label rect { fill: white; }
+.ts-label-spacer rect { fill: none; }
+
+.ts-label-key {
+  font: 10px sans-serif;
+  font-weight: bold;
+}

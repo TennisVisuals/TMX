@@ -1,0 +1,101 @@
+.dd {
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+}
+
+.dd ul {
+   /* width: 100%; */  /* setting width trims any children to width of label */
+   list-style: none;
+   padding: 0px;
+   margin: 0px;
+   height: 100%;
+}
+
+.dd div.options {
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   padding: 0;
+   margin: 0;
+}
+
+.dd .options span {
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+
+.dd div.label {
+   display: flex;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+   padding: 2px 3px 2px 0px;
+}
+
+.dd span {
+   height: 100%;
+   min-width: 3em;
+   text-align: center;
+   border: none;
+}
+.dd ul li {
+   /* height: 100%; */
+   display: block;
+   position: relative;
+   float: left;
+   background: #000;
+}
+.dd ul li span {
+   /* height: 100%; */
+   display: block;
+   background: gray;
+   padding: 2px 8px 2px 8px;
+   text-decoration: none;
+   white-space: nowrap;
+   color: #000;
+}
+
+.dd .selections {
+   max-height: 100px;
+   overflow-y: auto;
+}
+
+.dd .dd_state {
+   height: 100%;
+}
+
+.dd .selected, .dd div.label {
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+
+.dd li li { float: none; }
+.dd li ul { z-index: 1000; display: none; }
+.dd li:hover li span:hover { background: lightgray; }
+
+.dd li.active ul {
+  display: block; 
+  position: absolute;
+  background: gray;
+}
+
+.dd li ul li {
+  width: auto;
+  text-align: center;
+}
+
+
