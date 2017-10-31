@@ -309,6 +309,7 @@
       schedule: {
          allevents: 'All Events',
          allrounds: 'All Rounds',
+         allcourts: 'All Courts',
          autoschedule: 'Auto Schedule',
          clearschedule: 'Clear Schedule',
       },

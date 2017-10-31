@@ -269,6 +269,7 @@
       schedule: {
          allevents: 'Svi Događaji',
          allrounds: 'Sve Runde',
+         allcourts: 'Sve Igrališta',
          autoschedule: 'Automatski Raspored',
          clearschedule: 'Isprazni Raspored',
       },

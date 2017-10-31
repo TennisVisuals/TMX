@@ -2352,10 +2352,12 @@ let tournaments = function() {
          }
       }
 
-      function courtData() {
+      function courtData(luid) {
          let courts = [];
          tournament.locations.forEach(l => {
-            util.range(1, +l.courts + 1).forEach(i => courts.push({ luid: l.luid, name: `${l.abbreviation} ${i}` }));
+            util.range(1, +l.courts + 1).forEach(i => {
+               if (!luid || luid == l.luid) courts.push({ luid: l.luid, name: `${l.abbreviation} ${i}` });
+            });
          });
          return courts;
       }
@@ -2412,6 +2414,18 @@ let tournaments = function() {
          container.event_filter.ddlb = new dd.DropDown({ element: container.event_filter.element, id: container.event_filter.id, onChange: displayPending });
          container.event_filter.ddlb.selectionBackground();
 
+         let location_filters = [].concat({ key: lang.tr('schedule.allcourts'), value: '' }, ...tournament.locations.map(l => ({ key: l.name, value: l.luid })));
+         dd.attachDropDown({ 
+            id: container.location_filter.id, 
+            options: location_filters,
+            label: '',
+         });
+         container.location_filter.ddlb = new dd.DropDown({ element: container.location_filter.element, id: container.location_filter.id, onChange: displayCourts });
+         container.location_filter.ddlb.selectionBackground();
+
+         // show or hide option button depending on whether there is more than one option
+         util.getParent(container.location_filter.element, 'schedule_options').style.display = (tournament.locations.length > 1) ? 'flex' : 'none';
+
          let rounds = util.unique(pending_matches.map(m=>m.round_name));
          let round_filters = [].concat({ key: lang.tr('schedule.allrounds'), value: '' }, ...rounds.map(round => ({ key: round, value: round })));
          dd.attachDropDown({ 
@@ -2423,7 +2437,6 @@ let tournaments = function() {
          container.round_filter.ddlb.selectionBackground();
 
          displayPending();
-         displayScheduleGrid();
          dateChange(displayed_schedule_day);
 
          function dateChange(value) {
@@ -2441,6 +2454,13 @@ let tournaments = function() {
                // finished matches shouldn't be moved
                .filter(match => match.winner == undefined)
                .map(match => ({ value: match.muid, label: match.team_players.map(team=>teamName(match, team)).join(' v. ') }) );
+         }
+
+         function displayCourts() {
+            let luid = container.location_filter.ddlb.getValue();
+            courts = courtData(luid);
+            filterDayMatches();
+            displayScheduleGrid();
          }
 
          function displayPending() {
@@ -2851,7 +2871,7 @@ let tournaments = function() {
 
                      let { pending_matches } = tournamentEventMatches({ tournament, source: true });
                      pending_matches.forEach(match => {
-                        if (match.schedule.luid == l.luid) {
+                        if (match.schedule && match.schedule.luid == l.luid) {
                            match.schedule = {};
                            match.source.schedule = {};
                         }
@@ -3359,7 +3379,7 @@ let tournaments = function() {
             //       and .winner_index
             //       and .teams not being in order...
             players = [].concat(...match.teams);
-            team_players = match.teams.map((t, i) => t.map((m, j) => i + j));
+            team_players = match.teams.map((t, i) => t.map((m, j) => (i*t.length) + j));
          }
 
          let obj = {
@@ -3925,7 +3945,7 @@ let tournaments = function() {
             let selection_flag = false;
             let list = unplaced_teams.map(team => { 
                let player = team[0];
-               let label = util.normalizeName([player.first_name, player.last_name].join(' '));
+               let label = `${util.normalizeName([player.first_name, player.last_name].join(' '))} [${team.order}]`;
                return { value: player.puid, label, }
             });
             pobj.typeAhead = new Awesomplete(pobj.player_search.element, { list });
@@ -3933,7 +3953,9 @@ let tournaments = function() {
                if (!uuid) return;
                pobj.player_search.element.value = '';
                let team = unplaced_teams.filter(u=>u[0].puid == uuid)[0];
-               finish(team);
+
+               removeEntryField();
+               return placeRRplayer(team, placement, info);
             }
             pobj.player_search.element
                .addEventListener("awesomplete-selectcomplete", function(e) { selection_flag = true; selectPlayer(this.value); }, false);

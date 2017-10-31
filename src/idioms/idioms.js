@@ -309,6 +309,7 @@
       schedule: {
          allevents: 'All Events',
          allrounds: 'All Rounds',
+         allcourts: 'All Courts',
          autoschedule: 'Auto Schedule',
          clearschedule: 'Clear Schedule',
       },
@@ -600,6 +601,7 @@
       schedule: {
          allevents: 'Svi Događaji',
          allrounds: 'Sve Runde',
+         allcourts: 'Sve Igrališta',
          autoschedule: 'Automatski Raspored',
          clearschedule: 'Isprazni Raspored',
       },

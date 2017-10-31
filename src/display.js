@@ -1539,6 +1539,7 @@
          schedule_day: gen.uuid(),
          event_filter: gen.uuid(),
          round_filter: gen.uuid(),
+         location_filter: gen.uuid(),
          autoschedule: gen.uuid(),
          clearschedule: gen.uuid(),
          container: gen.uuid(),
@@ -1729,6 +1730,11 @@
                   </div>
                </div>
                <div id='${ids.unscheduled}' class='unscheduled_matches'></div>
+            </div>
+            <div class='schedule_options' style='display: none'>
+               <div class='options_left'>
+                  <div id='${ids.location_filter}'></div>
+               </div>
             </div>
             <div id='${ids.schedule}' class='schedule_sheet'> </div>
          </div>
