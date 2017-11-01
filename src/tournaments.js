@@ -14,6 +14,10 @@ let tournaments = function() {
             max_bracket_size: 5,
          },
       },
+      override: {
+         auto_byes: false,
+         auto_qualifiers: false,
+      },
       sign_in: {
          rapid: true,
       },
@@ -676,6 +680,7 @@ let tournaments = function() {
             let elem = document.querySelector('.' + classes.auto_draw);
             elem.firstChild.classList.toggle('automated_draw_pause');
             elem.firstChild.classList.toggle('automated_draw_play');
+            if (o.save) db.addTournament(tournament);
          }
 
          if ((auto == true && automated) || (auto == false && !automated)) return;
@@ -3485,12 +3490,12 @@ let tournaments = function() {
          // after all seeded positions have been placed, distribute byes
          if (!e && !tree_draw.nextSeedGroup()) {
             // context is working with a data structure
-            tree_draw.distributeByes();
-            tree_draw.distributeQualifiers();
+            if (o.override.auto_byes) tree_draw.distributeByes();
+            if (o.override.auto_qualifiers) tree_draw.distributeQualifiers();
          } else if (e && !drawFx.nextSeedGroup({ draw: e.draw })) {
             // context is interacting directly with draw
-            drawFx.distributeByes({ draw: e.draw });
-            drawFx.distributeQualifiers({ draw: e.draw });
+            if (o.override.auto_byes) drawFx.distributeByes({ draw: e.draw });
+            if (o.override.auto_qualifiers) drawFx.distributeQualifiers({ draw: e.draw });
          }
       }
 
@@ -3771,7 +3776,7 @@ let tournaments = function() {
 
          function assignPosition(position, team, bye, qualifier) {
             let linked = findEventByID(e.links['Q']) || findEventByID(e.links['R']);
-            if (linked && linked.qualified) {
+            if (linked && linked.qualified && team) {
                let qualifier_ids = linked.qualified.map(teamHash);
                if (qualifier_ids.indexOf(team[0].id) >= 0) { team[0].entry = 'Q'; }
             }
@@ -4011,6 +4016,11 @@ let tournaments = function() {
             let position = d.data.dp;
             let info = tree_draw.info();
 
+            if (info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length) {
+               let coords = d3.mouse(container.draws.element);
+               return contextPopUp(d, coords);
+            }
+
             let seed_group = drawFx.nextSeedGroup({ draw });
             let placements = draw.unseeded_placements.map(p=>p.id);
             let unplaced_teams = draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
@@ -4220,7 +4230,7 @@ let tournaments = function() {
 
          // this function needs to be in scope of createTournamentContainer()
          // so that it can have access to container.draws.element
-         function contextPopUp(d) {
+         function contextPopUp(d, coords) {
             if (!state.edit) {
                console.log('Not in editing state');
                return;
@@ -4230,7 +4240,7 @@ let tournaments = function() {
             let selector = d3.select('#' + container.draws.id + ' svg').node();
 
             let menu = contextMenu().selector(selector).events({ 'cleanup': tree_draw.unHighlightCells });
-            let coords = d3.mouse(container.draws.element);
+            coords = coords || d3.mouse(container.draws.element);
 
             let draw = e.draw;
             let info = tree_draw.info();
@@ -4243,7 +4253,18 @@ let tournaments = function() {
                if (seed_group) {
                   assignSeededPosition(position, seed_group);
                } else {
-                  assignUnseededPosition(position);
+                  if (info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length) {
+                     let player_count = (draw.opponents ? draw.opponents.length : 0) + (draw.qualifiers || 0);
+
+                     if (info.draw_positions.length > player_count + info.byes.length) {
+                        assignByeOrQualifier({ position, bye: true });
+                     } else {
+                        assignByeOrQualifier({ position, bye: false });
+                     }
+
+                  } else {
+                     assignUnseededPosition(position);
+                  }
                }
             } else if (!d.data.bye && !e.active && !e.automated) {
                // draw must not be active
@@ -4332,6 +4353,9 @@ let tournaments = function() {
                            tree_draw.advanceTeamsWithByes();
                            if (e.draw_type == 'Q') checkForQualifiedTeams(e);
                            drawCreated(e);
+                        } else if (!info.unassigned.length) {
+                           if (e.draw_type == 'Q') checkForQualifiedTeams(e);
+                           drawCreated(e);
                         }
 
                         if (o.save) db.addTournament(tournament);
@@ -4348,18 +4372,21 @@ let tournaments = function() {
                }
             }
 
-            // TODO: revive this!
-            function assignByePosition(position) {
+            function assignByeOrQualifier({ position, bye }) {
 
-               let byes = ['BYE'];
+               let choices = bye ? ['BYE'] : ['Qualifier'];
 
                menu
-                  .items(...byes)
+                  .items(...choices)
                   .events({ 
                      'item': { 'click': (d, i) => {
-                        // tree_draw.assignPosition(position, undefined, true);
-                        assignPosition(position, undefined, true);
+                        assignPosition(position, undefined, bye, !bye);
 
+                        let info = tree_draw.info();
+                        if (!info.unassigned.length) {
+                           if (e.draw_type == 'Q') checkForQualifiedTeams(e);
+                           drawCreated(e);
+                        }
                         if (o.save) db.addTournament(tournament);
 
                         tree_draw();
@@ -4370,7 +4397,8 @@ let tournaments = function() {
                if (device.isWindows || d3.event.shiftKey) {
                   setTimeout(function() { menu(coords[0], coords[1]); }, 200);
                } else {
-                  menu(coords[0], coords[1]);
+                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+                  // menu(coords[0], coords[1]);
                }
             }
          }
