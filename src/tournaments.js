@@ -864,9 +864,16 @@ let tournaments = function() {
 
          let { completed_matches, pending_matches } = tournamentEventMatches({ tournament, source: true });
          let all_matches = [].concat(...pending_matches, completed_matches);
-         let muid_key = Object.assign({}, ...all_matches.map(m=>({ [m.muid]: m })));
+         // let muid_key = Object.assign({}, ...all_matches.map(m=>({ [m.muid]: m })));
+
+         let luids = tournament.locations.map(l=>l.luid);
+         let luid = luids.length == 1 ? luids[0] : container.location_filter.ddlb.getValue();
+         let courts = courtData(luid);
+         let court_names = courts.map(c=>c.name);
+
+         let print_matches = all_matches.filter(f=>f.schedule && f.schedule.day == displayed_schedule_day && court_names.indexOf(f.schedule.court) >= 0);
          
-         exp.printSchedulePDF({ tournament });
+         exp.printSchedulePDF({ tournament, courts, print_matches });
       }
 
       function printDrawOrder() {
@@ -3304,6 +3311,7 @@ let tournaments = function() {
 
       // Returns NEW objects; modifications don't change originals
       // if 'source' is true, then source object is included...
+      fx.tem = tournamentEventMatches;
       function tournamentEventMatches({ tournament, source }) {
          if (!tournament.events) return { completed_matches: [], pending_matches: [], total_matches: 0 };
 

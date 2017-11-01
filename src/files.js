@@ -44,12 +44,6 @@
      let elem = document.body.appendChild(link);
      elem.click();
      elem.remove();
-     /*
-     document.body.appendChild(link);
-     link.click();
-     document.body.removeChild(link);
-     delete link;
-     */
    }
 
    exp.SVGasURI = (selector) => {
@@ -282,25 +276,224 @@
       });
    }
 
-   exp.printSchedulePDF = ({ tournament }) => {
-      getLogo().then(logo => schedulePDF(tournament, logo));
+   exp.printSchedulePDF = ({ tournament, courts, print_matches }) => {
+      getLogo().then(logo => schedulePDF(tournament, courts, print_matches, logo));
    }
 
-   function schedulePDF(tournament, logo) {
+   function tableRow() {
+      let cell = {
+         id: 'noBreak',
+         table: {
+            widths: [30, '*', '*', '*', '*'],
+            body: [
+               [
+                  scheduleCell(),
+                  scheduleCell(0),
+                  scheduleCell(1),
+                  scheduleCell(2),
+                  scheduleCell(3),
+               ],
+            ]
+         },
+         layout: {
+            defaultBorder: false,
+            paddingLeft: function(i, node) { return 0; },
+            paddingRight: function(i, node) { return 0; },
+            paddingTop: function(i, node) { return 0; },
+            paddingBottom: function(i, node) { return 0; },
+         }
+      }; 
+      return cell;
+   }
+
+   function scheduleCell(match) {
+      /*
+      let match = {
+         nb: 'NB: 10:00',
+         round: 'M12 Singles QF',
+         spacer: ' ',
+         player1: 'Marin Cilic (CRO)',
+         vs: 'vs.',
+         player2: 'Roger Federer (SUI)',
+         score: '7-5, 7-5',
+      }
+      */
+      match = {};
+      let x = ' ';
+      let cell = {
+         table: {
+            widths: ['*'],
+            body: [
+               [ { text: match.nb || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+               [ { text: match.round || x, style: 'centeredItalic', margin: [0, 0, 0, 0] }, ],
+               [ { text: match.spacer || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+               [ { text: match.player1 || x, style: 'teamName', margin: [0, 0, 0, 0] }, ],
+               [ { text: match.vs || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+               [ { text: match.player2 || x, style: 'teamName', margin: [0, 0, 0, 0] }, ],
+               [ { text: match.score || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+               [ { text: match.spacer || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+            ]
+         },
+         layout: {
+            paddingLeft: function(i, node) { return 0; },
+            paddingRight: function(i, node) { return 0; },
+            paddingTop: function(i, node) { return 0; },
+            paddingBottom: function(i, node) { return 0; },
+            hLineWidth: function (i, node) {
+					return (i === 0 || i === node.table.body.length) ? 1 : 0;
+				},
+            vLineWidth: function (i, node) {
+					return (i === 0 || i === node.table.widths.length) ? 1 : 0;
+				},
+         }
+      }; 
+      return cell;
+   }
+
+   function scheduleRow(num_columns) {
+      let cols = [{ stack: [scheduleCell()], width: 30 }].concat(...util.range(0, num_columns.length).map(scheduleCell));
+      return {
+         id: 'noBreak',
+         columns: cols,
+      };
+   }
+
+   function scheduleHeaderRow(court_names) {
+      let cols = [{ text: ' ', width: 30 }].concat(...util.range(0, court_names.length).map(headerCell));
+      return {
+         id: 'noBreak',
+         columns: cols,
+      };
+   }
+
+   function infoCell(court_name) {
+      let cell = {
+         width: 30,
+         table: {
+            widths: [30],
+            body: [
+               [
+                  { text: court_name , style: 'centeredTableHeader', margin: [0, 0, 0, 0] },
+               ],
+            ]
+         },
+         layout: {
+            paddingLeft: function(i, node) { return 0; },
+            paddingRight: function(i, node) { return 0; },
+            paddingTop: function(i, node) { return 0; },
+            paddingBottom: function(i, node) { return 0; },
+         }
+      }; 
+      return cell;
+   }
+
+   function headerCell(court_name) {
+      let cell = {
+         table: {
+            widths: ['*'],
+            body: [
+               [
+                  { text: court_name , style: 'centeredTableHeader', margin: [0, 0, 0, 0] },
+               ],
+            ]
+         },
+         layout: {
+            paddingLeft: function(i, node) { return 0; },
+            paddingRight: function(i, node) { return 0; },
+            paddingTop: function(i, node) { return 0; },
+            paddingBottom: function(i, node) { return 0; },
+         }
+      }; 
+      return cell;
+   }
+
+   function schedulePDF(tournament, courts, matches, logo) {
+
+      let pageOrientation = courts.length < 5 ? 'portrait' : 'landscape';
 
       let page_header = schedulePageHeader(tournament, logo);
 
-      let content = [page_header];
+      let rounds = util.unique(matches.map(m=>parseInt(m.schedule.oop_round)));
+      let row_matches = util.range(1, Math.max(...rounds) + 1).map(oop_round => matches.filter(m=>m.schedule.oop_round == oop_round));
+
+      console.log(matches);
+      console.log(rounds);
+      console.log(row_matches);
+
+      let cts = ['1', '2', '3', '4'];
+
+      /*
+      let body = {
+         stack: [
+            scheduleHeaderRow(cts), 
+            scheduleRow(cts),
+            scheduleRow(cts),
+            scheduleRow(cts),
+            scheduleRow(cts),
+            scheduleRow(cts),
+            scheduleRow(cts),
+            scheduleRow(cts),
+            scheduleRow(cts),
+         ]
+      };
+
+      body = {
+         stack: [
+            tableRow(),
+            tableRow(),
+         ]
+      }
+      */
+
+      let body = {
+         table: {
+            widths: ['*'],
+            headerRows: 1,
+            body: [
+               [ scheduleHeaderRow(cts), ],
+               [ scheduleRow(cts), ],
+               [ scheduleRow(cts), ],
+               [ scheduleRow(cts), ],
+               [ scheduleRow(cts), ],
+               [ scheduleRow(cts), ],
+               [ scheduleRow(cts), ],
+               [ scheduleRow(cts), ],
+               [ scheduleRow(cts), ],
+               [ scheduleRow(cts), ],
+               [ scheduleRow(cts), ],
+            ]
+         },
+         layout: {
+            defaultBorder: false,
+            paddingLeft: function(i, node) { return 0; },
+            paddingRight: function(i, node) { return 0; },
+            paddingTop: function(i, node) { return 0; },
+            paddingBottom: function(i, node) { return 0; },
+         }
+      }; 
+
+      let content = [ body ];
 
       var docDefinition = {
          pageSize: 'A4',
-         pageOrientation: 'portrait',
+         pageOrientation,
 
-         // TODO ...
-         // pageMargin for the footer needs to be calculated based on # players in cells
-         pageMargins: [ 10, 20, 10, 120 ],
+         pageMargins: [ 10, 80, 10, 10 ],
+
+         pageBreakBefore: function(currentNode) {
+            return currentNode.id == 'noBreak' && currentNode.pageNumbers.length != 1;
+         },
 
          content,
+
+         // TODO: increase pageMargins to accomodate whatever header is desired...
+         header: function(page) { 
+            if (page == 1) {
+               return schedulePageHeader(tournament, logo);
+            } else {
+               return schedulePageHeader(tournament, logo);
+            }
+         },
 
          styles: {
             docTitle: {
@@ -322,6 +515,22 @@
             tableData: {
                fontSize: 9,
                bold: true
+            },
+            teamName: {
+               alignment: 'center',
+               fontSize: 12,
+               bold: true,
+            },
+            centeredText: {
+               alignment: 'center',
+               fontSize: 10,
+               bold: false,
+            },
+            centeredItalic: {
+               alignment: 'center',
+               fontSize: 9,
+               bold: false,
+               italics: true,
             },
             centeredTableHeader: {
                alignment: 'center',
@@ -546,10 +755,10 @@
 
    function schedulePageHeader(tournament, logo) {
       let schedule = {
+         margin: [ 10, 10, 10, 0 ],
          fontSize: 10,
          table: {
             widths: ['*', '*', '*', '*', '*', 'auto'],
-            headerRows: 2,
             body: [
                [
                   { 
@@ -600,7 +809,6 @@
                   { text: ' ', style: 'tableData' },
                   { text: ' ', style: 'tableData' },
                ],
-               [ {text: ' ', fontSize: 1, colSpan: 6, border: [false, false, false, true]}, {}, {}, {}, {}, {}],
             ]
          },
          layout: {
@@ -609,7 +817,8 @@
             paddingRight: function(i, node) { return 0; },
             paddingTop: function(i, node) { return 0; },
             paddingBottom: function(i, node) { return 0; },
-         }
+         },
+         margins: [10, 0, 10, 0],
       }
 
       return schedule;
@@ -1105,6 +1314,79 @@
    this.exp = exp;
  
 }();
+
+/*
+ // PDFMAKE EXAMPLES
+
+   docDefinition = {
+      pageOrientation: 'portrait',
+      content: [
+        {text: 'Text on Portrait'},
+        {text: 'Text on Landscape', pageOrientation: 'landscape', pageBreak: 'before'},
+        {text: 'Text on Landscape 2', pageOrientation: 'portrait', pageBreak: 'after'},
+        {text: 'Text on Portrait 2'},
+      ]
+    }
+
+     pageBreakBefore: function(currentNode, followingNodesOnPage, nodesOnNextPage, previousNodesOnPage) {
+        var pageInnerHeight = currentNode.startPosition.pageInnerHeight;
+        var top = (currentNode.startPosition.top) ? currentNode.startPosition.top : 0;
+        var footerHeight = 30;
+        var nodeHeight = 0;
+        if (followingNodesOnPage && followingNodesOnPage.length) {
+           nodeHeight = followingNodesOnPage[0].startPosition.top - top;
+        }
+
+        if (currentNode.headlineLevel === 'footer') return false;
+
+        return (currentNode.image && (top + nodeHeight + footerHeight > pageInnerHeight))
+           || (currentNode.headlineLevel === 'longField' && (top + nodeHeight + footerHeight > pageInnerHeight))
+           || currentNode.startPosition.verticalRatio >= 0.95;
+     }
+
+// https://github.com/bpampuch/pdfmake/releases/tag/0.1.17
+
+var dd = {
+  content: [
+    {text: '1 Headline', headlineLevel: 1},
+    'Some long text of variable length ...',
+    {text: '2 Headline', headlineLevel: 1},
+    'Some long text of variable length ...',
+    {text: '3 Headline', headlineLevel: 1},
+    'Some long text of variable length ...',
+  ],
+  pageBreakBefore: function(currentNode, followingNodesOnPage, nodesOnNextPage, previousNodesOnPage) {
+    return currentNode.headlineLevel === 1 && followingNodesOnPage.length === 0;
+  }
+}
+
+// If pageBreakBefore returns true, a page break will be added before the currentNode. Current node has the following information attached:
+{
+ id: '<as specified in doc definition>', 
+ headlineLevel: '<as specified in doc definition>',
+ text: '<as specified in doc definition>', 
+ ul: '<as specified in doc definition>', 
+ ol: '<as specified in doc definition>', 
+ table: '<as specified in doc definition>', 
+ image: '<as specified in doc definition>', 
+ qr: '<as specified in doc definition>', 
+ canvas: '<as specified in doc definition>', 
+ columns: '<as specified in doc definition>', 
+ style: '<as specified in doc definition>', 
+ pageOrientation '<as specified in doc definition>',
+ pageNumbers: [2, 3], // The pages this element is visible on (e.g. multi-line text could be on more than one page)
+ pages: 6, // the total number of pages of this document
+ stack: false, // if this is an element which encapsulates multiple sub-objects
+ startPosition: {
+   pageNumber: 2, // the page this node starts on
+   pageOrientation: 'landscape', // the orientation of this page
+   left: 60, // the left position
+   right: 60, // the right position
+   verticalRatio: 0.2, // the ratio of space used vertically in this document (excluding margins)
+   horizontalRatio: 0.0  // the ratio of space used horizontally in this document (excluding margins)
+ }
+}
+*/
 
 /*
 
