@@ -280,33 +280,44 @@
       getLogo().then(logo => schedulePDF(tournament, courts, print_matches, logo));
    }
 
-   /*
-   function tableRow() {
-      let cell = {
+   function xRow(body, widths) {
+      let row = {
          id: 'noBreak',
          table: {
-            widths: [30, '*', '*', '*', '*'],
-            body: [
-               [
-                  scheduleCell(),
-                  scheduleCell(0),
-                  scheduleCell(1),
-                  scheduleCell(2),
-                  scheduleCell(3),
-               ],
-            ]
+            widths,
+            body: [body],
          },
          layout: {
-            defaultBorder: false,
             paddingLeft: function(i, node) { return 0; },
             paddingRight: function(i, node) { return 0; },
             paddingTop: function(i, node) { return 0; },
             paddingBottom: function(i, node) { return 0; },
          }
       }; 
-      return cell;
+      return row;
    }
-   */
+
+   function tableRow(i, cells) {
+      let body = [{ stack: [scheduleCell({ round: i })], width: 30 }].concat(...cells.map((c, i) => scheduleCell(c)));
+      let widths = [30].concat(...cells.map(c=>'*'));
+      return xRow(body, widths);
+   }
+
+   function headerRow(court_names) {
+      let body = [{ text: ' ', width: 30 }].concat(...court_names.map(headerCell));
+      let widths = [30].concat(...court_names.map(c=>'*'));
+      return xRow(body, widths);
+   }
+
+   function scheduleRow(i, cells) {
+      let columns = [{ stack: [scheduleCell({ round: i })], width: 30 }].concat(...cells.map((c, i) => scheduleCell(c, true)));
+      return { id: 'noBreak', columns, };
+   }
+
+   function scheduleHeaderRow(court_names) {
+      let columns = [{ text: ' ', width: 30 }].concat(...court_names.map(headerCell));
+      return { id: 'noBreak', columns, };
+   }
 
    function teamName(match, team) {
       if (team.length == 1) {
@@ -319,8 +330,7 @@
       }
    }
 
-   function scheduleCell(match) {
-      console.log(match);
+   function scheduleCell(match, lines=false) {
       let format = lang.tr(`formats.${match.format || ''}`);
       let category = match.event ? match.event.category : '';
       let nb = match.schedule ? match.schedule.nb || '' : ''
@@ -353,43 +363,8 @@
             paddingRight: function(i, node) { return 0; },
             paddingTop: function(i, node) { return 0; },
             paddingBottom: function(i, node) { return 0; },
-            hLineWidth: function (i, node) {
-					return (i === 0 || i === node.table.body.length) ? 1 : 0;
-				},
-            vLineWidth: function (i, node) {
-					return (i === 0 || i === node.table.widths.length) ? 1 : 0;
-				},
-         }
-      }; 
-      return cell;
-   }
-
-   function scheduleRow(i, cells) {
-      let columns = [{ stack: [scheduleCell({ round: i })], width: 30 }].concat(...cells.map((c, i) => scheduleCell(c)));
-      return { id: 'noBreak', columns, };
-   }
-
-   function scheduleHeaderRow(court_names) {
-      let columns = [{ text: ' ', width: 30 }].concat(...court_names.map(headerCell));
-      return { id: 'noBreak', columns, };
-   }
-
-   function infoCell(court_name) {
-      let cell = {
-         width: 30,
-         table: {
-            widths: [30],
-            body: [
-               [
-                  { text: court_name , style: 'centeredTableHeader', margin: [0, 0, 0, 0] },
-               ],
-            ]
-         },
-         layout: {
-            paddingLeft: function(i, node) { return 0; },
-            paddingRight: function(i, node) { return 0; },
-            paddingTop: function(i, node) { return 0; },
-            paddingBottom: function(i, node) { return 0; },
+            hLineWidth: function (i, node) { return (lines && (i === 0 || i === node.table.body.length)) ? 1 : 0; },
+            vLineWidth: function (i, node) { return (lines && (i === 0 || i === node.table.widths.length)) ? 1 : 0; },
          }
       }; 
       return cell;
@@ -406,6 +381,7 @@
             ]
          },
          layout: {
+            defaultBorder: false,
             paddingLeft: function(i, node) { return 0; },
             paddingRight: function(i, node) { return 0; },
             paddingTop: function(i, node) { return 0; },
@@ -430,7 +406,9 @@
       let rows = row_matches
          .map((row, i) => column_headers.map(court_name => row_matches[i].reduce((p, m) => m.schedule.court == court_name ? m : p, {})));
 
-      let body = [[scheduleHeaderRow(column_headers)]].concat(rows.map((r, i) =>[ scheduleRow(i + 1, rows[i]) ]));
+      // let body = [[scheduleHeaderRow(column_headers)]].concat(rows.map((r, i) =>[ scheduleRow(i + 1, rows[i]) ]));
+      // let body = [[scheduleHeaderRow(column_headers)]].concat(rows.map((r, i) =>[ tableRow(i + 1, rows[i]) ]));
+      let body = [[headerRow(column_headers)]].concat(rows.map((r, i) =>[ tableRow(i + 1, rows[i]) ]));
 
       let schedule_rows = {
          table: {
