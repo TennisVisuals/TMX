@@ -298,25 +298,15 @@
    }
 
    function tableRow(i, cells) {
-      let body = [{ stack: [scheduleCell({ round: i })], width: 30 }].concat(...cells.map((c, i) => scheduleCell(c)));
+      let body = [{ stack: [scheduleCell({ oop: i })], width: 30 }].concat(...cells.map((c, i) => scheduleCell(c)));
       let widths = [30].concat(...cells.map(c=>'*'));
       return xRow(body, widths);
    }
 
-   function headerRow(court_names) {
+   function scheduleHeaderRow(court_names) {
       let body = [{ text: ' ', width: 30 }].concat(...court_names.map(headerCell));
       let widths = [30].concat(...court_names.map(c=>'*'));
       return xRow(body, widths);
-   }
-
-   function scheduleRow(i, cells) {
-      let columns = [{ stack: [scheduleCell({ round: i })], width: 30 }].concat(...cells.map((c, i) => scheduleCell(c, true)));
-      return { id: 'noBreak', columns, };
-   }
-
-   function scheduleHeaderRow(court_names) {
-      let columns = [{ text: ' ', width: 30 }].concat(...court_names.map(headerCell));
-      return { id: 'noBreak', columns, };
    }
 
    function teamName(match, team) {
@@ -337,11 +327,13 @@
       let display = {
          nb,
          round: `${match.gender || ''}${category} ${format} ${match.round_name || ''}`,
-         spacer: ' ',
+         oop: match.oop || '',
          player1: match.players ? teamName(match, match.team_players[0]) : '',
-         vs: match.players ? 'vs.' : '',
+         vs: match.players ? match.score ? 'def.' : 'vs.' : '',
          player2: match.players ? teamName(match, match.team_players[1]) : '',
-         score: match.score || '',
+         spacer: match.spacer || '',
+         scoreline: `${match.score || ''} ${match.judge || ''}`,
+         spacer: match.spacer || '',
       }
       let x = ' ';
       let cell = {
@@ -350,12 +342,12 @@
             body: [
                [ { text: display.nb || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
                [ { text: display.round || x, style: 'centeredItalic', margin: [0, 0, 0, 0] }, ],
-               [ { text: display.spacer || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.oop || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
                [ { text: display.player1 || x, style: 'teamName', margin: [0, 0, 0, 0] }, ],
                [ { text: display.vs || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
                [ { text: display.player2 || x, style: 'teamName', margin: [0, 0, 0, 0] }, ],
-               [ { text: display.score || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
                [ { text: display.spacer || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.scoreline || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
             ]
          },
          layout: {
@@ -406,17 +398,17 @@
       let rows = row_matches
          .map((row, i) => column_headers.map(court_name => row_matches[i].reduce((p, m) => m.schedule.court == court_name ? m : p, {})));
 
-      // let body = [[scheduleHeaderRow(column_headers)]].concat(rows.map((r, i) =>[ scheduleRow(i + 1, rows[i]) ]));
-      // let body = [[scheduleHeaderRow(column_headers)]].concat(rows.map((r, i) =>[ tableRow(i + 1, rows[i]) ]));
-      let body = [[headerRow(column_headers)]].concat(rows.map((r, i) =>[ tableRow(i + 1, rows[i]) ]));
+      let body = [[scheduleHeaderRow(column_headers)]].concat(rows.map((r, i) =>[ tableRow(i + 1, rows[i]) ]));
 
       let schedule_rows = {
+         margin: 0,
          table: {
             widths: ['*'],
             headerRows: 1,
             body,
          },
          layout: {
+            margin: 0,
             defaultBorder: false,
             paddingLeft: function(i, node) { return 0; },
             paddingRight: function(i, node) { return 0; },
