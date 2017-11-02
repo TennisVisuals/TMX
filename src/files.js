@@ -280,6 +280,7 @@
       getLogo().then(logo => schedulePDF(tournament, courts, print_matches, logo));
    }
 
+   /*
    function tableRow() {
       let cell = {
          id: 'noBreak',
@@ -305,33 +306,46 @@
       }; 
       return cell;
    }
+   */
+
+   function teamName(match, team) {
+      if (team.length == 1) {
+         let p = match.players[team[0]];
+         let club = p.club_code ? ` (${p.club_code})` : '';
+         let full_name = `${util.normalizeName(p.first_name)} ${util.normalizeName(p.last_name).toUpperCase()}`; 
+         return `${full_name}${club}`;
+      } else {
+         return team.map(p => util.normalizeName(match.players[p].last_name).toUpperCase()).join('/');
+      }
+   }
 
    function scheduleCell(match) {
-      /*
-      let match = {
-         nb: 'NB: 10:00',
-         round: 'M12 Singles QF',
+      console.log(match);
+      let format = lang.tr(`formats.${match.format || ''}`);
+      let category = match.event ? match.event.category : '';
+      let nb = match.schedule ? match.schedule.nb || '' : ''
+      let display = {
+         nb,
+         round: `${match.gender || ''}${category} ${format} ${match.round_name || ''}`,
          spacer: ' ',
-         player1: 'Marin Cilic (CRO)',
-         vs: 'vs.',
-         player2: 'Roger Federer (SUI)',
-         score: '7-5, 7-5',
+         player1: match.players ? teamName(match, match.team_players[0]) : '',
+         vs: match.players ? 'vs.' : '',
+         player2: match.players ? teamName(match, match.team_players[1]) : '',
+         score: match.score || '',
       }
-      */
-      match = {};
       let x = ' ';
       let cell = {
          table: {
             widths: ['*'],
             body: [
-               [ { text: match.nb || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
-               [ { text: match.round || x, style: 'centeredItalic', margin: [0, 0, 0, 0] }, ],
-               [ { text: match.spacer || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
-               [ { text: match.player1 || x, style: 'teamName', margin: [0, 0, 0, 0] }, ],
-               [ { text: match.vs || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
-               [ { text: match.player2 || x, style: 'teamName', margin: [0, 0, 0, 0] }, ],
-               [ { text: match.score || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
-               [ { text: match.spacer || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.nb || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.round || x, style: 'centeredItalic', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.spacer || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.player1 || x, style: 'teamName', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.vs || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.player2 || x, style: 'teamName', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.score || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.spacer || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
             ]
          },
          layout: {
@@ -350,20 +364,14 @@
       return cell;
    }
 
-   function scheduleRow(num_columns) {
-      let cols = [{ stack: [scheduleCell()], width: 30 }].concat(...util.range(0, num_columns.length).map(scheduleCell));
-      return {
-         id: 'noBreak',
-         columns: cols,
-      };
+   function scheduleRow(i, cells) {
+      let columns = [{ stack: [scheduleCell({ round: i })], width: 30 }].concat(...cells.map((c, i) => scheduleCell(c)));
+      return { id: 'noBreak', columns, };
    }
 
    function scheduleHeaderRow(court_names) {
-      let cols = [{ text: ' ', width: 30 }].concat(...util.range(0, court_names.length).map(headerCell));
-      return {
-         id: 'noBreak',
-         columns: cols,
-      };
+      let columns = [{ text: ' ', width: 30 }].concat(...court_names.map(headerCell));
+      return { id: 'noBreak', columns, };
    }
 
    function infoCell(court_name) {
@@ -393,7 +401,7 @@
             widths: ['*'],
             body: [
                [
-                  { text: court_name , style: 'centeredTableHeader', margin: [0, 0, 0, 0] },
+                  { text: court_name || ' ', style: 'centeredTableHeader', margin: [0, 0, 0, 0] },
                ],
             ]
          },
@@ -410,58 +418,25 @@
    function schedulePDF(tournament, courts, matches, logo) {
 
       let pageOrientation = courts.length < 5 ? 'portrait' : 'landscape';
-
-      let page_header = schedulePageHeader(tournament, logo);
+      let minimum_columns = courts.length < 5 ? 4 : 7;
 
       let rounds = util.unique(matches.map(m=>parseInt(m.schedule.oop_round)));
-      let row_matches = util.range(1, Math.max(...rounds) + 1).map(oop_round => matches.filter(m=>m.schedule.oop_round == oop_round));
+      let max_round = Math.max(6, ...rounds);
+      let row_matches = util.range(1, max_round + 1).map(oop_round => matches.filter(m=>m.schedule.oop_round == oop_round));
 
-      console.log(matches);
-      console.log(rounds);
-      console.log(row_matches);
+      let column_headers = [...Array(Math.max(minimum_columns, courts.length))].map(m=>'');
+      courts.forEach((court, i) => column_headers[i] = court.name);
 
-      let cts = ['1', '2', '3', '4'];
+      let rows = row_matches
+         .map((row, i) => column_headers.map(court_name => row_matches[i].reduce((p, m) => m.schedule.court == court_name ? m : p, {})));
 
-      /*
-      let body = {
-         stack: [
-            scheduleHeaderRow(cts), 
-            scheduleRow(cts),
-            scheduleRow(cts),
-            scheduleRow(cts),
-            scheduleRow(cts),
-            scheduleRow(cts),
-            scheduleRow(cts),
-            scheduleRow(cts),
-            scheduleRow(cts),
-         ]
-      };
+      let body = [[scheduleHeaderRow(column_headers)]].concat(rows.map((r, i) =>[ scheduleRow(i + 1, rows[i]) ]));
 
-      body = {
-         stack: [
-            tableRow(),
-            tableRow(),
-         ]
-      }
-      */
-
-      let body = {
+      let schedule_rows = {
          table: {
             widths: ['*'],
             headerRows: 1,
-            body: [
-               [ scheduleHeaderRow(cts), ],
-               [ scheduleRow(cts), ],
-               [ scheduleRow(cts), ],
-               [ scheduleRow(cts), ],
-               [ scheduleRow(cts), ],
-               [ scheduleRow(cts), ],
-               [ scheduleRow(cts), ],
-               [ scheduleRow(cts), ],
-               [ scheduleRow(cts), ],
-               [ scheduleRow(cts), ],
-               [ scheduleRow(cts), ],
-            ]
+            body,
          },
          layout: {
             defaultBorder: false,
@@ -472,7 +447,7 @@
          }
       }; 
 
-      let content = [ body ];
+      let content = [ schedule_rows ];
 
       var docDefinition = {
          pageSize: 'A4',
