@@ -276,8 +276,8 @@
       });
    }
 
-   exp.printSchedulePDF = ({ tournament, courts, print_matches }) => {
-      getLogo().then(logo => schedulePDF(tournament, courts, print_matches, logo));
+   exp.printSchedulePDF = ({ tournament, day, courts, matches }) => {
+      getLogo().then(logo => schedulePDF(tournament, day, courts, matches, logo));
    }
 
    function xRow(body, widths) {
@@ -366,11 +366,7 @@
       let cell = {
          table: {
             widths: ['*'],
-            body: [
-               [
-                  { text: court_name || ' ', style: 'centeredTableHeader', margin: [0, 0, 0, 0] },
-               ],
-            ]
+            body: [ [ { text: court_name || ' ', style: 'centeredTableHeader', margin: [0, 0, 0, 0] }, ], ]
          },
          layout: {
             defaultBorder: false,
@@ -383,13 +379,16 @@
       return cell;
    }
 
-   function schedulePDF(tournament, courts, matches, logo) {
+   function schedulePDF(tournament, day, courts, matches, logo) {
 
       let pageOrientation = courts.length < 5 ? 'portrait' : 'landscape';
-      let minimum_columns = courts.length < 5 ? 4 : 7;
+      let minimum_columns = courts.length < 5 ? 4 : 8;
+      let portrait = pageOrientation == 'portrait';
+      let minimum_rows = portrait ? 6 : 4;
+      let team_font_size = portrait ? 10 : 8;
 
       let rounds = util.unique(matches.map(m=>parseInt(m.schedule.oop_round)));
-      let max_round = Math.max(6, ...rounds);
+      let max_round = Math.max(minimum_rows, ...rounds);
       let row_matches = util.range(1, max_round + 1).map(oop_round => matches.filter(m=>m.schedule.oop_round == oop_round));
 
       let column_headers = [...Array(Math.max(minimum_columns, courts.length))].map(m=>'');
@@ -401,14 +400,12 @@
       let body = [[scheduleHeaderRow(column_headers)]].concat(rows.map((r, i) =>[ tableRow(i + 1, rows[i]) ]));
 
       let schedule_rows = {
-         margin: 0,
          table: {
             widths: ['*'],
             headerRows: 1,
             body,
          },
          layout: {
-            margin: 0,
             defaultBorder: false,
             paddingLeft: function(i, node) { return 0; },
             paddingRight: function(i, node) { return 0; },
@@ -423,7 +420,7 @@
          pageSize: 'A4',
          pageOrientation,
 
-         pageMargins: [ 10, 80, 10, 10 ],
+         pageMargins: [ 20, 80, 20, 50 ],
 
          pageBreakBefore: function(currentNode) {
             return currentNode.id == 'noBreak' && currentNode.pageNumbers.length != 1;
@@ -431,18 +428,19 @@
 
          content,
 
-         // TODO: increase pageMargins to accomodate whatever header is desired...
          header: function(page) { 
             if (page == 1) {
-               return schedulePageHeader(tournament, logo);
+               return schedulePageHeader(tournament, day, logo);
             } else {
-               return schedulePageHeader(tournament, logo);
+               return schedulePageHeader(tournament, day, logo);
             }
          },
 
+         footer: schedulePageFooter(tournament),
+
          styles: {
             docTitle: {
-               fontSize: 11,
+               fontSize: 12,
                bold: true,
             },
             subtitle: {
@@ -451,6 +449,7 @@
                bold: true,
             },
             docName: {
+               alignment: 'center',
                fontSize: 10,
                bold: true,
             },
@@ -463,7 +462,7 @@
             },
             teamName: {
                alignment: 'center',
-               fontSize: 12,
+               fontSize: team_font_size,
                bold: true,
             },
             centeredText: {
@@ -666,12 +665,12 @@
                   },
                ],
                [
-                  { text: 'Tournament Date', style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  { text: 'Organizer', style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  { text: 'Mjesto', style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  { text: 'Tournament ID', style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  { text: 'Tournament Rank', style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  { text: 'Head Judge', style: 'tableHeader' },
+                  { text: lang.tr('signin.tournament_date'), style: 'tableHeader', margin: [0, 0, 5, 0] },
+                  { text: lang.tr('signin.organizer'), style: 'tableHeader', margin: [0, 0, 5, 0] },
+                  { text: lang.tr('signin.place'), style: 'tableHeader', margin: [0, 0, 5, 0] },
+                  { text: lang.tr('signin.id'), style: 'tableHeader', margin: [0, 0, 5, 0] },
+                  { text: lang.tr('signin.rank'), style: 'tableHeader', margin: [0, 0, 5, 0] },
+                  { text: lang.tr('signin.judge'), style: 'tableHeader', alignment: 'right' },
                ],
                [ 
                   { text: util.formatDate(new Date(tournament.start)), style: 'tableData' },
@@ -679,7 +678,7 @@
                   { text: tournament.location || '', style: 'tableData' },
                   { text: tournament_id, style: 'tableData' },
                   { text: tournament.rank || '', style: 'tableData' },
-                  { text: tournament.judge || '', style: 'tableData' },
+                  { text: tournament.judge || '', style: 'tableData', alignment: 'right' },
                ],
                [ {text: ' ', fontSize: 1, colSpan: 6, border: [false, false, false, true]}, {}, {}, {}, {}, {}],
             ]
@@ -693,14 +692,23 @@
          }
       }
 
-      if (type == 'schedule') return schedule;
-
-      return {};
+      return draw_sheet;
    }
 
-   function schedulePageHeader(tournament, logo) {
+   function localizeDate(date, localization) {
+      return date.toLocaleDateString(lang.tr('datelocalization'), localization);
+   }
+
+   function schedulePageHeader(tournament, day, logo) {
+
+      let tournament_id = tournament.display_id || tournament.tuid.length < 15 ? tournament.tuid : '';
+
+      let weekday = localizeDate(new Date(day), { weekday: 'long' });
+      let numeric_date = localizeDate(new Date(day), { year: 'numeric', month: 'numeric', day: 'numeric' });
+      let start_date = localizeDate(new Date(tournament.start), { year: 'numeric', month: 'numeric', day: 'numeric' });
+
       let schedule = {
-         margin: [ 10, 10, 10, 0 ],
+         margin: [ 20, 10, 20, 10 ],
          fontSize: 10,
          table: {
             widths: ['*', '*', '*', '*', '*', 'auto'],
@@ -715,10 +723,18 @@
                               {}, {}, {}, {},
                            ],
                            [
-                              { text: '', colSpan: 2, style: 'subtitle', margin: [0, 0, 0, 0] },
+                              { text: lang.tr('signin.tournament_date'), style: 'tableHeader', margin: [0, 0, 5, 0] },
+                              { text: lang.tr('schedule.orderofplay'), colSpan: 2, style: 'docName', margin: [0, 0, 0, 0] },
                               {},
-                              { text: '', colSpan: 2, alignment: 'center', style: 'docName', margin: [0, 0, 0, 5] },
-                              {}, {},
+                              { stack: [{ text: weekday }, { text: numeric_date }], rowSpan: 2, style: 'docName', margin: [0, 0, 0, 0], border: [true, true, true, true], },
+                              {},
+                           ],
+                           [
+                              { text: start_date, style: 'tableData' },
+                              {},
+                              {},
+                              {},
+                              {},
                            ],
                         ]
                      },
@@ -739,20 +755,22 @@
                   },
                ],
                [
-                  { text: 'Tournament Date', style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  { text: 'Organizer', style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  { text: 'Mjesto', style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  { text: 'Tournament ID', style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  { text: 'Tournament Rank', style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  { text: 'Head Judge', style: 'tableHeader' },
+                  { text: lang.tr('signin.id'), style: 'tableHeader', margin: [0, 0, 5, 0] },
+                  { text: lang.tr('signin.organizer'), style: 'tableHeader', margin: [0, 0, 5, 0] },
+                  // { text: lang.tr('signin.place'), style: 'tableHeader', margin: [0, 0, 5, 0] },
+                  {}, 
+                  {}, 
+                  {},
+                  { text: lang.tr('signin.judge'), style: 'tableHeader', alignment: 'right', },
                ],
                [ 
-                  { text: ' ', style: 'tableData' },
-                  { text: ' ', style: 'tableData' },
-                  { text: ' ', style: 'tableData' },
-                  { text: ' ', style: 'tableData' },
-                  { text: ' ', style: 'tableData' },
-                  { text: ' ', style: 'tableData' },
+                  { text: tournament_id, style: 'tableData' },
+                  { text: tournament.organizer || '', style: 'tableData' },
+                  // { text: tournament.location || '', style: 'tableData' },
+                  {},
+                  {},
+                  {},
+                  { text: tournament.judge || '', style: 'tableDatat', alignment: 'right', },
                ],
             ]
          },
@@ -767,6 +785,35 @@
       }
 
       return schedule;
+   }
+
+   function schedulePageFooter() {
+      let timestamp = localizeDate(new Date(), { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+      let footer = {
+         margin: [ 10, 0, 10, 0 ],
+         fontSize: 8,
+			style: 'tableExample',
+			table: {
+            widths: ['*', 'auto', 130],
+				body: [ 
+               [
+                  { text: lang.tr('phrases.oop_system') },
+                  { text: lang.tr('phrases.schedulepublished') },
+                  { text: lang.tr('phrases.judgesignature') },
+               ],
+               [
+                  { text: ' ', fontSize: 18, },
+                  [ { text: ' ' }, { text: timestamp }, ],
+                  { text: ' ' },
+               ],
+            ]
+			},
+         layout: {
+            defaultBorder: true,
+         }
+		}
+      return footer;
    }
 
    function drawSheet(tournament={}, images, logo, selected_event) {
@@ -868,7 +915,7 @@
             },
             tableData: {
                fontSize: 9,
-               bold: true
+               bold: true,
             },
             centeredTableHeader: {
                alignment: 'center',

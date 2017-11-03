@@ -158,7 +158,7 @@
    // Miscellaneous Functions
    util.unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
    util.subSort = (arr, i, n, sortFx) => [].concat(...arr.slice(0, i), ...arr.slice(i, i + n).sort(sortFx), ...arr.slice(i + n, arr.length));
-   util.inPlacesubSort = (arr, i, n, sortFx) => {
+   util.inPlaceSubSort = (arr, i, n, sortFx) => {
       let newarray = [].concat(...arr.slice(0, i), ...arr.slice(i, i + n).sort(sortFx), ...arr.slice(i + n, arr.length));
       arr.length = 0;
       arr.push.apply(arr, newarray);

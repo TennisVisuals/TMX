@@ -237,6 +237,9 @@
          calculateranking: 'Calculate Ranking Points',
          generateranklist: 'Generate Rank List',
          norankingdata: 'No Ranking Data',
+         oop_system: 'Order of Play',
+         schedulepublished: 'Publishing Time:',
+         judgesignature: 'Signature of Head Umpire:',
       },
 
       events: {
@@ -316,6 +319,7 @@
          allcourts: 'All Courts',
          autoschedule: 'Auto Schedule',
          clearschedule: 'Clear Schedule',
+         orderofplay: 'ORDER OF PLAY',
       },
       
       refresh: {
@@ -326,6 +330,7 @@
          clubs: 'Updating Cllubs...',
       },
 
+      // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toLocaleDateString
       datelocalization: 'en-EN',
    }
 
@@ -521,6 +526,9 @@
          calculateranking: 'Izračunaj rang bodove',
          generateranklist: 'Generiraj rang liste',
          norankingdata: 'Nema rangnih podataka',
+         oop_system: 'Igra se po sistemu',
+         schedulepublished: 'Raspored objavljen u:',
+         judgesignature: 'Potpis Vrhovnog suca',
       },
 
       events: {
@@ -612,6 +620,7 @@
          allcourts: 'Sve Igrališta',
          autoschedule: 'Automatski Raspored',
          clearschedule: 'Isprazni Raspored',
+         orderofplay: 'RASPORED IGRANJA',
       },
 
       refresh: {

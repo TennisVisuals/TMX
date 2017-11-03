@@ -360,28 +360,121 @@ let tournaments = function() {
       }
 
       function autoSchedule(ev) {
-         console.log('AUTO SCHEDULING'); 
-         return;
 
-         // 1. get a list of all unscheduled matches
-         // 2. filter unscheduled matches by event_filters and round_filters
-         // 3. get a list of all available time slots for displayed day
-         // 4. fill them in...
+         let priority = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R96', 'R128', 'RR', 'Q', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5'];
 
-         all_matches.forEach((match, i) => {
-            let round = Math.floor(i / courts.length);
+         let luids = tournament.locations.map(l=>l.luid);
+         let luid = luids.length == 1 ? luids[0] : container.location_filter.ddlb.getValue();
+         let courts = courtData(luid);
 
-            if (!match.schedule) match.schedule = {};
+         let { completed_matches, pending_matches } = tournamentEventMatches({ tournament, source: true });
+         let all_matches = [].concat(...pending_matches, completed_matches);
 
-            match.schedule = {
-               court: courts[(i % courts.length)],
-               oop_round: oop_rounds[round],
-               day: displayed_schedule_day,
-               // time: oop_rounds[round],
-               heading: 'NB: ',
-            }
-            match.source.schedule = Object.assign({}, match.schedule);
+         let scheduled_cells = all_matches
+            .filter(m=>m.schedule && m.schedule.day == displayed_schedule_day)
+            .map(m=>`${m.schedule.oop_round}|${m.schedule.court}|${m.schedule.luid}`);
+
+         let available_cells = [].concat(...courts.map(c => c.availability.map(a => `${a}|${c.name}|${c.luid}`)))
+            .filter(cell => scheduled_cells.indexOf(cell) < 0)
+            .map(c => {
+               let [ or, court, luid ] = c.split('|');
+               return { oop_round: parseInt(or), court, luid };
+            })
+            // sort in reverse order since popping available removes from tail
+            .sort((a, b) => b.oop_round - a.oop_round);
+
+         // subsort courts by column order so filled left to right
+         let court_names = courts.map(c=>c.name);
+         function cindex(cell) { return court_names.indexOf(cell.court); }
+         function sortCourts(a, b) { return cindex(b) - cindex(a); }
+         let available_oop = available_cells.map(c => c.oop_round);
+         util.unique(available_oop).forEach(oop_round => {
+            let indices = util.indices(oop_round, available_oop);
+            let start = Math.min(...indices);
+            let count = indices.length;
+            util.inPlaceSubSort(available_cells, start, count, sortCourts);
          });
+               
+         let euid = container.event_filter.ddlb.getValue();
+         let round_filter = container.round_filter.ddlb.getValue();
+
+         let unscheduled_matches = all_matches
+            .filter(m=>(!m.schedule || !m.schedule.court) && !m.score);
+
+         // only schedule matches that match the round and event filters
+         let filtered_unscheduled = unscheduled_matches
+            .filter(m => (!euid || euid == m.event.euid) && (!round_filter || round_filter == m.round_name));
+
+         // if there is not a round filter, sort unscheduled matches by round in draw
+         if (!round_filter) { filtered_unscheduled.sort((a, b) => priority.indexOf(b.round_name) - priority.indexOf(a.round_name)); }
+
+         // create an array of unscheduled muids;
+         let unscheduled_muids = filtered_unscheduled.map(m=>m.muid);
+
+         // create ordered list of unscheduled matches for each event
+         // based on round robin oop or tree draw positions
+         let euids = util.unique(filtered_unscheduled.map(m=>m.event.euid));
+         let ordered_muids = Object.assign({}, ...euids.map(id => {
+            let evnt = findEventByID(id);
+            let match_order = null;
+            if (evnt.draw_type == 'R') {
+               // compute order of play for round robin
+               let rrr = drawFx.roundRobinRounds(evnt.draw);
+               // transform into ordered list of muids
+               match_order = [].concat(...rrr.map(roundMatchupMUIDs));
+               function roundMatchupMUIDs(rrround) { return [].concat(...rrround.map(m=>m.matchups.map(u=>u.muid))); }
+            } else {
+               // get an ordered list of muids based on draw positions
+               match_order = drawFx.treeDrawMatchOrder(evnt.draw);
+            }
+
+            // filter out any matches that have been scheduled
+            match_order = match_order.filter(m=>unscheduled_muids.indexOf(m) >= 0);
+            return { [id]: match_order }; 
+         }));
+
+         // create an object indexed by muid of unscheduled matches
+         let muid_lookup = Object.assign({}, ...filtered_unscheduled.map(m=>({[m.muid]: m})));
+
+         // create a hash of unscheduled matches which have been sorted/grouped by round_name
+         let unscheduled_hash = filtered_unscheduled.map(m=>`${m.event.euid}|${m.round_name}`);
+
+         let ordered_matches = [].concat(...util.unique(unscheduled_hash).map(match_group => {
+
+            // find the start of each group, and the number of members
+            let indices = util.indices(match_group, unscheduled_hash);
+
+            // get an array of all muids in this group
+            let group_muids = indices.map(i=>filtered_unscheduled[i].muid);
+            let [group_euid, round_name] = match_group.split('|');
+
+            // use the group muids to filter the ordered_muids
+            let ordered_group = ordered_muids[group_euid]
+               .filter(muid => group_muids.indexOf(muid) >= 0)
+               .map(muid => muid_lookup[muid]);
+
+            // return an ordered group
+            return ordered_group;
+         }));
+
+         // now assign oop cells to matches
+         ordered_matches.forEach(match => {
+            let available = available_cells.pop();
+            if (available) {
+               let schedule = { 
+                  day: displayed_schedule_day,
+                  oop_round: available.oop_round,
+                  court: available.court,
+                  luid: available.luid,
+               }
+               match.schedule = schedule;
+               match.source.schedule = Object.assign({}, match.schedule);
+            }
+         })
+
+         if (o.save) db.addTournament(tournament);
+         scheduleTab();
+         return;
       }
 
       let genders = [
@@ -873,7 +966,7 @@ let tournaments = function() {
 
          let print_matches = all_matches.filter(f=>f.schedule && f.schedule.day == displayed_schedule_day && court_names.indexOf(f.schedule.court) >= 0);
          
-         exp.printSchedulePDF({ tournament, courts, print_matches });
+         exp.printSchedulePDF({ tournament, day: displayed_schedule_day, courts, matches: print_matches });
       }
 
       function printDrawOrder() {
@@ -2031,6 +2124,7 @@ let tournaments = function() {
          if (!e.teams || !e.teams.length) return [];
          let idmap = idMap(tournament.players);
 
+         console.log(e);
          let approved_hash = e.approved.map(a=>a.join('|'));
          let not_promoted = e.teams.filter(team => approved_hash.indexOf(team.join('|')) < 0);
 
@@ -2367,9 +2461,16 @@ let tournaments = function() {
       function courtData(luid) {
          let courts = [];
          tournament.locations.forEach(l => {
-            util.range(1, +l.courts + 1).forEach(i => {
-               if (!luid || luid == l.luid) courts.push({ luid: l.luid, name: `${l.abbreviation} ${i}` });
-            });
+               if (!luid || luid == l.luid) { 
+                  util.range(1, +l.courts + 1).forEach(i => {
+                     let court = { 
+                        luid: l.luid,
+                        name: `${l.abbreviation} ${i}`,
+                        availability: ['1','2','3','4','5','6','7','8','9','10'],
+                     };
+                     courts.push(court);
+                  });
+               }
          });
          return courts;
       }
@@ -3427,6 +3528,7 @@ let tournaments = function() {
             'event': {
                name: e.name,
                category: e.category,
+               draw_type: e.draw_type,
                rank: e.rank,
                surface: e.surface,
                euid: e.euid,
@@ -3924,13 +4026,15 @@ let tournaments = function() {
          }
 
          function placeRRDrawPlayer(d) {
-            let draw = e.draw;
+            let placement = { bracket: d.bracket, position: d.row };
+            let pobj = gen.manualPlayerPosition({ container, bracket: d.bracket, position: d.row });
             let info = rr_draw.info();
 
-            if (!info.unfilled_positions.length) return;
-            if (!e.draw.unseeded_placements) e.draw.unseeded_placements = [];
+            if (info.unfilled_positions.length) rrPlacePlayer(placement, pobj, info);
+         }
 
-            let placement = { bracket: d.bracket, position: d.row };
+         function rrPlacePlayer(placement, pobj, info) {
+            if (!e.draw.unseeded_placements) e.draw.unseeded_placements = [];
 
             let u_hash = [];
             let unplaced_teams = [];
@@ -3951,9 +4055,8 @@ let tournaments = function() {
 
             if (!position_unfilled) return;
 
-            let pobj = gen.manualPlayerPosition({ container, bracket: d.bracket, position: d.row });
-            let entry_field = d3.select(pobj.entry_field.element);
-            let removeEntryField = () => {
+            var entry_field = d3.select(pobj.entry_field.element);
+            function removeEntryField() {
                entry_field.remove();
                rr_draw.unHighlightCells();
                document.body.style.overflow = null;

@@ -185,6 +185,9 @@
          calculateranking: 'Izračunaj rang bodove',
          generateranklist: 'Generiraj rang liste',
          norankingdata: 'Nema rangnih podataka',
+         oop_system: 'Igra se po sistemu',
+         schedulepublished: 'Raspored objavljen u:',
+         judgesignature: 'Potpis Vrhovnog suca',
       },
 
       events: {
@@ -276,6 +279,7 @@
          allcourts: 'Sve Igrališta',
          autoschedule: 'Automatski Raspored',
          clearschedule: 'Isprazni Raspored',
+         orderofplay: 'RASPORED IGRANJA',
       },
 
       refresh: {
