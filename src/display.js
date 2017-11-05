@@ -1657,7 +1657,7 @@
                <div class='detail_header'>
                   <div class='event_name flexcenter'>New Event</div>
                   <div class='flexrow'>
-                     <div class='${classes.auto_draw}' style='display: none;' title='${lang.tr("adr")}'><div class='automation_icon automated_draw_pause'></div></div>
+                     <div class='${classes.auto_draw} info' style='display: none;' label='${lang.tr("adr")}'><div class='automation_icon automated_draw_pause'></div></div>
                      <div class='${classes.print_draw_order} info' label='${lang.tr("mdo")}' style='display: none'><div class='print action_icon'></div></div>
                   </div>
                   <div>${del}${done}${save}${cancel}</div>

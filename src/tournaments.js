@@ -3932,8 +3932,8 @@ let tournaments = function() {
                matchesTab();
             }
 
-            if (d.players) {
-               let teams = d.players.map(p=>[p]);
+            if (d.match && d.match.players) {
+               let teams = d.match.players.map(p=>[p]);
                scoreBoard.setMatchScore({ e, round: 'RR', container, teams, existing_scores, callback: scoreSubmitted });
             }
          }
@@ -3948,8 +3948,15 @@ let tournaments = function() {
 
             if (d.player && d.player.puid) {
                player.displayPlayerProfile(d.player.puid).then(()=>{}, ()=>{});
-            } else if (state.edit) {
-               placeRRDrawPlayer(d);
+            } else if (state.edit && d.mc == undefined) {
+               let info = rr_draw.info();
+               if (info.open_seed_positions && info.open_seed_positions.length) {
+                  let valid_placements = info.open_seed_positions.map(osp => `${osp.bracket}|${osp.position}`);
+                  let clicked_position = `${d.bracket}|${d.row}`;
+                  if (valid_placements.indexOf(clicked_position) >= 0) placeRRDrawPlayer(d);
+               } else {
+                  placeRRDrawPlayer(d);
+               }
             }
          }
 
@@ -4007,7 +4014,6 @@ let tournaments = function() {
 
          function assignSeedPosition(seed_group, team, position) {
             assignPosition(position, team);
-            // tree_draw.assignPosition(position, team);
             seed_group.placements.push({ seed: team[0].seed, position });
          }
 
@@ -4055,15 +4061,13 @@ let tournaments = function() {
 
             if (!position_unfilled) return;
 
-            var entry_field = d3.select(pobj.entry_field.element);
             function removeEntryField() {
-               entry_field.remove();
+               d3.select(pobj.entry_field.element).remove();
                rr_draw.unHighlightCells();
                document.body.style.overflow = null;
             }
 
-            entry_field.on('click', removeEntryField);
-
+            pobj.entry_field.element.addEventListener('click', removeEntryField);
             pobj.player_index.element.addEventListener('keyup', playerIndex , false);
             pobj.player_index.element.focus();
 
@@ -4127,14 +4131,14 @@ let tournaments = function() {
             let position = d.data.dp;
             let info = tree_draw.info();
 
-            if (info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length) {
-               let coords = d3.mouse(container.draws.element);
-               return contextPopUp(d, coords);
-            }
-
             let seed_group = drawFx.nextSeedGroup({ draw });
             let placements = draw.unseeded_placements.map(p=>p.id);
             let unplaced_teams = draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
+
+            if (!seed_group && info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length) {
+               let coords = d3.mouse(container.draws.element);
+               return contextPopUp(d, coords);
+            }
 
             if (seed_group) {
                // TODO: support doubles teams;
@@ -4313,7 +4317,7 @@ let tournaments = function() {
             if (device.isWindows || d3.event.shiftKey) {
                setTimeout(function() { menu(coords[0], coords[1]); }, 200);
             } else {
-               menu(coords[0], coords[1]);
+               setTimeout(function() { menu(coords[0], coords[1]); }, 200);
             }
          }
 
@@ -4342,59 +4346,77 @@ let tournaments = function() {
          // this function needs to be in scope of createTournamentContainer()
          // so that it can have access to container.draws.element
          function contextPopUp(d, coords) {
+            coords = Array.isArray(coords) ? coords : d3.mouse(container.draws.element);
+
             if (!state.edit) {
                console.log('Not in editing state');
-               return;
+            } else if (!displayed_draw_event.active) {
+               drawNotActiveContextClick(d, coords);
+            } else {
+               drawActiveContextClick(d, coords);
             }
+         }
 
-            // must be a unique selector in case there are other SVGs
-            let selector = d3.select('#' + container.draws.id + ' svg').node();
+         function drawActiveContextClick(d, coords) {
+            console.log('active draw context click');
+         }
 
-            let menu = contextMenu().selector(selector).events({ 'cleanup': tree_draw.unHighlightCells });
-            coords = coords || d3.mouse(container.draws.element);
+         function drawNotActiveContextClick(d, coords) {
 
             let draw = e.draw;
             let info = tree_draw.info();
             let position = d.data.dp;
 
-            let team_match = drawFx.teamMatch(d);
+            // must be a unique selector in case there are other SVGs
+            let selector = d3.select('#' + container.draws.id + ' svg').node();
+            let menu = contextMenu().selector(selector).events({ 'cleanup': tree_draw.unHighlightCells });
 
             if (!d.height && d.data && d.data.dp && !d.data.team) {
                let seed_group = drawFx.nextSeedGroup({ draw });
                if (seed_group) {
-                  assignSeededPosition(position, seed_group);
+                  assignSeededPosition({ position, seed_group, coords });
                } else {
                   if (info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length) {
                      let player_count = (draw.opponents ? draw.opponents.length : 0) + (draw.qualifiers || 0);
 
                      if (info.draw_positions.length > player_count + info.byes.length) {
-                        assignByeOrQualifier({ position, bye: true });
+                        assignByeOrQualifier({ position, bye: true, coords });
                      } else {
-                        assignByeOrQualifier({ position, bye: false });
+                        assignByeOrQualifier({ position, bye: false, coords });
                      }
 
                   } else {
-                     assignUnseededPosition(position);
+                     assignUnseededPosition({ position, coords });
                   }
                }
             } else if (!d.data.bye && !e.active && !e.automated) {
                // draw must not be active
 
                // cannot remove seeded players (yet)
-               if (d.data.team[0].seed) return;
+               if (d.data.team[0].seed) {
+
+                  console.log('seeded player');
+                  // TODO: discover which seed_group this player is in... if
+                  // this player is removed then remove all seed players in
+                  // the same group as well as all players in later seed groups
+                  // and all unseeded players...
+                  return;
+               }
 
                let teams = optionNames([d.data.team]);
                let options = teams.map(t => `${lang.tr('draws.remove')}: ` + t);
-               assignedPlayerOptions(position, options);
+               assignedPlayerOptions({ position, options, coords });
             } else if (d.height == 0 && d.data.bye && !displayed_draw_event.active) {
                let draw = displayed_draw_event.draw;
-               if (draw.unseeded_placements.length < draw.unseeded_teams.length) console.log('reposition bye?', d);
+               // if (draw.unseeded_placements.length < draw.unseeded_teams.length) console.log('reposition bye?', d);
+               console.log('reposition bye?', d);
             } else {
-               console.log('what now?', d);
+               console.log('remove player?', d);
+               let team_match = drawFx.teamMatch(d);
                if (team_match) console.log('team match');
             }
 
-            function assignedPlayerOptions(position, options) {
+            function assignedPlayerOptions({ position, options, coords }) {
 
                menu
                   .items(...options)
@@ -4410,11 +4432,11 @@ let tournaments = function() {
                if (device.isWindows || d3.event.shiftKey) {
                   setTimeout(function() { menu(coords[0], coords[1]); }, 200);
                } else {
-                  menu(coords[0], coords[1]);
+                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
                }
             }
 
-            function assignSeededPosition(position, seed_group) {
+            function assignSeededPosition({ position, seed_group, coords }) {
                if (seed_group.positions.indexOf(position) < 0) return;
                let { remaining: range, teams } = getSeedTeams(seed_group);
 
@@ -4433,11 +4455,11 @@ let tournaments = function() {
                if (device.isWindows || d3.event.shiftKey) {
                   setTimeout(function() { menu(coords[0], coords[1]); }, 200);
                } else {
-                  menu(coords[0], coords[1]);
+                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
                }
             }
 
-            function assignUnseededPosition(position) {
+            function assignUnseededPosition({ position, coords }) {
                let placements = draw.unseeded_placements.map(p=>p.id);
                let unplaced_teams = draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
                unplaced_teams = teamSort(unplaced_teams);
@@ -4479,11 +4501,11 @@ let tournaments = function() {
                if (device.isWindows || d3.event.shiftKey) {
                   setTimeout(function() { menu(coords[0], coords[1]); }, 200);
                } else {
-                  menu(coords[0], coords[1]);
+                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
                }
             }
 
-            function assignByeOrQualifier({ position, bye }) {
+            function assignByeOrQualifier({ position, bye, coords }) {
 
                let choices = bye ? ['BYE'] : ['Qualifier'];
 
@@ -4509,7 +4531,6 @@ let tournaments = function() {
                   setTimeout(function() { menu(coords[0], coords[1]); }, 200);
                } else {
                   setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-                  // menu(coords[0], coords[1]);
                }
             }
          }
