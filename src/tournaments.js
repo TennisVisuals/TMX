@@ -3947,8 +3947,6 @@ let tournaments = function() {
             let bracket = displayed_draw_event.draw.brackets[d.bracket];
             let complete = drawFx.bracketComplete(bracket);
 
-            if (complete) return;
-
             // must be a unique selector in case there are other SVGs
             let draw_id = `rrDraw_${d.bracket}`;
             let selector = d3.select(`#${container.draws.id} #${draw_id} svg`).node();
@@ -3957,29 +3955,37 @@ let tournaments = function() {
             let coords = d3.mouse(selector);
             let options = [lang.tr('draws.remove'), lang.tr('actions.cancel')];
 
-            menu
-               .items(...options)
-               .events({ 
-                  'item': { 'click': (c, i) => {
+            if (!complete && d.match && d.match.score) removeScoreMenu();
 
-                     if (i == 0) {
-                        delete d.match.date;
-                        delete d.match.winner;
-                        delete d.match.winner_index;
-                        delete d.match.loser;
-                        delete d.match.score;
-                        delete d.match.teams;
-                        delete d.match.tournament;
-                        rr_draw();
-                     }
+            function removeScoreMenu() {
+               menu
+                  .items(...options)
+                  .events({ 
+                     'item': { 'click': (c, i) => {
 
-                  }}
-               });
+                        if (i == 0) {
+                           delete d.match.date;
+                           delete d.match.winner;
+                           delete d.match.winner_index;
+                           delete d.match.loser;
+                           delete d.match.score;
+                           delete d.match.teams;
+                           delete d.match.tournament;
 
-            if (device.isWindows || d3.event.shiftKey) {
-               setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-            } else {
-               setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+                           // update one bracket without regenerating all brackets!
+                           rr_draw.updateBracket(d.bracket);
+
+                           if (o.save) db.addTournament(tournament);
+                        }
+
+                     }}
+                  });
+
+               if (device.isWindows || d3.event.shiftKey) {
+                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+               } else {
+                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+               }
             }
          }
 
@@ -4338,7 +4344,6 @@ let tournaments = function() {
             }
 
             let position_unfilled = u_hash.indexOf(hashFx(placement)) >= 0;
-            if (!position_unfilled) return;
 
             // must be a unique selector in case there are other SVGs
             let draw_id = `rrDraw_${d.bracket}`;
@@ -4347,22 +4352,35 @@ let tournaments = function() {
             let menu = contextMenu().selector(selector).events({ 'cleanup': console.log });
             let coords = d3.mouse(selector);
 
-            unplaced_teams = teamSort(unplaced_teams);
-            let teams = optionNames(unplaced_teams);
+            if (position_unfilled) {
+               placeTeam();
+            } else if (d.player) {
+               removeTeam();
+            }
 
-            menu
-               .items(...teams)
-               .events({ 
-                  'item': { 'click': (d, i) => {
-                     let team = unplaced_teams[i];
-                     placeRRplayer(team, placement, info);
-                  }}
-               });
+            function placeTeam() {
+               unplaced_teams = teamSort(unplaced_teams);
+               let teams = optionNames(unplaced_teams);
 
-            if (device.isWindows || d3.event.shiftKey) {
-               setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-            } else {
-               setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+               menu
+                  .items(...teams)
+                  .events({ 
+                     'item': { 'click': (d, i) => {
+                        let team = unplaced_teams[i];
+                        placeRRplayer(team, placement, info);
+                     }}
+                  });
+
+               if (device.isWindows || d3.event.shiftKey) {
+                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+               } else {
+                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+               }
+            }
+
+            function removeTeam() {
+
+               console.log('possible to remove team?');
             }
          }
 
@@ -4383,7 +4401,12 @@ let tournaments = function() {
             rr_draw.updateBracket(placement.bracket);
 
             // test to see if draw is complete
-            if (e.draw.unseeded_placements.length && e.draw.unseeded_placements.length == e.draw.unseeded_teams.length) drawCreated(e);
+            if (e.draw.unseeded_placements.length && e.draw.unseeded_placements.length == e.draw.unseeded_teams.length) {
+               drawCreated(e);
+               drawFx.matches(e.draw);
+               rr_draw.data(e.draw);
+               rr_draw();
+            }
 
             if (o.save) db.addTournament(tournament);
          }
