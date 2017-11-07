@@ -1202,9 +1202,6 @@ let tournaments = function() {
                let matches = eventMatches(e);
                let scheduled = matches.filter(m=>m.match.schedule && m.match.schedule.court).length;
 
-               console.log('info:', info);
-               console.log('matches:', matches);
-
                // TODO: draws need to be regenerated here, as necessary
                // for example, when # of qualifiers changes we can't wait for
                // the main draw to be re-displayed before regenerating the draw
@@ -3865,7 +3862,7 @@ let tournaments = function() {
             'score': { 
                'click': rrScoreEntry,
                'mouseover': rrMouseoverScore,
-               'contextmenu': (d) => ('score context', d),
+               'contextmenu': rrScoreAction,
             },
          });
 
@@ -3942,6 +3939,47 @@ let tournaments = function() {
             if (d.match && d.match.players) {
                let teams = d.match.players.map(p=>[p]);
                scoreBoard.setMatchScore({ e, round: 'RR', container, teams, existing_scores, callback: scoreSubmitted });
+            }
+         }
+
+         function rrScoreAction(d) {
+
+            let bracket = displayed_draw_event.draw.brackets[d.bracket];
+            let complete = drawFx.bracketComplete(bracket);
+
+            if (complete) return;
+
+            // must be a unique selector in case there are other SVGs
+            let draw_id = `rrDraw_${d.bracket}`;
+            let selector = d3.select(`#${container.draws.id} #${draw_id} svg`).node();
+            let menu = contextMenu().selector(selector).events({ 'cleanup': console.log });
+
+            let coords = d3.mouse(selector);
+            let options = [lang.tr('draws.remove'), lang.tr('actions.cancel')];
+
+            menu
+               .items(...options)
+               .events({ 
+                  'item': { 'click': (c, i) => {
+
+                     if (i == 0) {
+                        delete d.match.date;
+                        delete d.match.winner;
+                        delete d.match.winner_index;
+                        delete d.match.loser;
+                        delete d.match.score;
+                        delete d.match.teams;
+                        delete d.match.tournament;
+                        rr_draw();
+                     }
+
+                  }}
+               });
+
+            if (device.isWindows || d3.event.shiftKey) {
+               setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+            } else {
+               setTimeout(function() { menu(coords[0], coords[1]); }, 200);
             }
          }
 
@@ -4376,7 +4414,6 @@ let tournaments = function() {
             // must be a unique selector in case there are other SVGs
             let selector = d3.select('#' + container.draws.id + ' svg').node();
             let menu = contextMenu().selector(selector).events({ 'cleanup': tree_draw.unHighlightCells });
-
 
             if (!d.height && d.data && d.data.dp && !d.data.team) {
                // position is vacant, decide appropriate action
