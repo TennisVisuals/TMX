@@ -233,7 +233,7 @@ let config = function() {
             }, (err) => console.log(err));
          } else {
             // TODO: add to idioms
-            gen.showModal('<h2>No Point Calculations for given date</h2>');
+            gen.showModal(`<h2>${lang.tr('phrases.nopointcalcs')}</h2>`);
          }
 
          function pdfList(ev) {

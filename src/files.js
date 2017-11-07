@@ -536,28 +536,42 @@
          if (info.draw_positions.length > 16) draw.options({invert_first: true});
          if (info.doubles) draw.options({ names: { seed_number: false }});
 
+         draw.options({players: { offset_left: 8, offset_singles: -10, offset_doubles: -60, offset_score: 10 }});
+         draw.options({names:  { max_font_size: 40, min_font_size: 40 }});
+         draw.options({scores: { max_font_size: 40, min_font_size: 40 }});
+
          if (info.draw_positions.length <= 24) {
             draw.options({names: { length_divisor: 13 }});
-            draw.options({players: { offset_left: 8, offset_singles: -10, offset_doubles: -60, offset_score: 10 }});
             draw.options({umpires: { offset: 45 }});
             draw.options({detail_offsets: { base: 60, width: 65 }});
             draw.options({lines: { stroke_width: 4 }});
             draw.options({minPlayerHeight: 130});
             draw.options({detail_attr: { font_size: 36 }});
             draw.options({detail_attr: { seeding_font_size: 54 }});
-            draw.options({names:  { max_font_size: 40, min_font_size: 40 }});
-            draw.options({scores: { max_font_size: 40, min_font_size: 40 }});
          } else if (info.draw_positions.length <= 32) {
             draw.options({names: { length_divisor: 12 }});
-            draw.options({players: { offset_left: 8, offset_singles: -10, offset_doubles: -60, offset_score: 10 }});
             draw.options({umpires: { offset: 45 }});
             draw.options({detail_offsets: { base: 40, width: 65 }});
             draw.options({lines: { stroke_width: 4 }});
             draw.options({minPlayerHeight: 100 });
             draw.options({detail_attr: { font_size: 30 }});
             draw.options({detail_attr: { seeding_font_size: 45 }});
-            draw.options({names:  { max_font_size: 40, min_font_size: 40 }});
-            draw.options({scores: { max_font_size: 40, min_font_size: 40 }});
+         } else if (info.draw_positions.length <= 48) {
+            draw.options({names: { length_divisor: 12 }});
+            draw.options({umpires: { offset: 45 }});
+            draw.options({detail_offsets: { base: 30, width: 65 }});
+            draw.options({lines: { stroke_width: 4 }});
+            draw.options({minPlayerHeight: 70 });
+            draw.options({detail_attr: { font_size: 30 }});
+            draw.options({detail_attr: { seeding_font_size: 45 }});
+         } else if (info.draw_positions.length <= 64) {
+            draw.options({names: { length_divisor: 12 }});
+            draw.options({umpires: { offset: 45 }});
+            draw.options({detail_offsets: { base: 30, width: 65 }});
+            draw.options({lines: { stroke_width: 4 }});
+            draw.options({minPlayerHeight: 50 });
+            draw.options({detail_attr: { font_size: 30 }});
+            draw.options({detail_attr: { seeding_font_size: 45 }});
          }
 
          // render the svg
@@ -979,6 +993,7 @@
    function signInSheet({ tournament={}, players, category, gender, event_name='', logo, doc_name, extra_pages=true }) {
 
       let date = util.formatDate(tournament.start);
+      let tournament_id = tournament.display_id || tournament.tuid.length < 15 ? tournament.tuid : '';
 
       let page_header = [
          { 
@@ -1020,11 +1035,11 @@
                   ],
                   [ 
                      date, 
-                     tournament.organizer_id || ' ', 
-                     ' ', 
+                     tournament.organizer || ' ', 
+                     tournament.location || '',
                      '', 
                      '', 
-                     { text: tournament.judge_id || ' ', margin: [0, 0, 0, 5] },
+                     { text: tournament.judge || ' ', margin: [0, 0, 0, 5] },
                   ],
                   [
                      { text: lang.tr('signin.id'), style: 'tableHeader', margin: [0, 0, 5, 0] },
@@ -1034,7 +1049,14 @@
                      {colSpan: 2, rowSpan: 2, text: ' ', border: [true, true, true, true] }, 
                      { text: '', style: 'tableHeader' },
                   ],
-                  [ tournament.tuid || ' ', tournament.rank || ' ', ' ', '', '', ''],
+                  [ 
+                     tournament_id, 
+                     tournament.rank || ' ',
+                     ' ',
+                     '',
+                     '',
+                     ''
+                  ],
                ]
             },
             layout: {

@@ -36,8 +36,35 @@
    let zeroPad = (number) => number.toString()[1] ? number : "0" + number;
    let fullName = (p) => `${p.last_name.toUpperCase()}, ${util.normalizeName(p.first_name, false)}`;
 
-   let rounds = ['F', 'SF', 'QF', 'R12', 'R16', 'R24', 'R32', 'R48', 'R64', 'R128', 'RRF', 'RR3', 'RR2', 'RR1', 'Q2', 'Q1', 'Q'];
-   let matchSort = (matches) => matches.sort((a, b) => rounds.indexOf(a.round) - rounds.indexOf(b.round));
+   function matchSort(matches) {
+      let rounds = ['RRF', 'RR3', 'RR2', 'RR1', 'RR', 'Q5', 'Q4', 'Q3', 'Q2', 'Q1', 'Q', 'R128', 'R64', 'R32', 'R24', 'R16', 'R12', 'QF', 'SF', 'F'];
+      return matches.sort((a, b) => rounds.indexOf(a.round) - rounds.indexOf(b.round));
+   }
+
+   // sort scheduled matches by round / court
+   function scheduledSort(scheduled) {
+      let ordered_scheduled = [];
+
+      let dates = scheduleAttributeValues(scheduled, 'day').sort();
+      let rounds = scheduleAttributeValues(scheduled, 'oop_round').sort((a, b) => parseInt(a) - parseInt(b));
+      let courts = scheduleAttributeValues(scheduled, 'court').sort();
+
+      dates.forEach(date => {
+         let date_matches = scheduled.filter(m=>m.schedule.day == date);
+         rounds.forEach(round => {
+            let round_matches = date_matches.filter(m=>m.schedule.oop_round == round);
+            courts.forEach(court => {
+               round_matches.filter(m=>m.schedule.court == court).forEach(match => ordered_scheduled.push(match));
+            });
+         });
+      });
+
+      return ordered_scheduled;
+
+      function scheduleAttributeValues(matches, attr) {
+         return matches.reduce((p, c) => p.indexOf(c.schedule[attr]) >= 0 ? p : [].concat(c.schedule[attr], ...p), []);
+      }
+   }
 
    let measureTextWidth = (txt, font) => {
       let element = document.createElement('canvas');
@@ -565,12 +592,8 @@
       }
 
       if (pending_matches.length) {
-         let scheduled = pending_matches.filter(m=>m.schedule && m.schedule.court);
-         let unscheduled = pending_matches.filter(m=>!m.schedule || !m.schedule.court);
-
-         timestringSort(scheduled, 'oop_round');
-         // TODO: find all oop_round, then find range for each oop_round, then for each oop_round:
-         // util.inPlaceSubsort(scheduled, i, n, courtSort)
+         let scheduled = scheduledSort(pending_matches.filter(m=>m.schedule && m.schedule.court));
+         let unscheduled = matchSort(pending_matches.filter(m=>!m.schedule || !m.schedule.court));
 
          if (unscheduled.length) {
             html += matchBlock({ title: lang.tr('draws.unscheduled'), matches: unscheduled, type: 'unscheduled' });
@@ -582,15 +605,15 @@
 
       let rr = (m) => m.round.indexOf('RR') >= 0 && m.round.indexOf('Q') < 0;
       let qual = (m) => m.round.indexOf('Q') >= 0 && m.round.indexOf('QF') < 0;
-      let singles = matchSort(completed_matches.filter(m => m.format == 'singles'));
-      let doubles = matchSort(completed_matches.filter(m => m.format == 'doubles'));
+      let singles = matchSort(completed_matches.filter(m => m.format == 'singles')).reverse();
+      let doubles = matchSort(completed_matches.filter(m => m.format == 'doubles')).reverse();
       let roundrobin = singles.filter(m => rr(m));
       let qualifying = singles.filter(m => qual(m));
       if (roundrobin.length || qualifying.length) singles = singles.filter(m => !rr(m) && !qual(m));
 
       if (completed_matches.length) {
          html += `<div class='flexcenter match_block_title'>${lang.tr('draws.completed')}</div>`;
-         let completed_ordered = [].concat(...qualifying, ...roundrobin, ...singles, ...doubles);
+         let completed_ordered = [].concat(...singles, ...qualifying, ...roundrobin, ...doubles);
          html += matchBlock({ matches: completed_ordered, type: 'completed' });
       }
 
@@ -2450,6 +2473,9 @@
          skiprounds: gen.uuid(),
          feedrounds: gen.uuid(),
       }
+
+      // TODO: Skip Rounds / Feed Rounds
+
       let config = `
          <div class='detail_fields'>
             <div class='column'>
@@ -2478,10 +2504,10 @@
       `;
       d3.select(container.draw_config.element).html(config);
       dd.attachDropDown({ id: ids.structure,  options });
-      dd.attachDropDown({ id: ids.qualification, options: [{ key: 'None', value: ''}] });
-      dd.attachDropDown({ id: ids.consolation, options: [{ key: 'None', value: ''}] });
-      dd.attachDropDown({ id: ids.elimination, options: [{ key: 'None', value: ''}] });
-      dd.attachDropDown({ id: ids.matchformat, options: [{ key: 'None', value: ''}] });
+      dd.attachDropDown({ id: ids.qualification, options: [{ key: lang.tr('none'), value: ''}] });
+      dd.attachDropDown({ id: ids.consolation, options: [{ key: lang.tr('none'), value: ''}] });
+      dd.attachDropDown({ id: ids.elimination, options: [{ key: lang.tr('none'), value: ''}] });
+      dd.attachDropDown({ id: ids.matchformat, options: [{ key: lang.tr('none'), value: ''}] });
       return idObj(ids);
    }
 
@@ -2514,7 +2540,7 @@
       dd.attachDropDown({ id: ids.brackets,  options });
       dd.attachDropDown({ id: ids.bracket_size, options: size_options });
       dd.attachDropDown({ id: ids.qualifiers, options: [{ key: '1', value: '1'}] });
-      dd.attachDropDown({ id: ids.elimination, options: [{ key: 'None', value: ''}] });
+      dd.attachDropDown({ id: ids.elimination, options: [{ key: lang.tr('none'), value: ''}] });
       return idObj(ids);
    }
 
@@ -2539,7 +2565,7 @@
       `;
       d3.select(container.draw_config.element).html(config);
       dd.attachDropDown({ id: ids.qualifiers,  options: qualcounts });
-      dd.attachDropDown({ id: ids.elimination, options: [{ key: 'None', value: ''}] });
+      dd.attachDropDown({ id: ids.elimination, options: [{ key: lang.tr('none'), value: ''}] });
       return idObj(ids);
    }
 

@@ -116,7 +116,7 @@
       dtp:     'Draw Type',
       drp:     'Draw Position',
       adr:     'Automated Draw',
-      mdo:     'Manual Draw Order',
+      mdo:     'Draw Order',
       phn:     'Phone',
       email:   'Email',
       asn:     'Association',
@@ -172,7 +172,7 @@
          elimination: 'Elimination',
          consolation: 'Consolation',
          qualification: 'Qualification',
-         remove: 'Remove Player',
+         remove: 'Remove',
          maindraw: 'Main Draw',
          unscheduled: 'Unscheduled Matches',
          scheduled: 'Scheduled Matches',
@@ -240,6 +240,8 @@
          oop_system: 'Order of Play',
          schedulepublished: 'Publishing Time:',
          judgesignature: 'Signature of Head Umpire:',
+         nopointcalcs: 'No Point Calculations for given date',
+         nomatches: 'No Matches',
       },
 
       events: {

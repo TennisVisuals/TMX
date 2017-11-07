@@ -116,7 +116,7 @@
       dtp:     'Draw Type',
       drp:     'Draw Position',
       adr:     'Automated Draw',
-      mdo:     'Manual Draw Order',
+      mdo:     'Draw Order',
       phn:     'Phone',
       email:   'Email',
       asn:     'Association',
@@ -172,7 +172,7 @@
          elimination: 'Elimination',
          consolation: 'Consolation',
          qualification: 'Qualification',
-         remove: 'Remove Player',
+         remove: 'Remove',
          maindraw: 'Main Draw',
          unscheduled: 'Unscheduled Matches',
          scheduled: 'Scheduled Matches',
@@ -240,6 +240,8 @@
          oop_system: 'Order of Play',
          schedulepublished: 'Publishing Time:',
          judgesignature: 'Signature of Head Umpire:',
+         nopointcalcs: 'No Point Calculations for given date',
+         nomatches: 'No Matches',
       },
 
       events: {
@@ -403,7 +405,7 @@
       reg:     'Registriran',
       gdr:     'Spol',
       dtp:     'Tip ždrijeba',
-      drp:     'Poticija kostura',
+      drp:     'Pozicija kostura',
       adr:     'Automatski ždrijeb',
       mdo:     'Ručni ždrijeb',
       phn:     'Telefon',
@@ -477,7 +479,7 @@
       print: {
          schedule: 'Preuzmi',
          draw: 'Preuzmi',
-         signin: 'Lista Prijavljenih Igrača',
+         signin: 'Lista za prijavu',
          ranklist: 'Print Rank List',
       },
 
@@ -525,10 +527,12 @@
          noremote: 'Nemoguće učitati daljinske registracije',
          calculateranking: 'Izračunaj rang bodove',
          generateranklist: 'Generiraj rang liste',
-         norankingdata: 'Nema rangnih podataka',
+         norankingdata: 'Nema podataka o rangu',
          oop_system: 'Igra se po sistemu',
          schedulepublished: 'Raspored objavljen u:',
          judgesignature: 'Potpis Vrhovnog suca',
+         nopointcalcs: 'Ne postoji izračun bodova za dani datum',
+         nomatches: 'Nema susreta',
       },
 
       events: {

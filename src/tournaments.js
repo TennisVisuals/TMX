@@ -405,6 +405,7 @@ let tournaments = function() {
          let filtered_unscheduled = unscheduled_matches
             .filter(m => (!euid || euid == m.event.euid) && (!round_filter || round_filter == m.round_name));
 
+         // TODO: option not to prioritize draw order w/o regard for round
          // if there is not a round filter, sort unscheduled matches by round in draw
          if (!round_filter) { filtered_unscheduled.sort((a, b) => priority.indexOf(b.round_name) - priority.indexOf(a.round_name)); }
 
@@ -436,6 +437,7 @@ let tournaments = function() {
          // create an object indexed by muid of unscheduled matches
          let muid_lookup = Object.assign({}, ...filtered_unscheduled.map(m=>({[m.muid]: m})));
 
+         // TODO: when prioritizing draw order w/o regard for round, exclude round_name
          // create a hash of unscheduled matches which have been sorted/grouped by round_name
          let unscheduled_hash = filtered_unscheduled.map(m=>`${m.event.euid}|${m.round_name}`);
 
@@ -999,7 +1001,7 @@ let tournaments = function() {
          if (!t_players || !t_players.length) return;
 
          t_players = orderPlayersByRank(t_players, category);
-         exp.signInPDF({ tournament, players: t_players, event_name: evt.name, doc_name: "Draw Order", extra_pages: false })
+         exp.signInPDF({ tournament, players: t_players, event_name: evt.name, doc_name: lang.tr('mdo'), extra_pages: false })
       }
 
       function printSignInList() {
@@ -1199,6 +1201,9 @@ let tournaments = function() {
 
                let matches = eventMatches(e);
                let scheduled = matches.filter(m=>m.match.schedule && m.match.schedule.court).length;
+
+               console.log('info:', info);
+               console.log('matches:', matches);
 
                // TODO: draws need to be regenerated here, as necessary
                // for example, when # of qualifiers changes we can't wait for
@@ -2466,7 +2471,7 @@ let tournaments = function() {
                      let court = { 
                         luid: l.luid,
                         name: `${l.abbreviation} ${i}`,
-                        availability: ['1','2','3','4','5','6','7','8','9','10'],
+                        availability: [1,2,3,4,5,6,7,8,9,10],
                      };
                      courts.push(court);
                   });
@@ -2506,7 +2511,7 @@ let tournaments = function() {
          filterSearchList();
 
          let courts = courtData();
-         let oop_rounds = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+         let oop_rounds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
          let date_options = date_range.map(d => ({ key: localizeDate(d), value: util.formatDate(d) }));
          dd.attachDropDown({ 
@@ -3717,7 +3722,8 @@ let tournaments = function() {
          });
 
          if (e.draw_type == 'Q' && outcome) {
-            let finalist_dp = tree_draw.info().final_round.map(m=>m.data.dp);
+            let info = drawFx.drawInfo(e.draw);
+            let finalist_dp = info.final_round.map(m=>m.data.dp);
             let qualifier_index = finalist_dp.indexOf(outcome.position);
             if (outcome.complete && qualifier_index >= 0) {
                if (existing_scores) {
@@ -3890,6 +3896,7 @@ let tournaments = function() {
                let qualifier_ids = linked.qualified.map(teamHash);
                if (qualifier_ids.indexOf(team[0].id) >= 0) { team[0].entry = 'Q'; }
             }
+            // TODO: convert to drawFx.assignPosition...
             tree_draw.assignPosition(position, team, bye, qualifier);
          }
 
@@ -4364,18 +4371,20 @@ let tournaments = function() {
          function drawNotActiveContextClick(d, coords) {
 
             let draw = e.draw;
-            let info = tree_draw.info();
             let position = d.data.dp;
 
             // must be a unique selector in case there are other SVGs
             let selector = d3.select('#' + container.draws.id + ' svg').node();
             let menu = contextMenu().selector(selector).events({ 'cleanup': tree_draw.unHighlightCells });
 
+
             if (!d.height && d.data && d.data.dp && !d.data.team) {
+               // position is vacant, decide appropriate action
                let seed_group = drawFx.nextSeedGroup({ draw });
                if (seed_group) {
                   assignSeededPosition({ position, seed_group, coords });
                } else {
+                  let info = drawFx.drawInfo(draw);
                   if (info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length) {
                      let player_count = (draw.opponents ? draw.opponents.length : 0) + (draw.qualifiers || 0);
 
@@ -4389,8 +4398,7 @@ let tournaments = function() {
                      assignUnseededPosition({ position, coords });
                   }
                }
-            } else if (!d.data.bye && !e.active && !e.automated) {
-               // draw must not be active
+            } else if (!d.data.bye && !e.automated && d.data.team) {
 
                // cannot remove seeded players (yet)
                if (d.data.team[0].seed) {
@@ -4403,29 +4411,68 @@ let tournaments = function() {
                   return;
                }
 
-               let teams = optionNames([d.data.team]);
-               let options = teams.map(t => `${lang.tr('draws.remove')}: ` + t);
-               assignedPlayerOptions({ position, options, coords });
+               assignedPlayerOptions({ position, node: d, coords, draw });
+
             } else if (d.height == 0 && d.data.bye && !displayed_draw_event.active) {
-               let draw = displayed_draw_event.draw;
-               // if (draw.unseeded_placements.length < draw.unseeded_teams.length) console.log('reposition bye?', d);
-               console.log('reposition bye?', d);
-            } else {
+               assignedByeOptions({ position, node: d, coords, draw });
+            } else if (d.data.team) {
                console.log('remove player?', d);
                let team_match = drawFx.teamMatch(d);
                if (team_match) console.log('team match');
             }
 
-            function assignedPlayerOptions({ position, options, coords }) {
+            function assignedByeOptions({ position, node, coords, draw }) {
+
+               let info = drawFx.drawInfo(draw);
+               let options = [`${lang.tr('draws.remove')}: BYE`];
 
                menu
                   .items(...options)
                   .events({ 
                      'item': { 'click': (d, i) => {
-                        // TODO
-                        // 1. if there are any byes and players advanced, undo
-                        // 2. remove the team from the draw object
-                        // 3. remove the team[0].id from draw.unseeded_placements
+
+                        if (info.unassigned.length) {
+                           node.data.bye = false;
+                           delete node.data.team;
+
+                        } else {
+                           // 1. if there are any byes and players advanced, undo
+                           console.log('complete draw');
+                        }
+
+                        if (o.save) db.addTournament(tournament);
+                        tree_draw();
+                     }}
+                  });
+
+               if (device.isWindows || d3.event.shiftKey) {
+                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+               } else {
+                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+               }
+            }
+            // options for positions which have already been assigned
+            function assignedPlayerOptions({ position, node, coords, draw }) {
+
+               let info = drawFx.drawInfo(draw);
+               let teams = optionNames([node.data.team]);
+               let options = teams.map(t => `${lang.tr('draws.remove')}: ` + t);
+
+               menu
+                  .items(...options)
+                  .events({ 
+                     'item': { 'click': (d, i) => {
+
+                        if (info.unassigned.length) {
+                           delete node.data.team;
+                           draw.unseeded_placements = draw.unseeded_placements.filter(f=>f.position != position);
+                        } else {
+                           // 1. if there are any byes and players advanced, undo
+                           console.log('complete draw');
+                        }
+
+                        if (o.save) db.addTournament(tournament);
+                        tree_draw();
                      }}
                   });
 

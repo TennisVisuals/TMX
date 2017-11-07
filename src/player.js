@@ -314,10 +314,10 @@ let player = function() {
       let year = new Date().getFullYear();
 
       // TODO: update how categories are handled...
-      category = category == 's' ? 20 : +category;
+      category = !category ? 0 : category == 's' ? 20 : +category;
 
-      let max_year = category == 20 ? 1900 : year - category;
-      let min_year = category == 20 ? year : category == 20 ? max_year + 7 : max_year + 5;
+      let max_year = category == 20 || category == 0 ? 1900 : year - category;
+      let min_year = !category || category == 20 ? year : max_year + 5;
       let daterange = { start: `${max_year}-1-1`, end: `${min_year}-1-1` };
 
       player_container.last_name.element.style.background = player.last_name ? 'white' : 'yellow';
