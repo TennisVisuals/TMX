@@ -4324,26 +4324,19 @@ let tournaments = function() {
          function rrContextPopUp(d) {
             if (!state.edit) return;
 
-            let info = drawFx.drawInfo(e.draw);
+            let draw = displayed_draw_event.draw;
+            let info = drawFx.drawInfo(draw);
             if (!info.unfilled_positions.length) return;
-            if (!e.draw.unseeded_placements) e.draw.unseeded_placements = [];
+            if (!draw.unseeded_placements) draw.unseeded_placements = [];
 
             let placement = { bracket: d.bracket, position: d.row };
 
-            let u_hash = [];
-            let unplaced_teams = [];
-            let hashFx = (h) => [h.bracket, h.position].join('|');
+            function hashFx(h) { return [h.bracket, h.position].join('|'); }
+            let u_hash = info.unplaced_seeds.length ? info.open_seed_positions.map(hashFx) : info.unfilled_positions.map(hashFx);
 
-            if (info.unplaced_seeds.length) {
-               u_hash = info.open_seed_positions.map(hashFx);
-               unplaced_teams = info.unplaced_seeds;
-            } else {
-               u_hash = info.unfilled_positions.map(hashFx);
-               let placements = e.draw.unseeded_placements ? e.draw.unseeded_placements.map(p=>p.id) : [];
-               unplaced_teams = e.draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
-            }
-
-            let position_unfilled = u_hash.indexOf(hashFx(placement)) >= 0;
+            let placements = draw.unseeded_placements ? draw.unseeded_placements.map(p=>p.id) : [];
+            let unplaced = info.unplaced_seeds.length ? info.unplaced_seeds : draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
+            let unplaced_teams = teamSort(unplaced);
 
             // must be a unique selector in case there are other SVGs
             let draw_id = `rrDraw_${d.bracket}`;
@@ -4352,14 +4345,15 @@ let tournaments = function() {
             let menu = contextMenu().selector(selector).events({ 'cleanup': console.log });
             let coords = d3.mouse(selector);
 
+            let position_unfilled = u_hash.indexOf(hashFx(placement)) >= 0;
+
             if (position_unfilled) {
-               placeTeam();
+               placeTeam(menu, coords, unplaced_teams, placement, info);
             } else if (d.player) {
-               removeTeam();
+               removeTeam(menu, coords, placement, d, draw);
             }
 
-            function placeTeam() {
-               unplaced_teams = teamSort(unplaced_teams);
+            function placeTeam(menu, coords, unplaced_teams, placement, info) {
                let teams = optionNames(unplaced_teams);
 
                menu
@@ -4378,9 +4372,65 @@ let tournaments = function() {
                }
             }
 
-            function removeTeam() {
+            function removeTeam(menu, coords, placement, cell, draw) {
 
-               console.log('possible to remove team?');
+               assignedRRplayerOptions({ placement, cell, coords, draw });
+
+               // options for positions which have already been assigned
+               function assignedRRplayerOptions({ placement, cell, coords, draw }) {
+
+                  let info = drawFx.drawInfo(draw);
+                  let bracket = draw.brackets[placement.bracket];
+                  let options = [lang.tr('draws.remove'), lang.tr('actions.cancel')];
+
+                  // TODO: determine seeded or unseeded position?
+                  let unseeded_position = draw.unseeded_placements.reduce((p, c) => c.id == cell.player.id ? true : p, undefined);
+
+                  if (!unseeded_position) return;
+
+                  menu
+                     .items(...options)
+                     .events({ 
+                        'item': { 'click': (d, i) => {
+
+                           if (i == 0) {
+
+                              if (info.unfilled_positions.length) {
+
+                                 if (unseeded_position) {
+
+                                    bracket.players = bracket.players.filter(p=>p.puid != cell.player.puid);
+                                    draw.unseeded_placements = draw.unseeded_placements
+                                       .filter(f=> {
+                                          let equal = f.position.bracket == placement.bracket && f.position.position == placement.position
+                                          return !equal;
+                                       });
+
+                                    drawFx.matches(draw);
+                                    rr_draw.data(draw);
+                                    rr_draw.updateBracket(placement.bracket, true);
+                                 } else {
+                                    console.log('seeded position!');
+                                 }
+
+
+                              } else {
+                                 // 1. if there are any byes and players advanced, undo
+                                 console.log('complete draw');
+                              }
+
+                              if (o.save) db.addTournament(tournament);
+                           }
+                        }}
+                     });
+
+                  if (device.isWindows || d3.event.shiftKey) {
+                     setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+                  } else {
+                     setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+                  }
+               }
+
             }
          }
 
@@ -4511,6 +4561,7 @@ let tournaments = function() {
                   setTimeout(function() { menu(coords[0], coords[1]); }, 200);
                }
             }
+
             // options for positions which have already been assigned
             function assignedPlayerOptions({ position, node, coords, draw }) {
 
