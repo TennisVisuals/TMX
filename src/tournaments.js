@@ -4919,7 +4919,7 @@ let tournaments = function() {
    // only paramater is date because that is what is passed by calendar object
    function calcPlayerPoints({ date, tournament, container }) {
 
-      date = new Date(date || tournament.end);
+      let points_date = new Date(tournament.points_date || date || tournament.end);
       let tuid = tournament.tuid;
       let matches = tournament.matches.slice();
 
@@ -4932,7 +4932,7 @@ let tournaments = function() {
       let rankings = tournament.matches.length ? tournamentOptions(undefined, container) : {};
       let category = rankings.category;
 
-      if (!rankings.category || !date) {
+      if (!rankings.category || !points_date) {
          // calling with no points clear Point Display
          gen.displayPlayerPoints(container);
          return;
@@ -4943,7 +4943,7 @@ let tournaments = function() {
 
       // if there are no gendered ranking settings, 
       // all matches modified with same ranking settings
-      let match_data = { matches, category, rankings, date, points_table };
+      let match_data = { matches, category, rankings, date: points_date, points_table };
 
       let points = rank.bulkPlayerPoints(match_data);
 
@@ -5138,11 +5138,11 @@ let tournaments = function() {
       });
    }
 
-   function calcTournamentPoints({tournament}) {
+   function calcTournamentPoints({ tournament }) {
       return new Promise( (resolve, reject) => {
          db.db.matches.where('tournament.tuid').equals(tournament.tuid).toArray(calcPoints); 
 
-         let date = new Date(tournament.end);
+         let points_date = new Date(tournament.points_date || tournament.end);
          let profile = tournamentParser.profiles[env.org];
          let points_table = point_tables[profile.points];
 
@@ -5170,7 +5170,7 @@ let tournaments = function() {
          let addPointEvents = (point_events) => util.performTask(db.addPointEvent, point_events, false);
 
          function calcPoints(matches) {
-            let match_data = { matches, category: rankings.category, rankings, date, points_table };
+            let match_data = { matches, category: rankings.category, rankings, date: points_date, points_table };
             let points = rank.bulkPlayerPoints(match_data);
 
             let singles_points = Object.keys(points.singles).map(player => points.singles[player]);
