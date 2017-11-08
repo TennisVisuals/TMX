@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+
+<html lang="en" class="no-js">
+
+<head>
+	<meta charset="utf-8">
+	<title>HTS Tournaments</title>
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+
+	<link rel="stylesheet" type="text/css" href="css/awesomplete.css" media="screen">
+   <link rel="stylesheet" type="text/css" href="css/calendar.css" />
+   <link rel="stylesheet" type="text/css" href="css/calendar-heatmap.css" />
+   <link rel="stylesheet" type="text/css" href="css/club.css" />
+   <link rel="stylesheet" type="text/css" href="css/dropdown.css" />
+   <link rel="stylesheet" type="text/css" href="css/dropzone.css" />
+   <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css" />
+	<link rel="stylesheet" type="text/css" href="css/leaflet.css" media="screen">
+   <link rel="stylesheet" type="text/css" href="css/main.css" />
+   <link type="text/css" rel="stylesheet" href="css/match_block.css" />
+   <link rel="stylesheet" type="text/css" href="css/modal.css" />
+   <link type="text/css" rel="stylesheet" href="css/pikaday.css" />
+   <link rel="stylesheet" type="text/css" href="css/player.css" />
+   <link rel="stylesheet" type="text/css" href="css/rank.css" />
+   <link type="text/css" rel="stylesheet" href="css/schedule.css" />
+   <link type="text/css" rel="stylesheet" href="css/scoreBoard.css" />
+   <link rel="stylesheet" type="text/css" href="css/searchbox.css" />
+   <link type="text/css" rel="stylesheet" href="css/settings.css" />
+   <link rel="stylesheet" type="text/css" href="css/tabs.css" />
+   <link rel="stylesheet" type="text/css" href="css/tournament.css" />
+
+	<!-- remove this if you use Modernizr -->
+   <!--
+	<script>(function(e,t,n){var r=e.querySelectorAll("html")[0];r.className=r.className.replace(/(^|\s)no-js(\s|$)/,"$1js$2")})(document,window,0);</script>
+   -->
+</head>
+
+<body>
+<script src="../components/minimized/xlsx.core.min.js"></script>
+<script src="../components/minimized/dexie.min.js"></script>
+<script src="../components/minimized/d3.v4.min.js"></script>
+<script src="../components/minimized/awesomplete.min.js"></script>
+<script src="../components/minimized/UUID.min.js"></script>
+<script src="../components/minimized/leaflet.min.js"></script>
+<script src="../components/minimized/pdfmake.min.js"></script>
+<script src="../components/minimized/vfs_fonts.js"></script>
+<script src="../components/minimized/d3.superformula.min.js" charset="utf-8"></script>
+<script src="../components/minimized/socket.io.min.1.7.2.js"></script>
+
+<script src="../components/src/dynamicDraw.js"></script>
+<script src="../components/src/timeSeries.js"></script>
+<script src="../components/src/cleanScore.js"></script>
+
+<script src="../components/src/pikaday.js"></script>
+
+<script src="../components/ugly/ladderChart.min.js" charset="utf-8"></script>
+<script src="../components/ugly/yearCal.min.js"></script>
+<script src="../components/src/contextMenu.js"></script> 
+<script src="../components/src/floatingEntry.js"></script> 
+ 
+<script src="../components/src/diacritics.js"></script>
+<script src="../components/src/moment.js"></script>
+
+<!-- testing
+<script src="../components/minimized/datepicker.min.js"></script>
+-->
+
+<div id="header" class='noselect' style="display: flex">
+   <div id="searchentry" class="flexrow"> 
+      <input id='blur' class='blur' readonly>
+      <div id="header_actions" class="flexrow flexcenter">
+         <div id="go_home" class="icon"><div id='homeicon' class="icon15 homeicon"></div></div>
+         <div id="idiomatic" class='subtle'></div>
+      </div>
+      <div class="flexcenter" style="width: 100%">
+
+         <div class="searchbox ">
+             <div id="search_select" class="icon" title='Change Search Function'><div class="icon15 searchicon"></div></div>
+             <input type="search" id="searchinput" spellcheck="false" placeholder="Player Search..." tabindex="-1" onfocus="this.setSelectionRange(0, this.value.length)" autocomplete="off" aria-autocomplete="list">
+         </div>
+
+      </div>
+      <div id="searchextra" class="flexrow flexcenter">
+         <div id="refresh" class="icon subtle"><div id='refreshicon' class="icon15 refreshicon"></div></div>
+         <div id='searchmeta' class="flexrow flexcenter"><div class="icon"><div id="searchcategory"></div></div><div id="searchcount"></div></div>
+      </div>
+   </div>
+</div>
+
+<div id='main' class='noselect'>
+   <div id='content' class="flexcol flexcenter"></div>
+</div>
+
+<script src="src/coms.js"></script>
+<script src="src/db.js"></script>
+<script src="src/util.js"></script>
+<script src="src/load.js"></script>
+<script src="src/files.js"></script>
+<script src="src/search.js"></script>
+<script src="src/idioms/idioms.js"></script>
+<script src="src/tabs.js"></script>
+<script src="src/dropdown.js"></script>
+<script src="src/display.js"></script>
+<script src="src/points.js"></script>
+<script src="src/rank.js"></script>
+<script src="src/xlsDraws.js"></script>
+<script src="src/hts.js"></script>
+<script src="src/config.js" defer></script>
+<script src="src/main.js" defer></script>
+<script src="src/player.js" defer></script>
+<script src="src/tournaments.js" defer></script>
+<script src="src/scoreBoard.js" defer></script>
+<!--
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeS_V8UElYwr-pnj2HZMe-Qt46HyGnjIA"></script>
+<script src="src/elo.js" defer></script>
+-->
+<script>
+   if (window.attachEvent) {
+       window.attachEvent('onload', getGoing);
+   } else {
+       if (window.onload) {
+           var curronload = window.onload;
+           var newonload = function(evt) {
+               curronload(evt);
+               getGoing(evt);
+           };
+           window.onload = newonload;
+       } else {
+           window.onload = getGoing;
+       }
+   }
+
+   function getGoing() {
+      config.init();
+   }
+</script>
+</body>
+</html>

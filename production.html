@@ -1,0 +1,63 @@
+
+<!DOCTYPE html>
+
+<html lang="en" class="no-js">
+
+<head>
+	<meta charset="utf-8">
+	<title>HTS Tournaments</title>
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+   <link rel="stylesheet" type="text/css" href="css/style.css" />
+	<script>(function(e,t,n){var r=e.querySelectorAll("html")[0];r.className=r.className.replace(/(^|\s)no-js(\s|$)/,"$1js$2")})(document,window,0);</script>
+</head>
+
+<body>
+<script src="lib/lib_bundle.js"></script>
+
+<div id="header" class='noselect' style="display: flex">
+   <div id="searchentry" class="flexrow"> 
+      <input id='blur' class='blur' readonly>
+      <div id="header_actions" class="flexrow flexcenter">
+         <div id="go_home" class="icon"><div id='homeicon' class="icon15 homeicon"></div></div>
+         <div id="idiomatic" class="subtle"></div>
+      </div>
+      <div class="flexcenter" style="width: 100%">
+         <div class="searchbox ">
+             <div id="search_select" class="icon"><div class="icon15 searchicon"></div></div>
+             <input type="search" id="searchinput" spellcheck="false" placeholder="Player Search..." tabindex="-1" onfocus="this.setSelectionRange(0, this.value.length)" autocomplete="off" aria-autocomplete="list">
+         </div>
+      </div>
+      <div id="searchextra" class="flexrow flexcenter">
+         <div id="refresh" class="icon subtle"><div id='refreshicon' class="icon15 refreshicon"></div></div>
+         <div id='searchmeta' class="flexrow flexcenter"><div class="icon"><div id="searchcategory"></div></div><div id="searchcount"></div></div>
+      </div>
+   </div>
+
+</div>
+
+<div id='main' class='noselect'>
+   <div id='content' class="flexcol flexcenter"></div>
+</div>
+
+
+<script src="source.min.js"></script>
+<script>
+   if(window.attachEvent) {
+       window.attachEvent('onload', start);
+   } else {
+       if(window.onload) {
+           var curronload = window.onload;
+           var newonload = function(evt) {
+               curronload(evt);
+               start(evt);
+           };
+           window.onload = newonload;
+       } else {
+           window.onload = start;
+       }
+   }
+
+   function start() { config.init(); }
+</script>
+</body>
+</html>
