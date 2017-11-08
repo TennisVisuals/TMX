@@ -3950,7 +3950,7 @@ let tournaments = function() {
             // must be a unique selector in case there are other SVGs
             let draw_id = `rrDraw_${d.bracket}`;
             let selector = d3.select(`#${container.draws.id} #${draw_id} svg`).node();
-            let menu = contextMenu().selector(selector).events({ 'cleanup': console.log });
+            let menu = contextMenu().selector(selector).events({ 'cleanup': () => {} });
 
             let coords = d3.mouse(selector);
             let options = [lang.tr('draws.remove'), lang.tr('actions.cancel')];
@@ -4342,14 +4342,16 @@ let tournaments = function() {
             let draw_id = `rrDraw_${d.bracket}`;
             let selector = d3.select(`#${container.draws.id} #${draw_id} svg`).node();
 
-            let menu = contextMenu().selector(selector).events({ 'cleanup': console.log });
+            let menu = contextMenu().selector(selector).events({ 'cleanup': () => {} });
             let coords = d3.mouse(selector);
 
             let position_unfilled = u_hash.indexOf(hashFx(placement)) >= 0;
 
             if (position_unfilled) {
                placeTeam(menu, coords, unplaced_teams, placement, info);
-            } else if (d.player) {
+            } else if (d.player && placement.position) {
+               // placement.position restricts removal to cells with full name
+               // because removing from row 0 causes errors...
                removeTeam(menu, coords, placement, d, draw);
             }
 
