@@ -2126,7 +2126,6 @@ let tournaments = function() {
          if (!e.teams || !e.teams.length) return [];
          let idmap = idMap(tournament.players);
 
-         console.log(e);
          let approved_hash = e.approved.map(a=>a.join('|'));
          let not_promoted = e.teams.filter(team => approved_hash.indexOf(team.join('|')) < 0);
 
@@ -2357,6 +2356,11 @@ let tournaments = function() {
             approved = approvedTeams(e);
          }
 
+         let all_ranks = teams.map(team=>team.combined_rank);
+         let duplicates = util.unique(all_ranks).filter(ranking => util.indices(ranking, all_ranks).length > 1);
+         let rank_duplicates = Object.assign({}, ...duplicates.map(dup => ({ [dup]: teams.filter(t=>t.combined_rank == dup) }) ));
+         teams.forEach(team => team.duplicate_rank = rank_duplicates[team.combined_rank] ? true : false);
+
          gen.displayEventPlayers({ container, approved, teams, eligible, ineligible, unavailable });
 
          let changeGroup = (evt) => {
@@ -2402,8 +2406,20 @@ let tournaments = function() {
                approvedChanged(e, true);
             }
          }
+
+         let addSubrank = (evt) => {
+            if (!state.edit || e.active) return;
+            let grouping = util.getParent(evt.target, 'player_container').getAttribute('grouping');
+            let elem = util.getParent(evt.target, 'team_click');
+            let team_id = elem.getAttribute('team_id');
+            let team_rank = elem.getAttribute('team_rank');
+            if (rank_duplicates[team_rank]) {
+               console.log(grouping, team_id, team_rank);
+            }
+         }
          util.addEventToClass('player_click', changeGroup, container.event_details.element);
          util.addEventToClass('team_click', removeTeam, container.event_details.element);
+         util.addEventToClass('team_click', addSubrank, container.event_details.element, 'contextmenu');
 
          let cm = (evt) => console.log('context menu:', evt);
          util.addEventToClass('player_click', cm, container.event_details.element, 'contextmenu');

@@ -2598,19 +2598,23 @@
          let border = team.players ? ' border' : '';
          let border_padding = team.players ? ' border_padding' : '';
          let team_click = team.players ? ' team_click' : '';
-         let ranking = team.rank < 2000 ? `(${team.rank})` : '';
-         let team_rank = team.players && team.rank ? `<div class="border_padding"><i>${ranking}</i></div>` : '';
+         let rank = team.rank < 2000 ? `(${team.rank})` : '';
+         let subrank = team.subrank ? ` <i>+${team.subrank}</i>` : '';
+         let combined_ranking = team.players && team.rank ? `<div class="border_padding"><i>${rank}${subrank}</i></div>` : '';
          let team_seed = team.players && team.seed ? `<div class="border_padding"><b>[${team.seed}]</b></div>` : '';
+
+         let background = team.duplicate_rank ? ` style='background: lightyellow;'` : '';
 
          // this is a stub for the future
          let dragdrop = gen.dragdrop && team.players ? ` draggable="true" ondragstart="drag(event, this)"` : '';
 
+         let team_rank = team.rank < 2000 ? ` team_rank='${team.rank}'` : '';
          let team_id = team.players ? ` team_id='${team.players.map(p=>p.id).join("|")}' ` : '';
-         let html = `<div ${team_id} class='team_box${border}${team_click}'>
+         let html = `<div ${team_rank} ${team_id} class='team_box${border}${team_click}'${background}>
                         <div class='flexcol${border_padding}'${dragdrop}>`;
          html += team.players ? team.players.map(p => playerRow(p)).join('') : playerRow(team, true);
          html += `      </div>
-                        ${team_seed} ${team_rank}
+                        ${team_seed} ${combined_ranking}
                      </div>`;
          return html;
       }
