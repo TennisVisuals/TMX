@@ -242,6 +242,8 @@
          judgesignature: 'Signature of Head Umpire:',
          nopointcalcs: 'No Point Calculations for given date',
          nomatches: 'No Matches',
+         downloadtemplate: 'Download Import Template',
+         add2database: 'Add Players, Tournaments, Rankings to Database',
       },
 
       events: {
@@ -533,6 +535,8 @@
          judgesignature: 'Potpis Vrhovnog suca',
          nopointcalcs: 'Ne postoji izračun bodova za dani datum',
          nomatches: 'Nema susreta',
+         downloadtemplate: 'Preuzmite Uvoz predloška',
+         add2database: 'Dodaj igrača, turnire, ljestvice u bazu podataka',
       },
 
       events: {

@@ -175,6 +175,31 @@ let coms = function() {
       });
    }
 
+   fx.fetchPlayerDates = fetchPlayerDates;
+   function fetchPlayerDates() {
+      return new Promise((resolve, reject) => {
+         if (!o.auth) return reject();
+
+         db.findSetting('fetchPlayerDates').then(fetchNew, reject);
+
+         function fetchNew(params) {
+
+            let request_object = { [params.type]: params.url };
+            let request = JSON.stringify(request_object);
+
+            function responseHandler(json_data) {
+               if (json_data) {
+                  resolve(json_data);
+               } else {
+                  if (result.err) return reject(result.err);
+                  return reject('Error');
+               }
+            }
+            fx.ajax('/api/match/request', request, 'POST', responseHandler);
+         }
+      });
+   }
+
    fx.fetchNewClubs = fetchNewClubs;
    function fetchNewClubs() {
       return new Promise((resolve, reject) => {

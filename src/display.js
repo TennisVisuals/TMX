@@ -218,8 +218,8 @@
       document.getElementById('processing').style.display = "flex";
       let html = `
          <div style='margin-left: 1em; margin-right; 1em;'>
-            <h2 style='margin: 1em;'>Download Import Template</h2>
-            <div style='margin: 1em;'>Add Players, Tournaments, Rankings to Database</div>
+            <h2 style='margin: 1em;'>${lang.tr('phrases.downloadtemplate')}</h2>
+            <div style='margin: 1em;'>${lang.tr('phrases.add2database')}</div>
             <div class="flexcenter" style='margin-bottom: 2em;'>
                <button id='${ids.cancel}' class='btn btn-small dismiss'>${lang.tr('actions.cancel')}</button>
                <a href='./assets/CourtHiveImportTemplate.xlsx' download>

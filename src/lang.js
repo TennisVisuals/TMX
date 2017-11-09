@@ -242,6 +242,8 @@
          judgesignature: 'Signature of Head Umpire:',
          nopointcalcs: 'No Point Calculations for given date',
          nomatches: 'No Matches',
+         downloadtemplate: 'Download Import Template',
+         add2database: 'Add Players, Tournaments, Rankings to Database',
       },
 
       events: {

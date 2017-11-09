@@ -684,6 +684,7 @@
       let players = extractWorkbookRows(workbook.Sheets.Players, headers);
       players.forEach(player => {
          player.puid = player.puid || UUID.new();
+         player.id = player.id || player.puid;
          player.birth = new Date(player.birth).getTime();
          player.ioc = (player.ioc.match(/\D+/g) || [])[0];
       });
