@@ -1369,6 +1369,9 @@
       let ioc = p.ioc && p.ioc.length == 3 ? p.ioc.toUpperCase() : '';
       if (ioc == '' && p.foreign == 'Y') ioc = 'INO';
 
+      let birth = p.birth ? new Date(p.birth).getFullYear() : '';
+      let birthyear = !isNaN(birth) ? birth : '----';
+
       let font_color = !gender ? 'black' : gender == 'W' ? '#840076' : '#00368c'; 
       if (p.signed_in && (!player.registration(p) || !player.medical(p))) font_color = '#c93214';
       let style = `style='color: ${font_color}'`;
@@ -1390,7 +1393,7 @@
                   <input rankentry='${p.id}' puid='${p.puid}' order='${j}' class='subrank' value='${p.subrank || ''}' style='opacity: 0;'>
                </span>
             </div>
-            <div class='registered_attr flexcenter'>${p.birth ? new Date(p.birth).getFullYear() : ''}</div>
+            <div class='registered_attr flexcenter'>${birthyear}</div>
             <div class='registered_attr flexcenter'>${p.club_code || ''}</div>
             <div class='registered_attr flexcenter'>${ioc}</div>
             <div class='registered_attr flexcenter'>${p.sex || ''}</div>

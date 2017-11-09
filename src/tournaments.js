@@ -555,6 +555,8 @@ let tournaments = function() {
 
       function addTournamentPlayer(player_container, new_player) {
 
+         console.log(new_player);
+
          if (!tournament.players) tournament.players = [];
          let existing = tournament.players.filter(p=>p.id == new_player.id);
          let assignment = gen.playerAssignmentActions(player_container);
@@ -593,12 +595,14 @@ let tournaments = function() {
                   let category_ranking = player_rankings[new_player.id];
                   if (category_ranking) {
 
-                     // problem here is that tournament.players only have one .rank
-                     // need to add registered players with a rank that reflects the category to which the rank applies
-                     // new_player.rank = category_ranking.ranking;
-
                      let category = isNaN(tournament.category) ? 'S' : tournament.category;
                      new_player.rankings[category] = +category_ranking.ranking;
+
+                     // TODO: standard way to support 'MR' rankings for other countries...
+                     if (category_ranking.MR > 0) {
+                        if (!new_player.MR) new_player.MR = {};
+                        new_player.MR[category] = category_ranking.MR;
+                     }
                   }
                }
                addPlayer();
@@ -1936,10 +1940,16 @@ let tournaments = function() {
          // sort unranked by full_name (last, first)
          playerSort(unranked);
 
-         // sort ranked players by category ranking, or, if equivalent, subrank
-         ranked.sort((a, b) => (a.category_ranking == b.category_ranking) ? a.subrank - b.subrank : a.category_ranking - b.category_ranking);
+         let mr_players = ranked.filter(player => mrPlayer(player, category));
+         let ranked_players = ranked.filter(player => !mrPlayer(player, category));
 
-         return [].concat(...ranked, ...unranked);
+         // sort ranked players by category ranking, or, if equivalent, subrank
+         mr_players.sort((a, b) => (a.category_ranking == b.category_ranking) ? a.subrank - b.subrank : a.category_ranking - b.category_ranking);
+         ranked_players.sort((a, b) => (a.category_ranking == b.category_ranking) ? a.subrank - b.subrank : a.category_ranking - b.category_ranking);
+
+         return [].concat(...mr_players, ...ranked_players, ...unranked);
+
+         function mrPlayer(player, category) { return player.MR && player.MR[category]; }
       }
 
       function ineligiblePlayers(e) {
@@ -3279,17 +3289,24 @@ let tournaments = function() {
       }
 
       function rankDuplicates(players, active_puids=[]) {
-         let all_rankings = players.map(p=>p.category_ranking);
+
+         // TODO: this should be EVENT category
+         let category = isNaN(tournament.category) ? '20' : tournament.category;
+
+         let non_mr_players = players.filter(p=>!mrPlayer(p, category));
+         let all_rankings = non_mr_players.map(p=>p.category_ranking);
          let count = util.arrayCount(all_rankings);
          let duplicates = Object.keys(count).reduce((p, k) => { if (!isNaN(k) && count[k] > 1) p.push(+k); return p; }, []);
 
          let duplicate_ids = [];
          if (duplicates) {
-            duplicate_puids = players.filter(p=>duplicates.indexOf(p.category_ranking) >= 0).map(p=>p.puid);
+            duplicate_puids = non_mr_players.filter(p=>duplicates.indexOf(p.category_ranking) >= 0).map(p=>p.puid);
             let puids = [].concat(...active_puids, ...duplicate_puids);
             enableSubRankEntry(true, puids);
          }
          return duplicate_puids;
+
+         function mrPlayer(player, category) { return player.MR && player.MR[category]; }
       }
 
       function enableSubRankEntry(visible, puids) {

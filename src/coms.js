@@ -175,6 +175,20 @@ let coms = function() {
       });
    }
 
+   function updatePlayerDates() {
+      console.log('updating player dates');
+      fetchPlayerDates().then(processDates);
+
+      function processDates(update_object) {
+         db.db.players.toCollection().modify(player => {
+            if (update_object[player.id]) {
+               player.right_to_play_until = new Date(update_object[player.id].rtp).getTime();
+               player.registered_until = new Date(update_object[player.id].r).getTime();
+            }
+         });
+      }
+   }
+
    fx.fetchPlayerDates = fetchPlayerDates;
    function fetchPlayerDates() {
       return new Promise((resolve, reject) => {
@@ -303,6 +317,8 @@ let coms = function() {
                if (json_data) {
                   let players = json_data.filter(p=>p.first_name && p.last_name);
                   normalizePlayers(players);
+
+                  if (max_id) updatePlayerDates();
                } else {
                   if (result.err) return reject(result.err);
                   return reject('Error');
@@ -329,6 +345,7 @@ let coms = function() {
                player.first_name = util.normalizeName(player.first_name, false).trim();
                player.puid = `${player.foreign ? 'INO' : 'CRO'}-${player.cropin}`;
             });
+
             resolve(players);
          }
 
@@ -484,7 +501,6 @@ let coms = function() {
 
                      player.rank = +player.rank || undefined;
                   });
-                  dev.players = players;
                   Promise.all(players.map(player => {
                      if (player.id) {
                         return db.findPlayerById(player.id);
