@@ -113,7 +113,7 @@
    }
 
    gen.svgModal = ({ x, y, options, callback }) => {
-      if (!options) {
+      if (!options || !options.length) {
          cleanUp();
          return;
       }
@@ -128,12 +128,16 @@
          .items(...options)
          .events({ 'item': { 'click': returnSelection } });
       menu(x, y);
+      document.body.style.overflow  = 'hidden';
 
       function returnSelection(d, i) {
-         cleanUp();
+         // cleanUp();
          if (typeof callback == 'function') callback(d, i);
       }
-      function cleanUp() { svg.remove(); }
+      function cleanUp() { 
+         document.body.style.overflow  = null;
+         svg.remove(); 
+      }
    }
 
    gen.initModals = () => {
@@ -1920,7 +1924,12 @@
       });
 
       let oop_round = oop_rounds.map(slot => {
-         return `<div class='oop_round'>${slot}</div>`;
+         let html = `
+            <div class='oop_round' oop_round='${slot}'>
+               ${slot}
+            </div>
+         `;
+         return html;
       }).join('');
 
       let html = `
@@ -1953,7 +1962,11 @@
       let dragdrop = editable && !offgrid && !complete ? ' dragdrop' : '';
       let content = offgrid ? '' : !empty ? scheduledMatchHTML(match) : gen.emptyOOPround(editable);
 
-      // TODO: Is there a problem here when there is no luid, court or oop_round ??
+      if (Object.keys(match).length && match.schedule) {
+         if (!luid && match.schedule.luid) luid = match.schedule.luid;
+         if (!court && match.schedule.court) court = match.schedule.court;
+         if (!oop_round && match.schedule.oop_round) oop_round = match.schedule.oop_round;
+      }
 
       let html = `
          <div id='${ids.scorebox}' 
@@ -1980,7 +1993,7 @@
       let format = match.format ? util.normalizeName(match.format) : '';
 
       let score = match.score ? `<div class='match_score'>${match.score}</div>` : '';
-      let header = `${match.schedule.heading || ''}${match.schedule.time || ''}`;
+      let header = `${match.schedule.heading || ''} ${match.schedule.time || ''}`;
       let html = `
          <div class='header'>${header}</div> 
          <div class='catround'>
@@ -2601,19 +2614,20 @@
          let border = team.players ? ' border' : '';
          let border_padding = team.players ? ' border_padding' : '';
          let team_click = team.players ? ' team_click' : '';
-         let rank = team.rank < 2000 ? `(${team.rank})` : '';
-         let subrank = team.subrank ? ` <i>+${team.subrank}</i>` : '';
-         let combined_ranking = team.players && team.rank ? `<div class="border_padding"><i>${rank}${subrank}</i></div>` : '';
+         let subrank = team.subrank ? `/${team.subrank}` : '';
+         let rank = team.rank < 2000 ? `(${team.rank}${subrank})` : '';
+         let combined_ranking = team.players && team.rank ? `<div class="border_padding"><i>${rank}</i></div>` : '';
          let team_seed = team.players && team.seed ? `<div class="border_padding"><b>[${team.seed}]</b></div>` : '';
 
-         let background = team.duplicate_rank ? ` style='background: lightyellow;'` : '';
+         let background = team.duplicates ? ` style='background: lightyellow;'` : '';
+         let duplicate = team.duplicates ? ` duplicates="${team.duplicates}"` : '';
 
          // this is a stub for the future
          let dragdrop = gen.dragdrop && team.players ? ` draggable="true" ondragstart="drag(event, this)"` : '';
 
          let team_rank = team.rank < 2000 ? ` team_rank='${team.rank}'` : '';
          let team_id = team.players ? ` team_id='${team.players.map(p=>p.id).join("|")}' ` : '';
-         let html = `<div ${team_rank} ${team_id} class='team_box${border}${team_click}'${background}>
+         let html = `<div ${team_rank} ${team_id} ${duplicate} class='team_box${border}${team_click}'${background}>
                         <div class='flexcol${border_padding}'${dragdrop}>`;
          html += team.players ? team.players.map(p => playerRow(p)).join('') : playerRow(team, true);
          html += `      </div>
