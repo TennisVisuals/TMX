@@ -64,5 +64,3 @@ label:hover strong,
    outline: -webkit-focus-ring-color auto 5px;
 }
 .no-js .dropzone__file + label { display: none; }
-
-

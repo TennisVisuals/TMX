@@ -637,7 +637,7 @@
       if (evt.draw_type == 'R') event_type = lang.tr('draws.roundrobin');
       if (evt.draw_type == 'C') event_type = lang.tr('draws.consolation');
 
-      let tournament_id = tournament.display_id || tournament.tuid.length < 15 ? tournament.tuid : '';
+      let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
       let draw_sheet = {
          fontSize: 10,
@@ -715,7 +715,7 @@
 
    function schedulePageHeader(tournament, day, logo) {
 
-      let tournament_id = tournament.display_id || tournament.tuid.length < 15 ? tournament.tuid : '';
+      let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
       let weekday = localizeDate(new Date(day), { weekday: 'long' });
       let numeric_date = localizeDate(new Date(day), { year: 'numeric', month: 'numeric', day: 'numeric' });
@@ -993,7 +993,7 @@
    function signInSheet({ tournament={}, players, category, gender, event_name='', logo, doc_name, extra_pages=true }) {
 
       let date = util.formatDate(tournament.start);
-      let tournament_id = tournament.display_id || tournament.tuid.length < 15 ? tournament.tuid : '';
+      let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
       let page_header = [
          { 
