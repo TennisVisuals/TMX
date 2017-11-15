@@ -169,6 +169,14 @@
    util.occurrences = (val, arr) => arr.reduce((r,val) => { r[val] = 1+r[val] || 1; return r},{})[val] || 0;
    util.indices = (val, arr) => arr.reduce((a, e, i) => { if (e === val) a.push(i); return a; }, []) 
 
+   util.hashReduce = (arr) => {
+      return arr.reduce((l, c) => {
+         let hash = c.sort().join('|');
+         if (l.indexOf(hash) < 0) l.push(hash);
+         return l;
+      }, []).map(r=>r.split('|'));
+   }
+
    // util.missingNumbers = (a) => Array.from(Array(Math.max(...a)).keys()).map((n, i) => a.indexOf(i) < 0? i : null).filter(f=>f);
    util.missingNumbers = (a, l=true) => Array.from(Array(Math.max(...a)).keys()).map((n, i) => a.indexOf(i) < 0  && (!l || i > Math.min(...a)) ? i : null).filter(f=>f);
    util.range = (start, end) => Array.from({length: (end - start)}, (v, k) => k + start);
