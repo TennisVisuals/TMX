@@ -107,12 +107,20 @@ let coms = function() {
          },
          undo: false,
       }
-      oi.socket.emit('match score', match_message);
+      if (connected) {
+         oi.socket.emit('match score', match_message);
+      } else {
+         queue.push({ header: 'match score', data });
+      }
    }
 
    fx.deleteMatch = (data) => {
       if (!data || !data.muid || !data.tuid) return;
-      oi.socket.emit('delete match', data);
+      if (connected) {
+         oi.socket.emit('delete match', data);
+      } else {
+         queue.push({ header: 'delete match', data });
+      }
    }
 
    fx.emitTmx = (data) => {
@@ -132,6 +140,9 @@ let coms = function() {
       if (typeof callback != 'function') return false;
 
       var remote = new XMLHttpRequest();
+      remote.onreadystatechange = function() {
+         if (remote.readyState == 4 && remote.status == 0) callback({ err: lang.tr('phrases.noconnection') });
+      };
       remote.open(type, url, true);
       remote.setRequestHeader("Content-Type", "application/json");
       remote.onload = function() { 
@@ -140,7 +151,7 @@ let coms = function() {
          let data = result.data ? result.data.split('').filter(f=>f.charCodeAt() > 13).join('') : undefined;
          let json_data = attemptJSONparse(data);
 
-         callback(json_data || result); 
+         callback({ json: json_data } || result); 
       }
       remote.send(request);
       return true;
@@ -163,12 +174,11 @@ let coms = function() {
             let request_object = { url: url };
             let request = JSON.stringify(request_object);
 
-            function responseHandler(json_data) {
-               if (json_data) {
-                  resolve(json_data);
+            function responseHandler(result) {
+               if (result.json) {
+                  resolve(result.json);
                } else {
-                  if (result.err) return reject(result.err);
-                  return reject('Error');
+                  return reject(result.err || 'Error');
                }
             }
             fx.ajax('/api/match/request', request, 'POST', responseHandler);
@@ -177,7 +187,7 @@ let coms = function() {
 
    function updatePlayerDates() {
       console.log('updating player dates');
-      fetchPlayerDates().then(processDates);
+      fetchPlayerDates().then(processDates, (err) => console.log(err));
 
       function processDates(update_object) {
          db.db.players.toCollection().modify(player => {
@@ -197,16 +207,19 @@ let coms = function() {
          db.findSetting('fetchPlayerDates').then(fetchNew, reject);
 
          function fetchNew(params) {
+            if (!params) {
+               console.log(params);
+               return reject('No Parameters. ' +  lang.tr('phrases.notconfigured'));
+            }
 
             let request_object = { [params.type]: params.url };
             let request = JSON.stringify(request_object);
 
-            function responseHandler(json_data) {
-               if (json_data) {
-                  resolve(json_data);
+            function responseHandler(result) {
+               if (result.json) {
+                  resolve(result.json);
                } else {
-                  if (result.err) return reject(result.err);
-                  return reject('Error');
+                  return reject(result.err || 'Error');
                }
             }
             fx.ajax('/api/match/request', request, 'POST', responseHandler);
@@ -222,7 +235,7 @@ let coms = function() {
          db.findSetting('fetchClubs').then(checkSettings, reject);
 
          function checkSettings(params) {
-            if (!params) return reject();
+            if (!params) return reject({ error: lang.tr('phrases.notconfigured') });
             db.findAllClubs().then(clbz => fetchNew(clbz, params));
          }
 
@@ -236,13 +249,12 @@ let coms = function() {
             let request_object = { [params.type]: params.url };
             let request = JSON.stringify(request_object);
 
-            function responseHandler(json_data) {
-               if (json_data) {
-                  let new_clubs = json_data.filter(f=>cids.indexOf(+f.id) < 0);
-                  resolve(json_data);
+            function responseHandler(result) {
+               if (result.json) {
+                  let new_clubs = result.json.filter(f=>cids.indexOf(+f.id) < 0);
+                  resolve(result.json);
                } else {
-                  if (result.err) return reject(result.err);
-                  return reject('Error');
+                  return reject(result.err || 'Error');
                }
             }
             fx.ajax('/api/match/request', request, 'POST', responseHandler);
@@ -258,7 +270,7 @@ let coms = function() {
          db.findSetting('fetchNewTournaments').then(checkSettings, reject);
 
          function checkSettings(params) {
-            if (!params) return reject();
+            if (!params) return reject({ error: lang.tr('phrases.notconfigured') });
             db.findAllTournaments().then(trnys => fetchNew(trnys, params));
          }
 
@@ -270,12 +282,11 @@ let coms = function() {
 
             let request_object = { [params.type]: params.url + max_id };
             let request = JSON.stringify(request_object);
-            function responseHandler(json_data) {
-               if (json_data) {
-                  normalizeTournaments(json_data);
+            function responseHandler(result) {
+               if (result.json) {
+                  normalizeTournaments(result.json);
                } else {
-                  if (result.err) return reject(result.err);
-                  return reject('Error');
+                  return reject(result.err || 'Error');
                }
             }
             fx.ajax('/api/match/request', request, 'POST', responseHandler);
@@ -303,25 +314,25 @@ let coms = function() {
          db.findSetting('fetchNewPlayers').then(checkSettings, reject);
 
          function checkSettings(params) {
-            if (!params) return reject();
+            if (!params) return reject({ error: lang.tr('phrases.notconfigured') });
             db.findAllPlayers().then(plyrz => fetchNew(plyrz, params));
          }
 
          function fetchNew(plyrz, params) {
+            console.log('params:', params);
 
             // maximum player record determined by numeric ids; others excluded
             let max_id = Math.max(0, ...plyrz.map(p=>!isNaN(+p.id) ? +p.id : 0));
             let request_object = { [params.type]: params.url + max_id };
             let request = JSON.stringify(request_object);
-            function responseHandler(json_data) {
-               if (json_data) {
-                  let players = json_data.filter(p=>p.first_name && p.last_name);
+            function responseHandler(result) {
+               if (result.json) {
+                  let players = result.json.filter(p=>p.first_name && p.last_name);
                   normalizePlayers(players);
 
                   if (max_id) updatePlayerDates();
                } else {
-                  if (result.err) return reject(result.err);
-                  return reject('Error');
+                  return reject(result.err || 'Error');
                }
             }
             fx.ajax('/api/match/request', request, 'POST', responseHandler);
@@ -416,7 +427,7 @@ let coms = function() {
          }
 
          function checkSettings(params) {
-            if (!params) return reject({ error: 'configuration' });
+            if (!params) return reject({ error: lang.tr('phrases.notconfigured') });
             fetchList(params);
          }
 
@@ -475,7 +486,7 @@ let coms = function() {
          }
 
          function checkSettings(params) {
-            if (!params) return reject();
+            if (!params) return reject({ error: lang.tr('phrases.notconfigured') });
             remoteRequest(params);
          }
 
@@ -485,9 +496,9 @@ let coms = function() {
             let request_object = { [params.type]: params.url + id };
             let request = JSON.stringify(request_object);
 
-            function responseHandler(json_data) {
-               if (json_data) {
-                  let players = json_data.filter(p=>p.last_name);
+            function responseHandler(result) {
+               if (result.json) {
+                  let players = result.json.filter(p=>p.last_name);
                   players.forEach(player => {
                      player.first_name = player.first_name.trim();
                      player.last_name = player.last_name.trim();
@@ -510,8 +521,7 @@ let coms = function() {
                      }
                   })).then(dbplayers => updateLocal(dbplayers, players), reject);
                } else {
-                  if (result.err) return reject(result.err);
-                  return reject('Error');
+                  return reject(result.err || 'Error');
                }
             }
             fx.ajax('/api/match/request', request, 'POST', responseHandler);
