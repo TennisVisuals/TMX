@@ -177,6 +177,7 @@
          penalty: 'Assess Penalty',
          umpire: 'Select Umpire',
          matchtime: 'Match Time',
+         timeheader: 'Time Heading',
          maindraw: 'Main Draw',
          unscheduled: 'Unscheduled Matches',
          scheduled: 'Scheduled Matches',
@@ -187,6 +188,11 @@
          published: 'Published',
          publish: 'Publish',
          publishQ: 'Publish Draw?',
+         leaders: 'Leaders',
+         playerrep: 'Player Representative',
+         playerreps: 'Player Representatives',
+         luckylosers: 'Lucky Losers (LL)/Replacements',
+         lastdirectaccept: 'Last Direct Acceptance',
       },
 
       print: {
@@ -243,11 +249,14 @@
          norankingdata: 'No Ranking Data',
          oop_system: 'Order of Play',
          schedulepublished: 'Publishing Time:',
+         timestamp: 'Date/Time: ',
+         rankedplayers: 'Ranked Players',
          judgesignature: 'Signature of Head Umpire:',
          nopointcalcs: 'No Point Calculations for given date',
          nomatches: 'No Matches',
          downloadtemplate: 'Download Import Template',
          add2database: 'Add Players, Tournaments, Rankings to Database',
+         noconnection: 'No Connection',
       },
 
       events: {
@@ -484,6 +493,11 @@
          published: 'Objavljeno',
          publish: 'Objavi',
          publishQ: 'Objavi ždrijeb?',
+         leaders: 'Voditelji turnira',
+         playerrep: 'Predstavnik igrača',
+         playerreps: 'Predstavnici igrača',
+         luckylosers: 'Sretni gubitnici (LL)/Zamjenjuje',
+         lastdirectaccept: 'Zadnji direktno primljen igrač',
       },
 
       print: {
@@ -540,11 +554,14 @@
          norankingdata: 'Nema podataka o rangu',
          oop_system: 'Igra se po sistemu',
          schedulepublished: 'Raspored objavljen u:',
+         timestamp: 'Datum/Vrijeme ždrijeba: ',
+         rankedplayers: 'Nositelji',
          judgesignature: 'Potpis Vrhovnog suca',
          nopointcalcs: 'Ne postoji izračun bodova za dani datum',
          nomatches: 'Nema susreta',
          downloadtemplate: 'Preuzmite Uvoz predloška',
          add2database: 'Dodaj igrača, turnire, ljestvice u bazu podataka',
+         noconnection: 'Nema veze s poslužiteljem',
       },
 
       events: {

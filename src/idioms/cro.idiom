@@ -135,6 +135,11 @@
          published: 'Objavljeno',
          publish: 'Objavi',
          publishQ: 'Objavi ždrijeb?',
+         leaders: 'Voditelji turnira',
+         playerrep: 'Predstavnik igrača',
+         playerreps: 'Predstavnici igrača',
+         luckylosers: 'Sretni gubitnici (LL)/Zamjenjuje',
+         lastdirectaccept: 'Zadnji direktno primljen igrač',
       },
 
       print: {
@@ -191,11 +196,14 @@
          norankingdata: 'Nema podataka o rangu',
          oop_system: 'Igra se po sistemu',
          schedulepublished: 'Raspored objavljen u:',
+         timestamp: 'Datum/Vrijeme ždrijeba: ',
+         rankedplayers: 'Nositelji',
          judgesignature: 'Potpis Vrhovnog suca',
          nopointcalcs: 'Ne postoji izračun bodova za dani datum',
          nomatches: 'Nema susreta',
          downloadtemplate: 'Preuzmite Uvoz predloška',
          add2database: 'Dodaj igrača, turnire, ljestvice u bazu podataka',
+         noconnection: 'Nema veze s poslužiteljem',
       },
 
       events: {

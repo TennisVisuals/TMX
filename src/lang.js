@@ -177,6 +177,7 @@
          penalty: 'Assess Penalty',
          umpire: 'Select Umpire',
          matchtime: 'Match Time',
+         timeheader: 'Time Heading',
          maindraw: 'Main Draw',
          unscheduled: 'Unscheduled Matches',
          scheduled: 'Scheduled Matches',
@@ -187,6 +188,11 @@
          published: 'Published',
          publish: 'Publish',
          publishQ: 'Publish Draw?',
+         leaders: 'Leaders',
+         playerrep: 'Player Representative',
+         playerreps: 'Player Representatives',
+         luckylosers: 'Lucky Losers (LL)/Replacements',
+         lastdirectaccept: 'Last Direct Acceptance',
       },
 
       print: {
@@ -243,11 +249,14 @@
          norankingdata: 'No Ranking Data',
          oop_system: 'Order of Play',
          schedulepublished: 'Publishing Time:',
+         timestamp: 'Date/Time: ',
+         rankedplayers: 'Ranked Players',
          judgesignature: 'Signature of Head Umpire:',
          nopointcalcs: 'No Point Calculations for given date',
          nomatches: 'No Matches',
          downloadtemplate: 'Download Import Template',
          add2database: 'Add Players, Tournaments, Rankings to Database',
+         noconnection: 'No Connection',
       },
 
       events: {
