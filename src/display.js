@@ -1577,6 +1577,8 @@
          tournament: gen.uuid(),
          publish_draw: gen.uuid(),
          publish_state: gen.uuid(),
+         player_reps: gen.uuid(),
+         player_reps_state: gen.uuid(),
          start_date: gen.uuid(),
          end_date: gen.uuid(),
          organizer: gen.uuid(),
@@ -1790,6 +1792,9 @@
                   <div class='select_draw' id='${ids.select_draw}'></div>
                </div>
                <div class='options_right'>
+                  <div id='${ids.player_reps}' class='${gen.info}' label='${lang.tr("draws.playerreps")}' style='display: none'>
+                     <div id='${ids.player_reps_state}' style='margin-left: 1em;' class='reps_incomplete action_icon'></div>
+                  </div>
                   <div id='${ids.publish_draw}' class='${gen.info}' label='${lang.tr("draws.publish")}' style='display: none'>
                      <div id='${ids.publish_state}' style='margin-left: 1em;' class='unpublished action_icon'></div>
                   </div>
@@ -1993,7 +1998,7 @@
       let format = match.format ? util.normalizeName(match.format) : '';
 
       let score = match.score ? `<div class='match_score'>${match.score}</div>` : '';
-      let header = `${match.schedule.heading || ''} ${match.schedule.time || ''}`;
+      let header = `${match.schedule.heading || ''} ${match.schedule.time_prefix || ''}${match.schedule.time || ''}`;
       let html = `
          <div class='header'>${header}</div> 
          <div class='catround'>
@@ -2258,6 +2263,13 @@
       }
       let publish_label = published[publish_state];
       elem.className = `${publish_state} action_icon`;
+   }
+
+   gen.drawRepState = (elem, evt) => {
+      let r = evt.player_representatives;
+      let rep_count = r ? r.filter(f=>f).length : 0;
+      let player_reps_state = rep_count == 2 ? 'reps_complete' : 'reps_incomplete';
+      elem.className = `${player_reps_state} action_icon`;
    }
 
    gen.locationList = (container, locations, highlight_listitem) => {
@@ -3077,6 +3089,109 @@
 
       // other interesting examples: how to overlay circle/polygon
       // https://stackoverflow.com/questions/19087352/capture-coordinates-in-google-map-on-user-click
+   }
+
+   gen.playerRepresentatives = () => {
+      let ids = {
+         cancel: gen.uuid(),
+         submit: gen.uuid(),
+         player_rep1: gen.uuid(),
+         player_rep2: gen.uuid(),
+      }
+      let html = `
+         <div class='flexccol' style='width: 100%'>
+            <div class='flexcol reps' style='width: 100%'>
+               <div class='flexcenter rtitle'>${lang.tr('draws.playerreps')}</div>
+               <input id="${ids.player_rep1}" class='rinput' placeholder='${lang.tr("draws.playerrep")}'>
+               <input id="${ids.player_rep2}" class='rinput' placeholder='${lang.tr("draws.playerrep")}'>
+            </div>
+            <div class='config_actions'>
+               <div id='${ids.cancel}' class='btn btn-large config_cancel'>${lang.tr('actions.cancel')}</div>
+               <div id='${ids.submit}' class='btn btn-large config_submit'>${lang.tr('sbt')}</div>
+            </div>
+         </div>
+      `;
+      gen.showConfigModal(html);
+
+      return idObj(ids);
+   }
+
+   gen.timePicker = ({ time_string, hour_range, minute_increment, minutes, callback }) => {
+      let hour = 0;
+      let minute = 0;
+
+      let root = d3.select('body');
+      root.select('#timepicker').remove();
+      let backplane = root.append('div')
+         .attr('id', 'timepicker')
+         .attr('class', 'modal')
+
+      let entry = floatingEntry().selector('#timepicker');
+
+      let x = window.innerWidth * .4;
+      let y = window.innerHeight * .4;
+      entry(x, y, pickerHTML({ hour_range, minute_increment, minutes }));
+      let time = backplane.node().querySelector('.display-time');
+
+      backplane.select('.floating-entry').on('click', () => { d3.event.stopPropagation(); });
+      backplane.select('.clear-btn').on('click', () => { time.value = ""; });
+
+      backplane.on('click', returnValue);
+      time.addEventListener('click', returnValue);
+
+      util.addEventToClass('hour', setHour);
+      util.addEventToClass('minute', setMinute);
+
+      if (time_string) {
+         let time_parts = time_string.split(':');
+         hour = time_parts[0];
+         minute = time_parts[1];
+         setTime();
+      }
+
+      setTimeout(function() { document.body.style.overflow = 'hidden'; }, 200);
+
+      function setHour(ev) {
+         hour = ev.target.innerText;
+         setTime();
+      }
+      function setMinute(ev) {
+         minute = ev.target.innerText;
+         setTime();
+      }
+      function setTime() { time.value = `${parseInt(hour)}:${zeroPad(minute)}`; }
+      function returnValue() { 
+         if (typeof callback == 'function') callback(time.value);
+         document.body.style.overflow  = null;
+         backplane.remove(); 
+      }
+      function pickerHTML({ hour, minute, hour_range = {}, minute_increment, minutes } = {}) {
+         let hour_list = util.range(hour_range.start || 0, (hour_range.end || 23) + 1)
+            .map(h=>`<li class='hour'>${zeroPad(h)}</li>`).join('');
+         let minute_end = Math.abs(60 / (minute_increment || 1));
+         minutes = minutes || util.range(0, minute_end).map((m, i)=>i*(minute_increment || 1));
+         let minute_list = minutes
+            .map(m=>`<li class='minute'>${zeroPad(m)}</li>`).join('');
+         let html = `
+               <span class="time-picker">
+                  <input class="display-time" type="text" readonly="readonly" placeholder='HH:mm'>
+                  <span class="clear-btn" style="display: flex;">×</span>
+                  <div class="dropdown" style="display: flex;">
+                     <div class="select-list">
+                        <ul class="hours">
+                           <li class="hint">HH</li>
+                           ${hour_list}
+                        </ul>
+                        <ul class="minutes">
+                           <li class="hint">mm</li> 
+                           ${minute_list}
+                        </ul>
+                     </div>
+                  </div>
+               </span>
+         `;
+         return html;
+      }
    }
 
    gen.displayClub = (club, tabdata = []) => {
