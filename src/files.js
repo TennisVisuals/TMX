@@ -500,13 +500,13 @@
       return exp.openPDF(docDefinition);
    }
 
-   exp.printDrawPDF = (tournament, data, options, selected_event) => {
+   exp.printDrawPDF = (tournament, data, options, selected_event, event) => {
       let info = drawFx.drawInfo(data);
-      if (info.draw_type == 'tree') return exp.treeDrawPDF({ tournament, data, options, selected_event, info });
-      if (info.draw_type == 'roundrobin') return exp.rrDrawPDF({ tournament, data, options, selected_event, info });
+      if (info.draw_type == 'tree') return exp.treeDrawPDF({ tournament, data, options, selected_event, info, event });
+      if (info.draw_type == 'roundrobin') return exp.rrDrawPDF({ tournament, data, options, selected_event, info, event });
    }
 
-   exp.treeDrawPDF = ({ tournament, data, options, selected_event, info }) => {
+   exp.treeDrawPDF = ({ tournament, data, options, selected_event, info, event }) => {
       return new Promise((resolve, reject) => {
 
          d3.selectAll('#hidden').remove();
@@ -523,8 +523,6 @@
          // currently done in tournaments.css #offscreen
 
          let element = document.getElementById('offscreen');
-
-         // let info = drawFx.drawInfo(data);
 
          // create an off-screen draw so that sizing is uninhibited by screen real-estate
          let draw = treeDraw();
@@ -580,7 +578,7 @@
          getLogo().then(showPDF);
 
          function showPDF(logo) {
-            exp.SVGasURI(element).then(image => drawSheet(tournament, [image], logo, selected_event), reject).then(cleanUp, cleanUp);;
+            exp.SVGasURI(element).then(image => drawSheet(tournament, [image], logo, selected_event, event), reject).then(cleanUp, cleanUp);;
          }
       });
    }
@@ -830,8 +828,9 @@
       return footer;
    }
 
-   function drawSheet(tournament={}, images, logo, selected_event) {
+   function drawSheet(tournament={}, images, logo, selected_event, event) {
       let image = images[0];
+      let player_representatives = event && event.player_representatives || []; 
 
       let page_header = drawSheetPageHeader(tournament, logo, 'draw_sheet', selected_event);
 
@@ -843,50 +842,50 @@
             widths: ['auto', '*', 'auto', 'auto'],
 				body: [ 
                [ 
-                  { text: 'Rang-lista', bold: true },
+                  { text: lang.tr('rl'), bold: true },
                   {
                      columns: [
                         { width: 10, text: '# ', bold: true },
-                        { width: '*', text: 'Nositelji', bold: true },
+                        { width: '*', text: lang.tr('phrases.rankedplayers'), bold: true },
                      ],
                   }, 
                   {
                      columns: [
                         { width: 10, text: '# ', bold: true },
-                        { width: '*', text: 'Sretni gubitnici (LL)/Zamjenjuje', bold: true },
+                        { width: '*', text: lang.tr('draws.luckylosers'), bold: true },
                      ],
                   }, 
-                  { text: 'Datum/Vrijeme ždrijeba: ', bold: true },
+                  { text: lang.tr('phrases.timestamp'), bold: true },
                ],
                [
-                  { text: '', rowSpan: 3 },
-                  { text: '', rowSpan: 3 },
-                  { text: '', rowSpan: 2 },
+                  { text: ' ', rowSpan: 3 },
+                  { text: ' ', rowSpan: 3 },
+                  { text: ' ', rowSpan: 2 },
                   [
-                     { text: 'Zadnji direktno primljen igrač', bold: true },
-                     { text: '', },
+                     { text: lang.tr('draws.lastdirectaccept'), bold: true },
+                     { text: ' ', },
                   ],
                ],
                [
-                  { text: '' },
-                  { text: '' },
-                  { text: '' },
+                  { text: ' ' },
+                  { text: ' ' },
+                  { text: ' ' },
                   [
-                     { text: 'Predstavnici igrača', bold: true },
-                     { text: '', },
-                     { text: '', },
+                     { text: lang.tr('draws.playerreps'), bold: true },
+                     { text: player_representatives[0] || ' ', },
+                     { text: player_representatives[1] || ' ', },
                   ],
                ],
                [
-                  { text: '' },
-                  { text: '' },
+                  { text: ' ' },
+                  { text: ' ' },
                   [
-                     { text: 'Voditelji turnira', bold: true },
-                     { text: '', },
+                     { text: lang.tr('draws.leaders'), bold: true },
+                     { text: ' ', },
                   ],
                   [
-                     { text: 'Potpis Vrhovnog suca', bold: true },
-                     { text: '', },
+                     { text: lang.tr('phrases.judgesignature'), bold: true },
+                     { text: ' ', },
                   ],
                ],
             ]
