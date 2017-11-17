@@ -500,6 +500,8 @@
 .category_header_white { background-image: url("../icons/categorywhite.png"); }
 .published_header { background-image: url("../icons/publishblack.png"); }
 .unpublished { background-image: url("../icons/publish_black.png"); }
+.reps_incomplete { background-image: url("../icons/reps_incomplete.png"); }
+.reps_complete { background-image: url("../icons/reps_complete.png"); }
 .publisheduptodate { background-image: url("../icons/publishblue.png"); }
 .publishedoutofdate { background-image: url("../icons/publishyellow.png"); }
 .published { background-image: url("../icons/publishgreen.png"); }
@@ -812,6 +814,9 @@
 .tournamentattrvalue .awesomplete {
    color: white;
 }
+.reps .awesomplete {
+   color: white;
+}
 
 .add_tournament_form input {
    width: 100%;
@@ -857,3 +862,15 @@
 .round { width: 5%; }
 
 /* end matches display */
+
+/* player representatives */
+
+.reps .rtitle {
+   font-size: 1.2em;
+   font-weight: bold;
+   margin: .5em;
+}
+.reps .rinput {
+   font-size: 1em;
+   margin: .5em;
+}

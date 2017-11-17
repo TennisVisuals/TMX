@@ -399,7 +399,6 @@ div.infoleft[label]:hover:after {
    .config_cancel:hover { background: #FF0 }
    .config_actions {
       width: 100%;
-      margin: 1em;
       display: flex;
       -webkit-flex-direction: row;
       flex-direction: row;
