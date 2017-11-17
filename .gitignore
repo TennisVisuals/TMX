@@ -4,3 +4,6 @@ minimized
 build
 *.un~
 *.un~
+.DS_Store
+*.un~
+*.un~
