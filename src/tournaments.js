@@ -343,6 +343,66 @@ let tournaments = function() {
          }
       });
 
+      container.player_reps.element.addEventListener('click', () => {
+         let modal = gen.playerRepresentatives();
+         modal.submit.element.addEventListener('click', () => submitReps());
+         modal.cancel.element.addEventListener('click', () => gen.closeModal());
+         if (displayed_draw_event) {
+            let valid_reps = tournament.players
+               .filter(p=>displayed_draw_event.approved.indexOf(p.id) >= 0)
+               .map(p=>({ value: `${p.first_name} ${p.last_name}`, label: `${p.first_name} ${p.last_name}` }));
+            let rep1 = new Awesomplete(modal.player_rep1.element, { list: valid_reps });
+            let rep2 = new Awesomplete(modal.player_rep2.element, { list: valid_reps });
+
+            let rep1_selection_flag = false;
+            modal.player_rep1.element.addEventListener("awesomplete-selectcomplete", function(e) {
+               rep1_selection_flag = true;
+               repSelected(this.value);
+            }, false);
+            modal.player_rep1.element.addEventListener('keydown', catchTab , false);
+            modal.player_rep1.element.addEventListener("keyup", function(e) { 
+               // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
+               if (e.which == 13 && !rep1_selection_flag) {
+                  if (rep1.suggestions && rep1.suggestions.length) {
+                     rep1.next();
+                     rep1.select(0);
+                     modal.player_rep2.element.focus();
+                  }
+               }
+               rep1_selection_flag = false;
+            });
+            modal.player_rep1.element.focus();
+
+            let rep2_selection_flag = false;
+            modal.player_rep2.element.addEventListener("awesomplete-selectcomplete", function(e) {
+               rep2_selection_flag = true;
+               repSelected(this.value);
+            }, false);
+            modal.player_rep2.element.addEventListener('keydown', catchTab , false);
+            modal.player_rep2.element.addEventListener("keyup", function(e) { 
+               // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
+               if (e.which == 13 && !rep2_selection_flag) {
+                  if (rep2.suggestions && rep2.suggestions.length) {
+                     rep2.next();
+                     rep2.select(0);
+                  }
+               }
+               rep2_selection_flag = false;
+            });
+
+            if (!displayed_draw_event.player_representatives) displayed_draw_event.player_representatives =[];
+            modal.player_rep1.element.value = displayed_draw_event.player_representatives[0] || '';
+            modal.player_rep2.element.value = displayed_draw_event.player_representatives[1] || '';
+         }
+         function repSelected(value) {}
+         function submitReps() {
+            displayed_draw_event.player_representatives[0] = modal.player_rep1.element.value;
+            displayed_draw_event.player_representatives[1] = modal.player_rep2.element.value;
+            gen.drawRepState(container.player_reps_state.element, displayed_draw_event);
+            gen.closeModal();
+         }
+      });
+
       container.clearschedule.element.addEventListener('click', clearScheduleDay);
       container.autoschedule.element.addEventListener('click', autoSchedule);
       container.events_actions.element.addEventListener('click', newTournamentEvent);
@@ -951,7 +1011,7 @@ let tournaments = function() {
          let selected_event = container.select_draw.ddlb ? container.select_draw.ddlb.getValue() : undefined;
 
          if (Object.keys(tree_draw.data()).length) {
-            exp.printDrawPDF(tournament, tree_draw.data(), tree_draw.options(), selected_event);
+            exp.printDrawPDF(tournament, tree_draw.data(), tree_draw.options(), selected_event, displayed_draw_event);
 
          } else if (rr_draw) {
             let brackets = rr_draw.data().brackets;
@@ -2890,36 +2950,75 @@ let tournaments = function() {
 
             let { oop_round } = identifyRound(ev);
             if (oop_round) {
-               let options = ['Not Before Time'];
+               let options = ['Matches => Time', 'Not Before', 'After Rest', 'Court TBA', 'Next Available', 'Clear'];
                gen.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: doSomething });
 
                function doSomething(choice, index) {
                   console.log('OOP round:', oop_round, 'selection was:', choice, index);
+                  if (index == 0) {
+                     gen.timePicker({ hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
+                  } else if (index == 1) {
+                     modifyMatchSchedule([{ attr: 'time_prefix', value: 'NB ' }]);
+                  } else if (index == 2) {
+                     let pairs = [
+                        { attr: 'time_prefix', value: '' },
+                        { attr: 'time', value: '' },
+                        { attr: 'heading', value: 'After Rest' },
+                     ];
+                     modifyMatchSchedule(pairs);
+                  } else if (index == 3) {
+                     let pairs = [
+                        { attr: 'time_prefix', value: 'TBA' },
+                        { attr: 'time', value: '' },
+                     ];
+                     modifyMatchSchedule(pairs);
+                  } else if (index == 4) {
+                     let pairs = [
+                        { attr: 'time_prefix', value: '' },
+                        { attr: 'time', value: '' },
+                        { attr: 'heading', value: 'Next Available' },
+                     ];
+                     modifyMatchSchedule(pairs);
+                  } else if (index == 5) {
+                     let pairs = [
+                        { attr: 'time_prefix', value: '' },
+                        { attr: 'time', value: '' },
+                        { attr: 'heading', value: '' },
+                     ];
+                     modifyMatchSchedule(pairs);
+                  }
+               }
+
+               function setTime(time) { modifyMatchSchedule([{ attr: 'time', value: time }]); }
+               function modifyMatchSchedule(pairs, display=true) {
                   day_matches
                      .filter(m=>m.schedule.oop_round == oop_round)
                      .forEach(match => {
                         let complete = match.winner != undefined;
                         if (!complete) {
-                           match.schedule.heading = 'Not Before';
-                           match.schedule.time = '8:00';
-                           let sb = gen.scheduleBox({ match, editable: true});
-                           /*
-                           // TODO: determine target for each match...
-                           target.innerHTML = sb.innerHTML;
-                           target.style.background = sb.background;
-                           target.setAttribute('draggable', 'false');
-                           */
+                           pairs.forEach(pair => match.schedule[pair.attr] = pair.value);
+                           if (display) updateScheduleBox(match);
                         }
                      });
+                  if (o.save) db.addTournament(tournament);
                }
             }
          }
 
-         function cellScheduleOpts() {
-            /*
-              Headings: Followed By, Not Before, Court TBA, Time TBA, Court & Time TBA, After Rest,
-              Time:
-            */
+         function updateScheduleBox(match) {
+            let schedule_box = Array.from(document.querySelectorAll('.schedule_box'))
+               .reduce((s, el) => {
+                  let el_muid = el.getAttribute('muid');
+                  if (el_muid == match.muid) s = el;
+                  return s;
+               });
+
+            let sb = gen.scheduleBox({ match, editable: true});
+            if (schedule_box) {
+               schedule_box.innerHTML = sb.innerHTML;
+               schedule_box.style.background = sb.background;
+               schedule_box.setAttribute('draggable', 'true');
+            }
          }
 
          function identifyMatch(ev) {
@@ -2938,10 +3037,11 @@ let tournaments = function() {
                if (!complete) {
                   options = [
                      lang.tr('draws.matchtime'),      // 0
-                     lang.tr('draws.changestatus'),   // 1
-                     lang.tr('draws.umpire'),         // 2
-                     lang.tr('draws.penalty'),        // 3
-                     lang.tr('draws.remove')          // 4
+                     lang.tr('draws.timeheader'),     // 1
+                     lang.tr('draws.changestatus'),   // 2
+                     lang.tr('draws.umpire'),         // 3
+                     lang.tr('draws.penalty'),        // 4
+                     lang.tr('draws.remove')          // 5
                   ];
                } else {
                   return;
@@ -2949,11 +3049,60 @@ let tournaments = function() {
                gen.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: doSomething });
 
                function doSomething(choice, index) {
-                  console.log('selection was:', choice, index);
+                  if (!complete) {
+                     if (index == 0) {
+                        let time_string = match.schedule && match.schedule.time;
+                        gen.timePicker({ time_string, hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
+                     } else if (index == 1) {
+                        let headings = ['Not Before', 'After Rest', 'Court TBA', 'Next Available', 'Clear'];
+                        setTimeout(function() {
+                           gen.svgModal({ x: ev.clientX, y: ev.clientY, options: headings, callback: timeHeading });
+                        }, 200);
+                     } else if (index == 5) {
+                        returnToUnscheduled(match, target);
+                        return;
+                     }
+                  }
+               }
+               function setTime(value) {
+                  match.schedule.time = value;
+                  updateScheduleBox(match);
+               }
+               function timeHeading(selection, index) {
+                  if (index == 0) {
+                     modifyMatchSchedule([{ attr: 'time_prefix', value: 'NB ' }]);
+                  } else if (index == 1) {
+                     let pairs = [
+                        { attr: 'time_prefix', value: '' },
+                        { attr: 'time', value: '' },
+                        { attr: 'heading', value: 'After Rest' },
+                     ];
+                     modifyMatchSchedule(pairs);
+                  } else if (index == 2) {
+                     let pairs = [
+                        { attr: 'time_prefix', value: 'TBA' },
+                        { attr: 'time', value: '' },
+                     ];
+                     modifyMatchSchedule(pairs);
+                  } else if (index == 3) {
+                     let pairs = [
+                        { attr: 'time_prefix', value: '' },
+                        { attr: 'time', value: '' },
+                        { attr: 'heading', value: 'Next Available' },
+                     ];
+                     modifyMatchSchedule(pairs);
+                  } else if (index == 4) {
+                     let pairs = [
+                        { attr: 'time_prefix', value: '' },
+                        { attr: 'heading', value: '' },
+                     ];
+                     modifyMatchSchedule(pairs);
+                  }
 
-                  if (!complete && index == 4) {
-                     returnToUnscheduled(match, target);
-                     return;
+                  function modifyMatchSchedule(pairs, display=true) {
+                     pairs.forEach(pair => match.schedule[pair.attr] = pair.value);
+                     if (display) updateScheduleBox(match);
+                     if (o.save) db.addTournament(tournament);
                   }
                }
             }
@@ -3681,6 +3830,7 @@ let tournaments = function() {
 
          if (!evt.draw) return;
          displayed_draw_event = evt;
+         gen.drawRepState(container.player_reps_state.element, displayed_draw_event);
 
          if (evt.draw.children && evt.draw.children.length) { 
             tree_draw.data(evt.draw);
@@ -3707,6 +3857,7 @@ let tournaments = function() {
          let svg = container.draws.element.querySelector('svg');
          document.querySelector('.' + classes.print_draw).style.display = visible && svg ? 'inline' : 'none';
          container.publish_draw.element.style.display = visible && svg && state.edit ? 'inline' : 'none';
+         container.player_reps.element.style.display = visible && svg && state.edit ? 'inline' : 'none';
       }
 
       function enableDrawOrderPrinting() {
@@ -5062,7 +5213,7 @@ let tournaments = function() {
             addRegistered(registered);
             busy.done(id);
          }
-         let notConfigured = () => { busy.done(id); gen.popUpMessage(lang.tr('phrases.notconfigured')); }
+         let notConfigured = (err) => { busy.done(id); gen.popUpMessage(err || lang.tr('phrases.notconfigured')); }
          coms.fetchRegisteredPlayers(tournament.tuid, tournament.category, remote_request).then(done, notConfigured);
       }
 
