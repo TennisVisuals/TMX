@@ -343,6 +343,16 @@ let tournaments = function() {
          }
       });
 
+      container.recycle.element.addEventListener('click', () => {
+         gen.okCancelMessage(`${lang.tr('draws.clear')}?`, clearDraw, () => gen.closeModal());
+         function clearDraw() {
+            delete displayed_draw_event.draw;
+            generateDraw(displayed_draw_event);
+            displayDraw({ evt: displayed_draw_event });
+            gen.closeModal();
+         }
+      });
+
       container.player_reps.element.addEventListener('click', () => {
          let modal = gen.playerRepresentatives();
          modal.submit.element.addEventListener('click', () => submitReps());
@@ -350,7 +360,10 @@ let tournaments = function() {
          if (displayed_draw_event) {
             let valid_reps = tournament.players
                .filter(p=>displayed_draw_event.approved.indexOf(p.id) >= 0)
-               .map(p=>({ value: `${p.first_name} ${p.last_name}`, label: `${p.first_name} ${p.last_name}` }));
+               .map(p=>{
+                  let player = util.normalizeName(`${p.first_name} ${p.last_name}`);
+                  return { value: player, label: player}
+               });
             let rep1 = new Awesomplete(modal.player_rep1.element, { list: valid_reps });
             let rep2 = new Awesomplete(modal.player_rep2.element, { list: valid_reps });
 
@@ -399,6 +412,7 @@ let tournaments = function() {
             displayed_draw_event.player_representatives[0] = modal.player_rep1.element.value;
             displayed_draw_event.player_representatives[1] = modal.player_rep2.element.value;
             gen.drawRepState(container.player_reps_state.element, displayed_draw_event);
+            if (o.save) db.addTournament(tournament);
             gen.closeModal();
          }
       });
@@ -421,6 +435,7 @@ let tournaments = function() {
 
       function autoSchedule(ev) {
 
+         let order_priority = false;
          let priority = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R96', 'R128', 'RR', 'Q', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5'];
 
          let luids = tournament.locations.map(l=>l.luid);
@@ -465,9 +480,14 @@ let tournaments = function() {
          let filtered_unscheduled = unscheduled_matches
             .filter(m => (!euid || euid == m.event.euid) && (!round_filter || round_filter == m.round_name));
 
-         // TODO: option not to prioritize draw order w/o regard for round
+         let match_rounds = util.unique(filtered_unscheduled.map(m=>m.round_name));
+         if (match_rounds.length > 1) {
+            console.log('pop up dialogue to set order_priority or round_priority'); 
+         }
+
+         // order_priority gives option to prioritize draw order w/o regard for round
          // if there is not a round filter, sort unscheduled matches by round in draw
-         if (!round_filter) { filtered_unscheduled.sort((a, b) => priority.indexOf(b.round_name) - priority.indexOf(a.round_name)); }
+         if (!round_filter && !order_priority) { filtered_unscheduled.sort((a, b) => priority.indexOf(b.round_name) - priority.indexOf(a.round_name)); }
 
          // create an array of unscheduled muids;
          let unscheduled_muids = filtered_unscheduled.map(m=>m.muid);
@@ -497,9 +517,9 @@ let tournaments = function() {
          // create an object indexed by muid of unscheduled matches
          let muid_lookup = Object.assign({}, ...filtered_unscheduled.map(m=>({[m.muid]: m})));
 
-         // TODO: when prioritizing draw order w/o regard for round, exclude round_name
+         // When prioritizing draw order w/o regard for round, exclude round_name
          // create a hash of unscheduled matches which have been sorted/grouped by round_name
-         let unscheduled_hash = filtered_unscheduled.map(m=>`${m.event.euid}|${m.round_name}`);
+         let unscheduled_hash = filtered_unscheduled.map(m=>`${m.event.euid}|${!order_priority ? m.round_name : ''}`);
 
          let ordered_matches = [].concat(...util.unique(unscheduled_hash).map(match_group => {
 
@@ -614,8 +634,6 @@ let tournaments = function() {
       }
 
       function addTournamentPlayer(player_container, new_player) {
-
-         console.log(new_player);
 
          if (!tournament.players) tournament.players = [];
          let existing = tournament.players.filter(p=>p.id == new_player.id);
@@ -966,7 +984,7 @@ let tournaments = function() {
 
          signInSheet();
          scheduleActions();
-         enableDrawPrinting();
+         enableDrawActions();
          enableTournamentOptions();
 
          eventsTab();
@@ -2152,7 +2170,7 @@ let tournaments = function() {
 
                // TODO: implement qualifier in approvedTeams
 
-               p.draw_order = i;
+               p.draw_order = i + 1;
                if (seeding && i < seed_limit) p.seed = i + 1;
 
                p.rank = p.category_ranking;
@@ -2950,7 +2968,7 @@ let tournaments = function() {
 
             let { oop_round } = identifyRound(ev);
             if (oop_round) {
-               let options = ['Matches => Time', 'Not Before', 'After Rest', 'Court TBA', 'Next Available', 'Clear'];
+               let options = ['Matches => Time', 'Not Before', 'Followed By', 'After Rest', 'Court TBA', 'Next Available', 'Clear'];
                gen.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: doSomething });
 
                function doSomething(choice, index) {
@@ -2963,23 +2981,30 @@ let tournaments = function() {
                      let pairs = [
                         { attr: 'time_prefix', value: '' },
                         { attr: 'time', value: '' },
-                        { attr: 'heading', value: 'After Rest' },
+                        { attr: 'heading', value: 'Followed By' },
                      ];
                      modifyMatchSchedule(pairs);
                   } else if (index == 3) {
+                     let pairs = [
+                        { attr: 'time_prefix', value: 'After Rest' },
+                        { attr: 'time', value: '' },
+                        { attr: 'heading', value: '' },
+                     ];
+                     modifyMatchSchedule(pairs);
+                  } else if (index == 4) {
                      let pairs = [
                         { attr: 'time_prefix', value: 'TBA' },
                         { attr: 'time', value: '' },
                      ];
                      modifyMatchSchedule(pairs);
-                  } else if (index == 4) {
+                  } else if (index == 5) {
                      let pairs = [
                         { attr: 'time_prefix', value: '' },
                         { attr: 'time', value: '' },
                         { attr: 'heading', value: 'Next Available' },
                      ];
                      modifyMatchSchedule(pairs);
-                  } else if (index == 5) {
+                  } else if (index == 6) {
                      let pairs = [
                         { attr: 'time_prefix', value: '' },
                         { attr: 'time', value: '' },
@@ -3073,9 +3098,9 @@ let tournaments = function() {
                      modifyMatchSchedule([{ attr: 'time_prefix', value: 'NB ' }]);
                   } else if (index == 1) {
                      let pairs = [
-                        { attr: 'time_prefix', value: '' },
+                        { attr: 'time_prefix', value: 'After Rest' },
                         { attr: 'time', value: '' },
-                        { attr: 'heading', value: 'After Rest' },
+                        { attr: 'heading', value: '' },
                      ];
                      modifyMatchSchedule(pairs);
                   } else if (index == 2) {
@@ -3586,7 +3611,7 @@ let tournaments = function() {
       function drawCreated(e) {
          // when a draw is created, matches should be accesible
          e.draw_created = true;
-         enableDrawPrinting();
+         enableDrawActions();
          tabVisible(container, 'MT');
            
          let show_schedule = tournamentCourts() && tournament.events && tournament.events.length ? true : false;
@@ -3852,12 +3877,14 @@ let tournaments = function() {
          }
       };
      
-      function enableDrawPrinting() {
+      function enableDrawActions() {
          let visible = displayed_draw_event ? displayed_draw_event.draw_created : false;
+         let active = displayed_draw_event ? displayed_draw_event.active : false;
          let svg = container.draws.element.querySelector('svg');
          document.querySelector('.' + classes.print_draw).style.display = visible && svg ? 'inline' : 'none';
          container.publish_draw.element.style.display = visible && svg && state.edit ? 'inline' : 'none';
          container.player_reps.element.style.display = visible && svg && state.edit ? 'inline' : 'none';
+         container.recycle.element.style.display = !active && svg && state.edit ? 'inline' : 'none';
       }
 
       function enableDrawOrderPrinting() {
@@ -3888,6 +3915,8 @@ let tournaments = function() {
 
          let elimination_event = findEventByID(e.links['E']);
 
+         // TODO: this .order may be different than .order elsewhere... change to .rr_order
+         // TODO: check whether there are multiple players with order == 1
          let qualified_teams = opponents.filter(o=>o[0].order == 1);
          let qualified_2nd = opponents.filter(o=>o[0].order == 2).sort((a, b) => b.category_ranking - a.category_ranking);
 
@@ -3949,6 +3978,7 @@ let tournaments = function() {
          if (outcome.complete && drawFx.bracketComplete(bracket)) determineRRqualifiers(e);
 
          e.active = true;
+         enableDrawActions();
          if (o.save) db.addTournament(tournament);
          return;
       }
@@ -4041,6 +4071,7 @@ let tournaments = function() {
          }
 
          e.active = true;
+         enableDrawActions();
          if (o.save) db.addTournament(tournament);
          return e;
       }
@@ -4147,7 +4178,7 @@ let tournaments = function() {
          } else {
             displayDraw({ evt: e });
          }
-         enableDrawPrinting();
+         enableDrawActions();
          gen.drawBroadcastState(container.publish_state.element, e);
 
          eventList();
@@ -5016,7 +5047,7 @@ let tournaments = function() {
             rr_draw.data({ brackets });
             rr_draw();
          }
-         enableDrawPrinting();
+         enableDrawActions();
       }
 
       function tournamentTab() {
@@ -5160,7 +5191,7 @@ let tournaments = function() {
          } else if (group_draws.length) {
             draw_options = group_draws;
             onChange = genGroupDraw;
-            enableDrawPrinting();
+            enableDrawActions();
          }
 
          dd.attachDropDown({ 
@@ -5213,7 +5244,7 @@ let tournaments = function() {
             addRegistered(registered);
             busy.done(id);
          }
-         let notConfigured = (err) => { busy.done(id); gen.popUpMessage(err || lang.tr('phrases.notconfigured')); }
+         let notConfigured = (err) => { busy.done(id); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
          coms.fetchRegisteredPlayers(tournament.tuid, tournament.category, remote_request).then(done, notConfigured);
       }
 
