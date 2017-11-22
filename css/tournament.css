@@ -493,7 +493,6 @@
 .drawsize_header { background-image: url("../icons/drawbracket.png"); }
 .matches_header { background-image: url("../icons/match.png"); }
 .matches_header_inactive { background-image: url("../icons/match_gray.png"); }
-.surface_header { background-image: url("../icons/h_court.png"); }
 .status_header { background-image: url("../icons/status.png"); }
 .rank_header { background-image: url("../icons/trophy.png"); }
 .category_header { background-image: url("../icons/category.png"); }
@@ -505,6 +504,13 @@
 .publisheduptodate { background-image: url("../icons/publishblue.png"); }
 .publishedoutofdate { background-image: url("../icons/publishyellow.png"); }
 .published { background-image: url("../icons/publishgreen.png"); }
+.cleardraw { background-image: url("../icons/recycle.png"); }
+
+.surface_header { background-image: url("../icons/h_court.png"); }
+.surface_grass { background-image: url("../icons/court_grass.png"); }
+.surface_clay { background-image: url("../icons/court_clay.png"); }
+.surface_hard { background-image: url("../icons/court_hard.png"); }
+.surface_carpet { background-image: url("../icons/court_carpet.png"); }
 
 .notcreated, .xmark { background-image: url("../icons/xmark.png"); }
 .drawcreated { background-image: url("../icons/drawcreated.png"); }
