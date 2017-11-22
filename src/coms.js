@@ -208,7 +208,6 @@ let coms = function() {
 
          function fetchNew(params) {
             if (!params) {
-               console.log(params);
                return reject('No Parameters. ' +  lang.tr('phrases.notconfigured'));
             }
 
@@ -319,7 +318,6 @@ let coms = function() {
          }
 
          function fetchNew(plyrz, params) {
-            console.log('params:', params);
 
             // maximum player record determined by numeric ids; others excluded
             let max_id = Math.max(0, ...plyrz.map(p=>!isNaN(+p.id) ? +p.id : 0));
