@@ -7,6 +7,7 @@
    let gen = {
       modal: 0,
       info: 'info',  // future true/false option setting
+      infoleft: 'infoleft',  // future true/false option setting
       dragdrop: false,
       onreset: undefined,
       content: undefined,
@@ -1752,10 +1753,12 @@
                   <div id='${ids.schedule_day}'></div>
                </div>
                <div class='options_right'>
-                  <div class='${classes.schedule_matches} infoleft' label='${lang.tr("phrases.schedulematches")}' style='display: none;'>
+                  <div class='${classes.schedule_matches} ${gen.infoleft}' label='${lang.tr("phrases.schedulematches")}' style='display: none;'>
                      <div class='matches_header_inactive action_icon'></div>
                   </div>
-                  <div class='${classes.print_schedule} infoleft' label='${lang.tr("print.schedule")}'style='display: none;'><div class='print action_icon'></div></div>
+                  <div class='${classes.print_schedule} ${gen.infoleft}' label='${lang.tr("print.schedule")}'style='display: none;'>
+                     <div class='print action_icon'></div>
+                  </div>
                </div>
             </div>
             <div id='${ids.scheduling}' class='dropremove flexcenter flexcol schedule_unscheduled' style='display: none' ondragover="event.preventDefault();">
@@ -1802,27 +1805,29 @@
                   <div class='select_draw' id='${ids.select_draw}'></div>
                </div>
                <div class='options_right'>
-                  <div id='${ids.recycle}' class='infoleft' label='${lang.tr("draws.clear")}'style='display: none'><div class='cleardraw action_icon'></div></div>
-                  <div id='${ids.player_reps}' class='${gen.info}' label='${lang.tr("draws.playerreps")}' style='display: none'>
+                  <div id='${ids.recycle}' class='${gen.infoleft}' label='${lang.tr("draws.clear")}'style='display: none'><div class='cleardraw action_icon'></div></div>
+                  <div id='${ids.player_reps}' class='${gen.infoleft}' label='${lang.tr("draws.playerreps")}' style='display: none'>
                      <div id='${ids.player_reps_state}' style='margin-left: 1em;' class='reps_incomplete action_icon'></div>
                   </div>
                   <div id='${ids.publish_draw}' class='${gen.info}' label='${lang.tr("draws.publish")}' style='display: none'>
                      <div id='${ids.publish_state}' style='margin-left: 1em;' class='unpublished action_icon'></div>
                   </div>
-                  <div class='${classes.print_draw} infoleft' label='${lang.tr("print.draw")}'style='display: none'><div class='print action_icon'></div></div>
+                  <div class='${classes.print_draw} ${gen.infoleft}' label='${lang.tr("print.draw")}'style='display: none'><div class='print action_icon'></div></div>
                </div>
             </div>
             <div id='${ids.draws}' class='tournament_match flexcol flexcenter drawdraw'> </div>
          </div>
       `;
 
-      let modify_info = tournament.players && tournament.players.length ? 'infoleft' : '';
+      let modify_info = tournament.players && tournament.players.length ? '${gen.infoleft}' : '';
       let players_tab = `
          <div>
             <div class='filter_row'>
                <div class='category_filter'>
                   <div class='flexcenter entry_field' id='${ids.category_filter}'></div>
-                  <div class='${classes.print_sign_in} infoleft' label='${lang.tr("print.signin")}'style='display: none'><div class='print action_icon'></div></div>
+                  <div class='${classes.print_sign_in} ${gen.infoleft}' label='${lang.tr("print.signin")}'style='display: none'>
+                     <div class='print action_icon'></div>
+                  </div>
                </div>
                <div class='filters'>
                   <div class='${classes.filter_m}'><div class='filter_m action_icon filter_m_selected'></div></div>
@@ -1854,9 +1859,9 @@
          { ref: 'matches',    tab: lang.tr('mts'), content: matches_tab, id: `MT${ids.container}`, display: 'none' },
          { ref: 'points',     tab: lang.tr('pts'), content: points_tab, id: `PT${ids.container}`, display: 'none' },
 
-// icons instead of text?
-//         { ref: 'matches',    tab: mtab, content: matches_tab, id: `MT${ids.container}`, display: 'none' },
-//         { ref: 'players',    tab: ptab, content: players_tab, id: `YT${ids.container}`, display: 'none' },
+      // icons instead of text?
+      //   { ref: 'matches',    tab: mtab, content: matches_tab, id: `MT${ids.container}`, display: 'none' },
+      //   { ref: 'players',    tab: ptab, content: players_tab, id: `YT${ids.container}`, display: 'none' },
 
       ];
       let tabs = jsTabs.generate(tabdata);
@@ -1865,9 +1870,11 @@
       // TODO: change how this is handled
       editable = true;
       let edit_button = !editable ? '' :
-         `<div id='${ids.edit}' class='link infoleft' label='${lang.tr("tournaments.edit")}'><img src='./icons/edit.png' class='club_link'></div>`;
+         `<div id='${ids.edit}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.edit")}'><img src='./icons/edit.png' class='club_link'></div>`;
       let finish_button = !editable ? '' :
-         `<div id='${ids.finish}' class='link infoleft' label='${lang.tr("tournaments.done")}' style='display: none'><img src='./icons/finished.png' class='club_link'></div>`;
+         `<div id='${ids.finish}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.done")}' style='display: none'>
+            <img src='./icons/finished.png' class='club_link'>
+         </div>`;
       let html = `
          <div id='${ids.container}' class='tournament_container'>
             <div class='tournament_info'> 
@@ -2461,9 +2468,9 @@
       `;
       d3.select(container.detail_fields.element).html(detail_fields);
 
-      let removeall = !edit ? '' : `<div class='removeall infoleft' label='${lang.tr("tournaments.removeall")}'>-</div>`;
-      let addall = !edit ? '' : `<div class='addall infoleft' label='${lang.tr("tournaments.addall")}'>+</div>`;
-      let promoteall = !edit ? '' : `<div class='promoteall infoleft' label='${lang.tr("tournaments.addall")}'>+</div>`;
+      let removeall = !edit ? '' : `<div class='removeall ${gen.infoleft}' label='${lang.tr("tournaments.removeall")}'>-</div>`;
+      let addall = !edit ? '' : `<div class='addall ${gen.infoleft}' label='${lang.tr("tournaments.addall")}'>+</div>`;
+      let promoteall = !edit ? '' : `<div class='promoteall ${gen.infoleft}' label='${lang.tr("tournaments.addall")}'>+</div>`;
 
       let detail_players = `
          <div class='flexrow divider approved'>
@@ -2961,7 +2968,7 @@
       let html = `
          <div id='GC${category}${gender}' class='rank_column_heading flexrow flexcenter'>
             ${lang.tr(gender == 'M' ? 'genders.male' : gender == 'W' ? 'genders.female' : 'genders.mixed')}
-            <div class='print action_icon_small infoleft' label='${lang.tr("print.ranklist")}' category='${category}' gender='${gender}'></div>
+            <div class='print action_icon_small ${gen.infoleft}' label='${lang.tr("print.ranklist")}' category='${category}' gender='${gender}'></div>
             <div class='icon_spreadsheet action_icon_small' category='${category}' gender='${gender}'></div>
          </div>
       `;
