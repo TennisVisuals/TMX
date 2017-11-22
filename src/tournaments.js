@@ -346,9 +346,15 @@ let tournaments = function() {
       container.recycle.element.addEventListener('click', () => {
          gen.okCancelMessage(`${lang.tr('draws.clear')}?`, clearDraw, () => gen.closeModal());
          function clearDraw() {
+            displayed_draw_event.draw_created = false;
             delete displayed_draw_event.draw;
+
             generateDraw(displayed_draw_event);
             displayDraw({ evt: displayed_draw_event });
+
+            if (o.save) db.addTournament(tournament);
+
+            enableDrawActions();
             gen.closeModal();
          }
       });
@@ -1002,6 +1008,7 @@ let tournaments = function() {
          container.display_id.element.disabled = !bool;
          container.start_date.element.disabled = !bool;
          container.end_date.element.disabled = !bool;
+         container.points_valid.element.disabled = !bool;
       }
 
       function addRegistered(registered_players) {
@@ -3883,7 +3890,7 @@ let tournaments = function() {
          let svg = container.draws.element.querySelector('svg');
          document.querySelector('.' + classes.print_draw).style.display = visible && svg ? 'inline' : 'none';
          container.publish_draw.element.style.display = visible && svg && state.edit ? 'inline' : 'none';
-         container.player_reps.element.style.display = visible && svg && state.edit ? 'inline' : 'none';
+         container.player_reps.element.style.display = svg && state.edit ? 'inline' : 'none';
          container.recycle.element.style.display = !active && svg && state.edit ? 'inline' : 'none';
       }
 
@@ -3915,10 +3922,15 @@ let tournaments = function() {
 
          let elimination_event = findEventByID(e.links['E']);
 
-         // TODO: this .order may be different than .order elsewhere... change to .rr_order
-         // TODO: check whether there are multiple players with order == 1
-         let qualified_teams = opponents.filter(o=>o[0].order == 1);
-         let qualified_2nd = opponents.filter(o=>o[0].order == 2).sort((a, b) => b.category_ranking - a.category_ranking);
+         // 1st qualifiers from each bracket
+         let qualified_teams = opponents.filter(o=> {
+            if (o[0].order == 1 && o[0].sub_order == undefined) return true;
+            if (o[0].order == 1 && o[0].sub_order == 1) return true;
+         });
+         // 2nd qualifiers from each bracket
+         let qualified_2nd = opponents
+            .filter(o=>o[0].order == 2 || (o[0].order == 1 && o[0].sub_order == 2))
+            .sort((a, b) => b.category_ranking - a.category_ranking);
 
          let all_brackets_complete = e.draw.brackets.map(drawFx.bracketComplete).reduce((a, b) => a && b);
 
@@ -4125,6 +4137,42 @@ let tournaments = function() {
          }
       }
 
+      function rrPlayerOrder(d) {
+         let bracket = displayed_draw_event.draw.brackets[d.bracket];
+         let player = bracket.players.reduce((p, c) => c.draw_position == d.row ? c : p, undefined);
+         let tied = bracket.players.filter(p=>p.order == player.order);
+         if (tied.length > 1) {
+            let draw_id = `rrDraw_${d.bracket}`;
+            let selector = d3.select(`#${container.draws.id} #${draw_id} svg`).node();
+            let menu = contextMenu().selector(selector).events({ 'cleanup': () => {} });
+            let coords = d3.mouse(selector);
+            let options = tied.map((p, i) => `Order: ${i+1}`);
+
+            menu
+               .items(...options)
+               .events({ 
+                  'item': { 
+                     'click': (c, i) => {
+                        // first insure that no other player has the same sub_order
+                        bracket.players.filter(p=>p.order == player.order).forEach(p=>{ if (p.sub_order == i + 1) p.sub_order = 0 });
+
+                        // assign sub_order to selected player
+                        player.sub_order = i + 1;
+
+                        // update data
+                        rr_draw.data(displayed_draw_event.draw);
+                        // update one bracket without regenerating all brackets!
+                        rr_draw.updateBracket(d.bracket);
+
+                        if (o.save) db.addTournament(tournament);
+                     }
+                  }
+               });
+
+            setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+         }
+      }
+
       // for generating draws when there are events which have been created by CourtHive Tournaments
       function genEventDraw(value) {
          let draw_width = +d3.select('#main').style('width').match(/\d+/)[0] * .9;
@@ -4163,6 +4211,9 @@ let tournaments = function() {
                'mouseover': rrMouseoverScore,
                'contextmenu': rrScoreAction,
             },
+            'order': {
+               'contextmenu': rrPlayerOrder,
+            }
          });
 
          rr_draw.data({})();
@@ -5157,6 +5208,21 @@ let tournaments = function() {
                 nextFieldFocus('end_date');
             },
          });
+
+         let points_date = new Date(tournament.points_date || tournament.end);
+         let pointsDatePicker = new Pikaday({
+            field: container.points_valid.element,
+            i18n: lang.obj('i18n'),
+            defaultDate: points_date,
+            setDefaultDate: true,
+            onSelect: function() {
+               points_date = this.getDate();
+               tournament.points_date = points_date.getTime();
+               // calcTournamentPoints ??
+            },
+         });
+         pointsDatePicker.setMinDate(points_date);
+
          container.start_date.element.addEventListener('keydown', catchTab, false);
          container.end_date.element.addEventListener('keydown', catchTab, false);
 
