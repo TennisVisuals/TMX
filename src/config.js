@@ -527,7 +527,7 @@ let config = function() {
       let id = busy.message(`<p>${lang.tr('refresh.players')}...</p>`, searchBox.updateSearch);
       let done = () => busy.done(id);
       let addNew = (players) => load.processPlayers(players).then(done, done);
-      let notConfigured = (err) => { done(); gen.popUpMessage(err || lang.tr('phrases.notconfigured')); }
+      let notConfigured = (err) => { done(); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       coms.fetchNewPlayers().then(addNew, notConfigured);
    }
 
@@ -536,7 +536,7 @@ let config = function() {
       let id = busy.message(`<p>${lang.tr('refresh.calendar')}...</p>`, searchBox.updateSearch);
       let done = () => busy.done(id);
       let addNew = (trnys) => util.performTask(db.addTournament, trnys, false).then(done, done);
-      let notConfigured = () => { done(); gen.popUpMessage(err || lang.tr('phrases.notconfigured')); }
+      let notConfigured = () => { done(); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       coms.fetchNewTournaments().then(addNew, notConfigured);
    }
 
@@ -545,7 +545,7 @@ let config = function() {
       let id = busy.message(`<p>${lang.tr('refresh.clubs')}...</p>`, searchBox.updateSearch);
       let done = () => busy.done(id);
       let addNew = (clubs) => util.performTask(db.addClub, clubs, false).then(done, done);
-      let notConfigured = () => { done(); gen.popUpMessage(err || lang.tr('phrases.notconfigured')); }
+      let notConfigured = () => { done(); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       coms.fetchNewClubs().then(addNew, notConfigured);
    }
 
