@@ -140,6 +140,7 @@
          playerreps: 'Predstavnici igrača',
          luckylosers: 'Sretni gubitnici (LL)/Zamjenjuje',
          lastdirectaccept: 'Zadnji direktno primljen igrač',
+         clear: 'Isprazni Ždrijeb',
       },
 
       print: {

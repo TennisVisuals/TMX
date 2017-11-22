@@ -193,6 +193,7 @@
          playerreps: 'Player Representatives',
          luckylosers: 'Lucky Losers (LL)/Replacements',
          lastdirectaccept: 'Last Direct Acceptance',
+         clear: 'Clear Draw',
       },
 
       print: {
@@ -498,6 +499,7 @@
          playerreps: 'Predstavnici igrača',
          luckylosers: 'Sretni gubitnici (LL)/Zamjenjuje',
          lastdirectaccept: 'Zadnji direktno primljen igrač',
+         clear: 'Isprazni Ždrijeb',
       },
 
       print: {
