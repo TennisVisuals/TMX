@@ -193,6 +193,7 @@
          playerreps: 'Player Representatives',
          luckylosers: 'Lucky Losers (LL)/Replacements',
          lastdirectaccept: 'Last Direct Acceptance',
+         clear: 'Clear Draw',
       },
 
       print: {
