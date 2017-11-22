@@ -19,11 +19,11 @@
       if (evt.key.indexOf('Arrow') == 0 && typeof gen.arrowFx == 'function') arrowFx(evt.key); 
    });
 
-   let surface_colors = {
-      'C': '#FC8601',
-      'R': '#01E5FC',
-      'H': '#0133FC',
-      'G': '#38BF38',
+   let surface_icons = {
+      'C': 'surface_clay',
+      'R': 'surface_carpet',
+      'H': 'surface_hard',
+      'G': 'surface_grass',
    }
 
    gen.reset = () => {
@@ -1579,6 +1579,7 @@
          publish_state: gen.uuid(),
          player_reps: gen.uuid(),
          player_reps_state: gen.uuid(),
+         recycle: gen.uuid(),
          start_date: gen.uuid(),
          end_date: gen.uuid(),
          organizer: gen.uuid(),
@@ -1590,6 +1591,7 @@
          location_details: gen.uuid(),
          location_attributes: gen.uuid(),
          location_courts: gen.uuid(),
+         points_valid: gen.uuid(),
       }
 
       let classes = {
@@ -1652,12 +1654,20 @@
 
       let points_tab = `
          <div>
-            <div class='filters'>
-               <div class='${classes.filter_m}'><div class='filter_m action_icon filter_m_selected'></div></div>
-               <div class='${classes.filter_w}'><div class='filter_w action_icon filter_w_selected'></div></div>
-               <div class=''><div class='action_icon'></div></div>
-               <div class=''><div class='action_icon'></div></div>
-               <div class=''><div class='action_icon'></div></div>
+            <div class='filter_row'>
+               <div class='category_filter'>
+                  <div class='calendar_date' style='font-weight: bold'>
+                     <div class='calabel'>Points valid from:</div>
+                     <input tabindex='-1' class='calinput' id='${ids.points_valid}' disabled>
+                  </div>
+               </div>
+               <div class='filters'>
+                  <div class='${classes.filter_m}'><div class='filter_m action_icon filter_m_selected'></div></div>
+                  <div class='${classes.filter_w}'><div class='filter_w action_icon filter_w_selected'></div></div>
+                  <div class=''><div class='action_icon'></div></div>
+                  <div class=''><div class='action_icon'></div></div>
+                  <div class=''><div class='action_icon'></div></div>
+               </div>
             </div>
 
             <div class='player_points'>
@@ -1792,6 +1802,7 @@
                   <div class='select_draw' id='${ids.select_draw}'></div>
                </div>
                <div class='options_right'>
+                  <div id='${ids.recycle}' class='infoleft' label='${lang.tr("draws.clear")}'style='display: none'><div class='cleardraw action_icon'></div></div>
                   <div id='${ids.player_reps}' class='${gen.info}' label='${lang.tr("draws.playerreps")}' style='display: none'>
                      <div id='${ids.player_reps_state}' style='margin-left: 1em;' class='reps_incomplete action_icon'></div>
                   </div>
@@ -2361,7 +2372,7 @@
             <div class='event_data flexcenter ${gen.info}' label='${publish_label}'><div class='event_icon ${publish_state}'></div></div>
             <div class='event_data'>${e.category}</div>
             <div class='event_data'>${e.rank}</div>
-            <div class='event_data' style='background-color: ${surface_colors[e.surface[0]]}'></div>
+            <div class='event_data flexcenter'><div class='event_icon ${surface_icons[e.surface[0]]}'></div></div>
          </div>
       `;
 
