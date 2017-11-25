@@ -279,7 +279,6 @@ let tournaments = function() {
       let { groups: match_groups, group_draws } = groupMatches(tournament.matches);
       let { container, classes, displayTab, display_context } = gen.tournamentContainer(tournament, tabCallback);
 
-
       // TODO: remove this when finished
       dev.tournament = tournament;
       dev.container = container;
@@ -335,6 +334,14 @@ let tournaments = function() {
          schedule_matches.querySelector('div').classList.toggle('matches_header_inactive');
          schedule_matches.querySelector('div').classList.toggle('matches_header');
       }
+
+      container.push2cloud.element.addEventListener('click', () => {
+         console.log('push to cloud');
+      });
+
+      container.localdownload.element.addEventListener('click', () => {
+         exp.downloadCircularJSON(`${tournament.tuid}.circular.json`, tournament);
+      });
 
       container.publish_draw.element.addEventListener('click', () => {
          gen.okCancelMessage(lang.tr('draws.publishQ'), broadcast, () => gen.closeModal());

@@ -527,7 +527,11 @@
          } else if (load.loaded.meta.filetype == 'csv') {
             loadJSON(CSV2JSON(file_content));
          } else if (load.loaded.meta.filetype.indexOf('json') >= 0) {
-            loadJSON(JSON.parse(file_content));
+            if (file_content.indexOf('"~') >= 0) {
+               loadJSON(CircularJSON.parse(file_content));
+            } else {
+               loadJSON(JSON.parse(file_content));
+            }
          }
       };
 

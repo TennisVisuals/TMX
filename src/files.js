@@ -31,6 +31,11 @@
       download(filename, dataStr);
    }
 
+   exp.downloadCircularJSON = (filename, json) => {
+      let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(CircularJSON.stringify(json));
+      download(filename, dataStr);
+   }
+
    exp.downloadText = (filename, text) => {
       let dataStr = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
       download(filename, dataStr);
