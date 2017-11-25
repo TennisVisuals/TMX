@@ -31,7 +31,7 @@ let dev = { };
 // new tournaments created in the local client should not include env.org
 let env = {
    org: 'HTS',
-   version: '0.6.9',
+   version: '0.7.5',
    auto_update: {
       players: false,
       registered_players: false,
@@ -42,6 +42,7 @@ let env = {
    geolocate: true,
    broadcast: true,
    livescore: false,
+   autodraw: true,
    calendar: {},
 }
 
