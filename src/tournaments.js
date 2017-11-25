@@ -336,7 +336,7 @@ let tournaments = function() {
       }
 
       container.push2cloud.element.addEventListener('click', () => {
-         console.log('push to cloud');
+         coms.emitTmx({ event: 'Push Tournament', tuid: tournament.tuid, tournament: CircularJSON.stringify(tournament) });
       });
 
       container.localdownload.element.addEventListener('click', () => {
@@ -1023,6 +1023,9 @@ let tournaments = function() {
          container.start_date.element.disabled = !bool;
          container.end_date.element.disabled = !bool;
          container.points_valid.element.disabled = !bool;
+
+         container.push2cloud.element.style.display = bool ? 'inline' : 'none';
+         container.localdownload.element.style.display = bool ? 'inline' : 'none';
       }
 
       function addRegistered(registered_players) {
