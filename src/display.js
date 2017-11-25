@@ -1618,8 +1618,12 @@
                <div class='options_left'>
                </div>
                <div class='options_right'>
-                  <div id='${ids.push2cloud}' class='${gen.info}' label='${lang.tr("phrases.send")}'><div class='push2cloud action_icon'></div></div>
-                  <div id='${ids.localdownload}' class='${gen.info}' label='${lang.tr("phrases.export")}'><div class='download action_icon'></div></div>
+                  <div id='${ids.push2cloud}' class='${gen.info}' label='${lang.tr("phrases.send")}' style='display: none;'>
+                     <div class='push2cloud action_icon'></div>
+                  </div>
+                  <div id='${ids.localdownload}' class='${gen.info}' label='${lang.tr("phrases.export")}' style='display: none;'>
+                     <div class='download action_icon'></div>
+                  </div>
                </div>
             </div>
 
