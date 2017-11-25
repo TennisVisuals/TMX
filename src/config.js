@@ -12,8 +12,11 @@ let config = function() {
       players: true,
       tournaments: true,
       clubs: true,
+      tournament_search: true,
+      club_search: true,
       settings: true,
       importexport: true,
+      autodraw: true,
    }
 
    fx.settings = {
@@ -284,11 +287,11 @@ let config = function() {
             player.displayPlayerProfile(puid).then(()=>{}, ()=>{});
          }
       };
-      if (components.tournaments) searchBox.searchType.tournaments = function(tuid) {
+      if (components.tournament_search) searchBox.searchType.tournaments = function(tuid) {
          searchBox.active.tournament = { tuid };
          tournaments.displayTournament();
       };
-      if (components.clubs) searchBox.searchType.clubs = function(cuid) {
+      if (components.club_search) searchBox.searchType.clubs = function(cuid) {
          searchBox.active.club = { cuid };
          displayClub();
       };
@@ -336,7 +339,7 @@ let config = function() {
          }
       }
 
-      if (components.tournaments) searchBox.populateSearch.tournaments = function() {
+      if (components.tournament_search) searchBox.populateSearch.tournaments = function() {
          db.findAllTournaments().then(arr => {
             searchBox.searchCount(arr.length);
             searchBox.searchCategory('search_tournament_total');
@@ -353,7 +356,7 @@ let config = function() {
          });
       };
 
-      if (components.clubs) searchBox.populateSearch.clubs = function() {
+      if (components.club_search) searchBox.populateSearch.clubs = function() {
          db.findAllClubs().then(arr => {
             searchBox.searchCount(arr.length);
             searchBox.searchCategory('search_clubs_total');
@@ -387,7 +390,7 @@ let config = function() {
 
          function setEnv(settings) {
 
-            let app = settings.reduce((p, c) => p = c.key == 'appComponents' ? c : p, undefined);
+            let app = settings.reduce((p, c) => c.key == 'appComponents' ? c : p, undefined);
             if (app && app.components) {
                Object.keys(app.components).forEach(key => {
                   let bool = util.string2boolean(app.components[key]);
@@ -395,6 +398,9 @@ let config = function() {
                });
             }
 
+            env.autodraw = components.autodraw != undefined ? components.autodraw : true;
+
+            // turn off info labels...
             // if no info gen.info = '';
             resolve();
          }
@@ -443,6 +449,8 @@ let config = function() {
       window.addEventListener('contextmenu', (e) => { e.preventDefault(); }, false);
 
       document.getElementById('go_home').addEventListener('click', () => splash());
+      function closeModal() { gen.closeModal(); }
+      document.getElementById('go_home').addEventListener('contextmenu', () => gen.okCancelMessage(env.version, closeModal, closeModal));
       document.getElementById('refresh').addEventListener('click', () => updateAction());
 
       let checkVisible = () => {
@@ -466,6 +474,7 @@ let config = function() {
                notice: `lat/lng: ${pos.coords.latitude}, ${pos.coords.longitude}`,
                latitude: pos.coords.latitude,
                longitude: pos.coords.longitude,
+               version: env.version
             });
          });
       } else {
