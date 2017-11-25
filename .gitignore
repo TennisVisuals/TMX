@@ -3,7 +3,7 @@
 minimized
 build
 *.un~
-*.un~
+src/idioms/*.un~
 .DS_Store
-*.un~
-*.un~
+
+
