@@ -258,8 +258,8 @@
       let html = `
          <h2 style='margin: 1em;'>${text}</h2>
          <div class="flexcenter" style='margin-bottom: 2em;'>
-            <button id='${ids.cancel}' class='btn btn-medium cancel'>${lang.tr('actions.cancel')}</button>
-            <button id='${ids.ok}' class='btn btn-medium dismiss' style='margin-left: 1em;'>${lang.tr('actions.ok')}</button>
+            <button id='${ids.cancel}' class='btn btn-medium dismiss'>${lang.tr('actions.cancel')}</button>
+            <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${lang.tr('actions.ok')}</button>
          </div>
       `;
       document.getElementById('processingtext').innerHTML = html;
@@ -289,10 +289,10 @@
       }
    }
 
-   gen.showConfigModal = (text) => {
+   gen.showConfigModal = (html) => {
       if (searchBox.element) searchBox.element.blur();
       document.body.style.overflow  = 'hidden';
-      document.getElementById('configtext').innerHTML = text;
+      document.getElementById('configtext').innerHTML = html;
       document.getElementById('configmodal').style.display = "flex";
    }
 
@@ -1593,6 +1593,8 @@
          location_attributes: gen.uuid(),
          location_courts: gen.uuid(),
          points_valid: gen.uuid(),
+         push2cloud: gen.uuid(),
+         localdownload: gen.uuid(),
       }
 
       let classes = {
@@ -1610,12 +1612,18 @@
          schedule_matches: gen.uuid(),
       }
 
-      // TODO: point_info is legacy and needs to be removed from tournament_tab
-      // ranking information should come from configuration in the events tab
       let tournament_tab = `
          <div id='${ids.tournament}' class='flexcol flexcenter' style='min-height: 10em;'>
-            <div class='tournament_attrs'>
+            <div class='tournament_options'>
+               <div class='options_left'>
+               </div>
+               <div class='options_right'>
+                  <div id='${ids.push2cloud}' class='${gen.info}' label='${lang.tr("phrases.send")}'><div class='push2cloud action_icon'></div></div>
+                  <div id='${ids.localdownload}' class='${gen.info}' label='${lang.tr("phrases.export")}'><div class='download action_icon'></div></div>
+               </div>
+            </div>
 
+            <div class='tournament_attrs'>
                 <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
                    <div class='tournament_attr'>
                        <label class='calabel'>${lang.tr('start')}:</label>
@@ -1701,7 +1709,9 @@
                   <div class='event_name flexcenter'>New Event</div>
                   <div class='flexrow'>
                      <div class='${classes.auto_draw} info' style='display: none;' label='${lang.tr("adr")}'><div class='automation_icon automated_draw_pause'></div></div>
+                     <!--
                      <div class='${classes.print_draw_order} info' label='${lang.tr("mdo")}' style='display: none'><div class='print action_icon'></div></div>
+                     -->
                   </div>
                   <div>${del}${done}${save}${cancel}</div>
                </div>
@@ -1812,7 +1822,7 @@
                   <div id='${ids.publish_draw}' class='${gen.info}' label='${lang.tr("draws.publish")}' style='display: none'>
                      <div id='${ids.publish_state}' style='margin-left: 1em;' class='unpublished action_icon'></div>
                   </div>
-                  <div class='${classes.print_draw} ${gen.infoleft}' label='${lang.tr("print.draw")}'style='display: none'><div class='print action_icon'></div></div>
+                  <div class='${classes.print_draw}' style='display: none'><div class='print action_icon'></div></div>
                </div>
             </div>
             <div id='${ids.draws}' class='tournament_match flexcol flexcenter drawdraw'> </div>
@@ -2015,7 +2025,8 @@
 
       let format = match.format ? util.normalizeName(match.format) : '';
 
-      let score = match.score ? `<div class='match_score'>${match.score}</div>` : '';
+      let score = match.score ? `<div class='match_score'>${match.score}</div>` : '&nbsp;';
+      let umpire = match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : '';
       let header = `${match.schedule.heading || ''} ${match.schedule.time_prefix || ''}${match.schedule.time || ''}`;
       let html = `
          <div class='header'>${header}</div> 
@@ -2028,7 +2039,7 @@
             <div class='scheduled_team'>${first_team || ''}</div>
             <div class='divider'>${teams.length ? divider : ''}</div>
             <div class='scheduled_team'>${second_team || ''}</div>
-            ${score}
+            ${score}${umpire}
          </div>
       `;
       return html;
@@ -2055,6 +2066,46 @@
          </div>
       `;
       return html;
+   }
+
+   gen.selectUmpire = ({ container }) => {
+      let su_ids = {
+         entry_modal: gen.uuid(),
+      }
+
+      let entry_modal = d3.select('body')
+         .append('div')
+         .attr('class', 'modal')
+         .attr('id', su_ids.entry_modal);
+
+      let coords = d3.mouse(document.body);
+      let { ids, html } = umpireEntryField();
+
+      let entry = floatingEntry()
+         .selector('#' + su_ids.entry_modal)
+         .events( {'click': () => {
+            let elems = document.querySelectorAll('li.dd_state');
+            Array.from(elems).forEach(elem => { elem.classList.remove("active"); })
+         }});
+
+      entry(coords[0], coords[1] - window.scrollY, html);
+
+      Object.assign(ids, su_ids);
+      let id_obj = idObj(ids);
+      return id_obj;
+   }
+
+   function umpireEntryField() {
+      let ids = {
+         umpire_search: gen.uuid(),
+      }
+      let html = `
+         <div class="player-entry noselect">
+            <div class="player-position">${lang.tr('draws.matchumpire')}</div>
+            <div class="player-position"> <div class="player-search flexrow"><input id="${ids.umpire_search}"> </div> </div>
+         </div>
+      `;
+      return { ids, html };
    }
 
    gen.manualPlayerPosition = ({ container, bracket, position }) => {
@@ -2093,7 +2144,7 @@
          <div class="player-entry noselect">
             <div class="player-position">${lang.tr('drp')}: ${position || ''}</div>
             <div class="player-position"> <div class="player-index">${lang.tr('ord')}: <input id="${ids.player_index}"> </div> </div>
-            <div class="player-position"> <div class="player-search flexrow">${lang.tr('nm')}: <input id="${ids.player_search}"> </div> </div>
+            <div class="player-position"> <div class="player-search flexrow">${lang.tr('nm')}:&nbsp;<input id="${ids.player_search}"> </div> </div>
          </div>
       `;
       return { ids, html };
@@ -2885,6 +2936,27 @@
       return idObj(ids);
    }
 
+   gen.autoScheduleConfig = () => {
+      let ids = {
+         order: gen.uuid(),
+         round: gen.uuid(),
+      }
+      let html = `
+         <div class='flexccol'>
+            <div class='flexcol' style='width: 100%'>
+               <div class='flexcenter' style='margin: .5em;'><h2>${lang.tr('phrases.schedulepriority')}</h2></div>
+            </div>
+            <div class='config_actions'>
+               <div id='${ids.order}' class='btn btn-large config_submit'>Order</div>
+               <div id='${ids.round}' class='btn btn-large config_submit'>Round</div>
+            </div>
+         </div>
+      `;
+      gen.showConfigModal(html);
+
+      return idObj(ids);
+   }
+
    gen.pointCalcConfig = () => {
       let ids = {
          cancel: gen.uuid(),
@@ -3132,6 +3204,55 @@
       gen.showConfigModal(html);
 
       return idObj(ids);
+   }
+
+   gen.umpirePicker = ({ tournament, callback }) => {
+
+      let root = d3.select('body');
+      root.select('#umpirepicker').remove();
+      let backplane = root.append('div')
+         .attr('id', 'umpirepicker')
+         .attr('class', 'modal')
+
+      let entry = floatingEntry().selector('#umpirepicker');
+
+      let x = window.innerWidth * .4;
+      let y = window.innerHeight * .4;
+      entry(x, y, pickerHTML({ tournament }));
+
+      backplane.select('.floating-entry').on('click', () => { d3.event.stopPropagation(); });
+      backplane.on('click', returnValue);
+
+      setTimeout(function() { document.body.style.overflow = 'hidden'; }, 200);
+
+      function returnValue() { 
+         if (typeof callback == 'function') callback(time.value);
+         document.body.style.overflow  = null;
+         backplane.remove(); 
+      }
+      function pickerHTML({ tournament }) {
+         let umpires = tournament.umpires || [];
+         let umpire_list = umpires.map(h=>`<li class='hour'>${zeroPad(h)}</li>`).join('');
+         let html = `
+               <span class="time-picker">
+                  <input class="display-time" type="text" readonly="readonly" placeholder='HH:mm'>
+                  <span class="clear-btn" style="display: flex;">×</span>
+                  <div class="dropdown" style="display: flex;">
+                     <div class="select-list">
+                        <ul class="hours">
+                           <li class="hint">HH</li>
+                           ${hour_list}
+                        </ul>
+                        <ul class="minutes">
+                           <li class="hint">mm</li> 
+                           ${minute_list}
+                        </ul>
+                     </div>
+                  </div>
+               </span>
+         `;
+         return html;
+      }
    }
 
    gen.timePicker = ({ time_string, hour_range, minute_increment, minutes, callback }) => {
