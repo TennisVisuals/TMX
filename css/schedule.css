@@ -148,7 +148,12 @@
    margin-top: .1em;
    font-style: italic;
 }
-.schedule_box .scheduled_team, .schedule_box .match_score {
+.schedule_box .match_umpire {
+   margin-top: .1em;
+   font-style: italic;
+   color: red;
+}
+.schedule_box .scheduled_team, .schedule_box .match_score, .schedule_box .match_umpire {
    display: flex;
    width: 100%;
    -webkit-flex-direction: row;
