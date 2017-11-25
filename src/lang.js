@@ -70,6 +70,7 @@
       scr:     'Score',
       pts:     'Points',
       mts:     'Matches',
+      mtc:     'Match',
       drw:     'Draw',
       drz:     'Draws',
       evt:     'Events',
@@ -175,7 +176,8 @@
          remove: 'Remove',
          changestatus: 'Change Status',
          penalty: 'Assess Penalty',
-         umpire: 'Select Umpire',
+         umpire: 'Select Referee',
+         matchumpire: 'Match Referee',
          matchtime: 'Match Time',
          timeheader: 'Time Heading',
          maindraw: 'Main Draw',
@@ -197,10 +199,10 @@
       },
 
       print: {
-         schedule: 'Print Schedule',
-         draw: 'Print Draw',
-         signin: 'Print Sign-In Sheet',
-         ranklist: 'Print Rank List',
+         schedule: 'Schedule',
+         draw: 'Print',
+         signin: 'Sign-In Sheet',
+         ranklist: 'Rank List',
       },
 
       tournaments: {
@@ -258,6 +260,9 @@
          downloadtemplate: 'Download Import Template',
          add2database: 'Add Players, Tournaments, Rankings to Database',
          noconnection: 'No Connection',
+         schedulepriority: 'Match Scheduling Priority',
+         send: 'Send',
+         export: 'Export',
       },
 
       events: {
