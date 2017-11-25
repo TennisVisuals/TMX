@@ -67,6 +67,9 @@
 .filter_w_gray { background-image: url("../icons/w_gray.png"); }
 .filter_m_gray { background-image: url("../icons/m_gray.png"); }
 
+.download { background-image: url("../icons/localdownload.png"); }
+.push2cloud { background-image: url("../icons/cupload.png"); }
+
 .automation_icon {
    width: 4em;
    height: 1.5em;
@@ -95,6 +98,20 @@
    fill: none;
    stroke: #000;
    shape-rendering: crispEdges;
+}
+
+.tournament_options {
+   width: 100%;
+   margin-bottom: 1em;
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
 }
 
 .draw_options {
