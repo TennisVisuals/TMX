@@ -67,8 +67,12 @@
 .filter_w_gray { background-image: url("../icons/w_gray.png"); }
 .filter_m_gray { background-image: url("../icons/m_gray.png"); }
 
-.download { background-image: url("../icons/localdownload.png"); }
-.push2cloud { background-image: url("../icons/cupload.png"); }
+.download { background-image: url("../icons/dl_gray.png"); }
+.push2cloud { background-image: url("../icons/ul_gray.png"); }
+.download_outofdate { background-image: url("../icons/dl_yellow.png"); }
+.push2cloud_outofdate { background-image: url("../icons/ul_yellow.png"); }
+.download_updated { background-image: url("../icons/dl_green.png"); }
+.push2cloud_updated { background-image: url("../icons/ul_green.png"); }
 
 .automation_icon {
    width: 4em;

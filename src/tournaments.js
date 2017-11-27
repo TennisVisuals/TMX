@@ -335,12 +335,26 @@ let tournaments = function() {
          schedule_matches.querySelector('div').classList.toggle('matches_header');
       }
 
+      gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
       container.push2cloud.element.addEventListener('click', () => {
-         coms.emitTmx({ event: 'Push Tournament', tuid: tournament.tuid, tournament: CircularJSON.stringify(tournament) });
+         if (!tournament.published) {
+            coms.emitTmx({ event: 'Push Tournament', tuid: tournament.tuid, tournament: CircularJSON.stringify(tournament) });
+            tournament.published = true;
+            gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
+            // can't call saveTournament() here!!
+            if (o.save) db.addTournament(tournament);
+         }
       });
 
+      gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
       container.localdownload.element.addEventListener('click', () => {
-         exp.downloadCircularJSON(`${tournament.tuid}.circular.json`, tournament);
+         if (!tournament.saved_locally) {
+            exp.downloadCircularJSON(`${tournament.tuid}.circular.json`, tournament);
+            tournament.saved_locally = true;
+            gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
+            // can't call saveTournament() here!!
+            if (o.save) db.addTournament(tournament);
+         }
       });
 
       container.publish_draw.element.addEventListener('click', () => {
@@ -361,7 +375,7 @@ let tournaments = function() {
             generateDraw(displayed_draw_event);
             displayDraw({ evt: displayed_draw_event });
 
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
 
             enableDrawActions();
             gen.closeModal();
@@ -427,7 +441,7 @@ let tournaments = function() {
             displayed_draw_event.player_representatives[0] = modal.player_rep1.element.value;
             displayed_draw_event.player_representatives[1] = modal.player_rep2.element.value;
             gen.drawRepState(container.player_reps_state.element, displayed_draw_event);
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
             gen.closeModal();
          }
       });
@@ -445,7 +459,7 @@ let tournaments = function() {
             match.source.schedule = {};
          });
          scheduleTab();
-         if (o.save) db.addTournament(tournament);
+         saveTournament(tournament);
       }
 
       function autoSchedule(ev) {
@@ -574,7 +588,7 @@ let tournaments = function() {
                }
             })
 
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
             scheduleTab();
          }
       }
@@ -634,7 +648,7 @@ let tournaments = function() {
       
       function signOutTournamentPlayer(player) {
          player.signed_in = false;
-         if (o.save) db.addTournament(tournament);
+         saveTournament(tournament);
          if (!tournament.events) return;
          tournament.events.forEach(ev => {
             // don't modify events which are already active;
@@ -714,7 +728,7 @@ let tournaments = function() {
 
          let signIn = () => {
             existing[0].signed_in = true;
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
             cleanUp();
          }
 
@@ -748,7 +762,7 @@ let tournaments = function() {
          // avoid double clicks adding same player twice!
          if (tournament.players.map(p=>p.puid).indexOf(new_player.puid) < 0) {
             tournament.players.push(new_player);
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
          }
       }
 
@@ -851,7 +865,9 @@ let tournaments = function() {
          }
 
          current_tab = reference || tab_number;
-         if (o.save && state.edit) db.addTournament(tournament);
+
+         // no longer necessary?
+         // saveTournament(tournament);
       }
 
       // boolean whether there are existing matches
@@ -877,7 +893,7 @@ let tournaments = function() {
             let elem = document.querySelector('.' + classes.auto_draw);
             elem.firstChild.classList.toggle('automated_draw_pause');
             elem.firstChild.classList.toggle('automated_draw_play');
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
          }
 
          if ((auto == true && automated) || (auto == false && !automated)) return;
@@ -991,7 +1007,7 @@ let tournaments = function() {
          container.finish.element.addEventListener('click', () => {
             state.edit = false;
             document.querySelector('.ranking_order').style.opacity = 0;
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
             setEditState();
          });
       }
@@ -1046,7 +1062,7 @@ let tournaments = function() {
 
          // add any new players that don't already exist in tournament
          players.forEach(pushNewPlayer);
-         if (o.save) db.addTournament(tournament);
+         saveTournament(tournament);
       }
 
       function printDraw() {
@@ -1175,7 +1191,7 @@ let tournaments = function() {
             if (!state.edit || e.active) return;
             e.approved.push(id);
             e.draw_created = false;
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
             e.changed = true;
             approvedChanged(e, true);
          },
@@ -1186,7 +1202,7 @@ let tournaments = function() {
          addAll: function(e) {
             if (!state.edit || e.active) return;
             e.approved = [].concat(...e.approved, ...eligiblePlayers(e).map(p=>p.id));
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
             e.changed = true;
             approvedChanged(e, true);
          },
@@ -1194,7 +1210,7 @@ let tournaments = function() {
             if (!state.edit || e.active) return;
             e.approved = [];
             e.draw_created = false;
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
             e.changed = true;
             approvedChanged(e, true);
          },
@@ -1214,7 +1230,7 @@ let tournaments = function() {
             if (!state.edit || e.active) return;
             e.draw_created = false;
             if (e.format == 'S') { e.approved = e.approved.filter(i=>i!=id); }
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
             e.changed = true;
             approvedChanged(e, true);
          },
@@ -1480,7 +1496,7 @@ let tournaments = function() {
                   .style('display', 'inline')
                   .on('click', () => {
                      closeEventDetails();
-                     if (o.save) db.addTournament(tournament);
+                     saveTournament(tournament);
                   });
             } else {
                actions.select('.del').style('display', 'none');
@@ -1496,7 +1512,7 @@ let tournaments = function() {
                      let i = tournament.events.length - 1;
                      displayEvent({ e, index: i });
                      eventList();
-                     if (o.save) db.addTournament(tournament);
+                     saveTournament(tournament);
                   });
                actions.select('.cancel')
                   .style('display', 'inline')
@@ -1727,7 +1743,7 @@ let tournaments = function() {
             e.changed = true;
 
             if (e.draw_type == 'R' && linked) determineRRqualifiers(e);
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
 
             drawsTab();
          }
@@ -1869,7 +1885,7 @@ let tournaments = function() {
             let next_field = field_order.indexOf(field) + 1;
             if (next_field == field_order.length) next_field = 0;
             setTimeout(function() { attributes[field_order[next_field]].element.focus(); }, delay);
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
          }
 
          function defineAttr(attr, evt, required, element) {
@@ -1953,7 +1969,7 @@ let tournaments = function() {
 
             eventName();
             enableEventTeams(e);
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
          }
 
          details.format.ddlb = new dd.DropDown({ element: details.format.element, onChange: setFormat });
@@ -1995,7 +2011,7 @@ let tournaments = function() {
 
             configDrawType(e);
             eventName();
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
          }
          details.draw_type.ddlb = new dd.DropDown({ element: details.draw_type.element, onChange: setDrawType });
          details.draw_type.ddlb.setValue(e.draw_type || 'E');
@@ -2221,16 +2237,22 @@ let tournaments = function() {
          let approved_hash = e.approved.map(a=>a.join('|'));
          let not_promoted = e.teams.filter(team => approved_hash.indexOf(team.join('|')) < 0).filter(team => team.length == 2);
          e.approved = [].concat(e.approved, not_promoted);
-         if (o.save) db.addTournament(tournament);
+         saveTournament(tournament);
          approvedChanged(e, true);
       }
 
       function teamObj(e, team, idmap) {
-         let team_players = team.map(id=>idmap[id]);
+         let team_players = team.map(id=>idmap[id]).sort(lastNameSort);
          let team_hash = team_players.map(p=>p.id).sort().join('|');
          let subrank = (e.doubles_subrank && e.doubles_subrank[team_hash]) ? e.doubles_subrank[team_hash] : undefined;
          let combined_rank = team_players.map(t=>t.category_ranking).reduce((a, b) => (+a || 1000) + (+b || 1000));
          return { players: team_players, combined_rank, subrank }
+
+         function lastNameSort(a, b) {
+            if (a.last_name < b.last_name) return -1;
+            if (b.last_name < a.last_name) return 1;
+            return 0;
+         }
       }
 
       function combinedRankSort(a, b) { 
@@ -2516,7 +2538,7 @@ let tournaments = function() {
                   e.teams.push([id]);
                }
                approvedChanged(e, true);
-               if (o.save) db.addTournament(tournament);
+               saveTournament(tournament);
             }
          }
 
@@ -2544,7 +2566,7 @@ let tournaments = function() {
                   e.teams = e.teams.filter(team => team_id != team.join('|'));
                }
                approvedChanged(e, true);
-               if (o.save) db.addTournament(tournament);
+               saveTournament(tournament);
             }
          }
 
@@ -2567,7 +2589,7 @@ let tournaments = function() {
                   let team_hash = clicked.players.map(p=>p.id).sort().join('|');
                   e.doubles_subrank[team_hash] = i;
                   approvedChanged(e, true);
-                  if (o.save) db.addTournament(tournament);
+                  saveTournament(tournament);
                }
             }
 
@@ -2819,7 +2841,7 @@ let tournaments = function() {
 
             match.schedule = {};
             match.source.schedule = {};
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
 
             ({ completed_matches, pending_matches } = tournamentEventMatches({ tournament, source: true }));
             displayPending();
@@ -2905,7 +2927,7 @@ let tournaments = function() {
                   util.swapElements(source, target);
                }
 
-               if (o.save) db.addTournament(tournament);
+               saveTournament(tournament);
 
             }
 
@@ -2993,7 +3015,7 @@ let tournaments = function() {
             }
 
 
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
          }
 
          function identifyRound(ev) {
@@ -3064,7 +3086,7 @@ let tournaments = function() {
                            if (display) updateScheduleBox(match);
                         }
                      });
-                  if (o.save) db.addTournament(tournament);
+                  saveTournament(tournament);
                }
             }
          }
@@ -3153,7 +3175,7 @@ let tournaments = function() {
                   function modifyMatchSchedule(pairs, display=true) {
                      pairs.forEach(pair => match.schedule[pair.attr] = pair.value);
                      if (display) updateScheduleBox(match);
-                     if (o.save) db.addTournament(tournament);
+                     saveTournament(tournament);
                   }
                }
             }
@@ -3308,7 +3330,7 @@ let tournaments = function() {
                   .on('click', () => {
                      closeLocationDetails();
                      locationList();
-                     if (o.save) db.addTournament(tournament);
+                     saveTournament(tournament);
                   });
             } else {
                actions.select('.del').style('display', 'none');
@@ -3325,7 +3347,7 @@ let tournaments = function() {
 
                      locationList(l.luid);
 
-                     if (o.save) db.addTournament(tournament);
+                     saveTournament(tournament);
                   });
                actions.select('.cancel')
                   .style('display', 'inline')
@@ -3442,7 +3464,7 @@ let tournaments = function() {
                      return;
                   } else {
                      clicked_player.signed_in = true;
-                     if (o.save) db.addTournament(tournament);
+                     saveTournament(tournament);
                   }
                }
                finish();
@@ -3453,7 +3475,7 @@ let tournaments = function() {
             function displayIrregular(player, result) {
                if (state.edit) {
                   player.signed_in = false;
-                  if (o.save) db.addTournament(tournament);
+                  saveTournament(tournament);
                } else {
                   // TODO: display this player
                   console.log('player:', player);
@@ -3645,7 +3667,7 @@ let tournaments = function() {
 
          // add round_name to matches
          eventMatches(e);
-         if (o.save) db.addTournament(tournament);
+         saveTournament(tournament);
       }
 
       function tournamentCourts() {
@@ -3783,7 +3805,7 @@ let tournaments = function() {
          evt.up_to_date = complete.length ? true : undefined;
          evt.published = true;
 
-         if (o.save) db.addTournament(tournament);
+         saveTournament(tournament);
       }
 
       // TODO: courthive.com/tournaments needs to change to receive entire tournmanet, not just single matches
@@ -4015,7 +4037,7 @@ let tournaments = function() {
 
          e.active = true;
          enableDrawActions();
-         if (o.save) db.addTournament(tournament);
+         saveTournament(tournament);
          return;
       }
 
@@ -4106,7 +4128,7 @@ let tournaments = function() {
 
          e.active = true;
          enableDrawActions();
-         if (o.save) db.addTournament(tournament);
+         saveTournament(tournament);
          return e;
       }
 
@@ -4186,7 +4208,7 @@ let tournaments = function() {
                         // update one bracket without regenerating all brackets!
                         rr_draw.updateBracket(d.bracket);
 
-                        if (o.save) db.addTournament(tournament);
+                        saveTournament(tournament);
                      }
                   }
                });
@@ -4352,7 +4374,7 @@ let tournaments = function() {
                            // update one bracket without regenerating all brackets!
                            rr_draw.updateBracket(d.bracket);
 
-                           if (o.save) db.addTournament(tournament);
+                           saveTournament(tournament);
                         }
 
                      }}
@@ -4666,7 +4688,7 @@ let tournaments = function() {
                tree_draw();
                e.draw = tree_draw.data();
                removeEntryField();
-               if (o.save) db.addTournament(tournament);
+               saveTournament(tournament);
             }
 
             function playerIndex(evt) {
@@ -4801,7 +4823,7 @@ let tournaments = function() {
                                  console.log('complete draw');
                               }
 
-                              if (o.save) db.addTournament(tournament);
+                              saveTournament(tournament);
                            }
                         }}
                      });
@@ -4840,7 +4862,7 @@ let tournaments = function() {
                rr_draw();
             }
 
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
          }
 
          // this function needs to be in scope of createTournamentContainer()
@@ -4881,7 +4903,7 @@ let tournaments = function() {
 
                            // TODO: check whether removing a final qualifying round
 
-                           if (o.save) db.addTournament(tournament);
+                           saveTournament(tournament);
                            tree_draw();
                            matchesTab();
                         }
@@ -4968,7 +4990,7 @@ let tournaments = function() {
                            console.log('complete draw');
                         }
 
-                        if (o.save) db.addTournament(tournament);
+                        saveTournament(tournament);
                         tree_draw();
                      }}
                   });
@@ -5000,7 +5022,7 @@ let tournaments = function() {
                            console.log('complete draw');
                         }
 
-                        if (o.save) db.addTournament(tournament);
+                        saveTournament(tournament);
                         tree_draw();
                      }}
                   });
@@ -5022,7 +5044,7 @@ let tournaments = function() {
                   .events({ 
                      'item': { 'click': (d, i) => {
                         seedAssignment(draw, seed_group, position, range[i]);
-                        if (o.save) db.addTournament(tournament);
+                        saveTournament(tournament);
 
                         tree_draw();
                         e.draw = tree_draw.data();
@@ -5068,7 +5090,7 @@ let tournaments = function() {
                            drawCreated(e);
                         }
 
-                        if (o.save) db.addTournament(tournament);
+                        saveTournament(tournament);
 
                         tree_draw();
                         e.draw = tree_draw.data();
@@ -5097,7 +5119,7 @@ let tournaments = function() {
                            if (e.draw_type == 'Q') checkForQualifiedTeams(e);
                            drawCreated(e);
                         }
-                        if (o.save) db.addTournament(tournament);
+                        saveTournament(tournament);
 
                         tree_draw();
                         e.draw = tree_draw.data();
@@ -5126,7 +5148,7 @@ let tournaments = function() {
             schedule_box.innerHTML = sb.innerHTML;
             schedule_box.style.background = sb.background;
             schedule_box.setAttribute('draggable', 'true');
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
          }
       }
 
@@ -5246,7 +5268,7 @@ let tournaments = function() {
             let next_field = field_order.indexOf(field) + 1;
             if (next_field == field_order.length) next_field = 0;
             setTimeout(function() { container[field_order[next_field]].element.focus(); }, delay);
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
          }
 
          function defineAttr(attr, evt, required, element) {
@@ -5283,14 +5305,14 @@ let tournaments = function() {
             startPicker.setStartRange(start);
             endPicker.setStartRange(start);
             endPicker.setMinDate(start);
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
          };
          function updateEndDate() {
             tournament.end = end.getTime();
             startPicker.setEndRange(end);
             startPicker.setMaxDate(end);
             endPicker.setEndRange(end);
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
          };
          var startPicker = new Pikaday({
             field: container.start_date.element,
@@ -5407,7 +5429,7 @@ let tournaments = function() {
             state.manual_ranking = enabled;
          } else {
             state.manual_ranking = !state.manual_ranking;
-            if (o.save) db.addTournament(tournament);
+            saveTournament(tournament);
          }
          enableRankEntry(state.manual_ranking);
          toggleManualRank(state.manual_ranking);
@@ -5430,6 +5452,14 @@ let tournaments = function() {
          }
          let notConfigured = (err) => { busy.done(id); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
          coms.fetchRegisteredPlayers(tournament.tuid, tournament.category, remote_request).then(done, notConfigured);
+      }
+
+      function saveTournament(tournament) {
+         if (o.save) db.addTournament(tournament);
+         tournament.saved_locally = false;
+         tournament.published = false;
+         gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
+         gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
       }
 
       return { tournament, container };
