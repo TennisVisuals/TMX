@@ -1594,7 +1594,9 @@
          location_courts: gen.uuid(),
          points_valid: gen.uuid(),
          push2cloud: gen.uuid(),
+         push2cloud_state: gen.uuid(),
          localdownload: gen.uuid(),
+         localdownload_state: gen.uuid(),
       }
 
       let classes = {
@@ -1619,10 +1621,10 @@
                </div>
                <div class='options_right'>
                   <div id='${ids.push2cloud}' class='${gen.info}' label='${lang.tr("phrases.send")}' style='display: none;'>
-                     <div class='push2cloud action_icon'></div>
+                     <div id='${ids.push2cloud_state}' class='push2cloud action_icon'></div>
                   </div>
                   <div id='${ids.localdownload}' class='${gen.info}' label='${lang.tr("phrases.export")}' style='display: none;'>
-                     <div class='download action_icon'></div>
+                     <div id='${ids.localdownload_state}' class='download action_icon'></div>
                   </div>
                </div>
             </div>
@@ -2328,14 +2330,17 @@
 
    gen.drawBroadcastState = (elem, evt) => {
       let publish_state = evt.up_to_date ? 'publisheduptodate' : evt.published && evt.up_to_date == false ? 'publishedoutofdate' : evt.published ? 'published' : 'unpublished';
-      let published = {
-         'unpublished': lang.tr('draws.unpublished'),
-         'publisheduptodate': lang.tr('draws.publisheduptodate'),
-         'publishedoutofdate': lang.tr('draws.publishedoutofdate'),
-         'published': lang.tr('draws.published'),
-      }
-      let publish_label = published[publish_state];
       elem.className = `${publish_state} action_icon`;
+   }
+
+   gen.tournamentPublishState = (elem, value) => {
+      let publish_state = value == undefined ? 'push2cloud' : value == false ? 'push2cloud_outofdate' : 'push2cloud_updated';
+      elem.className = `${publish_state} action_icon`;
+   }
+
+   gen.localSaveState = (elem, value) => {
+      let save_state = value == undefined ? 'download' : value == false ? 'download_outofdate' : 'download_updated';
+      elem.className = `${save_state} action_icon`;
    }
 
    gen.drawRepState = (elem, evt) => {
