@@ -409,6 +409,7 @@ let coms = function() {
             let today = new Date();
             let rankings_date = rankings ? new Date(rankings.date) : undefined;
             if (!rankings || today.getMonth() != rankings_date.getMonth() || today.getFullYear() != rankings_date.getFullYear()) {
+               console.log('No Rankings for category:', category, rankings);
                if (navigator.onLine) {
                   db.findSetting('fetchRankList').then(checkSettings, reject);
                } else {
