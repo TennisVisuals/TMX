@@ -4079,7 +4079,7 @@ let tournaments = function() {
             let result = drawFx.advanceToNode({
                node,
                score: outcome.score,
-               complete: outcome.complete
+               complete: outcome.complete,
                position: outcome.position,
                score_format: outcome.score_format,
             });
