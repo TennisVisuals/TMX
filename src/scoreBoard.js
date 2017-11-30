@@ -12,6 +12,7 @@ let scoreBoard = function() {
       max_sets: 3,
       sets_to_win: 2,
       games_for_set: 6,
+      tiebreaks_at: 6,
       tiebreak_to: 7,
       supertiebreak_to: 10,
       auto_score: true,
@@ -25,6 +26,7 @@ let scoreBoard = function() {
 
    fx.setMatchScore = setMatchScore;
    function setMatchScore({ round, container, teams, existing_scores, score_format={}, callback }) {
+      console.log(score_format);
 
       let f = Object.assign({}, o, score_format);
 
@@ -52,6 +54,7 @@ let scoreBoard = function() {
       // disable scrolling on background
       document.body.style.overflow  = 'hidden';
 
+      configureScoring();
       configureScoreSelectors();
       configureOutcomeSelectors();
       configureTiebreakEntry();
@@ -88,14 +91,17 @@ let scoreBoard = function() {
             outcome.score_format = f;
          }
          scoreboard.remove();
-         if (typeof callback == 'function') callback(outcome);
+         if (typeof callback == 'function') {
+            console.log(outcome);
+            callback(outcome);
+         }
          document.body.style.overflow = null;
       }
 
       function configureActionButtons() {
          sobj.accept.element.addEventListener('click', acceptScores , false);
          sobj.clear.element.addEventListener('click', clearScores , false);
-         sobj.scoring.element.addEventListener('click', configureScoring , false);
+         sobj.scoring.element.addEventListener('click', toggleScoring , false);
 
          function acceptScores() {
             let { score, position, positions, complete, winner } = getScore();
@@ -118,14 +124,137 @@ let scoreBoard = function() {
             setScoreDisplay({ selected_set: set_number });
          }
 
-         function configureScoring() {
+         function toggleScoring() {
             if (action_drawer) return;
             let visible = sobj.scoring.element.innerHTML == '-' ? true : false;
+
+            // hide overflow before toggle transition starts
+            if (!visible) sobj.edit_scoring.element.style.overflow = 'hidden';
+
+            // set toggle icon
             sobj.scoring.element.innerHTML = visible ? '&#x25A2;' : '-';
-            gen.toggleVisible({ elem: sobj.edit_scoring.element, type: 'edit', height: 50, visible });
+
+            let duration = 800;
+            gen.toggleVisible({ elem: sobj.edit_scoring.element, type: 'edit', height: 100, visible, duration });
+            if (visible) {
+               // make overflow visible after toggle transition has completed
+               setTimeout(function() { sobj.edit_scoring.element.style.overflow = 'visible'; }, duration);
+            }
          }
       }
+
+      function setBestOf(value) {
+         f.max_sets = value;
+         f.sets_to_win = Math.ceil(value/2);
+      }
+
+      function setsTo(value) {
+         f.games_for_set = value;
+         let tbat_options = [
+            {key: `${value-1}-${value-1}`, value: value - 1},
+            {key: `${value}-${value}`, value: value},
+         ];
+         sobj.tiebreaksat.setOptions(tbat_options);
+         sobj.tiebreaksat.ddlb.setValue(value);
+      }
+
+      function setTiebreakAt(value) {
+         f.tiebreaks_at = value;
+      }
+
+      function finalSet(value) {
+         f.final_set_supertiebreak = value == 'N' ? false : true;
+         sobj.supertiebreakto.element.style.opacity = f.final_set_supertiebreak ? 1 : 0;
+         sobj.stb2.element.style.opacity = f.final_set_supertiebreak ? 1 : 0;
+      }
+
+      function superTiebreakTo(value) {
+         f.supertiebreak_to = value;
+      }
       
+      function configureScoring() {
+         dd.attachDropDown({ 
+            id: sobj.bestof.id, 
+            options: [
+               {key: '1', value: 1},
+               {key: '3', value: 3},
+               {key: '5', value: 5}
+            ],
+         });
+         sobj.bestof.ddlb = new dd.DropDown({ element: sobj.bestof.element, id: sobj.bestof.id, onChange: setBestOf });
+         sobj.bestof.ddlb.setStyle('label_value', '#FFF');
+         sobj.bestof.ddlb.selectionBackground();
+         sobj.bestof.ddlb.setValue(f.max_sets);
+
+         dd.attachDropDown({ 
+            id: sobj.setsto.id, 
+            options: [
+               {key: '4', value: 4},
+               {key: '6', value: 6},
+               {key: '8', value: 8},
+               {key: '9', value: 9},
+            ],
+         });
+         sobj.setsto.ddlb = new dd.DropDown({ element: sobj.setsto.element, id: sobj.setsto.id, onChange: setsTo });
+         sobj.setsto.ddlb.setStyle('label_value', '#FFF');
+         sobj.setsto.ddlb.selectionBackground();
+         sobj.setsto.ddlb.setValue(f.games_for_set);
+
+         let gfs = f.games_for_set;
+         let tbat_options = [
+            {key: `${gfs-1}-${gfs-1}`, value: gfs - 1},
+            {key: `${gfs}-${gfs}`, value: gfs},
+         ];
+
+         dd.attachDropDown({ 
+            id: sobj.tiebreaksat.id, 
+            options: tbat_options,
+         });
+         sobj.tiebreaksat.ddlb = new dd.DropDown({ element: sobj.tiebreaksat.element, id: sobj.tiebreaksat.id, onChange: setTiebreakAt });
+         sobj.tiebreaksat.ddlb.setStyle('label_value', '#FFF');
+         sobj.tiebreaksat.ddlb.selectionBackground();
+         sobj.tiebreaksat.ddlb.setValue(gfs);
+
+         dd.attachDropDown({ 
+            id: sobj.tiebreaksto.id, 
+            options: [
+               {key: '7', value: 7},
+               {key: '12', value: 12},
+            ],
+         });
+         sobj.tiebreaksto.ddlb = new dd.DropDown({ element: sobj.tiebreaksto.element, id: sobj.tiebreaksto.id });
+         sobj.tiebreaksto.ddlb.setStyle('label_value', '#FFF');
+         sobj.tiebreaksto.ddlb.selectionBackground();
+         sobj.tiebreaksto.ddlb.setValue(f.tiebreak_to);
+
+         dd.attachDropDown({ 
+            id: sobj.finalset.id, 
+            options: [
+               {key: 'Normal', value: 'N'},
+               {key: 'Supertiebreak', value: 'S'},
+            ],
+         });
+         sobj.finalset.ddlb = new dd.DropDown({ element: sobj.finalset.element, id: sobj.finalset.id, onChange: finalSet });
+         sobj.finalset.ddlb.setStyle('label_value', '#FFF');
+         sobj.finalset.ddlb.selectionBackground();
+         sobj.finalset.ddlb.setValue(f.final_set_supertiebreak ? 'S' : 'N');
+
+         dd.attachDropDown({ 
+            id: sobj.supertiebreakto.id, 
+            options: [
+               {key: '7', value: 7},
+               {key: '10', value: 10},
+               {key: '21', value: 21},
+            ],
+         });
+         sobj.supertiebreakto.ddlb = new dd.DropDown({ element: sobj.supertiebreakto.element, id: sobj.supertiebreakto.id, onChange: superTiebreakTo });
+         sobj.supertiebreakto.ddlb.setStyle('label_value', '#FFF');
+         sobj.supertiebreakto.ddlb.selectionBackground();
+         sobj.supertiebreakto.ddlb.setValue(f.supertiebreak_to);
+         sobj.supertiebreakto.element.style.opacity = f.final_set_supertiebreak ? 1 : 0;
+         sobj.stb2.element.style.opacity = f.final_set_supertiebreak ? 1 : 0;
+      }
+
       function configureScoreSelectors() {
          let options = [ { key: '-', value: '' }, ];
          util.range(0, f.games_for_set + 2).forEach(n => options.push({ key: n, value: n }));
