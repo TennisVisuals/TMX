@@ -2238,6 +2238,13 @@
          p1tiebreak: gen.uuid(),
          p2tiebreak: gen.uuid(),
          mstatus: gen.uuid(),
+         bestof: gen.uuid(),
+         setsto: gen.uuid(),
+         tiebreaksat: gen.uuid(),
+         tiebreaksto: gen.uuid(),
+         finalset: gen.uuid(),
+         supertiebreakto: gen.uuid(),
+         stb2: gen.uuid(),
       }
 
       let html = `
@@ -2302,15 +2309,31 @@
             </div>
 
             <div id='${ids.edit_scoring}' class="scoreboard-action">
-               <div class="edit flexcol">
-                  <div class="frame">
-                     <div class="scoreboard-actions">
-                        <button class='btn dismiss'>Best Of:</button>
-                        <button class='btn accept'>Sets To:</button>
-                     </div>
+               <div class="edit configure flexrow">
+                  <div class='flexcol' style='width: 25%'>
+                     <div style='text-align: right'>Best of:</div>
+                     <div style='text-align: right'>TB at:</div>
+                     <div style='text-align: right'>Final Set:</div>
                   </div>
+                  <div class='flexcol' style='width: 25%'>
+                     <div id="${ids.bestof}" class="score-selector"></div>
+                     <div id="${ids.tiebreaksat}" class="score-selector"></div>
+                     <div id="${ids.finalset}" class="score-selector"></div>
+                  </div>
+                  <div class='flexcol' style='width: 25%'>
+                     <div style='text-align: right'>Sets to:</div>
+                     <div style='text-align: right'>TB to:</div>
+                     <div id='${ids.stb2}' style='text-align: right'>To:</div>
+                  </div>
+                  <div class='flexcol' style='width: 25%'>
+                     <div id="${ids.setsto}" class="score-selector"></div>
+                     <div id="${ids.tiebreaksto}" class="score-selector"></div>
+                     <div id="${ids.supertiebreakto}" class="score-selector"></div>
+                  </div>
+
                </div>
             </div>
+
             <div id='${ids.actions}' class="scoreboard-action">
                <div class="edit flexcol">
                   <div class="frame">
@@ -2321,6 +2344,7 @@
                   </div>
                </div>
             </div>
+
          </div>
       `;
 
