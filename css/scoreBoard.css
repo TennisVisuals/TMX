@@ -172,11 +172,20 @@
    height: 100%;
 }
 
+.scoreboard .scoreboard-action .configure_frame {
+   padding: .1em;
+   background-color: #222;
+   height: 100%;
+}
+
 .scoreboard .scoreboard-action .edit {
    display: none;
-   overflow: hidden;
    background-color: #222;
    color: white;
+}
+
+.scoreboard .scoreboard-action .configure {
+   margin-bottom: .5em;
 }
 
 .scoreboard .scoreboard-actions {

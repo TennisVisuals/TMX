@@ -409,7 +409,6 @@ let coms = function() {
             let today = new Date();
             let rankings_date = rankings ? new Date(rankings.date) : undefined;
             if (!rankings || today.getMonth() != rankings_date.getMonth() || today.getFullYear() != rankings_date.getFullYear()) {
-               console.log('No Rankings for category:', category, rankings);
                if (navigator.onLine) {
                   db.findSetting('fetchRankList').then(checkSettings, reject);
                } else {
@@ -436,8 +435,8 @@ let coms = function() {
             let request_object = { [params.type]: params.url + category };
             let request = JSON.stringify(request_object);
             function responseHandler(data) {
-               if (data && Array.isArray(data)) {
-                  let player_rankings = Object.assign({}, ...data.map(r => { return { [r.id]: r }}));
+               if (data && data.json && Array.isArray(data.json)) {
+                  let player_rankings = Object.assign({}, ...data.json.map(r => { return { [r.id]: r }}));
                   let rankings = { category, players: player_rankings, date: new Date().getTime() };
                   db.addCategoryRankings(rankings).then(() => resolve({ valid: true, rankings }), err => reject({ error: err }));
                } else {
