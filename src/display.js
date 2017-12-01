@@ -2158,9 +2158,7 @@
 
    // SCOREBOARD
    gen.scoreBoard = ({ teams, flags=true }) => {
-      let sb_ids = {
-         scoreboard: gen.uuid(),
-      }
+      let sb_ids = { scoreboard: gen.uuid(), }
 
       let scoreboard = d3.select('body')
          .append('div')
@@ -2180,6 +2178,30 @@
       entry(window.innerWidth * .4, window.innerHeight * .4, html);
 
       Object.assign(ids, sb_ids);
+      let id_obj = idObj(ids);
+      return id_obj;
+   }
+
+   gen.scoreBoardConfig = () => {
+      let cfg_ids = { config: gen.uuid(), }
+
+      let config = d3.select('body')
+         .append('div')
+         .attr('class', 'modal')
+         .attr('id', cfg_ids.config);
+
+      let { ids, html } = scoreBoardConfig();
+
+      let entry = floatingEntry()
+         .selector('#' + cfg_ids.config)
+         .events( {'click': () => {
+            let elems = document.querySelectorAll('li.dd_state');
+            Array.from(elems).forEach(elem => { elem.classList.remove("active"); })
+         }});
+
+      entry(window.innerWidth * .4, window.innerHeight * .4, html);
+
+      Object.assign(ids, cfg_ids);
       let id_obj = idObj(ids);
       return id_obj;
    }
@@ -2219,11 +2241,52 @@
       return html;
    }
 
+   function scoreBoardConfig() {
+      let ids = {
+         edit_scoring: gen.uuid(),
+         bestof: gen.uuid(),
+         setsto: gen.uuid(),
+         tiebreaksat: gen.uuid(),
+         tiebreaksto: gen.uuid(),
+         finalset: gen.uuid(),
+         supertiebreakto: gen.uuid(),
+         stb2: gen.uuid(),
+      }
+      let html = `
+            <div id='${ids.edit_scoring}' class="scoreboard-action">
+               <div class="edit configure flexrow">
+                  <div class='flexcol' style='width: 25%'>
+                     <div style='text-align: right'>Best of:</div>
+                     <div style='text-align: right'>TB at:</div>
+                     <div style='text-align: right'>Final Set:</div>
+                  </div>
+                  <div class='flexcol' style='width: 25%'>
+                     <div id="${ids.bestof}" class="score-selector"></div>
+                     <div id="${ids.tiebreaksat}" class="score-selector"></div>
+                     <div id="${ids.finalset}" class="score-selector"></div>
+                  </div>
+                  <div class='flexcol' style='width: 25%'>
+                     <div style='text-align: right'>Sets to:</div>
+                     <div style='text-align: right'>TB to:</div>
+                     <div id='${ids.stb2}' style='text-align: right'>To:</div>
+                  </div>
+                  <div class='flexcol' style='width: 25%'>
+                     <div id="${ids.setsto}" class="score-selector"></div>
+                     <div id="${ids.tiebreaksto}" class="score-selector"></div>
+                     <div id="${ids.supertiebreakto}" class="score-selector"></div>
+                  </div>
+
+               </div>
+            </div>
+      `;
+
+      return { ids, html }
+   }
+
    function generateScoreBoard({ teams, flags=true }) {
       let ids = {
          actions: gen.uuid(),
          scoring: gen.uuid(),
-         edit_scoring: gen.uuid(),
          round: gen.uuid(),
          clear: gen.uuid(),
          accept: gen.uuid(),
@@ -2238,14 +2301,10 @@
          p1tiebreak: gen.uuid(),
          p2tiebreak: gen.uuid(),
          mstatus: gen.uuid(),
-         bestof: gen.uuid(),
-         setsto: gen.uuid(),
-         tiebreaksat: gen.uuid(),
-         tiebreaksto: gen.uuid(),
-         finalset: gen.uuid(),
-         supertiebreakto: gen.uuid(),
-         stb2: gen.uuid(),
       }
+
+      let config = scoreBoardConfig();
+      Object.assign(ids, config.ids);
 
       let html = `
          <div class="scoreboard noselect">
@@ -2308,6 +2367,9 @@
                </div>
             </div>
 
+            ${config.html}
+
+            <!--
             <div id='${ids.edit_scoring}' class="scoreboard-action">
                <div class="edit configure flexrow">
                   <div class='flexcol' style='width: 25%'>
@@ -2333,6 +2395,7 @@
 
                </div>
             </div>
+            -->
 
             <div id='${ids.actions}' class="scoreboard-action">
                <div class="edit flexcol">
@@ -2969,6 +3032,27 @@
       return idObj(ids);
    }
 
+   gen.signInSheetFormat = () => {
+      let ids = {
+         singles: gen.uuid(),
+         doubles: gen.uuid(),
+      }
+      let html = `
+         <div class='flexccol'>
+            <div class='flexcol' style='width: 100%'>
+               <div class='flexcenter' style='margin: .5em;'><h2>${lang.tr('print.signin')}</h2></div>
+            </div>
+            <div class='config_actions'>
+               <div id='${ids.singles}' class='btn btn-large config_submit'>${lang.tr('sgl')}</div>
+               <div id='${ids.doubles}' class='btn btn-large config_submit'>${lang.tr('dbl')}</div>
+            </div>
+         </div>
+      `;
+      gen.showConfigModal(html);
+
+      return idObj(ids);
+   }
+
    gen.autoScheduleConfig = () => {
       let ids = {
          order: gen.uuid(),
@@ -2980,8 +3064,8 @@
                <div class='flexcenter' style='margin: .5em;'><h2>${lang.tr('phrases.schedulepriority')}</h2></div>
             </div>
             <div class='config_actions'>
-               <div id='${ids.order}' class='btn btn-large config_submit'>Order</div>
-               <div id='${ids.round}' class='btn btn-large config_submit'>Round</div>
+               <div id='${ids.order}' class='btn btn-large config_submit'>${lang.tr('ord')}</div>
+               <div id='${ids.round}' class='btn btn-large config_submit'>${lang.tr('rnd')}</div>
             </div>
          </div>
       `;
