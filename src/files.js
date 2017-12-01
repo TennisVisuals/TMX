@@ -959,7 +959,11 @@
       return exp.openPDF(docDefinition);
    }
 
-   exp.signInPDF = ({ tournament, players, category, gender, event_name, doc_name, extra_pages }) => {
+   exp.doublesSignInPDF = ({ tournament }) => {
+      console.log('doubles sign-in sheet');
+   }
+
+   exp.orderedPlayersPDF = ({ tournament, players, category, gender, event_name, doc_name, extra_pages }) => {
       return new Promise((resolve, reject) => {
 
          getLogo().then(showPDF);
