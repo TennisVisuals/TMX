@@ -69,7 +69,8 @@
 }
 .scoreboard .opponent0 { border-bottom: 2px solid #222; }
 .scoreboard .opponent-name {
-   padding: .5em .6em .6em 
+   padding: .5em .6em .6em;
+   min-width: 200px;
 }
 .scoreboard .opponent-name .pad {
    padding-right: .4em;
