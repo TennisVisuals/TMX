@@ -26,8 +26,6 @@ let scoreBoard = function() {
 
    fx.setMatchScore = setMatchScore;
    function setMatchScore({ round, container, teams, existing_scores, score_format={}, callback }) {
-      console.log(score_format);
-
       let f = Object.assign({}, o, score_format);
 
       // scoped variables need to be defined before configuration
@@ -92,7 +90,7 @@ let scoreBoard = function() {
          }
          scoreboard.remove();
          if (typeof callback == 'function') {
-            console.log(outcome);
+            console.log('no outcome; format not changed');
             callback(outcome);
          }
          document.body.style.overflow = null;
