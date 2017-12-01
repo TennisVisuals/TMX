@@ -2175,7 +2175,7 @@
          }});
 
       // TODO: remove this nasty hack which is a workaround for ddlb which don't scroll when offscreen
-      entry(window.innerWidth * .4, window.innerHeight * .4, html);
+      entry(window.innerWidth * .3, window.innerHeight * .4, html);
 
       Object.assign(ids, sb_ids);
       let id_obj = idObj(ids);
@@ -2183,7 +2183,11 @@
    }
 
    gen.scoreBoardConfig = () => {
-      let cfg_ids = { config: gen.uuid(), }
+      let cfg_ids = { 
+         config: gen.uuid(),
+         cancel: gen.uuid(),
+         accept: gen.uuid(),
+      }
 
       let config = d3.select('body')
          .append('div')
@@ -2199,7 +2203,45 @@
             Array.from(elems).forEach(elem => { elem.classList.remove("active"); })
          }});
 
-      entry(window.innerWidth * .4, window.innerHeight * .4, html);
+      html = `
+         <div class='scoreboard noselect flexcenter' style='background: #000; min-width: 320px; height: 180px;'>
+            ${html}
+            <div class="accept-config scoreboard-action">
+               <div class="edit flexcol">
+                  <div class="frame">
+                     <div class="scoreboard-actions">
+                        <button id='${cfg_ids.cancel}' class='btn dismiss'>${lang.tr('actions.cancel')}</button>
+                        <button id='${cfg_ids.accept}' class='btn accept'>${lang.tr('apt')}</button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      `;
+
+      entry(window.innerWidth * .3, window.innerHeight * .4, html);
+
+      let target = config.select('.scoreboard-config');
+      target
+         .style('display', 'flex')
+         .style('height', '100px')
+         .style('overflow', 'visible')
+         .style('width', '100%')
+         .style('padding', '.2em');
+      target.select('.edit')
+         .style('display', 'flex')
+         .style('width', '100%');
+
+      target = config.select('.accept-config');
+      target
+         .style('display', 'flex')
+         .style('height', '50px')
+         .style('overflow', 'visible')
+         .style('width', '100%')
+         .style('padding', '.2em');
+      target.select('.edit')
+         .style('display', 'flex')
+         .style('width', '100%');
 
       Object.assign(ids, cfg_ids);
       let id_obj = idObj(ids);
@@ -2253,7 +2295,7 @@
          stb2: gen.uuid(),
       }
       let html = `
-            <div id='${ids.edit_scoring}' class="scoreboard-action">
+            <div id='${ids.edit_scoring}' class="scoreboard-config scoreboard-action">
                <div class="edit configure flexrow">
                   <div class='flexcol' style='width: 25%'>
                      <div style='text-align: right'>Best of:</div>
@@ -2368,34 +2410,6 @@
             </div>
 
             ${config.html}
-
-            <!--
-            <div id='${ids.edit_scoring}' class="scoreboard-action">
-               <div class="edit configure flexrow">
-                  <div class='flexcol' style='width: 25%'>
-                     <div style='text-align: right'>Best of:</div>
-                     <div style='text-align: right'>TB at:</div>
-                     <div style='text-align: right'>Final Set:</div>
-                  </div>
-                  <div class='flexcol' style='width: 25%'>
-                     <div id="${ids.bestof}" class="score-selector"></div>
-                     <div id="${ids.tiebreaksat}" class="score-selector"></div>
-                     <div id="${ids.finalset}" class="score-selector"></div>
-                  </div>
-                  <div class='flexcol' style='width: 25%'>
-                     <div style='text-align: right'>Sets to:</div>
-                     <div style='text-align: right'>TB to:</div>
-                     <div id='${ids.stb2}' style='text-align: right'>To:</div>
-                  </div>
-                  <div class='flexcol' style='width: 25%'>
-                     <div id="${ids.setsto}" class="score-selector"></div>
-                     <div id="${ids.tiebreaksto}" class="score-selector"></div>
-                     <div id="${ids.supertiebreakto}" class="score-selector"></div>
-                  </div>
-
-               </div>
-            </div>
-            -->
 
             <div id='${ids.actions}' class="scoreboard-action">
                <div class="edit flexcol">

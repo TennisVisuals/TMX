@@ -1414,7 +1414,7 @@ let tournaments = function() {
             draw_size: '',
             draw_type: 'E',
             euid: gen.uuid(),
-            scoring: '3/6A/7T',
+            scoring: '3/6/7T',
             automated: false,
             draw_created: false,
             category: tournament.category || '',
@@ -1974,10 +1974,10 @@ let tournaments = function() {
             e.format = value; 
 
             if (e.format == 'D') {
-               e.scoring = '3/6/7T/S'
+               e.scoring = e.scoring || '3/6/7T/S'
                displayScoring(e.scoring);
             } else {
-               e.scoring = '3/6A/7T';
+               e.scoring = e.scoring || '3/6/7T';
                displayScoring(e.scoring);
             }
 
@@ -2035,12 +2035,34 @@ let tournaments = function() {
          let changeScoring = () => {
             if (!state.edit || e.active) return;
             document.body.style.overflow  = 'hidden';
-            // gen.popUpMessage('<div>Change Scoring Format</div><p><i>Not Implemented</i>');
             let cfg_obj = gen.scoreBoardConfig();
             let config = d3.select(cfg_obj.config.element);
-            config.on('click', removeConfigScoring);
 
-            function removeConfigScoring(outcome) {
+            let f = scoreBoard.options();
+            scoreBoard.configureScoring(cfg_obj, f);
+            config.on('click', removeConfigScoring);
+            cfg_obj.cancel.element.addEventListener('click', removeConfigScoring)
+            cfg_obj.accept.element.addEventListener('click', modifyEventScoring)
+
+            function modifyEventScoring() {
+               let max_sets = parseInt(cfg_obj.bestof.ddlb.getValue());
+               let sets_to_win = Math.ceil(max_sets/2);
+               let sf = {
+                  max_sets,
+                  sets_to_win,
+                  games_for_set: parseInt(cfg_obj.setsto.ddlb.getValue()),
+                  tiebreaks_at: parseInt(cfg_obj.tiebreaksat.ddlb.getValue()),
+                  tiebreak_to: parseInt(cfg_obj.tiebreaksto.ddlb.getValue()),
+                  supertiebreak_to: parseInt(cfg_obj.supertiebreakto.ddlb.getValue()),
+                  final_set_supertiebreak: cfg_obj.finalset.ddlb.getValue() == 'N' ? false : true,
+               }
+               e.score_format = sf;
+               let stb = sf.final_set_supertiebreak ? '/S' : '';
+               e.scoring = `${sf.max_sets}/${sf.games_for_set}/${sf.tiebreak_to}T${stb}`;
+               removeConfigScoring();
+            }
+
+            function removeConfigScoring() {
                displayScoring(e.scoring);
                config.remove();
                document.body.style.overflow = null;
@@ -2049,7 +2071,7 @@ let tournaments = function() {
          }
 
          details.scoring.element.addEventListener('click', changeScoring);
-         displayScoring(e.scoring || '3/6A/7T');
+         displayScoring(e.scoring || '3/6/7T');
 
          // TODO: perhaps it is better to create the DDLBs in locked state
          // and then UNLOCK the ones that should be unlocked?
@@ -3783,7 +3805,7 @@ let tournaments = function() {
                if (match.match.schedule && match.match.schedule.court) {
                   enterMatchScore(e, match);
                } else {
-                  gen.popUpMessage('schedule match');
+                  // gen.popUpMessage('schedule match');
                }
             }
          }
