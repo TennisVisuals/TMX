@@ -1129,7 +1129,8 @@ let tournaments = function() {
          if (!t_players || !t_players.length) return;
 
          t_players = orderPlayersByRank(t_players, category);
-         exp.signInPDF({ tournament, players: t_players, event_name: evt.name, doc_name: lang.tr('mdo'), extra_pages: false })
+         // configured for listing players by Position in draw "Draw Order"
+         exp.orderedPlayersPDF({ tournament, players: t_players, event_name: evt.name, doc_name: lang.tr('mdo'), extra_pages: false })
       }
 
       function printSignInList() {
@@ -1138,11 +1139,24 @@ let tournaments = function() {
             .filter(player=>filters.indexOf(player.sex) < 0)
             .filter(player=>(player.withdrawn == 'N' || !player.withdrawn) && !player.signed_in);
 
-         // abort if there are no players
-         if (!t_players.length) return;
+         if (!t_players.length) {
+            // if there are no players who have not signed in, print a blank doubles sign-in sheet
+            exp.doublesSignInPDF({ tournament });
+            return;
+         }
 
-         t_players = orderPlayersByRank(t_players, tournament.category);
-         exp.signInPDF({ tournament, players: t_players })
+         let sisobj = gen.signInSheetFormat();
+         sisobj.singles.element.addEventListener('click', () => {
+            t_players = orderPlayersByRank(t_players, tournament.category);
+            // default configuration is ordered Sign-In List
+            exp.orderedPlayersPDF({ tournament, players: t_players })
+            gen.closeModal();
+         });
+         sisobj.doubles.element.addEventListener('click', () => {
+            exp.doublesSignInPDF({ tournament });
+            gen.closeModal();
+         });
+
       }
 
       function eventsTab() {
@@ -2020,9 +2034,20 @@ let tournaments = function() {
          let displayScoring = (score) => details.scoring.element.innerHTML = score;
          let changeScoring = () => {
             if (!state.edit || e.active) return;
-            gen.popUpMessage('<div>Change Scoring Format</div><p><i>Not Implemented</i>');
-            displayScoring(e.scoring);
+            document.body.style.overflow  = 'hidden';
+            // gen.popUpMessage('<div>Change Scoring Format</div><p><i>Not Implemented</i>');
+            let cfg_obj = gen.scoreBoardConfig();
+            let config = d3.select(cfg_obj.config.element);
+            config.on('click', removeConfigScoring);
+
+            function removeConfigScoring(outcome) {
+               displayScoring(e.scoring);
+               config.remove();
+               document.body.style.overflow = null;
+            }
+
          }
+
          details.scoring.element.addEventListener('click', changeScoring);
          displayScoring(e.scoring || '3/6A/7T');
 
@@ -3225,8 +3250,8 @@ let tournaments = function() {
 
                if (match && match.teams) {
                   let round = match.round_name || '';
-                  let score_format = match.score_format || {};
-                  score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
+                  let score_format = match.score_format || e.score_format || {};
+                  if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
                   scoreBoard.setMatchScore({
                      round,
                      container,
@@ -3733,8 +3758,10 @@ let tournaments = function() {
 
             if (match && match.teams) {
                let round = match.round_name || '';
-               let score_format = match.score_format || {};
-               score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
+
+               let score_format = match.score_format || e.score_format || {};
+               if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
+
                scoreBoard.setMatchScore({
                   round,
                   container,
@@ -4377,8 +4404,11 @@ let tournaments = function() {
 
             if (d.match && d.match.players) {
                let teams = d.match.players.map(p=>[p]);
-               let score_format = d.match.score_format || {};
-               score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
+
+               let evnt = displayed_draw_event;
+               let score_format = d.match.score_format || evnt.score_format || {};
+               if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
+
                scoreBoard.setMatchScore({
                   teams,
                   container,
@@ -4495,8 +4525,11 @@ let tournaments = function() {
 
             let round = (d.data.match && d.data.match.round_name) || '';
             if (team_match) {
-               let score_format = d.data.match.score_format || {};
-               score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
+
+               let evnt = displayed_draw_event;
+               let score_format = d.data.match.score_format || evnt.score_format || {};
+               if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
+
                scoreBoard.setMatchScore({
                   round,
                   container,
