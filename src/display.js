@@ -2033,7 +2033,9 @@
 
       let score = match.score ? `<div class='match_score'>${match.score}</div>` : '&nbsp;';
       let umpire = match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : '';
-      let header = `${match.schedule.heading || ''} ${match.schedule.time_prefix || ''}${match.schedule.time || ''}`;
+      let heading = match.schedule.heading ? `${match.schedule.heading} ` : '';
+      let time_prefix = match.schedule.time_prefix ? `${match.schedule.time_prefix} ` : '';
+      let header = `${heading}${time_prefix}${match.schedule.time || ''}`;
       let html = `
          <div class='header'>${header}</div> 
          <div class='catround'>
@@ -2174,7 +2176,6 @@
             Array.from(elems).forEach(elem => { elem.classList.remove("active"); })
          }});
 
-      // TODO: remove this nasty hack which is a workaround for ddlb which don't scroll when offscreen
       entry(window.innerWidth * .3, window.innerHeight * .4, html);
 
       Object.assign(ids, sb_ids);
