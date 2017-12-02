@@ -87,9 +87,9 @@ let scoreBoard = function() {
          set_number = 0;
          resetTiebreak();
          unlockScoreboard();
+         displayActions(false);
          sobj.p2action.ddlb.setValue('');
          sobj.p1action.ddlb.setValue('');
-         displayActions(false);
          configureScoreSelectors();
          setScoreDisplay({ selected_set: set_number });
       }
@@ -146,7 +146,8 @@ let scoreBoard = function() {
 
       function configureScoreSelectors() {
          let options = [ { key: '-', value: '' }, ];
-         util.range(0, f.games_for_set + 2).forEach(n => options.push({ key: n, value: n }));
+         let upper_range = (f.games_for_set == f.tiebreaks_at) ? f.games_for_set + 2 : f.games_for_set + 1;
+         util.range(0, upper_range).forEach(n => options.push({ key: n, value: n }));
 
          let scoreChange1 = (value) => scoreChange(0, value);
          let scoreChange2 = (value) => scoreChange(1, value);
@@ -249,11 +250,13 @@ let scoreBoard = function() {
       function scoreGoal(s1, s2) {
          let score_diff = Math.abs(s1 - s2);
          // any valid winning score that does not indicate a tiebreak
-         return score_diff >= 2 && (s1 >= f.games_for_set || s2 >= f.games_for_set);
+         // return score_diff >= 2 && (s1 >= f.games_for_set || s2 >= f.games_for_set);
+         return score_diff >= 2 && (s1 >= f.tiebreaks_at || s2 >= f.tiebreaks_at);
       }
 
       function tbScore(s1, s2) {
-         return (s1 == f.games_for_set + 1 && s2 == f.games_for_set) || (s1 == f.games_for_set && s2 == f.games_for_set + 1);
+         // return (s1 == f.games_for_set + 1 && s2 == f.games_for_set) || (s1 == f.games_for_set && s2 == f.games_for_set + 1);
+         return (s1 == f.tiebreaks_at + 1 && s2 == f.tiebreaks_at) || (s1 == f.tiebreaks_at && s2 == f.tiebreaks_at + 1);
       }
 
       function scoreChange(which, value) {
@@ -284,12 +287,15 @@ let scoreBoard = function() {
             } else {
                // if both values are set to f.games_for_set + 1 for normal set,
                // ... one needs to be f.games_for_set
-               if (p1 == f.games_for_set + 1 && p2 == f.games_for_set + 1) replaceValue(f.games_for_set);
+               // if (p1 == f.games_for_set + 1 && p2 == f.games_for_set + 1) replaceValue(f.games_for_set);
+               if (p1 == f.tiebreaks_at + 1 && p2 == f.tiebreaks_at + 1) replaceValue(f.tiebreaks_at);
 
                // if one value is set to f.games_for_set + 1 for normal set,
                // ... the other needs to be f.games_for_set - 1 or f.games_for_set
-               if (p1 == f.games_for_set + 1 && p2 < f.games_for_set - 1) replaceValue(f.games_for_set);
-               if (p2 == f.games_for_set + 1 && p1 < f.games_for_set - 1) replaceValue(f.games_for_set);
+               // if (p1 == f.games_for_set + 1 && p2 < f.games_for_set - 1) replaceValue(f.games_for_set);
+               // if (p2 == f.games_for_set + 1 && p1 < f.games_for_set - 1) replaceValue(f.games_for_set);
+               if (p1 == f.tiebreaks_at + 1 && p2 < f.tiebreaks_at - 1) replaceValue(f.tiebreaks_at);
+               if (p2 == f.tiebreaks_at + 1 && p1 < f.tiebreaks_at - 1) replaceValue(f.tiebreaks_at);
             }
          }
 
@@ -317,9 +323,13 @@ let scoreBoard = function() {
 
          function getComplement(value) {
             if (value == '') return;
-            if (value == f.games_for_set || value == f.games_for_set + 1) tiebreak = true;
-            if (value == f.games_for_set - 1 || value == f.games_for_set) return f.games_for_set + 1;
-            return f.games_for_set;
+            // if (value == f.games_for_set || value == f.games_for_set + 1) tiebreak = true;
+            if (value == f.tiebreaks_at || value == f.tiebreaks_at + 1) tiebreak = true;
+            // if (value == f.games_for_set - 1 || value == f.games_for_set) return f.games_for_set + 1;
+            if (value == f.tiebreaks_at - 1 || value == f.tiebreaks_at) return f.tiebreaks_at + 1;
+            // return f.games_for_set;
+            if (value < f.tiebreaks_at) return f.games_for_set;
+            return f.tiebreaks_at;
          }
       }
 
@@ -385,8 +395,13 @@ let scoreBoard = function() {
                if (tbScore(g0, g1) && !s[0].tiebreak && !s[1].tiebreak) return [0, 0];
 
                // if minimum score difference not met (or games_for_set exceeded) there is no winner
-               if (g0 == f.games_for_set && g0 == g1 + 1) return [0, 0];
-               if (g1 == f.games_for_set && g1 == g0 + 1) return [0, 0];
+               if (f.games_for_set == f.tiebreaks_at) {
+                  if (g0 == f.games_for_set && g0 == g1 + 1) return [0, 0];
+                  if (g1 == f.games_for_set && g1 == g0 + 1) return [0, 0];
+               } else {
+                  if (g0 == f.games_for_set && g0 == g1 + 1) return [1, 0];
+                  if (g1 == f.games_for_set && g1 == g0 + 1) return [0, 1];
+               }
 
                // otherwise set winner determined by greater score at least games_for_set
                if (g0 > g1 && g0 >= f.games_for_set) return [1, 0];
@@ -782,7 +797,6 @@ let scoreBoard = function() {
             {key: '4', value: 4},
             {key: '6', value: 6},
             {key: '8', value: 8},
-            {key: '10', value: 10},
          ],
       });
       sobj.setsto.ddlb = new dd.DropDown({ element: sobj.setsto.element, id: sobj.setsto.id, onChange: setsTo });

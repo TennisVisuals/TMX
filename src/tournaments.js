@@ -338,7 +338,12 @@ let tournaments = function() {
       gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
       container.push2cloud.element.addEventListener('click', () => {
          if (!tournament.published) {
-            coms.emitTmx({ event: 'Push Tournament', tuid: tournament.tuid, tournament: CircularJSON.stringify(tournament) });
+            coms.emitTmx({
+               event: 'Push Tournament',
+               version: env.version,
+               tuid: tournament.tuid,
+               tournament: CircularJSON.stringify(tournament)
+            });
             tournament.published = true;
             gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
             // can't call saveTournament() here!!
@@ -1121,8 +1126,8 @@ let tournaments = function() {
                .filter(player=>evt.approved.indexOf(player.id) >= 0)
                .filter(player=>player.signed_in);
          } else {
-            // TODO: 
-            console.log('draw order sheet for doubles!');
+            let teams = approvedTeams(evt).map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));;
+            exp.doublesSignInPDF({ tournament, teams });
          }
 
          // abort if there are no players
@@ -1522,7 +1527,11 @@ let tournaments = function() {
                      displayed_event = e.euid;
                      e.automated = autoDrawSetting();
                      tournament.events.push(e);
-                     coms.emitTmx({ event: 'Add Event', notice: `${tournament.name} => ${e.name} ${e.draw_type} ${e.automated ? 'Auto' : 'Manual'}` });
+                     coms.emitTmx({ 
+                        event: 'Add Event',
+                        version: env.version,
+                        notice: `${tournament.name} => ${e.name} ${e.draw_type} ${e.automated ? 'Auto' : 'Manual'}` 
+                     });
                      let i = tournament.events.length - 1;
                      displayEvent({ e, index: i });
                      eventList();
@@ -2033,41 +2042,41 @@ let tournaments = function() {
 
          let displayScoring = (score) => details.scoring.element.innerHTML = score;
          let changeScoring = () => {
-            if (!state.edit || e.active) return;
-            document.body.style.overflow  = 'hidden';
-            let cfg_obj = gen.scoreBoardConfig();
-            let config = d3.select(cfg_obj.config.element);
+            if (state.edit && !e.active) {
+               document.body.style.overflow  = 'hidden';
+               let cfg_obj = gen.scoreBoardConfig();
+               let config = d3.select(cfg_obj.config.element);
 
-            let f = scoreBoard.options();
-            scoreBoard.configureScoring(cfg_obj, f);
-            config.on('click', removeConfigScoring);
-            cfg_obj.cancel.element.addEventListener('click', removeConfigScoring)
-            cfg_obj.accept.element.addEventListener('click', modifyEventScoring)
+               let f = scoreBoard.options();
+               scoreBoard.configureScoring(cfg_obj, f);
+               config.on('click', removeConfigScoring);
+               cfg_obj.cancel.element.addEventListener('click', removeConfigScoring)
+               cfg_obj.accept.element.addEventListener('click', modifyEventScoring)
 
-            function modifyEventScoring() {
-               let max_sets = parseInt(cfg_obj.bestof.ddlb.getValue());
-               let sets_to_win = Math.ceil(max_sets/2);
-               let sf = {
-                  max_sets,
-                  sets_to_win,
-                  games_for_set: parseInt(cfg_obj.setsto.ddlb.getValue()),
-                  tiebreaks_at: parseInt(cfg_obj.tiebreaksat.ddlb.getValue()),
-                  tiebreak_to: parseInt(cfg_obj.tiebreaksto.ddlb.getValue()),
-                  supertiebreak_to: parseInt(cfg_obj.supertiebreakto.ddlb.getValue()),
-                  final_set_supertiebreak: cfg_obj.finalset.ddlb.getValue() == 'N' ? false : true,
+               function modifyEventScoring() {
+                  let max_sets = parseInt(cfg_obj.bestof.ddlb.getValue());
+                  let sets_to_win = Math.ceil(max_sets/2);
+                  let sf = {
+                     max_sets,
+                     sets_to_win,
+                     games_for_set: parseInt(cfg_obj.setsto.ddlb.getValue()),
+                     tiebreaks_at: parseInt(cfg_obj.tiebreaksat.ddlb.getValue()),
+                     tiebreak_to: parseInt(cfg_obj.tiebreaksto.ddlb.getValue()),
+                     supertiebreak_to: parseInt(cfg_obj.supertiebreakto.ddlb.getValue()),
+                     final_set_supertiebreak: cfg_obj.finalset.ddlb.getValue() == 'N' ? false : true,
+                  }
+                  e.score_format = sf;
+                  let stb = sf.final_set_supertiebreak ? '/S' : '';
+                  e.scoring = `${sf.max_sets}/${sf.games_for_set}/${sf.tiebreak_to}T${stb}`;
+                  removeConfigScoring();
                }
-               e.score_format = sf;
-               let stb = sf.final_set_supertiebreak ? '/S' : '';
-               e.scoring = `${sf.max_sets}/${sf.games_for_set}/${sf.tiebreak_to}T${stb}`;
-               removeConfigScoring();
-            }
 
-            function removeConfigScoring() {
-               displayScoring(e.scoring);
-               config.remove();
-               document.body.style.overflow = null;
+               function removeConfigScoring() {
+                  displayScoring(e.scoring);
+                  config.remove();
+                  document.body.style.overflow = null;
+               }
             }
-
          }
 
          details.scoring.element.addEventListener('click', changeScoring);
@@ -2972,6 +2981,9 @@ let tournaments = function() {
                   source.setAttribute('oop_round', target_schedule.oop_round);
 
                   util.swapElements(source, target);
+
+                  // refresh HTML of source to remove time/time_prefix
+                  populateGridCell(source, source_muid, source_match);
                }
 
                saveTournament(tournament);
@@ -3048,8 +3060,11 @@ let tournaments = function() {
                source.setAttribute('court', source_match.schedule.court);
                source.setAttribute('oop_round', source_match.schedule.oop_round);
 
-               // swap storage object and source object
-               util.swapElements(source, target);
+               // swap storage object and source object -- doesn't swap times in HTML
+               // util.swapElements(source, target);
+
+               populateGridCell(target, source_muid, source_match);
+               populateGridCell(source, target_muid, target_match);
             } else {
                if (target_muid == '') {
                   // only allow match to be dropped if an empty space
