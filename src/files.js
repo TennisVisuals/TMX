@@ -959,8 +959,15 @@
       return exp.openPDF(docDefinition);
    }
 
-   exp.doublesSignInPDF = ({ tournament }) => {
-      console.log('doubles sign-in sheet');
+   exp.doublesSignInPDF = ({ tournament, teams, category, gender, event_name, doc_name }) => {
+      return new Promise((resolve, reject) => {
+         getLogo().then(showPDF);
+
+         function showPDF(logo) {
+            doublesSignInSheet({ tournament, teams, category, gender, event_name, logo, doc_name });
+         }
+         console.log('doubles sign-in sheet');
+      });
    }
 
    exp.orderedPlayersPDF = ({ tournament, players, category, gender, event_name, doc_name, extra_pages }) => {
@@ -998,6 +1005,195 @@
       });
    }
 
+   function doublesSignInSheet({ tournament={}, teams=[], players=[], category, gender, event_name='', logo, doc_name }) {
+
+      let date = util.formatDate(tournament.start);
+      let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
+
+      let page_header = [
+         { 
+            border: [ false, false, false, false ],
+            colSpan: 9,
+            table: {
+               widths: ['auto', 'auto', '*', '*', '*', 'auto'],
+               headerRows: 2,
+               body: [
+                  [
+                     { 
+                        table: {
+                           widths: ['*'],
+                           body: [
+                              [{ text: tournament.name || ' ', style: 'docTitle' }],
+                              [{ text: event_name, style: 'subtitle' }],
+                           ]
+                        },
+                        colSpan: 5, 
+                        layout: 'noBorders',
+                     }, 
+                     {}, {}, {}, {}, 
+                     {
+                        width: 100,
+                        image: logo || '',
+                        alignment: 'center',
+                     },
+                  ],
+                  [ {text: doc_name || lang.tr('signin.doc_name'), colSpan: 6, style: 'docName', alignment: 'center'}, ],
+                  [ {text: lang.tr('signin.doc_subname'), colSpan: 6, style: 'docName', alignment: 'center'}, ],
+
+                  [
+                     { text: lang.tr('signin.tournament_date'), style: 'tableHeader' },
+                     { text: lang.tr('signin.organizer'), style: 'tableHeader' },
+                     { text: lang.tr('signin.place'), style: 'tableHeader' },
+                     { text: '', style: 'tableHeader' },
+                     { text: '', style: 'tableHeader' },
+                     { text: lang.tr('signin.judge'), style: 'tableHeader' },
+                  ],
+                  [ 
+                     date, 
+                     tournament.organizer || ' ', 
+                     tournament.location || '',
+                     '', 
+                     '', 
+                     { text: tournament.judge || ' ', margin: [0, 0, 0, 5] },
+                  ],
+                  [
+                     { text: lang.tr('signin.id'), style: 'tableHeader', margin: [0, 0, 5, 0] },
+                     { text: lang.tr('signin.rank'), style: 'tableHeader', margin: [0, 0, 5, 0] },
+                     { text: '', style: 'tableHeader' },
+                     { text: '', style: 'tableHeader' },
+                     {colSpan: 2, rowSpan: 2, text: ' ', border: [true, true, true, true] }, 
+                     { text: '', style: 'tableHeader' },
+                  ],
+                  [ 
+                     tournament_id, 
+                     tournament.rank || ' ',
+                     ' ',
+                     '',
+                     '',
+                     ''
+                  ],
+               ]
+            },
+            layout: {
+               defaultBorder: false,
+               paddingLeft: function(i, node) { return 0; },
+               paddingRight: function(i, node) { return 0; },
+               paddingTop: function(i, node) { return 0; },
+               paddingBottom: function(i, node) { return 0; },
+            }
+         }, {}, {}, {}, {}, {}, {}, {}, {},
+      ];
+
+      let dummy = [
+         { border: [false, false, false, false], text: ' ' },
+         { border: [false, false, false, false], text: ' ' },
+         { border: [false, false, false, false], text: ' ' },
+         { border: [false, false, false, false], text: ' ' },
+         { border: [false, false, false, false], text: ' ' },
+         { border: [false, false, false, false], text: ' ' },
+         { border: [false, false, false, false], text: ' ' },
+         { border: [false, false, false, false], text: ' ' },
+         { border: [false, false, false, false], text: ' ' },
+      ];
+      let header_row = [ 
+         { text: '#', style: 'centeredTableHeader' }, 
+         { text: lang.tr('fnm'), style: 'tableHeader' }, 
+         { text: lang.tr('lnm'), style: 'tableHeader' }, 
+         { text: lang.tr('clb'), style: 'centeredTableHeader' }, 
+         { text: lang.tr('rnk'), style: 'centeredTableHeader' }, 
+         { text: lang.tr('fnm'), style: 'tableHeader' }, 
+         { text: lang.tr('lnm'), style: 'tableHeader' }, 
+         { text: lang.tr('clb'), style: 'centeredTableHeader' }, 
+         { text: lang.tr('rnk'), style: 'centeredTableHeader' }, 
+      ];
+
+      let empty = (x) => Array.from({length: x}, () => undefined);
+      let empty_rows = o.rows_per_page - (teams.length % o.rows_per_page);
+      let rows = teams.concat(...empty(empty_rows));
+
+      rows = rows.map((row, i) => {
+         if (row) {
+            return [
+               { text: i + 1, style: 'centeredColumn' },
+               { text: row[0].last_name.toUpperCase().trim() },
+               { text: util.normalizeName(row[0].first_name, false) },
+               { text: row[0].club_code || row[0].country || " ", style: row[0].club_code ? 'centeredColumn' : 'italicCenteredColumn' },
+               // { text: row.rankings && row.rankings[category] ? row.rankings[category] : '', style: 'centeredColumn' },
+               { text: row[0].category_ranking || '', style: 'centeredColumn' },
+               { text: row[1].last_name.toUpperCase().trim() },
+               { text: util.normalizeName(row[1].first_name, false) },
+               { text: row[1].club_code || row[1].country || " ", style: row[1].club_code ? 'centeredColumn' : 'italicCenteredColumn' },
+               // { text: row.rankings && row.rankings[category] ? row.rankings[category] : '', style: 'centeredColumn' },
+               { text: row[1].category_ranking || '', style: 'centeredColumn' },
+            ];
+         } else {
+            return [ 
+               { text: i + 1, style: 'centeredColumn' }, 
+               " ", " ", " ", " ", " ", " ", " ", " "
+            ];
+         }
+      }).filter(f=>f);
+
+      let player_rows = [].concat([page_header], [dummy], [header_row], rows);
+      let table_rows = {
+         fontSize: 10,
+         table: {
+            headerRows: 3,
+            widths: [ 'auto', '*', '*', 'auto', 'auto', '*', '*', 'auto', 'auto' ],
+            body: player_rows,
+         },
+      }
+
+      var docDefinition = {
+         pageSize: 'A4',
+         pageOrientation: 'portrait',
+
+         content: [
+            table_rows,
+         ],
+
+         styles: {
+            docTitle: {
+               fontSize: 16,
+               bold: true,
+            },
+            subtitle: {
+               fontSize: 12,
+               italics: true,
+            },
+            docName: {
+               fontSize: 14,
+               bold: true,
+            },
+            tableHeader: {
+               fontSize: 11,
+               bold: true,
+            },
+            centeredTableHeader: {
+               alignment: 'center',
+               fontSize: 11,
+               bold: true,
+            },
+            signatureBox: {
+               border: true,
+            },
+            centeredColumn: {
+               alignment: 'center',
+               border: true,
+            },
+            italicCenteredColumn: {
+               alignment: 'center',
+               border: true,
+               bold: true,
+               italics: true,
+            },
+         }
+      };
+
+      let filename = `${event_name} Sign In Sheet.pdf`;
+      // exp.savePDF(docDefinition, filename);
+      return exp.openPDF(docDefinition);
+   }
    function signInSheet({ tournament={}, players, category, gender, event_name='', logo, doc_name, extra_pages=true }) {
 
       let date = util.formatDate(tournament.start);
