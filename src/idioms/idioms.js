@@ -353,6 +353,19 @@
          clubs: 'Updating Cllubs...',
       },
 
+      penalties: {
+         fail2signout: 'Failed to Sign Out',
+         illegalcoaching: 'Illegal Coaching',
+         ballabuse: 'Ball Abuse',
+         racquetabuse: 'Racquet Abuse',
+         equipmentabuse: 'Equipment Abuse',
+         cursing: 'Swearing',
+         rudegestures: 'Rude Gestures',
+         foullanguage: 'Foul Language',
+         timeviolation: 'Time Violation',
+         latearrival: 'Late Arrival',
+      },
+
       // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toLocaleDateString
       datelocalization: 'en-EN',
    }
@@ -674,6 +687,19 @@
          players: 'Učitavanje novih igrača...',
          calendar: 'Učitavanje kalendara...',
          clubs: 'Učitavanje klubova...',
+      },
+
+      penalties: {
+         fail2signout: 'Nije se odjavio-la',
+         illegalcoaching: 'Primanje savjeta i treneri',
+         ballabuse: 'Zloupotreba lopte',
+         racquetabuse: 'Zloupotreba reketa',
+         equipmentabuse: 'Zloupotreba opreme',
+         cursing: 'Psovanje',
+         rudegestures: 'Prostačka gesta',
+         foullanguage: 'Prostački izrazi',
+         timeviolation: 'Otezanje igre',
+         latearrival: 'Kašnjenje na susret',
       },
 
       datelocalization: 'hr-HR',

@@ -353,6 +353,19 @@
          clubs: 'Updating Cllubs...',
       },
 
+      penalties: {
+         fail2signout: 'Failed to Sign Out',
+         illegalcoaching: 'Illegal Coaching',
+         ballabuse: 'Ball Abuse',
+         racquetabuse: 'Racquet Abuse',
+         equipmentabuse: 'Equipment Abuse',
+         cursing: 'Swearing',
+         rudegestures: 'Rude Gestures',
+         foullanguage: 'Foul Language',
+         timeviolation: 'Time Violation',
+         latearrival: 'Late Arrival',
+      },
+
       // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toLocaleDateString
       datelocalization: 'en-EN',
    }
