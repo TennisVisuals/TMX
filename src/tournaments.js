@@ -2210,17 +2210,17 @@ let tournaments = function() {
             .filter(p => unavailable_ids.indexOf(p.id) < 0);
 
          if (e.draw_type == 'C') {
-            // if building a consolation draw, available players are those who
-            // have lost in a linked main draw event...
+            // if building a consolation draw, available players are those who have lost in a linked main draw event...
             if (!e.links['E']) return [];
 
             let linked = findEventByID(e.links['E']);
+
             // find all completed matches from linked elimination draw
-            let completed_matches = eventMatches(linked.draw).filter(m=>m.match);
+            let completed_matches = eventMatches(linked).filter(m=>m.match.winner);
             if (!completed_matches.length) return [];
 
-            let winnter_ids = [].concat(...completed_matches.map(match => match.match.winner.map(team=>team[0].id)));
-            let loser_ids = [].concat(...completed_matches.map(match => match.match.loser.map(team=>team[0].id)));
+            let winner_ids = [].concat(...completed_matches.map(match => match.match.winner.map(team=>team.id)));
+            let loser_ids = [].concat(...completed_matches.map(match => match.match.loser.map(team=>team.id)));
 
             // Unless e.structure == 'feed', filter out teams who had a win
             // TODO: add in support for feed-in draws...
@@ -2433,24 +2433,56 @@ let tournaments = function() {
 
             let num_players = approved_opponents.length + e.qualifiers;
 
-            if (e.structure == 'feed') {
-               // TODO: unfinished...  just a stub...
-               e.draw = drawFx.feedInDraw({ teams: drawFx.standardDrawSizes(num_players), skip_rounds: 0 });
+            // build a blank draw 
+            let structural_byes = e.draw_size == 12 ? drawFx.structuralByes(e.draw_size, true) : undefined;
+            e.draw = drawFx.buildDraw({ teams: e.draw_size, structural_byes });
 
+            if (!e.draw_size) return;
+
+            // has to be defined after draw is built
+            e.draw.qualifiers = e.qualifiers || 0;
+
+            e.draw.unseeded_placements = [];
+            e.draw.opponents = approved_opponents;
+            e.draw.seed_placements = drawFx.validSeedPlacements({ num_players, random_sort: true, seed_limit });
+
+            e.draw.seeded_teams = drawFx.seededTeams({ teams: e.draw.opponents });
+            e.draw.unseeded_teams = teamSort(e.draw.opponents.filter(f=>!f[0].seed));
+
+            let seeding = rankedTeams(approved_opponents);
+            if (!seeding) {
+               e.draw.seeded_teams = [];
+               delete e.draw.seed_placements;
+            }
+
+            // always place first two seeded groups (2 x 1) => place first two seeds
+            drawFx.placeSeedGroups({ draw: e.draw, count: 2 });
+
+            if (e.automated) {
+               drawFx.placeSeedGroups({ draw: e.draw });
+               drawFx.distributeByes({ draw: e.draw });
+               drawFx.distributeQualifiers({ draw: e.draw });
+               drawFx.placeUnseededTeams({ draw: e.draw });
+               drawFx.advanceTeamsWithByes({ draw: e.draw });
+               if (e.draw_type == 'Q') checkForQualifiedTeams(e);
+               drawCreated(e);
+               eventBackground(e);
+               eventList();
             } else {
+               testLastSeedPosition(e);
+            }
+         }
 
-               // build a blank draw 
-               let structural_byes = e.draw_size == 12 ? drawFx.structuralByes(e.draw_size, true) : undefined;
-               e.draw = drawFx.buildDraw({ teams: e.draw_size, structural_byes });
+         let consolation = () => {
+            let linked = findEventByID(e.links['M']);
 
-               if (!e.draw_size) return;
-
-               // has to be defined after draw is built
-               e.draw.qualifiers = e.qualifiers || 0;
-
+            let consolation_num_players = num_players;
+            if (e.structure == 'feed') {
+               e.draw = drawFx.feedInDraw({ teams: drawFx.standardDrawSizes(consolation_num_players) });
+            } else {
+               e.draw = drawFx.buildDraw({ teams: drawFx.standardDrawSizes(consolation_num_players) });
                e.draw.unseeded_placements = [];
                e.draw.opponents = approved_opponents;
-
                e.draw.seed_placements = drawFx.validSeedPlacements({ num_players, random_sort: true, seed_limit });
 
                e.draw.seeded_teams = drawFx.seededTeams({ teams: e.draw.opponents });
@@ -2461,7 +2493,6 @@ let tournaments = function() {
                   e.draw.seeded_teams = [];
                   delete e.draw.seed_placements;
                }
-
                // always place first two seeded groups (2 x 1) => place first two seeds
                drawFx.placeSeedGroups({ draw: e.draw, count: 2 });
 
@@ -2471,23 +2502,12 @@ let tournaments = function() {
                   drawFx.distributeQualifiers({ draw: e.draw });
                   drawFx.placeUnseededTeams({ draw: e.draw });
                   drawFx.advanceTeamsWithByes({ draw: e.draw });
-                  if (e.draw_type == 'Q') checkForQualifiedTeams(e);
                   drawCreated(e);
                   eventBackground(e);
                   eventList();
                } else {
                   testLastSeedPosition(e);
                }
-            }
-         }
-
-         let consolation = () => {
-            // TODO: consolation draw size should be determined by linked main draw
-            let consolation_num_players = num_players;
-            if (e.structure == 'feed') {
-               e.draw = drawFx.feedInDraw({ teams: drawFx.standardDrawSizes(consolation_num_players) });
-            } else {
-               e.draw = drawFx.buildDraw({ teams: drawFx.standardDrawSizes(consolation_num_players) });
             }
          }
 
@@ -5100,7 +5120,7 @@ let tournaments = function() {
             } else if (d.height == 0 && d.data.bye && !displayed_draw_event.active) {
                assignedByeOptions({ position, node: d, coords, draw });
             } else if (d.data.team) {
-               console.log('remove player?', d);
+               console.log('alternate or lucky loser?', d);
                let team_match = drawFx.teamMatch(d);
                if (team_match) console.log('team match');
             }
