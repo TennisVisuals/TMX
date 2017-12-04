@@ -57,7 +57,7 @@
 .dd ul li span {
    /* height: 100%; */
    display: block;
-   background: gray;
+   background: #EBEBEB;
    padding: 2px 8px 2px 8px;
    text-decoration: none;
    white-space: nowrap;
@@ -85,7 +85,7 @@
 
 .dd li li { float: none; }
 .dd li ul { z-index: 1000; display: none; }
-.dd li:hover li span:hover { background: lightgray; }
+.dd li:hover li span:hover { background: #CECECE; }
 
 .dd li.active ul {
   display: block; 
