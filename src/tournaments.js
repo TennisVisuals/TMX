@@ -22,6 +22,7 @@ let tournaments = function() {
          rapid: true,
       },
       save: true,
+      byes_with_unseeded: true,
    }
 
    fx.options = (values) => {
@@ -2915,6 +2916,8 @@ let tournaments = function() {
             util.addEventToClass('findmatch', showSearch, element, 'click');
             util.addEventToClass('opponentsearch', (e)=>e.stopPropagation(), element, 'click');
 
+            match.status = '';
+            match.source.schedule = '';
             match.schedule = {};
             match.source.schedule = {};
             saveTournament(tournament);
@@ -3111,12 +3114,21 @@ let tournaments = function() {
 
             let { oop_round } = identifyRound(ev);
             if (oop_round) {
-               let options = ['Matches => Time', 'Not Before', 'Followed By', 'After Rest', 'Court TBA', 'Next Available', 'Clear'];
+               let options = [
+                  lang.tr('schedule.matchestime'),
+                  lang.tr('schedule.notbefore'),
+                  lang.tr('schedule.followedby'),
+                  lang.tr('schedule.afterrest'),
+                  lang.tr('schedule.tba'),
+                  lang.tr('schedule.nextavailable'),
+                  lang.tr('schedule.clear'),
+               ];
                gen.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: modifySchedules });
 
                function modifySchedules(choice, index) {
                   console.log('OOP round:', oop_round, 'selection was:', choice, index);
                   if (index == 0) {
+                     filterDayMatches();
                      gen.timePicker({ hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
                   } else if (index == 1) {
                      modifyMatchSchedule([{ attr: 'time_prefix', value: 'NB ' }]);
@@ -3206,21 +3218,64 @@ let tournaments = function() {
                         let time_string = match.schedule && match.schedule.time;
                         gen.timePicker({ time_string, hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
                      } else if (index == 1) {
-                        let headings = ['Not Before', 'After Rest', 'Court TBA', 'Next Available', 'Clear'];
+                        let headings = [
+                           lang.tr('schedule.notbefore'),
+                           lang.tr('schedule.followedby'),
+                           lang.tr('schedule.afterrest'),
+                           lang.tr('schedule.tba'),
+                           lang.tr('schedule.nextavailable'),
+                           lang.tr('schedule.clear'),
+                        ];
                         setTimeout(function() {
                            gen.svgModal({ x: ev.clientX, y: ev.clientY, options: headings, callback: timeHeading });
+                        }, 200);
+                     } else if (index == 2) {
+                        let statuses = [
+                           lang.tr('schedule.oncourt'),
+                           lang.tr('schedule.warmingup'),
+                           lang.tr('schedule.suspended'),
+                           lang.tr('schedule.raindelay'),
+                           lang.tr('schedule.clear'),
+                        ];
+                        setTimeout(function() {
+                           gen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: matchStatus });
                         }, 200);
                      } else if (index == 3) {
                         addUmpire(match, 'schedule');
                         return;
+                     } else if (index == 4) {
+                        let statuses = [
+                           lang.tr('penalties.fail2signout'),
+                           lang.tr('penalties.illegalcoaching'),
+                           lang.tr('penalties.ballabuse'),
+                           lang.tr('penalties.racquetabuse'),
+                           lang.tr('penalties.equipmentabuse'),
+                           lang.tr('penalties.cursing'),
+                           lang.tr('penalties.rudegestures'),
+                           lang.tr('penalties.foullanguage'),
+                           lang.tr('penalties.timeviolation'),
+                           lang.tr('penalties.latearrival'),
+                        ];
+                        setTimeout(function() {
+                           gen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: assessPenalty });
+                        }, 200);
                      } else if (index == 5) {
                         returnToUnscheduled(match, target);
                         return;
                      }
                   }
                }
+
                function setTime(value) {
                   match.schedule.time = value;
+                  updateScheduleBox(match);
+               }
+               function assessPenalty(value, index) {
+                  console.log('Penalty:', value, index);
+                  // updateScheduleBox(match);
+               }
+               function matchStatus(value, index) {
+                  match.status = index == 4 ? '' : value;
                   updateScheduleBox(match);
                }
                function timeHeading(selection, index) {
@@ -3228,25 +3283,32 @@ let tournaments = function() {
                      modifyMatchSchedule([{ attr: 'time_prefix', value: 'NB ' }]);
                   } else if (index == 1) {
                      let pairs = [
-                        { attr: 'time_prefix', value: 'After Rest' },
+                        { attr: 'time_prefix', value: lang.tr('schedule.followedby') },
                         { attr: 'time', value: '' },
                         { attr: 'heading', value: '' },
                      ];
                      modifyMatchSchedule(pairs);
                   } else if (index == 2) {
                      let pairs = [
-                        { attr: 'time_prefix', value: 'TBA' },
+                        { attr: 'time_prefix', value: lang.tr('schedule.afterrest') },
                         { attr: 'time', value: '' },
+                        { attr: 'heading', value: '' },
                      ];
                      modifyMatchSchedule(pairs);
                   } else if (index == 3) {
                      let pairs = [
-                        { attr: 'time_prefix', value: '' },
+                        { attr: 'time_prefix', value: lang.tr('schedule.tba') },
                         { attr: 'time', value: '' },
-                        { attr: 'heading', value: 'Next Available' },
                      ];
                      modifyMatchSchedule(pairs);
                   } else if (index == 4) {
+                     let pairs = [
+                        { attr: 'time_prefix', value: '' },
+                        { attr: 'time', value: '' },
+                        { attr: 'heading', value: lang.tr('schedule.nextavailable') },
+                     ];
+                     modifyMatchSchedule(pairs);
+                  } else if (index == 5) {
                      let pairs = [
                         { attr: 'time_prefix', value: '' },
                         { attr: 'heading', value: '' },
@@ -3288,6 +3350,7 @@ let tournaments = function() {
 
                   match.winner = outcome.winner;
                   match.score = outcome.score;
+                  if (outcome.score) match.status = '';
                   match.score_format = outcome.score_format;
 
                   let sb = gen.scheduleBox({ match, editable: true});
@@ -3968,6 +4031,7 @@ let tournaments = function() {
             round_name: match.round_name,
 
             score: match.match.score,
+            status: match.match.status,
             tournament: {
                sid: tournament.sid,
                tuid: tournament.tuid,
@@ -4108,6 +4172,7 @@ let tournaments = function() {
          if (match_event) {
             let match = match_event.match;
             match.score = outcome.score;
+            if (outcome.score) match.status = '';
             match.winner_index = outcome.winner;
             match.score_format = outcome.score_format;
 
@@ -4220,6 +4285,7 @@ let tournaments = function() {
                let match = match_event.match;
 
                match.score = outcome.score;
+               if (outcome.score) match.status = '';
                match.winner_index = outcome.winner;
 
                match.muid = match.muid || UUID.new();
@@ -5085,21 +5151,23 @@ let tournaments = function() {
                if (seed_group) {
                   assignSeededPosition({ position, seed_group, coords });
                } else {
-                  // TODO: This works with Byes but not yet with qualifiers
-                  // assignUnseededPosition({ position, coords });
-
-                  let info = drawFx.drawInfo(draw);
-                  if (info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length) {
-                     let player_count = (draw.opponents ? draw.opponents.length : 0) + (draw.qualifiers || 0);
-
-                     if (info.draw_positions.length > player_count + info.byes.length) {
-                        assignByeOrQualifier({ position, bye: true, coords });
-                     } else {
-                        assignByeOrQualifier({ position, bye: false, coords });
-                     }
-
-                  } else {
+                  if (o.byes_with_unseeded) {
                      assignUnseededPosition({ position, coords });
+                  } else {
+                     // section assigns byes then qualifiers before unseeded positions
+                     let info = drawFx.drawInfo(draw);
+                     if (info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length) {
+                        let player_count = (draw.opponents ? draw.opponents.length : 0) + (draw.qualifiers || 0);
+
+                        if (info.draw_positions.length > player_count + info.byes.length) {
+                           assignByeOrQualifier({ position, bye: true, coords });
+                        } else {
+                           assignByeOrQualifier({ position, bye: false, coords });
+                        }
+
+                     } else {
+                        assignUnseededPosition({ position, coords });
+                     }
                   }
                }
             } else if (!d.data.bye && !e.automated && d.data.team) {
