@@ -289,11 +289,14 @@
       }
    }
 
-   gen.showConfigModal = (html) => {
+   gen.showConfigModal = (html, overflow='auto') => {
       if (searchBox.element) searchBox.element.blur();
       document.body.style.overflow  = 'hidden';
       document.getElementById('configtext').innerHTML = html;
-      document.getElementById('configmodal').style.display = "flex";
+      let modal = document.getElementById('configmodal');
+      modal.style.display = "flex";
+      let content = modal.querySelector('.modalcontent');
+      content.style.overflow = overflow;
    }
 
    gen.showModal = (html, close = true) => {
@@ -1209,7 +1212,7 @@
             </div>
          </div>
       `;
-      gen.showConfigModal(html);
+      gen.showConfigModal(html, 'visible');
       let id_obj = idObj(ids);
       dd.attachDropDown({ id: ids.gender, options: genders });
       return id_obj;
@@ -2031,8 +2034,10 @@
 
       let format = match.format ? util.normalizeName(match.format) : '';
 
-      let score = match.score ? `<div class='match_score'>${match.score}</div>` : '&nbsp;';
-      let umpire = match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : '';
+      let match_status = match.status ? `<div class='match_status'>${match.status}</div>` : '&nbsp;';
+      let score = match.score ? `<div class='match_score'>${match.score}</div>` : match_status;
+      let status_message = (match.status && match.score && !match.umpire) ? match.status : '';
+      let umpire = match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : status_message;
       let heading = match.schedule.heading ? `${match.schedule.heading} ` : '';
       let time_prefix = match.schedule.time_prefix ? `${match.schedule.time_prefix} ` : '';
       let header = `${heading}${time_prefix}${match.schedule.time || ''}`;
