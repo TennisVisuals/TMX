@@ -1880,34 +1880,40 @@ let tournaments = function() {
          attributes.name.element.addEventListener('keydown', catchTab, false);
          attributes.address.element.addEventListener('keydown', catchTab, false);
          attributes.courts.element.addEventListener('keydown', catchTab, false);
+         attributes.identifiers.element.addEventListener('keydown', catchTab, false);
 
          attributes.abbreviation.element.addEventListener('keyup', (evt) => defineAttr('abbreviation', evt, { length: 3 }));
          attributes.name.element.addEventListener('keyup', (evt) => defineAttr('name', evt, { length: 5 }));
          attributes.address.element.addEventListener('keyup', (evt) => defineAttr('address', evt, { length: 5 }));
          attributes.courts.element.addEventListener('keyup', (evt) => defineAttr('courts', evt, { number: true }));
+         attributes.identifiers.element.addEventListener('keyup', (evt) => defineAttr('identifiers', evt));
          setTimeout(function() { attributes.abbreviation.element.focus(); }, 50);
 
          attributes.abbreviation.element.value = l.abbreviation || '';
          attributes.name.element.value = l.name || '';
          attributes.address.element.value = l.address || '';
          attributes.courts.element.value = l.courts || 0;
+         attributes.identifiers.element.value = l.identifiers || '';
 
          let disabled = !state.edit
          attributes.abbreviation.element.disabled = disabled;
          attributes.name.element.disabled = disabled;
          attributes.address.element.disabled = disabled;
          attributes.courts.element.disabled = disabled;
+         attributes.identifiers.element.disabled = disabled;
 
          attributes.abbreviation.element.style.border = disabled ? 'none' : '';
          attributes.name.element.style.border = disabled ? 'none' : '';
          attributes.address.element.style.border = disabled ? 'none' : '';
          attributes.courts.element.style.border = disabled ? 'none' : '';
+         attributes.identifiers.element.style.border = disabled ? 'none' : '';
          
-         let field_order = [ 'abbreviation', 'name', 'address', 'courts' ];
+         let field_order = [ 'abbreviation', 'name', 'address', 'courts', 'identifiers' ];
 
-         function nextFieldFocus(field, delay=50) {
-            let next_field = field_order.indexOf(field) + 1;
+         function nextFieldFocus(field, increment=1, delay=50) {
+            let next_field = field_order.indexOf(field) + increment;
             if (next_field == field_order.length) next_field = 0;
+            if (next_field < 0) next_field = field_order.length - 1;
             setTimeout(function() { attributes[field_order[next_field]].element.focus(); }, delay);
             saveTournament(tournament);
          }
@@ -1931,7 +1937,8 @@ let tournaments = function() {
                }
                attributes[attr].element.style.background = valid ? 'white' : 'yellow';
             }
-            if (!evt || evt.which == 13 || evt.which == 9) nextFieldFocus(attr);
+            let increment = (evt.which == 9 && evt.shiftKey) ? -1 : 1;
+            if (!evt || evt.which == 13 || evt.which == 9) nextFieldFocus(attr, increment);
          }
       }
 
@@ -2736,16 +2743,18 @@ let tournaments = function() {
       function courtData(luid) {
          let courts = [];
          tournament.locations.forEach(l => {
-               if (!luid || luid == l.luid) { 
-                  util.range(1, +l.courts + 1).forEach(i => {
-                     let court = { 
-                        luid: l.luid,
-                        name: `${l.abbreviation} ${i}`,
-                        availability: [1,2,3,4,5,6,7,8,9,10],
-                     };
-                     courts.push(court);
-                  });
-               }
+            let identifiers = l.identifiers ? l.identifiers.split(',').join(' ').split(' ').filter(f=>f) : [];
+            if (!luid || luid == l.luid) { 
+               util.range(1, +l.courts + 1).forEach(i => {
+                  let identifier = identifiers[i - 1] || i;
+                  let court = { 
+                     luid: l.luid,
+                     name: `${l.abbreviation} ${identifier}`,
+                     availability: [1,2,3,4,5,6,7,8,9,10],
+                  };
+                  courts.push(court);
+               });
+            }
          });
          return courts;
       }
@@ -3129,7 +3138,8 @@ let tournaments = function() {
                   console.log('OOP round:', oop_round, 'selection was:', choice, index);
                   if (index == 0) {
                      filterDayMatches();
-                     gen.timePicker({ hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
+                     // gen.timePicker({ hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
+                     gen.timePicker({ hour_range: { start: 8 }, minute_increment: 5, callback: setTime })
                   } else if (index == 1) {
                      modifyMatchSchedule([{ attr: 'time_prefix', value: 'NB ' }]);
                   } else if (index == 2) {
@@ -3216,7 +3226,8 @@ let tournaments = function() {
                   if (!complete) {
                      if (index == 0) {
                         let time_string = match.schedule && match.schedule.time;
-                        gen.timePicker({ time_string, hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
+                        // gen.timePicker({ time_string, hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
+                        gen.timePicker({ hour_range: { start: 8 }, minute_increment: 5, callback: setTime })
                      } else if (index == 1) {
                         let headings = [
                            lang.tr('schedule.notbefore'),
@@ -3244,6 +3255,7 @@ let tournaments = function() {
                         addUmpire(match, 'schedule');
                         return;
                      } else if (index == 4) {
+                        /*
                         let statuses = [
                            lang.tr('penalties.fail2signout'),
                            lang.tr('penalties.illegalcoaching'),
@@ -3255,6 +3267,19 @@ let tournaments = function() {
                            lang.tr('penalties.foullanguage'),
                            lang.tr('penalties.timeviolation'),
                            lang.tr('penalties.latearrival'),
+                        ];
+                        */
+                        let statuses = [
+                           { label: lang.tr('penalties.fail2signout'), value: 'fail2signout' },
+                           { label: lang.tr('penalties.illegalcoaching'), value: 'illegalcoaching' },
+                           { label: lang.tr('penalties.ballabuse'), value: 'ballabuse' },
+                           { label: lang.tr('penalties.racquetabuse'), value: 'racquetabuse' },
+                           { label: lang.tr('penalties.equipmentabuse'), value: 'equipmentabuse' },
+                           { label: lang.tr('penalties.cursing'), value: 'cursing' },
+                           { label: lang.tr('penalties.rudegestures'), value: 'rudegestures' },
+                           { label: lang.tr('penalties.foullanguage'), value: 'foullanguage' },
+                           { label: lang.tr('penalties.timeviolation'), value: 'timeviolation' },
+                           { label: lang.tr('penalties.latearrival'), value: 'latearrival' },
                         ];
                         setTimeout(function() {
                            gen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: assessPenalty });
@@ -3270,9 +3295,17 @@ let tournaments = function() {
                   match.schedule.time = value;
                   updateScheduleBox(match);
                }
-               function assessPenalty(value, index) {
-                  console.log('Penalty:', value, index);
-                  // updateScheduleBox(match);
+               function assessPenalty(penalty, penalty_index, penalty_value) {
+                  let players = match.players.map(p=>p.full_name);
+                  setTimeout(function() {
+                     gen.svgModal({ x: ev.clientX, y: ev.clientY, options: players, callback: playerPenalty });
+                  }, 200);
+                  function playerPenalty(player, index, value) {
+                     let puid = match.players[index].puid;
+                     let tournament_player = tournament.players.reduce((p, s) => s.puid == puid ? s : p);
+                     if (!tournament_player.penalties) tournament_player.penalties = [];
+                     tournament_player.penalties.push({ penalty, index: penalty_index, value: penalty_value });
+                  }
                }
                function matchStatus(value, index) {
                   match.status = index == 4 ? '' : value;
@@ -3680,8 +3713,8 @@ let tournaments = function() {
                   // TODO: in the future will need to modify rank for categories if there are multiple categories in one tournament
                   if (attribute == 'rank') { 
                      if (changeable) {
-                        changed_player.modified_ranking = isNaN(value) ? undefined : +value; 
-                        changed_player.category_ranking = isNaN(value) ? undefined : +value; 
+                        changed_player.modified_ranking = isNaN(value) || value == 0 ? undefined : +value; 
+                        changed_player.category_ranking = isNaN(value) || value == 0 ? undefined : +value; 
                         checkDuplicateRankings(display_order);
                      } else {
                         evt.target.value = changed_player.modified_ranking || changed_player.category_ranking;
