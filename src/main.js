@@ -31,7 +31,7 @@ let dev = { };
 // new tournaments created in the local client should not include env.org
 let env = {
    org: 'HTS',
-   version: '0.8.2',
+   version: '0.8.5',
    auto_update: {
       players: false,
       registered_players: false,
