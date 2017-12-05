@@ -118,6 +118,10 @@
          cleanUp();
          return;
       }
+      let opts = options.map(o => {
+         if (typeof o == 'object' && o.label) return o.label;
+         return o;
+      });
       let root = d3.select('body');
       let svg = root.append('svg')
          .attr('id', 'svgmodal')
@@ -126,14 +130,14 @@
 
       let menu = contextMenu().selector(svg.node()).events({ 'cleanup': cleanUp });
       menu
-         .items(...options)
+         .items(...opts)
          .events({ 'item': { 'click': returnSelection } });
       menu(x, y);
       document.body.style.overflow  = 'hidden';
 
       function returnSelection(d, i) {
-         // cleanUp();
-         if (typeof callback == 'function') callback(d, i);
+         let v = (typeof options[i] == 'object' && options[i].value) ? options[i].value : undefined;
+         if (typeof callback == 'function') callback(d, i, v);
       }
       function cleanUp() { 
          document.body.style.overflow  = null;
@@ -266,6 +270,28 @@
       id_obj = idObj(ids);
       id_obj.ok.element.addEventListener('click', okAction);
       id_obj.cancel.element.addEventListener('click', cancelAction);
+   }
+
+   gen.versionMessage = (text, refreshAction, okAction) => {
+      if (searchBox.element) searchBox.element.blur();
+      let ids = { 
+         ok: gen.uuid(), 
+         refresh: gen.uuid(), 
+      }
+
+      document.body.style.overflow  = 'hidden';
+      document.getElementById('processing').style.display = "flex";
+      let html = `
+         <h2 style='margin: 1em;'>${text}</h2>
+         <div class="flexcenter" style='margin-bottom: 2em;'>
+            <button id='${ids.refresh}' class='btn btn-medium dismiss'>${lang.tr('actions.refresh')}</button>
+            <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${lang.tr('actions.ok')}</button>
+         </div>
+      `;
+      document.getElementById('processingtext').innerHTML = html;
+      id_obj = idObj(ids);
+      id_obj.ok.element.addEventListener('click', okAction);
+      id_obj.refresh.element.addEventListener('click', refreshAction);
    }
 
    gen.popUpMessage = (text, callback) => {
@@ -2572,6 +2598,7 @@
          name: gen.uuid(),
          address: gen.uuid(),
          courts: gen.uuid(),
+         identifiers: gen.uuid(),
       };
       let html = `
          <div class='attribute_groups'>
@@ -2591,6 +2618,10 @@
                <div class='location_attribute'>
                   <div class='loclabel'>${lang.tr('locations.courts')}:</div>
                   <input id='${ids.courts}' class='location_courts'>
+               </div>
+               <div class='location_attribute'>
+                  <div class='loclabel'>${lang.tr('locations.identifiers')}:</div>
+                  <input id='${ids.identifiers}' class='locvalue_short'>
                </div>
             </div>
          </div>
