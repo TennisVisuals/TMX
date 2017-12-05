@@ -148,6 +148,11 @@
    margin-top: .1em;
    font-style: italic;
 }
+.schedule_box .match_status {
+   margin-top: .1em;
+   font-style: italic;
+   font-weight: bold;
+}
 .schedule_box .match_umpire {
    margin-top: .1em;
    font-style: italic;
