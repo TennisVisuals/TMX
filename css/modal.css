@@ -94,6 +94,7 @@
     background-color: #fefefe;
     border-radius: 5px;
     text-align: center;
+    /* change overflow programatically */
     overflow: auto;
     color: black;
 }
@@ -113,6 +114,7 @@
     background-color: #fefefe;
     border-radius: 5px;
     text-align: center;
+    /* change overflow programatically */
     overflow: auto;
     color: black;
 }
