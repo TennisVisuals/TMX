@@ -207,6 +207,7 @@ let scoreBoard = function() {
 
          // don't allow numbers with more than 2 digits
          let numeric = value && !isNaN(value[0]) ? parseInt(value[0].toString().slice(-2)) : undefined;
+
          let tbgoal = supertiebreak ? f.supertiebreak_to : f.tiebreak_to;
          let complement = numeric == undefined ? '' : numeric + 2 < tbgoal ? tbgoal : numeric + 2;
 
@@ -214,8 +215,6 @@ let scoreBoard = function() {
 
          // if irregularWinner then don't set complement
          if (!irregularWinner()) sobj[which ? 'p1tiebreak' : 'p2tiebreak'].element.value = complement;
-
-         // sobj[which ? 'p1tiebreak' : 'p2tiebreak'].element.value = complement;
 
          function normalSetTiebreak(submit) {
             let total_sets = set_scores.length;
@@ -323,11 +322,8 @@ let scoreBoard = function() {
 
          function getComplement(value) {
             if (value == '') return;
-            // if (value == f.games_for_set || value == f.games_for_set + 1) tiebreak = true;
             if (value == f.tiebreaks_at || value == f.tiebreaks_at + 1) tiebreak = true;
-            // if (value == f.games_for_set - 1 || value == f.games_for_set) return f.games_for_set + 1;
             if (value == f.tiebreaks_at - 1 || value == f.tiebreaks_at) return f.tiebreaks_at + 1;
-            // return f.games_for_set;
             if (value < f.tiebreaks_at) return f.games_for_set;
             return f.tiebreaks_at;
          }
@@ -532,9 +528,11 @@ let scoreBoard = function() {
       }
 
       function setClick(set) {
-         // if there has been a declared winner then only the last set can be modified
-         let winner = declaredWinner();
-         if (winner) set = set_scores.length - 1;
+         if (set_scores.length - set > 1) {
+            set_scores = set_scores.slice(0, set_scores.length - 1);
+            set = set_scores.length - 1;
+            resetActions();
+         }
          setScoreDisplay({ selected_set: set });
       }
 
