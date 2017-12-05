@@ -449,8 +449,11 @@ let config = function() {
       window.addEventListener('contextmenu', (e) => { e.preventDefault(); }, false);
 
       document.getElementById('go_home').addEventListener('click', () => splash());
+
       function closeModal() { gen.closeModal(); }
-      document.getElementById('go_home').addEventListener('contextmenu', () => gen.okCancelMessage(env.version, closeModal, closeModal));
+      function refreshApp() { location.reload(true); }
+      document.getElementById('go_home').addEventListener('contextmenu', () => gen.versionMessage(env.version, refreshApp, closeModal));
+
       document.getElementById('refresh').addEventListener('click', () => updateAction());
 
       let checkVisible = () => {
