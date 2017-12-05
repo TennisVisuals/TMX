@@ -1813,7 +1813,7 @@ let tournaments = function() {
             event_config.structure.ddlb.selectionBackground();
             event_config.structure.ddlb.setValue(e.structure || 'standard');
 
-            determineLinkedDraw(e, 'Q', linkChanged);
+            // determineLinkedDraw(e, 'Q', linkChanged);
             determineLinkedDraw(e, 'E', linkChanged);
          }
 
