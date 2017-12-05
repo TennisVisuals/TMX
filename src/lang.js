@@ -287,6 +287,7 @@
          name: 'Name',
          address: 'Address',
          courts: 'Courts',
+         identifiers: 'Court IDs',
       },
 
       genders: {
@@ -308,6 +309,7 @@
          save_event: 'Save Event',
          done: 'Done',
          cancel: 'Cancel',
+         refresh: 'Refresh',
          delete_event: 'Delete Event',
          add_player: 'Add Player',
          add_location: 'Add Location',
