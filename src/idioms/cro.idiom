@@ -234,6 +234,7 @@
          name: 'Ime',
          address: 'Adresa',
          courts: 'Igrališta',
+         identifiers: 'Igrališta IDs',
       },
 
       genders: {
@@ -255,6 +256,7 @@
          save_event: 'Spremi događaj',
          done: 'Gotovo',
          cancel: 'Odustani',
+         refresh: 'Osvježi',
          delete_event: 'Obriši događaj',
          add_player: 'Dodaj novog igrača',
          add_location: 'Dodaj lokaciju',
