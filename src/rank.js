@@ -160,6 +160,8 @@
          if (!week) week = rank.getWeek(new Date());
          if (!year) year = new Date().getFullYear();
 
+         console.log('week:', week, 'year:', year);
+
          db.findAllPlayers().then(players => {
             let categories = {};
             players.forEach(player => {
@@ -248,13 +250,14 @@
          let subtractWeek = (date) => { let now = new Date(date); return now.setDate(now.getDate() - 7); }
          let addWeek = (date) => { let now = new Date(date); return now.setDate(now.getDate() + 7); }
          if (!end_date) end_date = addWeek(new Date().getTime());
-         if (!start_date) start_date = end_date;
+         if (!start_date) start_date = subtractWeek(end_date);
 
          let dates = [].concat(...d3.timeWeeks(start_date, end_date), start_date, end_date).map(date => new Date(date).getTime());
          let addCalcs = () => addCalcDates(dates, 'points').then(resolve, reject);
 
          // only calculate for players with point events in the year prior to the start date
-         let points_date = new Date(new Date(start_date).setFullYear(new Date().getFullYear() - 1)).getTime();
+         let start_date_year = new Date(start_date).getFullYear();
+         let points_date = new Date(new Date(start_date).setFullYear(start_date_year - 1)).getTime();
          db.pointsAfter(points_date).then(cP, reject);
 
          function cP(points) {
@@ -266,19 +269,6 @@
                resolve();
             }
          }
-
-         /*
-         // Brute force calculate for all players in the database
-         db.findAllPlayers().then(players => {
-            let data = players.map(player => { return { puid: player.puid, start_date, end_date, } });
-            if (data.length) {
-               performTask(rank.calculatePlayerRankingPoints, data, false).then(addCalcs, reject);
-            } else {
-               resolve();
-            }
-         });
-         */
-
       });
    }
 
@@ -369,6 +359,7 @@
    rank.calculatePlayerRankingPoints = ({puid, start_date, end_date = new Date().getTime()}) => {
       let range = (start, end) => Array.from({length: (end - start)}, (v, k) => k + start);
       let addWeek = (date) => { let now = new Date(date); return now.setDate(now.getDate() + 7); }
+
       return new Promise((resolve, reject) => {
 
          db.findPlayer(puid).then(player => db.findPlayerPoints(puid).then(points => calcRankingPoints(player, points)));
