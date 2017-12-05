@@ -345,35 +345,67 @@ let player = function() {
       player_container.gender.ddlb = new dd.DropDown({ element: player_container.gender.element, onChange: setGender });
       player_container.gender.ddlb.selectionBackground();
       if (player.sex) player_container.gender.ddlb.setValue(player.sex);
+
+      // IOC Awesomplete
       d3.json('./assets/ioc_codes.json', data => {
          let list = data.map(d => ({ label: d.name, value: d.ioc }));
          player_container.ioc.typeAhead = new Awesomplete(player_container.ioc.element, { list });
+
+         let selection_flag = false;
+         let defineCountry = (value) => player.ioc = value;
+         let selectComplete = (c) => { 
+            selection_flag = true; 
+            player.ioc = c.text.value; 
+            player_container.ioc.element.value = c.text.label;
+            player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
+         }
+         player_container.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
+         let catchTab = (evt) => { if (evt.which == 9) { evt.preventDefault(); } }
+         player_container.ioc.element.addEventListener('keydown', catchTab , false);
+         player_container.ioc.element.addEventListener("keydown", function(evt) { 
+            // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
+            if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
+               if (player_container.ioc.typeAhead.suggestions && player_container.ioc.typeAhead.suggestions.length) {
+                  player_container.ioc.typeAhead.next();
+                  player_container.ioc.typeAhead.select(0);
+               } else {
+                  player_container.ioc.element.value = '';
+                  player_container.ioc.element.style.background = 'yellow';
+               }
+               nextFieldFocus(evt.shiftKey ? 'first_name' : 'ioc');
+            }
+            selection_flag = false;
+         });
       });
 
-      let selection_flag = false;
-      let defineCountry = (value) => player.ioc = value;
-      let selectComplete = (c) => { 
-         selection_flag = true; 
-         player.ioc = c.text.value; 
-         player_container.ioc.element.value = c.text.label;
-         player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
-      }
-      player_container.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
-      let catchTab = (evt) => { if (evt.which == 9) { evt.preventDefault(); } }
-      player_container.ioc.element.addEventListener('keydown', catchTab , false);
-      player_container.ioc.element.addEventListener("keydown", function(evt) { 
-         // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
-         if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
-            if (player_container.ioc.typeAhead.suggestions && player_container.ioc.typeAhead.suggestions.length) {
-               player_container.ioc.typeAhead.next();
-               player_container.ioc.typeAhead.select(0);
-            } else {
-               player_container.ioc.element.value = '';
-               player_container.ioc.element.style.background = 'yellow';
-            }
-            nextFieldFocus(evt.shiftKey ? 'first_name' : 'ioc');
+      // Club Awesomplete
+      db.findAllClubs().then(clubs => {
+         let list = clubs.map(club => ({ label: club.name, value: club.id }));
+         player_container.club.typeAhead = new Awesomplete(player_container.club.element, { list });
+
+         let selection_flag = false;
+         let defineCountry = (value) => player.club = value;
+         let selectComplete = (c) => { 
+            selection_flag = true; 
+            player.club = c.text.value; 
+            player_container.club.element.value = c.text.label;
          }
-         selection_flag = false;
+         player_container.club.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
+         let catchTab = (evt) => { if (evt.which == 9) { evt.preventDefault(); } }
+         player_container.club.element.addEventListener('keydown', catchTab , false);
+         player_container.club.element.addEventListener("keydown", function(evt) { 
+            // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
+            if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
+               if (player_container.club.typeAhead.suggestions && player_container.club.typeAhead.suggestions.length) {
+                  player_container.club.typeAhead.next();
+                  player_container.club.typeAhead.select(0);
+               } else {
+                  player_container.club.element.value = '';
+               }
+               nextFieldFocus(evt.shiftKey ? 'ioc' : 'club');
+            }
+            selection_flag = false;
+         });
       });
 
       let defineAttr = (attr, evt, required, elem) => {
