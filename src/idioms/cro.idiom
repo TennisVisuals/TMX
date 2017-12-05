@@ -302,6 +302,17 @@
          autoschedule: 'Automatski Raspored',
          clearschedule: 'Isprazni Raspored',
          orderofplay: 'RASPORED IGRANJA',
+         matchestime: 'Utakmice => Vrijeme', 
+         notbefore: 'Ne prije',
+         followedby: 'Nakon čega slijedi',
+         afterrest: 'Nakon odmora',
+         tba: 'TBA',
+         nextavailable: 'Sljedeća dostupna',
+         oncourt: 'Na Igrališite',
+         warmingup: 'Zagrijavanje',
+         suspended: 'Suspendirana',
+         raindelay: 'Vrijeme kašnjenja',
+         clear: 'Izbrišite',
       },
 
       refresh: {

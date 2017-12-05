@@ -343,6 +343,17 @@
          autoschedule: 'Auto Schedule',
          clearschedule: 'Clear Schedule',
          orderofplay: 'ORDER OF PLAY',
+         matchestime: 'Matches => Time', 
+         notbefore: 'Not Before',
+         followedby: 'Followed By',
+         afterrest: 'After Rest',
+         tba: 'Court TBA',
+         nextavailable: 'Next Available',
+         oncourt: 'On Court',
+         warmingup: 'Warming Up',
+         suspended: 'Suspended',
+         raindelay: 'Rain Delay',
+         clear: 'Clear',
       },
       
       refresh: {
