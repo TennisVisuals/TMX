@@ -2280,9 +2280,10 @@
    gen.setScore = setScore;
    function setScore({ setnum, score={games:0} }) {
       let tiebreak = score.tiebreak != undefined ? score.tiebreak : score.spacer != undefined ? score.spacer : '';
+      let setscore = score.supertiebreak != undefined ? score.supertiebreak : score.games;
       let html = `
          <div class="set score set_number" setnum="${setnum != undefined ? setnum : ''}">
-            <div class="setscore">${score.supertiebreak || score.games}</div>
+            <div class="setscore">${setscore}</div>
             <div class="tbscore" ${score.spacer !== undefined ? 'style="opacity: 0"' : ''}>${tiebreak}</div>
          </div>
       `;
