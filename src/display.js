@@ -2056,6 +2056,7 @@
       let teams = !match.team_players ? [] : match.team_players.map(teamName);
       let divider = complete ? 'def.' : 'vs.';
       let first_team = complete ? teams[match.winner] : teams[0];
+      if (complete) first_team = `<b>${first_team}</b>`;
       let second_team = complete ? teams[1 - match.winner] : teams[1];
 
       let format = match.format ? util.normalizeName(match.format) : '';
@@ -2480,7 +2481,7 @@
    gen.drawRepState = (elem, evt) => {
       let r = evt.player_representatives;
       let rep_count = r ? r.filter(f=>f).length : 0;
-      let player_reps_state = rep_count == 2 ? 'reps_complete' : 'reps_incomplete';
+      let player_reps_state = rep_count > 0 ? 'reps_complete' : 'reps_incomplete';
       elem.className = `${player_reps_state} action_icon`;
    }
 
