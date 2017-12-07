@@ -46,6 +46,8 @@ let player = function() {
                   container = gen.playerProfile(fx.displayFx);
                   container.info.element.innerHTML = gen.playerInfo(player, club || {});
 
+                  if (club && club.code) player.club_code = club.code;
+
                   if (fx.action && typeof fx.actions[fx.action] == 'function') return resolve(fx.actions[fx.action](container, player));
 
                   // otherwise default to displaying player points
