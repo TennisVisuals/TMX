@@ -17,6 +17,7 @@ let config = function() {
       settings: true,
       importexport: true,
       autodraw: true,
+      keys: false,
    }
 
    fx.settings = {
@@ -86,17 +87,21 @@ let config = function() {
    function checkQueryString() {
       return new Promise((resolve, reject) => {
          if (queryString.settingsURL) {
-            if (!queryString.settingsURL.indexOf('http') == 0) return resolve();
+            if (queryString.settingsURL.indexOf('http') != 0) return resolve();
             coms.fetchJSON(queryString.settingsURL).then(updateSettings, console.log).then(resolve, console.log);
          } else if (queryString.resetDB) {
             if (!queryString.resetDB.indexOf('true') == 0) return resolve();
             config.resetDB().then(resolve);
+         } else if (queryString.actionKey) {
+            coms.sendKey(queryString.actionKey);
+            resolve();
          } else {
             resolve();
          }
       });
    }
 
+   fx.updateSettings = updateSettings;
    function updateSettings(settings) {
       return new Promise((resolve, reject) => {
          if (!settings) resolve();
@@ -400,6 +405,9 @@ let config = function() {
 
             env.autodraw = components.autodraw != undefined ? components.autodraw : true;
 
+            let user = settings.reduce((p, c) => c.key == 'userUUID' ? c : p, undefined);
+            if (!user) db.addSetting({ key: 'userUUID', value: UUID.generate() });
+
             // turn off info labels...
             // if no info gen.info = '';
             resolve();
@@ -581,6 +589,7 @@ let config = function() {
       splashEvent(container, 'clubs', displayClubs);
       splashEvent(container, 'settings', editSettings);
       splashEvent(container, 'importexport', displayImportExport);
+      splashEvent(container, 'keys', displayKeyActions);
 
       // Revert behavior of search box to normal
       searchBox.normalFunction();
@@ -588,6 +597,20 @@ let config = function() {
       function splashEvent(container, child, fx) {
          if (container[child].element) container[child].element.addEventListener('click', fx);
       }
+   }
+
+   function displayKeyActions() {
+      db.findSetting('superUser').then(setting => {
+         let actions = gen.keyActions(setting && setting.auth); 
+         actions.container.key.element.addEventListener('keyup', keyStroke);
+         function keyStroke(evt) {
+            if (evt.which == 13) {
+               let value = actions.container.key.element.value;
+               if (value) coms.sendKey(value);
+               gen.closeModal();
+            }
+         }
+      });
    }
 
    function displayImportExport() {
