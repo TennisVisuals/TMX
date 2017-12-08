@@ -468,20 +468,25 @@ let config = function() {
       if (env.map_provider == 'google') coms.loadGoogleMaps();
 
       // used to locate known tournaments in vicinity; auto-fill country
-      if (env.geolocate && navigator.onLine) {
-         navigator.geolocation.getCurrentPosition(pos => { 
+      if (env.geolocate && window.navigator.onLine) {
+         window.navigator.geolocation.getCurrentPosition(pos => { 
             device.geoposition = pos;
-            if (window.location.hostname == 'localhost') return;
+            // if (window.location.hostname == 'localhost') return;
             coms.emitTmx({ 
                event: 'Connection',
                notice: `lat/lng: ${pos.coords.latitude}, ${pos.coords.longitude}`,
                latitude: pos.coords.latitude,
                longitude: pos.coords.longitude,
-               version: env.version
+               version: env.version,
+               agent: window.navigator.userAgent,
             });
          });
       } else {
-         coms.emitTmx({ event: 'Connection', notice: window.navigator.userAgent });
+         coms.emitTmx({
+            event: 'Connection',
+            notice: window.navigator.userAgent,
+            version: env.version
+         });
       }
    }
 
