@@ -79,6 +79,7 @@ body {
    background-size: 100%;
 }
 .splash_tournament { background-image: url("../icons/cupblack.png"); }
+.splash_keys { background-image: url("../icons/keys.png"); }
 .splash_players { background-image: url("../icons/players.png"); }
 .splash_clubs { background-image: url("../icons/h_court.png"); }
 .splash_upload { background-image: url("../icons/upload.png"); }
