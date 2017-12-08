@@ -1749,7 +1749,7 @@ let tournaments = function() {
          event_config.qualifiers.ddlb.setValue(e.qualifiers);
       }
 
-      function configDrawType(e) { 
+      function configDrawType(e) {
          let linkChanged = () => eventPlayers(e);
 
          let setQualifiers = (value) => {
@@ -2031,13 +2031,14 @@ let tournaments = function() {
 
             // there can't be any approved players when switching draw type to consolation
             if (value == 'C') e.approved = [];
-            if (value == 'R') {
+
+            if (value == 'E') {
+               details.format.ddlb.unlock();
+            } else {
                e.format = 'S';
                details.format.ddlb.setValue('S');
                details.format.ddlb.lock();
                enableEventTeams(e);
-            } else {
-               details.format.ddlb.unlock();
             }
 
             configDrawType(e);
@@ -4185,6 +4186,8 @@ let tournaments = function() {
          let qualified_2nd = opponents
             .filter(o=>o[0].order == 2 || (o[0].order == 1 && o[0].sub_order == 2))
             .sort((a, b) => b.category_ranking - a.category_ranking);
+
+         console.log('rr qualifiers:', qualified_teams, qualified_2nd);
 
          let all_brackets_complete = e.draw.brackets.map(drawFx.bracketComplete).reduce((a, b) => a && b);
 
