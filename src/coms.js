@@ -26,6 +26,19 @@ let coms = function() {
    };
    function comsDisconnect() {  };
    function comsError(err) {  };
+   function tmxDirective(data) {
+      let json_data = attemptJSONparse(data);
+      if (json_data) processDirective(json_data); 
+   };
+   function processDirective(data) {
+      if (data.directive && data.directive == 'settings') {
+         config.updateSettings(data.content).then(() => { location.reload(true); });
+      }
+      if (data.directive && data.directive == 'authorize') {
+         let authorize = { content: data.content };
+         fx.emitTmx({ authorize });
+      }
+   }
 
    fx.connectSocket = () => {
       // if (env.broadcast && navigator.onLine && !oi.socket) {   
@@ -34,8 +47,14 @@ let coms = function() {
          oi.socket.on('connect', comsConnect);                                 
          oi.socket.on('disconnect', comsDisconnect);
          oi.socket.on('connect_error', comsError);
+         oi.socket.on('tmx directive', tmxDirective);
+         oi.socket.on('tmx error', (err) => console.log(err));
       }
    } 
+
+   fx.sendKey = (key) => {
+      fx.emitTmx({ key });
+   }
 
    fx.endBroadcast = () => { env.broadcast = false; }
 
@@ -124,11 +143,15 @@ let coms = function() {
    }
 
    fx.emitTmx = (data) => {
-      Object.assign(data, { timestamp: new Date().toString() });
-      if (connected) {
-         oi.socket.emit('tmx', data);
-      } else {
-         queue.push({ header: 'tmx', data });
+      db.findSetting('userUUID').then(sendTMX);
+
+      function sendTMX(uuuid) {
+         Object.assign(data, { timestamp: new Date().getTime(), uuuid: uuuid ? uuuid.value : undefined });
+         if (connected) {
+            oi.socket.emit('tmx', data);
+         } else {
+            queue.push({ header: 'tmx', data });
+         }
       }
    }
 
