@@ -160,8 +160,6 @@
          if (!week) week = rank.getWeek(new Date());
          if (!year) year = new Date().getFullYear();
 
-         console.log('week:', week, 'year:', year);
-
          db.findAllPlayers().then(players => {
             let categories = {};
             players.forEach(player => {
