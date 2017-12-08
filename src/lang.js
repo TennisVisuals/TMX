@@ -128,7 +128,8 @@
       time:    'Time',
       duration:'Duration',
       qualifiers: 'Qualifiers',
-      none: 'None',
+      none:    'None',
+      keys:    'Keys',
 
       set: 'Settings',
       importexport: 'Import / Export',
@@ -212,6 +213,7 @@
          done: 'Finish',
          removeall: 'Remove All',
          addall: 'Add All',
+         key: 'Authorize',
       },
 
       ddlb: {

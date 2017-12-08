@@ -76,7 +76,8 @@
       time:    'Vrijeme',
       duration:'Trajanje',
       qualifiers: 'Kvalifikacije',
-      none: 'Ništa',
+      none:    'Ništa',
+      keys:    'Ključevi',
 
       set: 'Postavke',
       importexport: 'Import / Export',
@@ -159,6 +160,7 @@
          done: 'Gotovo',
          removeall: 'Makni sve',
          addall: 'Dodaj sve',
+         key: 'Ovlastiti',
       },
 
       ddlb: {
