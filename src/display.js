@@ -270,6 +270,7 @@
       id_obj = idObj(ids);
       id_obj.ok.element.addEventListener('click', okAction);
       id_obj.cancel.element.addEventListener('click', cancelAction);
+      return id_obj;
    }
 
    gen.versionMessage = (text, refreshAction, okAction) => {
@@ -850,6 +851,57 @@
       }
       let id_obj = idObj(ids);
       return id_obj;
+   }
+
+   gen.submitKey = () => {
+      let ids = {
+         key: gen.uuid(),
+      };
+      let ddlb = [];
+      let html = `
+         <div style='min-height: 150px'>
+         <h2>Submit Key</h2>
+         <input id='${ids.key}' value=''>
+         </div>
+      `;
+      return { ids, html, ddlb }
+   }
+
+   gen.keyActions = (auth) => {
+      let ids = {
+         container: gen.uuid(),
+         cancel: gen.uuid(),
+      }
+
+      let submit = gen.submitKey();
+
+      let tabdata = [];
+      if (submit.html) tabdata.push({ tab: lang.tr('add'), content: submit.html });
+      let tabs = jsTabs.generate(tabdata);
+
+      let cancel = `
+         <div id='${ids.cancel}' class='link ${gen.info}' style='margin-left: 1em;'>
+            <img src='./icons/xmark.png' class='club_link'>
+         </div>`;
+
+      let html = `
+         <div id='${ids.container}' class='flexcol' style='width: 100%;'>
+            <div class='settings_info'>
+               <h2>Keys</h2>
+               <div class='flexrow'>${cancel}</div>
+            </div>
+            <div>${tabs}</div>
+         </div>
+      `;
+      gen.showModal(html, false);
+
+      if (submit) Object.assign(ids, submit.ids);
+      let id_obj = idObj(ids);
+
+      jsTabs.load(id_obj.container.element);
+      if (id_obj.cancel.element) id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
+
+      return { container: id_obj };
    }
 
    gen.settings = (settings) => {
@@ -1626,6 +1678,7 @@
          push2cloud_state: gen.uuid(),
          localdownload: gen.uuid(),
          localdownload_state: gen.uuid(),
+         authorize: gen.uuid(),
       }
 
       let classes = {
@@ -1914,6 +1967,11 @@
       let editable = new Date().getTime() < tournament.end;
       // TODO: change how this is handled
       editable = true;
+      let authorize_button = !editable ? '' :
+         `<div id='${ids.authorize}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.key")}' style='display: none'>
+            <img src='./icons/keys.png' class='club_link'>
+         </div>
+         `;
       let edit_button = !editable ? '' :
          `<div id='${ids.edit}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.edit")}'><img src='./icons/edit.png' class='club_link'></div>`;
       let finish_button = !editable ? '' :
@@ -1924,7 +1982,7 @@
          <div id='${ids.container}' class='tournament_container'>
             <div class='tournament_info'> 
                <div id='${ids.name}'><h2>${tournament.name}</h2></div>
-               ${edit_button}${finish_button}
+               ${authorize_button}${edit_button}${finish_button}
             </div>
             ${tabs}
          </div>
@@ -3015,6 +3073,7 @@
          settings: gen.uuid(),
          tournaments: gen.uuid(),
          importexport: gen.uuid(),
+         keys: gen.uuid(),
       }
 
       let players = action(components.players, ids.players, lang.tr('pyr'), 'splash_players');
@@ -3022,10 +3081,11 @@
       let clubs = action(components.clubs, ids.clubs, lang.tr('clb'), 'splash_clubs');
       let settings = action(components.settings, ids.settings, lang.tr('set'), 'splash_settings');
       let importexport = action(components.importexport, ids.importexport, lang.tr('importexport'), 'splash_importexport');
+      let keys = action(components.keys, ids.keys, lang.tr('keys'), 'splash_keys');
 
       let html = `
          <div class='splash_screen'>
-            <div class='actions container'>${players}${tournaments}${clubs}${settings}${importexport}
+            <div class='actions container'>${players}${tournaments}${clubs}${settings}${importexport}${keys}
             </div>
          </div>
       `;
