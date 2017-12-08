@@ -23,15 +23,13 @@
  *
  */
 
-// SETTINGS: db.findAllSettings().then(gen.settings);
-
 let dev = { };
 
 // TODO: env.org should be replaced by a setting
 // new tournaments created in the local client should not include env.org
 let env = {
    org: 'HTS',
-   version: '0.8.5',
+   version: '0.8.8',
    auto_update: {
       players: false,
       registered_players: false,
