@@ -1016,11 +1016,68 @@ let tournaments = function() {
             saveTournament(tournament);
             setEditState();
          });
+         container.authorize.element.addEventListener('click', () => {
+            let key_uuid = UUID.generate();
+            let pushKey = {
+               key_uuid,
+               "content": {
+                  "onetime": true,
+                  "directive": "authorize",
+                  "content": { "tuid": tournament.tuid }
+               }
+            }
+            let message = `${location.href}?actionKey=${key_uuid}`;
+            let btn = UUID.generate();
+            let ctext = `Link Copied to Clipboard`;
+            coms.emitTmx({ pushKey });
+            let msg = gen.okCancelMessage(ctext, () => gen.closeModal(), () => gen.closeModal());
+            copyClick();
+
+            function copyClick() {
+
+               let c = document.createElement('input');
+               c.style.opacity = 0;
+               c.setAttribute('id', 'c2c');
+               c.setAttribute('type', 'text');
+               c.setAttribute('value', message);
+               let inp = document.body.appendChild(c);
+
+               let b = document.createElement('button');
+               b.style.display = 'none';
+               b.setAttribute('data-copytarget', '#c2c');
+               b.addEventListener('click', elementCopy, true);
+               let elem = document.body.appendChild(b);
+               elem.click();
+               elem.remove();
+
+               inp.remove();
+            }
+
+         });
+      }
+
+      function elementCopy(e) {
+         let t = e.target;
+         let c = t.dataset.copytarget;
+         let inp = (c ? document.querySelector(c) : null);
+
+         if (inp && inp.select) {
+            inp.select();
+
+            try {
+               document.execCommand('copy');
+               inp.blur();
+            }
+            catch (err) { alert('please press Ctrl/Cmd+C to copy'); }
+         }
       }
 
       function setEditState() {
          container.edit.element.style.display = state.edit ? 'none' : 'inline';
          container.finish.element.style.display = state.edit ? 'inline' : 'none';
+         container.authorize.element.style.display = 'none';
+         authorizeTournaments();
+
          document.querySelector('.refresh_registrations').style.opacity = state.edit ? 1 : 0;
          document.querySelector('.' + classes.refresh_registrations).classList[state.edit ? 'add' : 'remove']('info');
 
@@ -1034,6 +1091,16 @@ let tournaments = function() {
          playersTab();
          closeEventDetails();
          closeLocationDetails();
+      }
+
+      function authorizeTournaments() {
+         if (state.edit) {
+            db.findSetting('superUser').then(setting => {
+               if (setting && setting.auth && util.string2boolean(setting.auth.tournaments)) {
+                  container.authorize.element.style.display = 'inline';
+               }
+            });
+         }
       }
 
       function enableTournamentOptions() {
