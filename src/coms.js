@@ -66,6 +66,7 @@ let coms = function() {
    }
 
    fx.broadcastScore = (match) => {
+      // format match_message the way the old tournaments client requires
       var coords = device.geoposition.coords || {};
       var sparts = scoreBoard.convertStringScore({ string_score: match.score, winner_index: match.winner });
       var sets = !sparts ? {} : sparts.map(s=> {
@@ -118,7 +119,6 @@ let coms = function() {
          serving: -1, 
          complete: match.complete, 
          winner: match.winner_index != undefined ? match.winner_index : match.winner, 
-         // edit: match.winner != undefined ? false : true,
          edit: false,
          geoposition: {
             latitude: coords.latitude,
@@ -126,10 +126,21 @@ let coms = function() {
          },
          undo: false,
       }
+
+      return match_message;
+   }
+
+   fx.broadcastEvent = (ebo) => {
+      let eventCircular = CircularJSON.stringify(ebo);
+      fx.emitTmx({ eventCircular });
+   }
+
+   fx.deleteEvent = (data) => {
+      if (!data || !data.euid) return;
       if (connected) {
-         oi.socket.emit('match score', match_message);
+         oi.socket.emit('tmx delete event', data);
       } else {
-         queue.push({ header: 'match score', data });
+         queue.push({ header: 'tmx delete event', data });
       }
    }
 
