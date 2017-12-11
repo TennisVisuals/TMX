@@ -1,5 +1,6 @@
 !function() {
 
+   // TODO: This needs to be in settings
    var rank = {
       plus2: true, // add best 2 from 1 category above
       plus4: true, // add best 2 from 2 categories above
@@ -10,71 +11,129 @@
 
    // requires db{}, util{}, exp{}
 
-   let unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
+   function unique(arr) { return arr.filter((item, i, s) => s.lastIndexOf(item) == i); }
+   function fullName(player) { return `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; }
+
+   function calcPoints(match, points_table, category, event_rank) {
+      category = category || (match.event && match.event.category);
+      event_rank = event_rank || (match.event && match.event.rank);
+
+      // TODO: remove this hack...
+      if (env.org == 'HTS') {
+         let legacy = {
+            '12': 'U12',
+            '14': 'U14',
+            '16': 'U16',
+            '18': 'U18',
+            '20': 'S',
+         }
+         if (legacy[category]) category = legacy[category];
+      }
+
+      // deal with legacy situation...
+      let match_round = match.round_name || match.round;
+
+      // draw_positions is total # of draw positions
+      let qualifying = match_round.indexOf('Q') >= 0 && match_round != 'QF' && match_round.indexOf('RR') < 0;
+      let round = qualifying ? `${match.draw_positions}${match_round}` : match_round;
+
+      if (points_table && points_table.categories[category] && points_table.categories[category][match.format]) {
+         let points_mapping = points_table.categories[category][match.format].mapping;
+         let mapping = points_table.mappings[points_mapping];
+         let multiplier = points_table.categories[category][match.format].multiplier;
+         let points_row = (mapping && mapping[round]) ?  mapping[round] : undefined;
+         let points = points_row && points_row[event_rank] ? points_row[event_rank] * multiplier : 0;
+         if (match.score.toLowerCase().indexOf('abandoned') >= 0) { return 0; }
+         return points;
+      }
+      
+      return 0;
+   }
+
+   function pointData(match, player, name, points) {
+      return { 
+         name,
+         points, 
+         id: player.id,
+         date: new Date(match.date).getTime(),
+         muid: match.muid, 
+         puid: player.puid,
+         round: match.round,
+         gender: player.sex,
+         format: match.format,
+         rank: match.event ? match.event.rank : match.tournament ? match.tournament.rank : '',
+         tuid: match.tournament.tuid,
+         category: match.event ? match.event.category : match.tournament ? match.tournament.category : '',
+         tournament_name: match.tournament.name,
+         event_name: match.event ? match.event.name : '',
+      };
+   }
 
    rank.determineGender = (match) => {
       let genders = match.players.map(p => p.sex).filter(f=>f).filter((item, i, s) => s.lastIndexOf(item) == i);
       return !genders.length ? '' : genders.length > 1 ? 'X' : genders[0];
    }
 
-   rank.calcMatchesPoints = ({matches, points_table}) => {
-      let fullName = (player) => `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
-
-      let calcPoints = (match, points_table) => {
-         let category = match['event'].category;
-         // points for HTS are eponential by powers of 2 for each category > 12
-         let multiplier = category > 12 ? Math.pow(2, (category - 12) / 2) : 1;
-         // draw_positions is total # of draw positions
-         let qualifying = match.round.indexOf('Q') >= 0 && match.round != 'QF' && match.round.indexOf('RR') < 0;
-         let round = qualifying ? `${match.draw_positions}${match.round}` : match.round;
-         let points_row = points_table && points_table[match.format] ? points_table[match.format][round] : undefined;
-
-         // RANK MOD
-         // let points = points_row && points_row[match['event'].rank - 1] ? points_row[match['event'].rank - 1] * multiplier : 0;
-
-         // USING NEW TOURNAMENT POINTS TABLE
-         let points = points_row && points_row[match['event'].rank] ? points_row[match['event'].rank] * multiplier : 0;
-
-         if (match.score.toLowerCase().indexOf('abandoned') >= 0) { return 0; }
-         return points;
-      }
-
+   rank.calcMatchesPoints = ({ matches, points_table, points_date }) => {
       let player_points = { singles: {}, doubles: {} };
       matches.forEach(match => {
-         let points = calcPoints(match, points_table);
-         let pp = player_points[match.format];
+         if (points_date) { match.date = points_date.getTime(); }
+         let ranking_attributes = points_table.rankings[match.event.rank];
+         let first_round_points =  ranking_attributes.first_round_points && ranking_attributes.first_round_points[match.event.draw_type];
+
+         let losing_rounds = {
+            'F': 'SF',
+            'SF': 'QF',
+            'QF': 'R16',
+            'R12': 'R16',
+            'R16': 'R32',
+            'R24': 'R32',
+            'R32': 'R64',
+            'R48': 'R64',
+            'R64': 'R128',
+            'R96': 'R128',
+            'R128': 'R256'
+         }; 
+         let consolation_rounds = ['C1', 'C2', 'C4', 'C8', 'C16', 'C16', 'C32', 'C32', 'C64', 'C64', 'C128', 'C128']; 
+         let round_index = ['F', 'SF', 'QF', 'R12', 'R16', 'R24', 'R32', 'R48', 'R64', 'R96', 'R128'].indexOf(match.round_name);
 
          if (!match.consolation) {
-            match.team_players[match.winner].forEach(pindex => {
-               let player = match.players[pindex];
-               let name = fullName(player);
-               if (!pp[name] || points > pp[name].points) {
-                  pp[name] = { 
-                     name,
-                     points, 
-                     id: player.id,
-                     date: new Date(match.date).getTime(),
-                     muid: match.muid, 
-                     puid: player.puid,
-                     round: match.round,
-                     gender: player.sex,
-                     format: match.format,
-                     rank: match['event'].rank,
-                     tuid: match.tournament.tuid,
-                     category: match['event'].category,
-                     tournament_name: match.tournament.name,
-                     event_name: match['event'].name,
-                  };
-               }
-            });
+            awardPoints(match, match.winner);
+
+            if (first_round_points) {
+               match.round_name = losing_rounds[match.round_name];
+               awardPoints(match, 1 - match.winner);
+            }
+         } else {
+            let winner_round = consolation_rounds[round_index]; 
+            let loser_round = consolation_rounds[round_index + 1]; 
+
+            match.round_name = winner_round;
+            awardPoints(match, match.winner);
+
+            if (first_round_points) {
+               match.round_name = loser_round;
+               awardPoints(match, 1 - match.winner);
+            }
          }
+
       });
+
+      function awardPoints(match, team_index) {
+         let points = calcPoints(match, points_table);
+         match.team_players[team_index].forEach(pindex => {
+            let player = match.players[pindex];
+            let name = fullName(player);
+            let pp = player_points[match.format];
+            if (!pp[name] || points > pp[name].points) { pp[name] = pointData(match, player, name, points); }
+         });
+      }
 
       return player_points;
    }
 
+   // used for matches which are imported from spreadsheets
    rank.bulkPlayerPoints = ({matches, category, rankings, date, points_table}) => {
-      let fullName = (player) => `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
       let player_points = { singles: {}, doubles: {} };
 
       let determineRank = (match, rankings) => {
@@ -89,24 +148,6 @@
       // a loser could be assigned points for losing ONLY IF they already had
       // points for a prior round... or if it is determined that the match is
       // not the FIRST ROUND of the tournament
-      let calcPoints = (match, points_table) => {
-         let category = match.tournament.category || 20;
-         // points for HTS are eponential by powers of 2 for each category > 12
-         let multiplier = category > 12 ? Math.pow(2, (category - 12) / 2) : 1;
-         // draw_positions is total # of draw positions
-         let qualifying = match.round.indexOf('Q') >= 0 && match.round != 'QF' && match.round.indexOf('RR') < 0;
-         let round = qualifying ? `${match.draw_positions}${match.round}` : match.round;
-         let points_row = points_table && points_table[match.format] ? points_table[match.format][round] : undefined;
-
-         // RANK MOD
-         // let points = points_row && points_row[match.tournament.rank - 1] ? points_row[match.tournament.rank - 1] * multiplier : 0;
-
-         // USING NEW TOURNAMENT POINTS TABLE
-         let points = points_row && points_row[match.tournament.rank] ? points_row[match.tournament.rank] * multiplier : 0;
-
-         if (match.score.toLowerCase().indexOf('abandoned') >= 0) { return 0; }
-         return points;
-      }
 
       matches.forEach(match => {
          if (date) { match.date = date.getTime(); }
@@ -114,30 +155,13 @@
 
          match.tournament.rank = determineRank(match, rankings);
 
-         let points = calcPoints(match, points_table);
-         let pp = player_points[match.format];
-
          if (!match.consolation) {
+            let points = calcPoints(match, points_table, category, match.tournament.rank);
             match.teams[match.winner].forEach(pindex => {
                let player = match.players[pindex];
                let name = fullName(player);
-               if (!pp[name] || points > pp[name].points) {
-                  pp[name] = { 
-                     name,
-                     points, 
-                     id: player.id,
-                     date: new Date(match.date).getTime(),
-                     muid: match.muid, 
-                     puid: player.puid,
-                     round: match.round,
-                     gender: player.sex,
-                     format: match.format,
-                     rank: match.tournament.rank,
-                     tuid: match.tournament.tuid,
-                     category: match.tournament.category,
-                     tournament_name: match.tournament.name,
-                  };
-               }
+               let pp = player_points[match.format];
+               if (!pp[name] || points > pp[name].points) { pp[name] = pointData(match, player, name, points); }
             });
          }
       });
