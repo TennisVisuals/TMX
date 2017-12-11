@@ -1965,8 +1965,10 @@
       let tabs = jsTabs.generate(tabdata);
 
       let editable = new Date().getTime() < tournament.end;
+
       // TODO: change how this is handled
       editable = true;
+
       let authorize_button = !editable ? '' :
          `<div id='${ids.authorize}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.key")}' style='display: none'>
             <img src='./icons/keys.png' class='club_link'>
@@ -2113,9 +2115,13 @@
 
       let teams = !match.team_players ? [] : match.team_players.map(teamName);
       let divider = complete ? 'def.' : 'vs.';
-      let first_team = complete ? teams[match.winner] : teams[0];
-      if (complete) first_team = `<b>${first_team}</b>`;
-      let second_team = complete ? teams[1 - match.winner] : teams[1];
+
+      let first_team = complete && match.winner == 0 ? `<b>${teams[0]}</b>` : teams[0];
+      let second_team = complete && match.winner == 1 ? `<b>${teams[1]}</b>` : teams[1];
+
+      // let first_team = complete ? teams[match.winner] : teams[0];
+      // if (complete) first_team = `<b>${first_team}</b>`;
+      // let second_team = complete ? teams[1 - match.winner] : teams[1];
 
       let format = match.format ? util.normalizeName(match.format) : '';
 
