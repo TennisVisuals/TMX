@@ -302,6 +302,8 @@ let tournaments = function() {
          minPlayerHeight: 30,
          details: { club_codes: true, draw_positions: true, player_rankings: true, draw_entry: true, seeding: true },
       });
+
+      rr_draw.options({ min_width: 300 });
       // end draw object creation/initialization
 
       editAction();
@@ -977,8 +979,8 @@ let tournaments = function() {
 
       function editAction() {
          if (!container.edit.element || !container.finish.element) return;
-         container.edit.element.style.opacity = group_draws.length ? 0 : 1;
-         if (group_draws.length) return;
+         // container.edit.element.style.opacity = group_draws.length ? 0 : 1;
+         // if (group_draws.length) return;
          
          container.edit.element.addEventListener('click', () => {
             if (!state.edit) {
@@ -1565,8 +1567,10 @@ let tournaments = function() {
                   .on('click', () => { 
                      closeEventDetails();
 
-                     let matches = !e.draw ? [] : drawFx.matches(e.draw).map(m=>({ muid: m.match.muid, tuid: tournament.tuid }));; 
-                     matches.forEach(coms.deleteMatch);
+                     // Delete any published events or matches
+                     deleteEvent(tournament, e);
+                     // let matches = !e.draw ? [] : drawFx.matches(e.draw).map(m=>({ muid: m.match.muid, tuid: tournament.tuid }));; 
+                     // coms.deleteEvent({ euid: e.euid, tuid: tournament.tuid, matches });
 
                      tournament.events.splice(index, 1);
                      removeReferences(e.euid);
@@ -1880,7 +1884,6 @@ let tournaments = function() {
             event_config.structure.ddlb.selectionBackground();
             event_config.structure.ddlb.setValue(e.structure || 'standard');
 
-            // determineLinkedDraw(e, 'Q', linkChanged);
             determineLinkedDraw(e, 'E', linkChanged);
          }
 
@@ -2077,6 +2080,7 @@ let tournaments = function() {
          let setRank = (value) => { 
             e.rank = value; 
             eventList(true);
+            saveTournament(tournament);
          }
          details.rank.ddlb = new dd.DropDown({ element: details.rank.element, onChange: setRank });
          if (e.rank || tournament.rank) details.rank.ddlb.setValue(e.rank || tournament.rank);
@@ -2301,8 +2305,9 @@ let tournaments = function() {
             // Unless e.structure == 'feed', filter out teams who had a win
             // TODO: add in support for feed-in draws...
             loser_ids = loser_ids.filter(i => winner_ids.indexOf(i) < 0);
+            alternate_ids = available_players.filter(i => winner_ids.indexOf(i.id) < 0 && loser_ids.indexOf(i.id) < 0).map(p=>p.id);
 
-            available_players = available_players.filter(p=>loser_ids.indexOf(p.id) >= 0);
+            available_players = available_players.filter(p=>loser_ids.indexOf(p.id) >= 0 || alternate_ids.indexOf(p.id) >= 0);
          }
 
          if (e.gender) modifyApproved.filterGender(e);
@@ -2339,8 +2344,12 @@ let tournaments = function() {
          // Qualifying Draws must have at least one seed per section
          if (e.draw_type == 'Q') seed_limit = Math.max(seed_limit, e.qualifiers);
 
-         let linked = findEventByID(e.links['Q']) || findEventByID(e.links['R']);
-         let qualifier_ids = linked && linked.qualified ? linked.qualified.map(teamHash) : [];
+         let linkedQ = findEventByID(e.links['Q']) || findEventByID(e.links['R']);
+         let qualifier_ids = linkedQ && linkedQ.qualified ? linkedQ.qualified.map(teamHash) : [];
+
+         let linkedE = findEventByID(e.links['E']);
+         let alternate_ids = (e.draw_type == 'C' && linkedE && linkedE.approved) ?
+            approved_players.map(ap => ap.id).filter(i => linkedE.approved.indexOf(i) < 0) : [];
 
          let seeding = rankedTeams(approved_players);
 
@@ -2348,7 +2357,8 @@ let tournaments = function() {
             .map((p, i) => {
 
                let qualifier = qualifier_ids.indexOf(p.id) >= 0;
-               p.entry = qualifier ? 'Q' : undefined;
+               let alternate = alternate_ids.indexOf(p.id) >= 0;
+               p.entry = qualifier ? 'Q' : alternate ? 'A' : p.entry;
 
                // TODO: implement qualifier in approvedTeams
 
@@ -2632,13 +2642,19 @@ let tournaments = function() {
          let unavailable = unavailablePlayers(e);
          let eligible = eligiblePlayers(e, ineligible, unavailable);
 
-         let linked = findEventByID(e.links['Q']) || findEventByID(e.links['R']);
-         let qualifier_ids = linked && linked.qualified ? linked.qualified.map(teamHash) : [];
+         let linkedQ = findEventByID(e.links['Q']) || findEventByID(e.links['R']);
+         let qualifier_ids = linkedQ && linkedQ.qualified ? linkedQ.qualified.map(teamHash) : [];
+
+         let linkedE = findEventByID(e.links['E']);
+         let alternate_ids = (e.draw_type == 'C' && linkedE && linkedE.approved) ?
+            eligible.map(el => el.id).filter(i => linkedE.approved.indexOf(i) < 0) : [];
 
          if (e.format == 'S') {
             eligible.forEach(p => { 
-               if (qualifier_ids.length && qualifier_ids.indexOf(p.id) >= 0) {
+               if (qualifier_ids.indexOf(p.id) >= 0) {
                   p.full_name = `<div style='color: green'>${p.full_name}&nbsp;<span class='player_seed'>[Q]</span></div>`; 
+               } else if (alternate_ids.indexOf(p.id) >= 0) {
+                  p.full_name = `<div style='color: orange'>${p.full_name}&nbsp;<span class='player_seed'>[A]</span></div>`; 
                } else {
                   if (p.order) p.full_name = `${p.full_name}&nbsp;<span class='player_order'>(${p.order})</span>`; 
                }
@@ -3886,18 +3902,22 @@ let tournaments = function() {
             });
       }
 
-      function tournamentPoints(matches) {
+      function tournamentPoints(tournament, matches) {
+         let points_date = new Date(tournament.points_date || tournament.end);
+
          tabVisible(container, 'PT', matches && matches.length);
          if (!matches || !matches.length) return;
          // remove any calculated points or rankings
          matches.forEach(match => match.players.forEach(p => p=player.cleanPlayer(p)));
 
          // TODO: the profile can be specified in the tournament configuration
-         let profile = tournamentParser.profiles[env.org];
+         let profile = env.profile || tournamentParser.profiles[env.org];
          let points_table = point_tables[profile.points];
 
-         let match_data = { matches, points_table };
+         let match_data = { matches, points_table, points_date };
          let points = rank.calcMatchesPoints(match_data);
+
+         saveMatchesAndPoints(tournament, matches, points);
 
          let filterPointsByGender = (obj) => {
             // keep if gender is not in the filters
@@ -3944,16 +3964,17 @@ let tournaments = function() {
          tabVisible(container, 'ST', show_schedule);
          if (!t_matches) return;
 
+         // TODO: why is this here? Points are calculated after this...
          pointsTab(tournament, container, filters);
 
-         if (tournament.matches && tournament.matches.length) {
+         if (!tournament.events && tournament.matches && tournament.matches.length) {
             // if matches array part of tournament object, matches have been imported
             tournament.matches.forEach(match => match.outcome = player.matchOutcome(match));
             gen.displayTournamentMatches({ container, completed_matches: tournament.matches, filters });
          } else {
             let { completed_matches, pending_matches } = tournamentEventMatches({ tournament });
             gen.displayTournamentMatches({ container, pending_matches, completed_matches, filters });
-            tournamentPoints(completed_matches);
+            tournamentPoints(tournament, completed_matches);
          }
 
          // attach function to display player profile when clicked
@@ -4070,26 +4091,90 @@ let tournaments = function() {
          return { complete, incomplete }
       }
 
-      // TODO: courthive.com/tournaments needs to change to receive entire tournmanet, not just single matches
-      function broadcastEvent(tourny, evt) {
-         let { complete, incomplete } = eventMatchStorageObjects(tourny, evt);
-         if (coms.broadcasting()) {
-            complete.forEach(coms.broadcastScore);
-            incomplete.forEach(coms.broadcastScore);
+      function eventBroadcastObject(tourny, evt, draw) {
+         let ebo = { 
+            tournament: {
+               tuid: tourny.tuid,
+               name: tourny.name,
+               start: tourny.start,
+               end: tourny.end,
+            },
+            event: {
+               euid: evt.euid,
+               name: evt.name,
+               rank: evt.rank,
+               gender: evt.gender,
+               format: evt.format,
+               surface: evt.surface,
+               category: evt.category,
+               draw_size: evt.draw_size,
+               draw_type: evt.draw_type,
+            },
          }
+
+         if (draw) {
+            ebo.draw = {
+               dp: evt.draw.dp,
+               team: evt.draw.team,
+               match: evt.draw.match,
+               children: evt.draw.children,
+               max_round: evt.draw.max_round,
+               round_name: evt.draw.round_name,
+               brackets: evt.draw.brackets,
+               bracket_size: evt.draw.bracket_size,
+            }
+         }
+
+         return ebo;
+      }
+
+      function deleteEvent(tourny, evt) {
+         let matches = !evt.draw ? [] : drawFx.matches(evt.draw).map(m=>({ muid: m.match.muid, tuid: tourny.tuid }));; 
+         let ebo = eventBroadcastObject
+         coms.deleteEvent({ euid: evt.euid, tuid: tourny.tuid, matches });
+      }
+
+      function broadcastEvent(tourny, evt) {
+
+         let ebo = { 
+            tournament: {
+               tuid: tourny.tuid,
+               name: tourny.name,
+               start: tourny.start,
+               end: tourny.end,
+            },
+            event: {
+               euid: evt.euid,
+               name: evt.name,
+               rank: evt.rank,
+               gender: evt.gender,
+               format: evt.format,
+               surface: evt.surface,
+               category: evt.category,
+               draw_size: evt.draw_size,
+               draw_type: evt.draw_type,
+            },
+            draw: {
+               dp: evt.draw.dp,
+               team: evt.draw.team,
+               match: evt.draw.match,
+               children: evt.draw.children,
+               max_round: evt.draw.max_round,
+               round_name: evt.draw.round_name,
+               brackets: evt.draw.brackets,
+               bracket_size: evt.draw.bracket_size,
+            }
+         };
+
+         coms.broadcastEvent(ebo);
+
+         // TODO: why is up_to_date based on complete?
+         let { complete, incomplete } = eventMatchStorageObjects(tourny, evt);
          evt.up_to_date = complete.length ? true : undefined;
+
          evt.published = true;
 
          saveTournament(tournament);
-      }
-
-      // TODO: courthive.com/tournaments needs to change to receive entire tournmanet, not just single matches
-      function broadcastTournament(tourny) {
-         let { completed_matches, pending_matches } = tournamentEventMatches({ tournament });
-         if (coms.broadcasting()) {
-            completed_matches.forEach(coms.broadcastScore);
-            pending_matches.forEach(coms.broadcastScore);
-         }
       }
 
       function matchStorageObject(tournament, e, match, source) {
@@ -4106,7 +4191,7 @@ let tournaments = function() {
                match.match.loser.map((p, i) => match.match.winner.length + i),
             ];
          } else {
-            // TODO: lots of confustion with .winner being binary or player/team 
+            // TODO: lots of confusion with .winner being binary or player/team 
             //       and .winner_index
             //       and .teams not being in order...
             players = [].concat(...match.teams);
@@ -5203,7 +5288,7 @@ let tournaments = function() {
             let draw = e.draw;
             let position = d.data.dp;
 
-            if (d.data.match && d.data.match.score && (!d.parent.data || !d.parent.data.team)) {
+            if (d.data.match && d.data.match.score && (!d.parent || !d.parent.data || !d.parent.data.team)) {
                // must be a unique selector in case there are other SVGs
                let selector = d3.select('#' + container.draws.id + ' svg').node();
                let menu = contextMenu().selector(selector).events({ 'cleanup': tree_draw.unHighlightCells });
@@ -5699,7 +5784,11 @@ let tournaments = function() {
             onSelect: function() {
                points_date = this.getDate();
                tournament.points_date = points_date.getTime();
-               // calcTournamentPoints ??
+               saveTournament(tournament);
+
+               // regenerate points with new date
+               let { completed_matches, pending_matches } = tournamentEventMatches({ tournament });
+               tournamentPoints(tournament, completed_matches) {
             },
          });
          pointsDatePicker.setMinDate(points_date);
@@ -5875,7 +5964,7 @@ let tournaments = function() {
          return;
       }
 
-      let profile = tournamentParser.profiles[env.org];
+      let profile = env.profile || tournamentParser.profiles[env.org];
       let points_table = point_tables[profile.points];
 
       // if there are no gendered ranking settings, 
@@ -5888,7 +5977,7 @@ let tournaments = function() {
       displayTournamentPoints(container, points);
 
       let finishFx = () => addAcceptedRankings(container, tournament, category);
-      saveMatchesAndPoints(matches, points, finishFx);
+      saveMatchesAndPoints(tournament, matches, points, finishFx);
    }
 
    function addAcceptedRankings(container, tournament, category) {
@@ -5897,27 +5986,29 @@ let tournaments = function() {
       if (tuid) rank.addAcceptedRanking({tuid, category, rankings});
    }
 
-   function saveMatchesAndPoints(matches, points, finishFx) {
+   function saveMatchesAndPoints(tournament, matches, points, finishFx) {
 
-      // TODO: before saving matches and points, delete any previous matches and points??
+      db.deleteTournamentPoints(tournament.tuid).then(saveAll, (err) => console.log(err));
 
-      let finish = (result) => { if (typeof finishFx == 'function') finishFx(result); }
-      let addMatches = (matches) => util.performTask(db.addMatch, matches, false);
-      let singles_points = Object.keys(points.singles).map(player => points.singles[player]);
-      let doubles_points = Object.keys(points.doubles).map(player => points.doubles[player]);
-      let all_points = [].concat(...singles_points, ...doubles_points);
+      function saveAll() {
+         let finish = (result) => { if (typeof finishFx == 'function') finishFx(result); }
+         let addMatches = (matches) => util.performTask(db.addMatch, matches, false);
+         let singles_points = Object.keys(points.singles).map(player => points.singles[player]);
+         let doubles_points = Object.keys(points.doubles).map(player => points.doubles[player]);
+         let all_points = [].concat(...singles_points, ...doubles_points);
 
-      // total points adds all points for all players
-      let total_points = all_points.length ? all_points.map(p => p.points).reduce((a, b) => +a + (+b || 0)) : 0;
+         // total points adds all points for all players
+         let total_points = all_points.length ? all_points.map(p => p.points).reduce((a, b) => +a + (+b || 0)) : 0;
 
-      // if anyone earned points, save matches, point_events then display
-      if (total_points) {
-         let addPointEvents = (point_events) => util.performTask(db.addPointEvent, point_events, false);
-         let valid_points = all_points.filter(p => p.points != undefined && p.puid);
+         // if anyone earned points, save matches, point_events then display
+         if (total_points) {
+            let addPointEvents = (point_events) => util.performTask(db.addPointEvent, point_events, false);
+            let valid_points = all_points.filter(p => p.points != undefined && p.puid);
 
-         addPointEvents(valid_points).then(() => addMatches(matches)).then(finish);
-      } else {
-         addMatches(matches).then(finish);
+            addPointEvents(valid_points).then(() => addMatches(matches)).then(finish);
+         } else {
+            addMatches(matches).then(finish);
+         }
       }
    }
 
@@ -6080,7 +6171,7 @@ let tournaments = function() {
          db.db.matches.where('tournament.tuid').equals(tournament.tuid).toArray(calcPoints); 
 
          let points_date = new Date(tournament.points_date || tournament.end);
-         let profile = tournamentParser.profiles[env.org];
+         let profile = env.profile || tournamentParser.profiles[env.org];
          let points_table = point_tables[profile.points];
 
          let rankings = {
@@ -6472,12 +6563,12 @@ let tournaments = function() {
 
       function configureDDLBs(tournament, container) {
          let cpp = (value) => {
-            if (!value) {
-               console.log('deleting tournament points');
-               db.deleteTournamentPoints(tournament.tuid).then(() => calcPlayerPoints({ tournament, container }));
-            } else {
+            // if (!value) {
+            //    console.log('deleting tournament points');
+            //    db.deleteTournamentPoints(tournament.tuid).then(() => calcPlayerPoints({ tournament, container }), (err) => console.log(err));
+            // } else {
                calcPlayerPoints({ tournament, container });
-            }
+            // }
          }
          container.category.ddlb = new dd.DropDown({ element: container.category.element, onChange: cpp });
          container.dbl_rank.ddlb = new dd.DropDown({ element: container.dbl_rank.element, onChange: cpp });
