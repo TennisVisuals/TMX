@@ -29,7 +29,8 @@ let dev = { };
 // new tournaments created in the local client should not include env.org
 let env = {
    org: 'HTS',
-   version: '0.8.8',
+   profile: undefined,     // can now be set to 'HTS2018' for new point tables
+   version: '0.8.9',
    auto_update: {
       players: false,
       registered_players: false,
