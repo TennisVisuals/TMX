@@ -6,8 +6,9 @@ let db = function() {
          db.db = new Dexie("CourtHiveTournaments", {autoOpen: false});
          db.db.version(1).stores({ 
             aliases: "&alias",
-            clubs: "&id, &code",
             ignored: "[hash+ioc]",
+
+            clubs: "&id, &code",
             calculations: "&hash, date, type",
             matches: "&muid, *puids, format, date, tournament.category, tournament.tuid",
             points: "[puid+tuid+format+round], puid, tuid, muid, date",
