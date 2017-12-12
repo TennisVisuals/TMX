@@ -65,7 +65,8 @@
          tuid: match.tournament.tuid,
          category: match.event ? match.event.category : match.tournament ? match.tournament.category : '',
          tournament_name: match.tournament.name,
-         event_name: match.event ? match.event.name : '',
+         event_name: match.event ? match.event.name : undefined,
+         euid: match.event ? match.event.euid : undefined,
       };
    }
 
