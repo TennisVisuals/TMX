@@ -3333,9 +3333,11 @@
    gen.playerSeason = (container, data, season_events) => {
       let playerSeason = ladderChart();
       playerSeason.colors({
-         "hardcourt":   "#235dba",
-         "clay":        "#db3e3e",
-         "unknown":     "#db3e3e",
+         "H":        "#235dba",
+         "C":        "#db3e3e",
+         "G":        "#3ADF00",
+         "R":        "#00FFFF",
+         "unknown":  "#db3e3e",
       });
       playerSeason.options({
          plot: {

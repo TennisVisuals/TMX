@@ -263,7 +263,7 @@ let player = function() {
             date: new Date(match.date),
             round,
             rung,
-            surface: 'unknown',
+            surface: match.event && match.event.surface || "unknown",
             tournament: match.tournament,
          }
          if (!tournaments[tuid] || rung > tournaments[tuid].rung) tournaments[tuid] = value;
