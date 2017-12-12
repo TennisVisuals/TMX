@@ -505,7 +505,7 @@ let tournaments = function() {
          let round_filter = container.round_filter.ddlb.getValue();
 
          let unscheduled_matches = all_matches
-            .filter(m=>(!m.schedule || !m.schedule.court) && !m.score);
+            .filter(m=>(!m.schedule || !m.schedule.court) && m.winner == undefined);
 
          // only schedule matches that match the round and event filters
          let filtered_unscheduled = unscheduled_matches
@@ -801,9 +801,25 @@ let tournaments = function() {
       function enableAddPlayer() {
          let year = new Date().getFullYear();
 
-         let category = isNaN(tournament.category) ? 20 : +tournament.category;
-         let max_year = year - category;
-         let min_year = category == 20 ? max_year + 6 : max_year + 4;
+         let age_category = tournament.category;
+
+         // TODO: remove this hack...
+         if (env.org == 'HTS') {
+            let legacy = {
+               '12': 'U12',
+               '14': 'U14',
+               '16': 'U16',
+               '18': 'U18',
+               '20': 'S',
+            }
+            if (legacy[age_category]) age_category = legacy[age_category];
+         }
+
+         let categories = point_tables[env.org] && point_tables[env.org].categories;
+         let ages = categories && categories[age_category] ? categories[age_category].ages : { from: 8, to: 100 };
+
+         let min_year = year - ages.from;
+         let max_year = year - ages.to;
 
          player.action = 'addTournamentPlayer';
          player.displayFx = gen.showConfigModal;
@@ -820,9 +836,7 @@ let tournaments = function() {
          });
 
          function categoryFilter(player) {
-            if (!player.birth && category == 20) return true;
             let birth_year = new Date(player.birth).getFullYear();
-            if (category == 20 && birth_year < min_year) return true;
             if (birth_year <= min_year && birth_year >= max_year) return true;
          }
       }
@@ -2810,12 +2824,8 @@ let tournaments = function() {
       }
 
       function scheduleTab() {
-         if (!tournamentCourts() || group_draws.length || !tournament.events || !tournament.events.length) {
-            tabVisible(container, 'ST', false);
-            return;
-         }
-         tabVisible(container, 'ST', true);
-         displaySchedule();
+         let display = showSchedule();
+         if (display) displaySchedule();
       }
 
       function teamName(match, team) {
@@ -3464,7 +3474,7 @@ let tournaments = function() {
                   let sb = gen.scheduleBox({ match, editable: true});
                   target.innerHTML = sb.innerHTML;
                   target.style.background = sb.background;
-                  target.setAttribute('draggable', 'false');
+                  target.setAttribute('draggable', match.winner != undefined ? 'false' : 'true');
 
                   // now update pending matches to show new matches resulting from completion
                   ({ completed_matches, pending_matches } = tournamentEventMatches({ tournament, source: true }));
@@ -3898,7 +3908,6 @@ let tournaments = function() {
       }
 
       function tournamentPoints(tournament, matches) {
-         console.log('tournament points:', matches);
          let points_date = new Date(tournament.points_date || tournament.end);
 
          tabVisible(container, 'PT', matches && matches.length);
@@ -3913,25 +3922,10 @@ let tournaments = function() {
          let match_data = { matches, points_table, points_date };
          let points = rank.calcMatchesPoints(match_data);
 
-         saveMatchesAndPoints({ tournament, matches, points });
+         // TODO: maybe not save until tournament is downloaded from cloud?
+         // saveMatchesAndPoints({ tournament, matches, points });
 
-         /*
-         let filterPointsByGender = (obj) => {
-            // keep if gender is not in the filters
-            let filtered = Object.keys(obj).filter(k => filters.indexOf(obj[k].gender) < 0);
-            // recreate objects
-            let mapped = filtered.map(m => { return { [obj[m].name]: obj[m] }});
-
-            return Object.assign({}, ...mapped);
-         }
-
-         let filtered_points = {
-            singles: filterPointsByGender(points.singles),
-            doubles: filterPointsByGender(points.doubles),
-         }
-         */
-
-         displayTournamentPoints(container, filtered_points, filters);
+         displayTournamentPoints(container, points, filters);
       }
 
       function drawCreated(e) {
@@ -3939,13 +3933,19 @@ let tournaments = function() {
          e.draw_created = true;
          enableDrawActions();
          tabVisible(container, 'MT');
-           
-         let show_schedule = tournamentCourts() && tournament.events && tournament.events.length ? true : false;
-         tabVisible(container, 'ST', show_schedule)
+         showSchedule();
 
          // add round_name to matches
          eventMatches(e);
          saveTournament(tournament);
+      }
+
+      function showSchedule() {
+         let no_events = !tournament.events || !tournament.events.length;
+         let only_matches = group_draws.length && no_events;
+         let visible = !tournamentCourts() || only_matches || no_events ? false : true;
+         tabVisible(container, 'ST', visible);
+         return visible;
       }
 
       function tournamentCourts() {
@@ -3958,8 +3958,7 @@ let tournaments = function() {
          tabVisible(container, 'MT', t_matches);
          tabVisible(container, 'PT', t_matches);
 
-         let show_schedule = tournamentCourts() && !group_draws.length && tournament.events && tournament.events.length ? true : false;
-         tabVisible(container, 'ST', show_schedule);
+         showSchedule();
          if (!t_matches) return;
 
          pointsTab(tournament, container, filters);
@@ -5298,7 +5297,11 @@ let tournaments = function() {
                      'item': { 
                         'click': (c, i) => {
 
-                           delete d.data.match;
+                           delete d.data.match.score;
+                           delete d.data.match.winner;
+                           delete d.data.match.loser;
+                           delete d.data.match.set_scores;
+
                            delete d.data.dp;
                            delete d.data.team;
                            delete d.data.round_name;
