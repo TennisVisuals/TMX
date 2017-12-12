@@ -236,18 +236,12 @@ let tournaments = function() {
          }
       } else {
          opts = {
-            // category: numberValue(container.category.ddlb.getValue()),
-            // dbl_rank: numberValue(container.dbl_rank.ddlb.getValue()),
-            // sgl_rank: numberValue(container.sgl_rank.ddlb.getValue()),
             category: container.category.ddlb.getValue(),
             dbl_rank: container.dbl_rank.ddlb.getValue(),
             sgl_rank: container.sgl_rank.ddlb.getValue(),
          }
 
          // if both genders are present
-         // if (container.w_category.ddlb) opts['W'] = { category: numberValue(container.w_category.ddlb.getValue()) };
-         // if (container.w_dbl_rank.ddlb) opts['W'].dbl_rank = numberValue(container.w_dbl_rank.ddlb.getValue());
-         // if (container.w_sgl_rank.ddlb) opts['W'].sgl_rank = numberValue(container.w_sgl_rank.ddlb.getValue());
          if (container.w_category.ddlb) opts['W'] = { category: container.w_category.ddlb.getValue() };
          if (container.w_dbl_rank.ddlb) opts['W'].dbl_rank = container.w_dbl_rank.ddlb.getValue();
          if (container.w_sgl_rank.ddlb) opts['W'].sgl_rank = container.w_sgl_rank.ddlb.getValue();
@@ -3921,6 +3915,7 @@ let tournaments = function() {
 
          saveMatchesAndPoints({ tournament, matches, points });
 
+         /*
          let filterPointsByGender = (obj) => {
             // keep if gender is not in the filters
             let filtered = Object.keys(obj).filter(k => filters.indexOf(obj[k].gender) < 0);
@@ -3934,8 +3929,9 @@ let tournaments = function() {
             singles: filterPointsByGender(points.singles),
             doubles: filterPointsByGender(points.doubles),
          }
+         */
 
-         displayTournamentPoints(container, filtered_points);
+         displayTournamentPoints(container, filtered_points, filters);
       }
 
       function drawCreated(e) {
@@ -3966,7 +3962,6 @@ let tournaments = function() {
          tabVisible(container, 'ST', show_schedule);
          if (!t_matches) return;
 
-         // TODO: why is this here? Points are calculated after this...
          pointsTab(tournament, container, filters);
 
          let { completed_matches, pending_matches } = tournamentEventMatches({ tournament });
@@ -3974,6 +3969,7 @@ let tournaments = function() {
             // if matches array part of tournament object, matches have been imported
             tournament.matches.forEach(match => match.outcome = player.matchOutcome(match));
             gen.displayTournamentMatches({ container, completed_matches: tournament.matches, filters });
+            calcPlayerPoints({ tournament, container, filters });
          } else {
             gen.displayTournamentMatches({ container, pending_matches, completed_matches, filters });
             tournamentPoints(tournament, completed_matches);
@@ -4250,8 +4246,6 @@ let tournaments = function() {
          if (tournament.matches) {
             db.findTournamentPoints(tournament.tuid).then(points => {
                if (points.length) {
-                  if (filters.indexOf('M') >= 0) points = points.filter(p => p.gender != 'M');
-                  if (filters.indexOf('W') >= 0) points = points.filter(p => p.gender != 'W');
                   let player_points = { singles: {}, doubles: {} };
                   points.forEach(point => {
                      let format = point.format;
@@ -4259,14 +4253,13 @@ let tournaments = function() {
                      if (existing && existing.points > point.points) return;
                      player_points[format][point.name] = point;
                   });
-                  displayTournamentPoints(container, player_points);
+                  displayTournamentPoints(container, player_points, filters);
                }
             });
          }
       }
 
       function displayDraw({ evt }) { 
-
          if (!evt.draw) return;
          displayed_draw_event = evt;
          gen.drawRepState(container.player_reps_state.element, displayed_draw_event);
@@ -5678,6 +5671,29 @@ let tournaments = function() {
          } else {
             tournamentOptions(days);
          }
+
+         let points_date = new Date(tournament.points_date || tournament.end);
+         let pointsDatePicker = new Pikaday({
+            field: container.points_valid.element,
+            i18n: lang.obj('i18n'),
+            defaultDate: points_date,
+            setDefaultDate: true,
+            onSelect: function() {
+               points_date = this.getDate();
+               tournament.points_date = points_date.getTime();
+               saveTournament(tournament);
+
+               // regenerate points with new date
+               if (tournament.events && tournament.events.length) {
+                  let { completed_matches, pending_matches } = tournamentEventMatches({ tournament });
+                  tournamentPoints(tournament, completed_matches);
+               } else {
+                  calcPlayerPoints({ date: points_date, tournament, container, filters });
+               }
+            },
+         });
+         pointsDatePicker.setMinDate(points_date);
+
       }
 
       function legacyTournamentOptions() {
@@ -5778,25 +5794,6 @@ let tournaments = function() {
                 nextFieldFocus('end_date');
             },
          });
-
-         let points_date = new Date(tournament.points_date || tournament.end);
-         console.log(points_date);
-         let pointsDatePicker = new Pikaday({
-            field: container.points_valid.element,
-            i18n: lang.obj('i18n'),
-            defaultDate: points_date,
-            setDefaultDate: true,
-            onSelect: function() {
-               points_date = this.getDate();
-               tournament.points_date = points_date.getTime();
-               saveTournament(tournament);
-
-               // regenerate points with new date
-               let { completed_matches, pending_matches } = tournamentEventMatches({ tournament });
-               tournamentPoints(tournament, completed_matches);
-            },
-         });
-         pointsDatePicker.setMinDate(points_date);
 
          container.start_date.element.addEventListener('keydown', catchTab, false);
          container.end_date.element.addEventListener('keydown', catchTab, false);
@@ -5943,12 +5940,12 @@ let tournaments = function() {
       }
 
       let {tournament, container} = createTournamentContainer({tournament: trny});
-      calcPlayerPoints({ date: tournament.end, tournament, container });
+      calcPlayerPoints({ date: tournament.end, tournament, container, filters });
    }
 
    // invoked whenever there is a form change
    // only paramater is date because that is what is passed by calendar object
-   function calcPlayerPoints({ date, tournament, container }) {
+   function calcPlayerPoints({ date, tournament, container, filters=[] }) {
 
       let points_date = new Date(tournament.points_date || date || tournament.end);
       let tuid = tournament.tuid;
@@ -5979,7 +5976,7 @@ let tournaments = function() {
       let points = rank.bulkPlayerPoints(match_data);
 
       // DISPLAY
-      displayTournamentPoints(container, points);
+      displayTournamentPoints(container, points, filters);
 
       let gender = tournament.genders && tournament.genders.length == 1 ? tournament.genders[0] : undefined;
 
@@ -5994,8 +5991,6 @@ let tournaments = function() {
    }
 
    function saveMatchesAndPoints({ tournament, matches, points, gender, finishFx }) {
-
-      console.log('saving matches and points');
 
       db.deleteTournamentPoints(tournament.tuid, gender).then(saveAll, (err) => console.log(err));
 
@@ -6025,9 +6020,24 @@ let tournaments = function() {
       d3.select(`#${tab}` + container.container.id).style('display', visible ? 'flex' : 'none');
    }
 
-   function displayTournamentPoints(container, points) {
-      tabVisible(container, 'PT', points && points.length);
-      gen.displayPlayerPoints(container, points);
+   function displayTournamentPoints(container, points, filters) {
+
+      let filterPointsByGender = (obj) => {
+         // keep if gender is not in the filters
+         let filtered = Object.keys(obj).filter(k => filters.indexOf(obj[k].gender) < 0);
+         // recreate objects
+         let mapped = filtered.map(m => { return { [obj[m].name]: obj[m] }});
+
+         return Object.assign({}, ...mapped);
+      }
+
+      let filtered_points = {
+         singles: filterPointsByGender(points.singles),
+         doubles: filterPointsByGender(points.doubles),
+      }
+
+      tabVisible(container, 'PT', filtered_points && filtered_points.length);
+      gen.displayPlayerPoints(container, filtered_points);
       let pp = (evt) => player.displayPlayerProfile(util.getParent(evt.target, 'point_row').getAttribute('puid')).then(()=>{}, ()=>{});
       util.addEventToClass('point_row', pp, container.points.element)
    }
