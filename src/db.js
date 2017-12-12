@@ -50,6 +50,13 @@ let db = function() {
 
    db.pointsAfter = (date) => new Promise ((resolve, reject) => db.db.points.where('date').aboveOrEqual(date).toArray(resolve, reject).catch(reject));
 
+   db.deleteEventMatches = (tuid, euid) => new Promise ((resolve, reject) => db.db.matches.where('tournament.tuid').equals(tuid).modify((match, ref) => {
+      if (euid && match.event && euid == match.event.euid) return delete ref.value;
+   }).then(resolve, reject));
+   db.deleteEventPoints = (tuid, euid) => new Promise ((resolve, reject) => db.db.points.where('tuid').equals(tuid).modify((point, ref) => {
+      if (euid && point.euid && euid == point.euid) return delete ref.value;
+   }).then(resolve, reject));
+
    // Sometimes necessary to delete only specific gender (when loading gendered spreadsheet)
    db.deleteTournamentMatches = (tuid, gender, format) => new Promise ((resolve, reject) => db.db.matches.where('tournament.tuid').equals(tuid).modify((match, ref) => {
       if (!gender && !format) return delete ref.value;
