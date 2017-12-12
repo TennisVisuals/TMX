@@ -66,9 +66,9 @@ let db = function() {
    }).then(resolve, reject));
    db.deleteTournamentPoints = (tuid, gender, format) => new Promise ((resolve, reject) => db.db.points.where('tuid').equals(tuid).modify((point, ref) => {
       if (!gender && !format) return delete ref.value;
-      if (gender && match.gender == gender && format && match.format == format) return delete ref.value;
-      if (!gender && format && format == match.format) return delete ref.value;
-      if (!format && gender && gender == match.gender) return delete ref.value;
+      if (gender && point.gender == gender && format && point.format == format) return delete ref.value;
+      if (!gender && format && format == point.format) return delete ref.value;
+      if (!format && gender && gender == point.gender) return delete ref.value;
    }).then(resolve, reject));
    db.deleteAllPlayerRankings = () => db.db.players.toCollection().modify(player => delete player.rankings);
 
