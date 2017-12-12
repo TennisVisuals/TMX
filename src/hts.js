@@ -90,7 +90,7 @@
    hts.downloadHTSformattedPoints = ({ points=[], group_size = 1000 }) => {
       return new Promise( (resolve, reject) => {
 
-         if (points) {
+         if (points.length) {
             formatPoints(points);
          } else {
             db.db.points.toArray(formatPoints);
