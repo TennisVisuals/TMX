@@ -87,9 +87,14 @@
       });
    }
 
-   hts.downloadHTSformattedPoints = (group_size = 1000) => {
+   hts.downloadHTSformattedPoints = ({ points=[], group_size = 1000 }) => {
       return new Promise( (resolve, reject) => {
-         db.db.points.toArray(formatPoints);
+
+         if (points) {
+            formatPoints(points);
+         } else {
+            db.db.points.toArray(formatPoints);
+         }
 
          function formatPoints(points) {
             // filter out points that don't have HTS tuid or where p.id is non-numeric
