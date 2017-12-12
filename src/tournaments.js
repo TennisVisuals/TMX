@@ -221,7 +221,7 @@ let tournaments = function() {
       return opts;
    }
 
-   function tournamentOptions(opts = {}, container) {
+   function tournamentOpts(opts = {}, container) {
       let numberValue = (val) => !val || isNaN(val) ? 0 : parseInt(val);
 
       if (Object.keys(opts).length) {
@@ -3904,6 +3904,7 @@ let tournaments = function() {
       }
 
       function tournamentPoints(tournament, matches) {
+         console.log('tournament points:', matches);
          let points_date = new Date(tournament.points_date || tournament.end);
 
          tabVisible(container, 'PT', matches && matches.length);
@@ -3918,7 +3919,7 @@ let tournaments = function() {
          let match_data = { matches, points_table, points_date };
          let points = rank.calcMatchesPoints(match_data);
 
-         saveMatchesAndPoints(tournament, matches, points);
+         saveMatchesAndPoints({ tournament, matches, points });
 
          let filterPointsByGender = (obj) => {
             // keep if gender is not in the filters
@@ -5475,7 +5476,7 @@ let tournaments = function() {
 
                let info = drawFx.drawInfo(draw);
                let player_count = (draw.opponents ? draw.opponents.length : 0) + (draw.qualifiers || 0);
-               let byes = info.draw_positions.length > player_count + info.byes.length;
+               let byes = info.draw_positions.length - (player_count + info.byes.length);
                let qualifiers = info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length;
 
                let placements = draw.unseeded_placements.map(p=>p.id);
@@ -5483,7 +5484,7 @@ let tournaments = function() {
                unplaced_teams = teamSort(unplaced_teams);
 
                let teams = optionNames(unplaced_teams);
-               if (byes) teams.unshift('Bye');
+               if (byes) { teams.unshift(`Bye {${byes}}`); }
                if (!byes && qualifiers) teams.unshift('Qualifier');
 
                menu
@@ -5779,6 +5780,7 @@ let tournaments = function() {
          });
 
          let points_date = new Date(tournament.points_date || tournament.end);
+         console.log(points_date);
          let pointsDatePicker = new Pikaday({
             field: container.points_valid.element,
             i18n: lang.obj('i18n'),
@@ -5958,7 +5960,7 @@ let tournaments = function() {
       let dbl_matches = matches.filter(f=>f.format == 'doubles').length;
 
       // retrieve options from container
-      let rankings = tournament.matches.length ? tournamentOptions(undefined, container) : {};
+      let rankings = tournament.matches.length ? tournamentOpts(undefined, container) : {};
       let category = rankings.category;
 
       if (!rankings.category || !points_date) {
@@ -5979,19 +5981,23 @@ let tournaments = function() {
       // DISPLAY
       displayTournamentPoints(container, points);
 
+      let gender = tournament.genders && tournament.genders.length == 1 ? tournament.genders[0] : undefined;
+
       let finishFx = () => addAcceptedRankings(container, tournament, category);
-      saveMatchesAndPoints(tournament, matches, points, finishFx);
+      saveMatchesAndPoints({ tournament, matches, points, gender, finishFx });
    }
 
    function addAcceptedRankings(container, tournament, category) {
       let tuid = tournament.tuid;
-      let rankings = tournament.matches.length ? tournamentOptions(undefined, container) : {};
+      let rankings = tournament.matches.length ? tournamentOpts(undefined, container) : {};
       if (tuid) rank.addAcceptedRanking({tuid, category, rankings});
    }
 
-   function saveMatchesAndPoints(tournament, matches, points, finishFx) {
+   function saveMatchesAndPoints({ tournament, matches, points, gender, finishFx }) {
 
-      db.deleteTournamentPoints(tournament.tuid).then(saveAll, (err) => console.log(err));
+      console.log('saving matches and points');
+
+      db.deleteTournamentPoints(tournament.tuid, gender).then(saveAll, (err) => console.log(err));
 
       function saveAll() {
          let finish = (result) => { if (typeof finishFx == 'function') finishFx(result); }
@@ -6578,7 +6584,7 @@ let tournaments = function() {
 
          // set ddlb options
          let opts = getTournamentOptions(tournament);
-         tournamentOptions(opts, container);
+         tournamentOpts(opts, container);
       }
 
       function configureDateSelectors(tournament, container) {
