@@ -1567,21 +1567,32 @@ let tournaments = function() {
                   .on('click', () => { 
                      closeEventDetails();
 
+                     // filter out matches from deleted event
+                     tournament.matches = tournament.matches.filter(m=>m.event.euid != e.euid);
+
                      // Delete any published events or matches
                      deleteEvent(tournament, e);
-                     // let matches = !e.draw ? [] : drawFx.matches(e.draw).map(m=>({ muid: m.match.muid, tuid: tournament.tuid }));; 
-                     // coms.deleteEvent({ euid: e.euid, tuid: tournament.tuid, matches });
+
+                     // delete any event matches in database
+                     db.deleteEventMatches(tournament.tuid, e.euid)
+                        .then(() => db.deleteEventPoints(tournament.tuid, e.euid), err => console.log('Error deleting matches:', err))
+                        .then(reGen, err => console.log('Error deleteing points:', err));
 
                      tournament.events.splice(index, 1);
                      removeReferences(e.euid);
                      db.addTournament(tournament);
 
-                     // need to regenerate to remove non-existent event
-                     drawsTab();
                      // need to regenerate to remove non-existent matches
-                     scheduleTab();
-                     eventsTab();
-                     matchesTab();
+                     function reGen() {
+                        let group_matches = groupMatches(tournament.matches);
+                        match_groups = group_matches.groups;
+                        group_draws = group_matches.group_draws;
+
+                        drawsTab();
+                        scheduleTab();
+                        eventsTab();
+                        matchesTab();
+                     }
                   });
                actions.select('.done')
                   .style('display', 'inline')
@@ -2360,10 +2371,10 @@ let tournaments = function() {
                let alternate = alternate_ids.indexOf(p.id) >= 0;
                p.entry = qualifier ? 'Q' : alternate ? 'A' : p.entry;
 
-               // TODO: implement qualifier in approvedTeams
+               // TODO: implement qualifier in approvedTeams?
 
                p.draw_order = i + 1;
-               if (seeding && i < seed_limit) p.seed = i + 1;
+               p.seed = (seeding && i < seed_limit) ? i + 1 : undefined;
 
                p.rank = p.category_ranking;
                p.last_name = p.last_name.toUpperCase();
@@ -2411,7 +2422,7 @@ let tournaments = function() {
          let approved = e.approved ? e.approved.map(t=>teamObj(e, t, idmap)).sort(combinedRankSort) : [];
          let seed_limit = drawFx.seedLimit(approved.length);
          let seeding = rankedTeams(approved);
-         approved.forEach((team, i) => { if (seeding && i + 1 <= seed_limit) team.seed = i + 1 });
+         approved.forEach((team, i) => { team.seed = (seeding && i + 1 <= seed_limit) ? i + 1 : undefined });
          return approved;
       }
 
@@ -3339,20 +3350,6 @@ let tournaments = function() {
                         addUmpire(match, 'schedule');
                         return;
                      } else if (index == 4) {
-                        /*
-                        let statuses = [
-                           lang.tr('penalties.fail2signout'),
-                           lang.tr('penalties.illegalcoaching'),
-                           lang.tr('penalties.ballabuse'),
-                           lang.tr('penalties.racquetabuse'),
-                           lang.tr('penalties.equipmentabuse'),
-                           lang.tr('penalties.cursing'),
-                           lang.tr('penalties.rudegestures'),
-                           lang.tr('penalties.foullanguage'),
-                           lang.tr('penalties.timeviolation'),
-                           lang.tr('penalties.latearrival'),
-                        ];
-                        */
                         let statuses = [
                            { label: lang.tr('penalties.fail2signout'), value: 'fail2signout' },
                            { label: lang.tr('penalties.illegalcoaching'), value: 'illegalcoaching' },
@@ -3725,7 +3722,7 @@ let tournaments = function() {
             let registration = player.registration(clicked_player);
 
             // rapid mode allows sign-in with single click
-            if (state.edit && o.sign_in.rapid && !withdrawn && registration && medical) {
+            if (state.edit && o.sign_in.rapid && !withdrawn && registration) {
                if (clicked_player) {
                   if (clicked_player.signed_in) {
                      // disallow sign-out of a player who is approved for any event
@@ -3739,8 +3736,12 @@ let tournaments = function() {
                      player.displayPlayerProfile(puid).then(()=>{}, ()=>displayIrregular(clicked_player));
                      return;
                   } else {
-                     clicked_player.signed_in = true;
-                     saveTournament(tournament);
+                     if (medical) {
+                        clicked_player.signed_in = true;
+                        saveTournament(tournament);
+                     } else {
+                        player.displayPlayerProfile(puid).then(() => {}, (result) => displayIrregular(clicked_player));
+                     }
                   }
                }
                finish();
@@ -3967,12 +3968,12 @@ let tournaments = function() {
          // TODO: why is this here? Points are calculated after this...
          pointsTab(tournament, container, filters);
 
-         if (!tournament.events && tournament.matches && tournament.matches.length) {
+         let { completed_matches, pending_matches } = tournamentEventMatches({ tournament });
+         if (!completed_matches.length && tournament.matches && tournament.matches.length) {
             // if matches array part of tournament object, matches have been imported
             tournament.matches.forEach(match => match.outcome = player.matchOutcome(match));
             gen.displayTournamentMatches({ container, completed_matches: tournament.matches, filters });
          } else {
-            let { completed_matches, pending_matches } = tournamentEventMatches({ tournament });
             gen.displayTournamentMatches({ container, pending_matches, completed_matches, filters });
             tournamentPoints(tournament, completed_matches);
          }
@@ -4209,6 +4210,8 @@ let tournaments = function() {
             players,
             puids: players.map(p=>p.puid),
 
+            // TODO: should be => teams: team_players,
+            // see dynamicDraws => function recreateDrawFromMatches => round_matches.forEach
             teams: match.teams,
             team_players,
 
@@ -5788,7 +5791,7 @@ let tournaments = function() {
 
                // regenerate points with new date
                let { completed_matches, pending_matches } = tournamentEventMatches({ tournament });
-               tournamentPoints(tournament, completed_matches) {
+               tournamentPoints(tournament, completed_matches);
             },
          });
          pointsDatePicker.setMinDate(points_date);
@@ -5838,10 +5841,10 @@ let tournaments = function() {
          container.select_draw.ddlb = new dd.DropDown({ element: container.select_draw.element, onChange: onChange, id: container.select_draw.id });
          container.select_draw.ddlb.selectionBackground();
 
-         if (group_draws.length) {
-            container.select_draw.ddlb.setValue(selected_event || group_draws[0].value);
-         } else {
+         if (event_draws) {
             container.select_draw.ddlb.setValue(selection);
+         } else if (group_draws.length) {
+            container.select_draw.ddlb.setValue(selected_event || group_draws[0].value);
          }
 
          onChange(draw_options[selection].value);
@@ -6562,14 +6565,7 @@ let tournaments = function() {
       configureDateSelectors(tournament, container);
 
       function configureDDLBs(tournament, container) {
-         let cpp = (value) => {
-            // if (!value) {
-            //    console.log('deleting tournament points');
-            //    db.deleteTournamentPoints(tournament.tuid).then(() => calcPlayerPoints({ tournament, container }), (err) => console.log(err));
-            // } else {
-               calcPlayerPoints({ tournament, container });
-            // }
-         }
+         let cpp = (value) => { calcPlayerPoints({ tournament, container }); }
          container.category.ddlb = new dd.DropDown({ element: container.category.element, onChange: cpp });
          container.dbl_rank.ddlb = new dd.DropDown({ element: container.dbl_rank.element, onChange: cpp });
          container.sgl_rank.ddlb = new dd.DropDown({ element: container.sgl_rank.element, onChange: cpp });
