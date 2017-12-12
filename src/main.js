@@ -30,7 +30,7 @@ let dev = { };
 let env = {
    org: 'HTS',
    profile: undefined,     // can now be set to 'HTS2018' for new point tables
-   version: '0.8.10',
+   version: '0.9.0',
    auto_update: {
       players: false,
       registered_players: false,
