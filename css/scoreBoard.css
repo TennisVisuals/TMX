@@ -89,7 +89,11 @@
 .scoreboard .score-selector {
 }
 
-.scoreboard .opponent .score-action span {
+.scoreboard .opponent .score-action .options {
+   color: green;
+}
+
+.scoreboard .opponent .score-action .active {
    color: #7FFF00;
 }
 
