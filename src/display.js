@@ -2086,8 +2086,9 @@
       let background = conflict ? '#F5A9A9' : timepressure ? 'lightyellow' : inprogress ? '#CEF6CE' : complete ? '#E0ECF8' : 'white';
 
       let droptarget = editable && !complete && !offgrid ? ` ondragover="event.preventDefault();"` : '';
+      let dragdrop = droptarget ? ' dragdrop' : '';
+
       let draggable = editable && !complete && !offgrid && !empty ? ` draggable="true"` : '';
-      let dragdrop = editable && !offgrid && !complete ? ' dragdrop' : '';
       let content = offgrid ? '' : !empty ? scheduledMatchHTML(match) : gen.emptyOOPround(editable);
 
       if (Object.keys(match).length && match.schedule) {
@@ -2135,7 +2136,7 @@
       let html = `
          <div class='header'>${header}</div> 
          <div class='catround'>
-            <div class='category'>${match.gender || ''} ${match.tournament.category || ''}</div>
+            <div class='category'>${match.gender || ''} ${(match.tournament && match.tournament.category) || ''}</div>
             <div class='format'>${format}</div>
             <div class='round'>${match.round || ''}</div>
          </div>
