@@ -90,6 +90,7 @@ body {
 
 .menuicon { background-image: url("../icons/menuwhite.png"); }
 .homeicon { background-image: url("../icons/home.png"); }
+.homeicon_notification { background-image: url("../icons/home_yellow.png"); }
 .homeicon_black { background-image: url("../icons/home_black.png"); }
 
 .refreshicon { background-image: url("../icons/refresh.png"); }
