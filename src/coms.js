@@ -31,13 +31,27 @@ let coms = function() {
       if (json_data) processDirective(json_data); 
    };
    function processDirective(data) {
-      if (data.directive && data.directive == 'settings') {
-         config.updateSettings(data.content).then(() => { location.reload(true); });
+      if (data.directive) {
+         if (data.directive == 'settings') {
+            config.updateSettings(data.content).then(() => { location.reload(true); });
+         }
+         if (data.directive == 'authorize') {
+            let authorize = { content: data.content };
+            fx.emitTmx({ authorize });
+         }
+         if (data.directive == 'new version') {
+            gen.homeIconState('notice');
+            env.notice = data.notice || 'New Version Available';
+         }
       }
-      if (data.directive && data.directive == 'authorize') {
-         let authorize = { content: data.content };
-         fx.emitTmx({ authorize });
-      }
+   }
+
+   fx.versionNotice = (version) => {
+      db.findSetting('superUser').then(setting => {
+         if (setting && setting.auth && util.string2boolean(setting.auth.versioning)) {
+            coms.emitTmx({ updateVersion: { version, notice: `Version ${version} available` } })
+         }
+      });
    }
 
    fx.connectSocket = () => {
