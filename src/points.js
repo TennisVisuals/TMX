@@ -34,7 +34,7 @@
          'U18': {
             singles: { mapping: "singles", multiplier:  8 },
             doubles: { mapping: "doubles", multipler:   8 },
-            ages:    { from: 14, to: 18 },
+            ages:    { from: 13, to: 18 },
             ranking: {
                singles: { events: 6, lists: { 'U14': 6, 'U16': 6, 'U18': 6, 'S': 6 } },
                doubles: { events: 4, lists: { 'U14': 4, 'U16': 4, 'U18': 4, 'S': 2 } },
