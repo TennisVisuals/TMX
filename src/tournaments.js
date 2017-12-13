@@ -453,6 +453,18 @@ let tournaments = function() {
       container.events_actions.element.addEventListener('click', newTournamentEvent);
       container.locations_actions.element.addEventListener('click', newLocation);
 
+      function cMenu({ selector, coords, options, clickAction }) {
+         let cmenu = contextMenu()
+            .selector(selector)
+            .items(...options)
+            .events({ 
+               'item': { 'click': clickAction },
+               'cleanup': tree_draw.unHighlightCells,
+            });
+
+         setTimeout(function() { cmenu(coords[0], coords[1]); }, 200);
+      }
+
       function clearScheduleDay() {
          let { scheduled } = scheduledMatches();
          let incomplete = scheduled.filter(s=>s.winner == undefined && s.schedule.day == displayed_schedule_day);
@@ -465,7 +477,6 @@ let tournaments = function() {
       }
 
       function autoSchedule(ev) {
-
          let order_priority = false;
          let priority = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R96', 'R128', 'RR', 'Q', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5'];
 
@@ -4557,32 +4568,23 @@ let tournaments = function() {
          if (tied.length > 1) {
             let draw_id = `rrDraw_${d.bracket}`;
             let selector = d3.select(`#${container.draws.id} #${draw_id} svg`).node();
-            let menu = contextMenu().selector(selector).events({ 'cleanup': () => {} });
             let coords = d3.mouse(selector);
             let options = tied.map((p, i) => `Order: ${i+1}`);
+            let clickAction = (c, i) => {
+               // first insure that no other player has the same sub_order
+               bracket.players.filter(p=>p.order == player.order).forEach(p=>{ if (p.sub_order == i + 1) p.sub_order = 0 });
 
-            menu
-               .items(...options)
-               .events({ 
-                  'item': { 
-                     'click': (c, i) => {
-                        // first insure that no other player has the same sub_order
-                        bracket.players.filter(p=>p.order == player.order).forEach(p=>{ if (p.sub_order == i + 1) p.sub_order = 0 });
+               // assign sub_order to selected player
+               player.sub_order = i + 1;
 
-                        // assign sub_order to selected player
-                        player.sub_order = i + 1;
+               // update data
+               rr_draw.data(displayed_draw_event.draw);
+               // update one bracket without regenerating all brackets!
+               rr_draw.updateBracket(d.bracket);
 
-                        // update data
-                        rr_draw.data(displayed_draw_event.draw);
-                        // update one bracket without regenerating all brackets!
-                        rr_draw.updateBracket(d.bracket);
-
-                        saveTournament(tournament);
-                     }
-                  }
-               });
-
-            setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+               saveTournament(tournament);
+            }
+            cMenu({ selector, coords, options, clickAction })
          }
       }
 
@@ -4728,69 +4730,49 @@ let tournaments = function() {
          }
 
          function rrScoreAction(d) {
-
             let bracket = displayed_draw_event.draw.brackets[d.bracket];
             let complete = drawFx.bracketComplete(bracket);
 
             // must be a unique selector in case there are other SVGs
             let draw_id = `rrDraw_${d.bracket}`;
             let selector = d3.select(`#${container.draws.id} #${draw_id} svg`).node();
-            let menu = contextMenu().selector(selector).events({ 'cleanup': () => {} });
             let coords = d3.mouse(selector);
             let options = [lang.tr('draws.remove'), lang.tr('actions.cancel')];
 
-            if (!complete && d.match && d.match.score) removeScoreMenu();
+            if (!complete && d.match && d.match.score) {
+               let clickAction = (c, i) => {
+                  if (i == 0) {
+                     delete d.match.date;
+                     delete d.match.winner;
+                     delete d.match.winner_index;
+                     delete d.match.loser;
+                     delete d.match.score;
+                     delete d.match.teams;
+                     delete d.match.tournament;
 
-            function removeScoreMenu() {
-               menu
-                  .items(...options)
-                  .events({ 
-                     'item': { 'click': (c, i) => {
-
-                        if (i == 0) {
-                           delete d.match.date;
-                           delete d.match.winner;
-                           delete d.match.winner_index;
-                           delete d.match.loser;
-                           delete d.match.score;
-                           delete d.match.teams;
-                           delete d.match.tournament;
-
-                           // update one bracket without regenerating all brackets!
-                           rr_draw.updateBracket(d.bracket);
-
-                           saveTournament(tournament);
-                        }
-
-                     }}
-                  });
-
-               if (device.isWindows || d3.event.shiftKey) {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-               } else {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+                     // update one bracket without regenerating all brackets!
+                     rr_draw.updateBracket(d.bracket);
+                     saveTournament(tournament);
+                  }
                }
+               cMenu({ selector, coords, options, clickAction })
             }
          }
 
          function rrPositionClick(d) {
-            if (!state.edit) return;
-
-            if (d3.event.ctrlKey || d3.event.shiftKey) {
-               rrContextPopUp(d);
-               return;
-            }
-
-            if (d.player && d.player.puid) {
-               player.displayPlayerProfile(d.player.puid).then(()=>{}, ()=>{});
-            } else if (state.edit && d.mc == undefined) {
-               let info = rr_draw.info();
-               if (info.open_seed_positions && info.open_seed_positions.length) {
-                  let valid_placements = info.open_seed_positions.map(osp => `${osp.bracket}|${osp.position}`);
-                  let clicked_position = `${d.bracket}|${d.row}`;
-                  if (valid_placements.indexOf(clicked_position) >= 0) placeRRDrawPlayer(d);
-               } else {
-                  placeRRDrawPlayer(d);
+            if (state.edit) {
+               if (d3.event.ctrlKey || d3.event.shiftKey) return rrContextPopUp(d);
+               if (d.player && d.player.puid) {
+                  player.displayPlayerProfile(d.player.puid).then(()=>{}, ()=>{});
+               } else if (state.edit && d.mc == undefined) {
+                  let info = rr_draw.info();
+                  if (info.open_seed_positions && info.open_seed_positions.length) {
+                     let valid_placements = info.open_seed_positions.map(osp => `${osp.bracket}|${osp.position}`);
+                     let clicked_position = `${d.bracket}|${d.row}`;
+                     if (valid_placements.indexOf(clicked_position) >= 0) placeRRDrawPlayer(d);
+                  } else {
+                     placeRRDrawPlayer(d);
+                  }
                }
             }
          }
@@ -5132,8 +5114,6 @@ let tournaments = function() {
             if (!info.unfilled_positions.length) return;
             if (!draw.unseeded_placements) draw.unseeded_placements = [];
 
-            let placement = { bracket: d.bracket, position: d.row };
-
             function hashFx(h) { return [h.bracket, h.position].join('|'); }
             let u_hash = info.unplaced_seeds.length ? info.open_seed_positions.map(hashFx) : info.unfilled_positions.map(hashFx);
 
@@ -5144,98 +5124,57 @@ let tournaments = function() {
             // must be a unique selector in case there are other SVGs
             let draw_id = `rrDraw_${d.bracket}`;
             let selector = d3.select(`#${container.draws.id} #${draw_id} svg`).node();
-
-            let menu = contextMenu().selector(selector).events({ 'cleanup': () => {} });
             let coords = d3.mouse(selector);
 
+            let placement = { bracket: d.bracket, position: d.row };
             let position_unfilled = u_hash.indexOf(hashFx(placement)) >= 0;
 
             if (position_unfilled) {
-               placeTeam(menu, coords, unplaced_teams, placement, info);
+               placeTeam(coords, unplaced_teams, placement, info);
             } else if (d.player && placement.position) {
-               // placement.position restricts removal to cells with full name
-               // because removing from row 0 causes errors...
-               removeRRteam(menu, coords, placement, d, draw);
+               // placement.position restricts removal to cells with full name because removing from row 0 causes errors...
+               removeRRteam(coords, placement, d, draw);
             }
 
-            function placeTeam(menu, coords, unplaced_teams, placement, info) {
-               let teams = optionNames(unplaced_teams);
-
-               menu
-                  .items(...teams)
-                  .events({ 
-                     'item': { 'click': (d, i) => {
-                        let team = unplaced_teams[i];
-                        placeRRplayer(team, placement, info);
-                     }}
-                  });
-
-               if (device.isWindows || d3.event.shiftKey) {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-               } else {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+            function placeTeam(coords, unplaced_teams, placement, info) {
+               let options = optionNames(unplaced_teams);
+               let clickAction = (d, i) => {
+                  let team = unplaced_teams[i];
+                  placeRRplayer(team, placement, info);
                }
+               cMenu({ selector, coords, options, clickAction })
             }
 
-            function removeRRteam(menu, coords, placement, cell, draw) {
+            function removeRRteam(coords, placement, cell, draw) {
+               let info = drawFx.drawInfo(draw);
+               let bracket = draw.brackets[placement.bracket];
+               let options = [lang.tr('draws.remove'), lang.tr('actions.cancel')];
+               let unseeded_position = draw.unseeded_placements.reduce((p, c) => c.id == cell.player.id ? true : p, undefined);
+               let clickAction = (d, i) => {
+                  if (i == 0) {
+                     if (info.unfilled_positions.length) {
+                        if (unseeded_position) {
+                           bracket.players = bracket.players.filter(p=>p.puid != cell.player.puid);
+                           draw.unseeded_placements = draw.unseeded_placements
+                              .filter(f=> {
+                                 let equal = f.position.bracket == placement.bracket && f.position.position == placement.position
+                                 return !equal;
+                              });
 
-               assignedRRplayerOptions({ placement, cell, coords, draw });
-
-               // options for positions which have already been assigned
-               function assignedRRplayerOptions({ placement, cell, coords, draw }) {
-
-                  let info = drawFx.drawInfo(draw);
-                  let bracket = draw.brackets[placement.bracket];
-                  let options = [lang.tr('draws.remove'), lang.tr('actions.cancel')];
-
-                  // TODO: determine seeded or unseeded position?
-                  let unseeded_position = draw.unseeded_placements.reduce((p, c) => c.id == cell.player.id ? true : p, undefined);
-
-                  if (!unseeded_position) return;
-
-                  menu
-                     .items(...options)
-                     .events({ 
-                        'item': { 'click': (d, i) => {
-
-                           if (i == 0) {
-
-                              if (info.unfilled_positions.length) {
-
-                                 if (unseeded_position) {
-
-                                    bracket.players = bracket.players.filter(p=>p.puid != cell.player.puid);
-                                    draw.unseeded_placements = draw.unseeded_placements
-                                       .filter(f=> {
-                                          let equal = f.position.bracket == placement.bracket && f.position.position == placement.position
-                                          return !equal;
-                                       });
-
-                                    drawFx.matches(draw);
-                                    rr_draw.data(draw);
-                                    rr_draw.updateBracket(placement.bracket, true);
-                                 } else {
-                                    console.log('seeded position!');
-                                 }
-
-
-                              } else {
-                                 // 1. if there are any byes and players advanced, undo
-                                 console.log('complete draw');
-                              }
-
-                              saveTournament(tournament);
-                           }
-                        }}
-                     });
-
-                  if (device.isWindows || d3.event.shiftKey) {
-                     setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-                  } else {
-                     setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+                           drawFx.matches(draw);
+                           rr_draw.data(draw);
+                           rr_draw.updateBracket(placement.bracket, true);
+                        } else {
+                           console.log('seeded position!');
+                        }
+                     } else {
+                        console.log('complete draw');
+                     }
+                     saveTournament(tournament);
                   }
                }
-
+               if (unseeded_position) cMenu({ selector, coords, options, clickAction })
+               // TODO: handle remove seed for RR draws...
             }
          }
 
@@ -5262,7 +5201,6 @@ let tournaments = function() {
                rr_draw.data(e.draw);
                rr_draw();
             }
-
             saveTournament(tournament);
          }
 
@@ -5280,58 +5218,90 @@ let tournaments = function() {
             }
          }
 
+         function luckyLoser({ selector, position, node, coords, draw }) {
+            let options = [ 'Loser 1', 'Loser 2' ];
+            let clickAction = (d, i) => {
+               console.log('assign', d);
+               saveTournament(tournament);
+               tree_draw();
+            }
+            cMenu({ selector, coords, options, clickAction })
+         }
+
+         function assignedPlayerOptions({ selector, position, node, coords, draw, seed }) {
+            let info = drawFx.drawInfo(draw);
+            let active = info.unassigned.length == 0; // this should be e.active ?
+            if (seed && seed < 3 && !active) {
+               console.log(drawFx.drawInfo(draw));
+               gen.popUpMessage('Cannot Remove 1st/2nd Seed');
+               return;
+            }
+            let teams = optionNames([node.data.team]);
+            let unfinished = info.unassigned.length;
+            let unfinished_options = teams.map(t => `${lang.tr('draws.remove')}: ` + t);
+
+            let finished_options = [ { option: 'Swap Position', key: 'swap' } ];
+            if (true) finished_options.push({ option: 'Alternate', key: 'alt' });
+            if (true) finished_options.push({ option: 'Lucky Loser', key: 'lucky' });
+
+            let options = unfinished ? unfinished_options : finished_options;
+            let clickAction = (d, i) => {
+               if (unfinished) {
+                  if (seed) {
+                     console.log('Seeded Position', seed);
+                  } else {
+                     delete node.data.team;
+                     draw.unseeded_placements = draw.unseeded_placements.filter(f=>f.position != position);
+                  }
+               } else {
+                  if (d.key) {
+                     if (d.key == 'swap') {
+                        console.log('Swap', d);
+                     } else if (d.key == 'alt') {
+                        console.log('Alt:', d);
+                     } else if (d.key == 'lucky') {
+                        return luckyLoser({ selector, position, node, coords, draw });
+                     }
+                  }
+               }
+
+               saveTournament(tournament);
+               tree_draw();
+            }
+            cMenu({ selector, coords, options, clickAction })
+         }
          function drawActiveContextClick(d, coords) {
             let draw = e.draw;
             let position = d.data.dp;
+            let selector = d3.select('#' + container.draws.id + ' svg').node();
 
             if (d.data.match && d.data.match.score && (!d.parent || !d.parent.data || !d.parent.data.team)) {
-               // must be a unique selector in case there are other SVGs
-               let selector = d3.select('#' + container.draws.id + ' svg').node();
-               let menu = contextMenu().selector(selector).events({ 'cleanup': tree_draw.unHighlightCells });
-
                let options = [`${lang.tr('draws.remove')}: ${lang.tr('mtc')}`];
-
-               menu
-                  .items(...options)
-                  .events({ 
-                     'item': { 
-                        'click': (c, i) => {
-
-                           delete d.data.match.score;
-                           delete d.data.match.winner;
-                           delete d.data.match.loser;
-                           delete d.data.match.set_scores;
-
-                           delete d.data.dp;
-                           delete d.data.team;
-                           delete d.data.round_name;
-
-                           // TODO: check whether removing a final qualifying round
-
-                           saveTournament(tournament);
-                           tree_draw();
-                           matchesTab();
-                        }
-                     }
-                  });
-
-               if (device.isWindows || d3.event.shiftKey) {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-               } else {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+               let clickAction = (c, i) => {
+                  delete d.data.dp;
+                  delete d.data.team;
+                  delete d.data.round_name;
+                  delete d.data.match.score;
+                  delete d.data.match.winner;
+                  delete d.data.match.loser;
+                  delete d.data.match.set_scores;
+                  // TODO: check whether removing a final qualifying round
+                  saveTournament(tournament);
+                  tree_draw();
+                  matchesTab();
                }
+               cMenu({ selector, coords, options, clickAction })
+            } else if (!d.height && !d.data.bye && !d.data.qualifier && d.data.team) {
+               assignedPlayerOptions({ selector, position, node: d, coords, draw, seed: d.data.team[0].seed });
             }
-
          }
 
          function drawNotActiveContextClick(d, coords) {
-
             let draw = e.draw;
             let position = d.data.dp;
 
             // must be a unique selector in case there are other SVGs
             let selector = d3.select('#' + container.draws.id + ' svg').node();
-            let menu = contextMenu().selector(selector).events({ 'cleanup': tree_draw.unHighlightCells });
 
             if (!d.height && d.data && d.data.dp && !d.data.team) {
                // position is vacant, decide appropriate action
@@ -5340,224 +5310,128 @@ let tournaments = function() {
                   assignSeededPosition({ position, seed_group, coords });
                } else {
                   if (o.byes_with_unseeded) {
-                     assignUnseededPosition({ position, coords });
+                     assignUnseededPosition({ selector, position, coords });
                   } else {
                      // section assigns byes then qualifiers before unseeded positions
                      let info = drawFx.drawInfo(draw);
-                     if (info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length) {
+                     let byesAndQs = info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length;
+                     if (byesAndQs) {
                         let player_count = (draw.opponents ? draw.opponents.length : 0) + (draw.qualifiers || 0);
-
-                        if (info.draw_positions.length > player_count + info.byes.length) {
-                           assignByeOrQualifier({ position, bye: true, coords });
-                        } else {
-                           assignByeOrQualifier({ position, bye: false, coords });
-                        }
-
+                        let bye = info.draw_positions.length > player_count + info.byes.length;
+                        assignByeOrQualifier({ selector, position, bye, coords });
                      } else {
-                        assignUnseededPosition({ position, coords });
+                        assignUnseededPosition({ selector, position, coords });
                      }
                   }
                }
-            } else if (!d.data.bye && !e.automated && d.data.team) {
-
-               // cannot remove seeded players (yet)
-               if (d.data.team[0].seed) {
-
-                  console.log('seeded player');
-                  // TODO: discover which seed_group this player is in... if
-                  // this player is removed then remove all seed players in
-                  // the same group as well as all players in later seed groups
-                  // and all unseeded players...
-                  return;
-               }
-
-               assignedPlayerOptions({ position, node: d, coords, draw });
-
             } else if (d.height == 0 && d.data.bye && !displayed_draw_event.active) {
-               assignedByeOptions({ position, node: d, coords, draw });
-            } else if (d.data.team) {
-               console.log('alternate or lucky loser?', d);
+               assignedByeOptions({ selector, position, node: d, coords, draw });
+            } else if (!d.data.bye && !d.data.qualifier && d.data.team) {
+               assignedPlayerOptions({ selector, position, node: d, coords, draw, seed: d.data.team[0].seed });
                let team_match = drawFx.teamMatch(d);
                if (team_match) console.log('team match');
+            } else {
+               console.log('what to do?');
             }
 
-            function assignedByeOptions({ position, node, coords, draw }) {
-
+            function assignedByeOptions({ selector, position, node, coords, draw }) {
                let info = drawFx.drawInfo(draw);
-               let options = [`${lang.tr('draws.remove')}: BYE`];
+               let unfinished = info.unassigned.length;
+               let unfinished_options = [`${lang.tr('draws.remove')}: BYE`];
+               let finished_options = [ { option: 'Swap Position', key: 'swap' } ];
+               let options = unfinished ? unfinished_options : finished_options;
 
-               menu
-                  .items(...options)
-                  .events({ 
-                     'item': { 'click': (d, i) => {
+               let clickAction = (d, i) => {
+                  if (info.unassigned.length) {
+                     node.data.bye = false;
+                     delete node.data.team;
+                  } else {
+                     if (d.key && d.key == 'swap') {
+                        console.log('Swap', d);
+                     }
+                  }
 
-                        if (info.unassigned.length) {
-                           node.data.bye = false;
-                           delete node.data.team;
+                  saveTournament(tournament);
+                  tree_draw();
+               }
 
-                        } else {
-                           // 1. if there are any byes and players advanced, undo
-                           console.log('complete draw');
-                        }
+               cMenu({ selector, coords, options, clickAction })
+            }
 
-                        saveTournament(tournament);
-                        tree_draw();
-                     }}
-                  });
-
-               if (device.isWindows || d3.event.shiftKey) {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-               } else {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+            function assignSeededPosition({ selector, position, seed_group, coords }) {
+               if (seed_group.positions.indexOf(position) >= 0) {
+                  let { remaining: range, teams } = getSeedTeams(seed_group);
+                  let clickAction = (d, i) => {
+                     seedAssignment(draw, seed_group, position, range[i]);
+                     saveTournament(tournament);
+                     tree_draw();
+                     e.draw = tree_draw.data();
+                  }
+                  cMenu({ selector, coords, options: teams, clickAction })
                }
             }
 
-            // options for positions which have already been assigned
-            function assignedPlayerOptions({ position, node, coords, draw }) {
-
-               let info = drawFx.drawInfo(draw);
-               let teams = optionNames([node.data.team]);
-               let options = teams.map(t => `${lang.tr('draws.remove')}: ` + t);
-
-               menu
-                  .items(...options)
-                  .events({ 
-                     'item': { 'click': (d, i) => {
-
-                        if (info.unassigned.length) {
-                           delete node.data.team;
-                           draw.unseeded_placements = draw.unseeded_placements.filter(f=>f.position != position);
-                        } else {
-                           // 1. if there are any byes and players advanced, undo
-                           console.log('complete draw');
-                        }
-
-                        saveTournament(tournament);
-                        tree_draw();
-                     }}
-                  });
-
-               if (device.isWindows || d3.event.shiftKey) {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-               } else {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-               }
-            }
-
-            function assignSeededPosition({ position, seed_group, coords }) {
-
-               if (seed_group.positions.indexOf(position) < 0) return;
-               let { remaining: range, teams } = getSeedTeams(seed_group);
-
-               menu
-                  .items(...teams)
-                  .events({ 
-                     'item': { 'click': (d, i) => {
-                        seedAssignment(draw, seed_group, position, range[i]);
-                        saveTournament(tournament);
-
-                        tree_draw();
-                        e.draw = tree_draw.data();
-                     }}
-                  });
-
-               if (device.isWindows || d3.event.shiftKey) {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-               } else {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-               }
-            }
-
-            function assignUnseededPosition({ position, coords }) {
-
+            function assignUnseededPosition({ selector, position, coords }) {
                let info = drawFx.drawInfo(draw);
                let player_count = (draw.opponents ? draw.opponents.length : 0) + (draw.qualifiers || 0);
                let byes = info.draw_positions.length - (player_count + info.byes.length);
                let qualifiers = info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length;
-
                let placements = draw.unseeded_placements.map(p=>p.id);
-               let unplaced_teams = draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
-               unplaced_teams = teamSort(unplaced_teams);
+               let unplaced_teams = teamSort(draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0));
 
                let teams = optionNames(unplaced_teams);
                if (byes) { teams.unshift(`Bye {${byes}}`); }
                if (!byes && qualifiers) teams.unshift('Qualifier');
+               let clickAction = (d, i) => {
+                  if (!byes && qualifiers && i == 0) {
+                     assignPosition(position, undefined, false, true);
+                  } else if (byes && i == 0) {
+                     assignPosition(position, undefined, true, false);
+                  } else {
+                     let team = unplaced_teams[byes ? i - 1 : i];
+                     assignPosition(position, team);
+                     draw.unseeded_placements.push({ id: team[0].id, position });
+                  }
 
-               menu
-                  .items(...teams)
-                  .events({ 
-                     'item': { 
-                        'click': (d, i) => {
-                           if (!byes && qualifiers && i == 0) {
-                              assignPosition(position, undefined, false, true);
-                           } else if (byes && i == 0) {
-                              assignPosition(position, undefined, true, false);
-                           } else {
-                              let team = unplaced_teams[byes ? i - 1 : i];
-                              assignPosition(position, team);
-                              draw.unseeded_placements.push({ id: team[0].id, position });
-                           }
-
-                           // TODO: this block of code is duplicated
-                           let info = tree_draw.info();
-                           if (info.unassigned.length == 1) {
-                              let unassigned_position = info.unassigned[0].data.dp;
-                              let placements = draw.unseeded_placements.map(p=>p.id);
-                              let unplaced_teams = draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
-                              let team = unplaced_teams[0];
-                              assignPosition(unassigned_position, team);
-                              draw.unseeded_placements.push({ id: team[0].id, position: unassigned_position });
-                              tree_draw.advanceTeamsWithByes();
-                              if (e.draw_type == 'Q') checkForQualifiedTeams(e);
-                              drawCreated(e);
-                           } else if (!info.unassigned.length) {
-                              if (e.draw_type == 'Q') checkForQualifiedTeams(e);
-                              drawCreated(e);
-                           }
-
-                           saveTournament(tournament);
-
-                           tree_draw();
-                           e.draw = tree_draw.data();
-                        }
-                     }
-                  });
-
-               if (device.isWindows || d3.event.shiftKey) {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-               } else {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+                  // TODO: this block of code is duplicated
+                  let info = tree_draw.info();
+                  if (info.unassigned.length == 1) {
+                     let unassigned_position = info.unassigned[0].data.dp;
+                     let placements = draw.unseeded_placements.map(p=>p.id);
+                     let unplaced_teams = draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
+                     let team = unplaced_teams[0];
+                     assignPosition(unassigned_position, team);
+                     draw.unseeded_placements.push({ id: team[0].id, position: unassigned_position });
+                     tree_draw.advanceTeamsWithByes();
+                     if (e.draw_type == 'Q') checkForQualifiedTeams(e);
+                     drawCreated(e);
+                  } else if (!info.unassigned.length) {
+                     if (e.draw_type == 'Q') checkForQualifiedTeams(e);
+                     drawCreated(e);
+                  }
+                  tree_draw();
+                  e.draw = tree_draw.data();
+                  saveTournament(tournament);
                }
+               cMenu({ selector, coords, options: teams, clickAction })
             }
 
-            function assignByeOrQualifier({ position, bye, coords }) {
-
-               let choices = bye ? ['BYE'] : ['Qualifier'];
-
-               menu
-                  .items(...choices)
-                  .events({ 
-                     'item': { 'click': (d, i) => {
-                        assignPosition(position, undefined, bye, !bye);
-
-                        let info = tree_draw.info();
-                        if (!info.unassigned.length) {
-                           if (e.draw_type == 'Q') checkForQualifiedTeams(e);
-                           drawCreated(e);
-                        }
-                        saveTournament(tournament);
-
-                        tree_draw();
-                        e.draw = tree_draw.data();
-                     }}
-                  });
-
-               if (device.isWindows || d3.event.shiftKey) {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
-               } else {
-                  setTimeout(function() { menu(coords[0], coords[1]); }, 200);
+            function assignByeOrQualifier({ selector, position, bye, coords }) {
+               let options = bye ? ['BYE'] : ['Qualifier'];
+               let clickAction = (d, i) => {
+                  assignPosition(position, undefined, bye, !bye);
+                  let info = tree_draw.info();
+                  if (!info.unassigned.length) {
+                     if (e.draw_type == 'Q') checkForQualifiedTeams(e);
+                     drawCreated(e);
+                  }
+                  tree_draw();
+                  e.draw = tree_draw.data();
+                  saveTournament(tournament);
                }
+               cMenu({ selector, coords, options, clickAction })
             }
+
          }
       }
 
