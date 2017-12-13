@@ -282,8 +282,10 @@
 
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
+      let notice = env.notice ? `<h3>${env.notice}</h3>` : '';
       let html = `
          <h2 style='margin: 1em;'>${text}</h2>
+         ${notice}
          <div class="flexcenter" style='margin-bottom: 2em;'>
             <button id='${ids.refresh}' class='btn btn-medium dismiss'>${lang.tr('actions.refresh')}</button>
             <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${lang.tr('actions.ok')}</button>
@@ -2527,6 +2529,12 @@
       return { ids, html };
    }
    // END SCOREBOARD
+
+   gen.homeIconState = (value) => {
+      let class_name = 'icon15 homeicon';
+      if (value == 'notice') class_name += '_notification';
+      document.getElementById('homeicon').className = class_name;
+   }
 
    gen.drawBroadcastState = (elem, evt) => {
       let publish_state = evt.up_to_date ? 'publisheduptodate' : evt.published && evt.up_to_date == false ? 'publishedoutofdate' : evt.published ? 'published' : 'unpublished';
