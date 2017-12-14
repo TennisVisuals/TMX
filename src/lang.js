@@ -130,6 +130,8 @@
       qualifiers: 'Qualifiers',
       none:    'None',
       keys:    'Keys',
+      pos:     'Position',
+      new:     'New',
 
       set: 'Settings',
       importexport: 'Import / Export',
@@ -197,6 +199,9 @@
          luckylosers: 'Lucky Losers (LL)/Replacements',
          lastdirectaccept: 'Last Direct Acceptance',
          clear: 'Clear Draw',
+         swap: 'Swap Position',
+         alternate: 'Alternate',
+         luckyloser: 'Lucky Loser',
       },
 
       print: {

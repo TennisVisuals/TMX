@@ -130,6 +130,8 @@
       qualifiers: 'Qualifiers',
       none:    'None',
       keys:    'Keys',
+      pos:     'Position',
+      new:     'New',
 
       set: 'Settings',
       importexport: 'Import / Export',
@@ -197,6 +199,9 @@
          luckylosers: 'Lucky Losers (LL)/Replacements',
          lastdirectaccept: 'Last Direct Acceptance',
          clear: 'Clear Draw',
+         swap: 'Swap Position',
+         alternate: 'Alternate',
+         luckyloser: 'Lucky Loser',
       },
 
       print: {
@@ -470,6 +475,8 @@
       qualifiers: 'Kvalifikacije',
       none:    'Ništa',
       keys:    'Ključevi',
+      pos:     'Posicije',
+      new:     'Novi',
 
       set: 'Postavke',
       importexport: 'Import / Export',
@@ -536,6 +543,9 @@
          luckylosers: 'Sretni gubitnici (LL)/Zamjenjuje',
          lastdirectaccept: 'Zadnji direktno primljen igrač',
          clear: 'Isprazni Ždrijeb',
+         swap: 'Zamljeni posicije',
+         alternate: 'Lista čekanja',
+         luckyloser: 'Sretni gubitnikd',
       },
 
       print: {

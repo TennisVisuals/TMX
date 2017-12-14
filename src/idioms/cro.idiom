@@ -78,6 +78,8 @@
       qualifiers: 'Kvalifikacije',
       none:    'Ništa',
       keys:    'Ključevi',
+      pos:     'Posicije',
+      new:     'Novi',
 
       set: 'Postavke',
       importexport: 'Import / Export',
@@ -144,6 +146,9 @@
          luckylosers: 'Sretni gubitnici (LL)/Zamjenjuje',
          lastdirectaccept: 'Zadnji direktno primljen igrač',
          clear: 'Isprazni Ždrijeb',
+         swap: 'Zamljeni posicije',
+         alternate: 'Lista čekanja',
+         luckyloser: 'Sretni gubitnikd',
       },
 
       print: {
