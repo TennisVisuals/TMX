@@ -9,6 +9,10 @@ body {
    padding-top: 5rem;
 }
 
+html {
+  touch-action: manipulation;
+}
+
 * {
 	box-sizing: border-box;
 }
