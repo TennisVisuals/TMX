@@ -13,11 +13,13 @@
       content: undefined,
       uuid() { return `ch${UUID.new()}`; },
       arrowFx: undefined,
+      escapeFx: undefined,
    };
 
    document.addEventListener('keydown', evt => { 
       // capture key up/left/down/right events and pass to subscribed function
-      if (evt.key.indexOf('Arrow') == 0 && typeof gen.arrowFx == 'function') arrowFx(evt.key); 
+      if (evt.key.indexOf('Arrow') == 0 && typeof gen.arrowFx == 'function') gen.arrowFx(evt.key); 
+      if (evt.key.indexOf('Escape') == 0 && typeof gen.escapeFx == 'function') gen.escapeFx(); 
    });
 
    let surface_icons = {
@@ -133,13 +135,16 @@
          .items(...opts)
          .events({ 'item': { 'click': returnSelection } });
       menu(x, y);
+
       document.body.style.overflow  = 'hidden';
+      gen.escapeFx = () => cleanUp();
 
       function returnSelection(d, i) {
          let v = (typeof options[i] == 'object' && options[i].value) ? options[i].value : undefined;
          if (typeof callback == 'function') callback(d, i, v);
       }
       function cleanUp() { 
+         gen.escapeFx = undefined;
          document.body.style.overflow  = null;
          svg.remove(); 
       }
@@ -2187,14 +2192,7 @@
 
       let coords = d3.mouse(document.body);
       let { ids, html } = umpireEntryField();
-
-      let entry = floatingEntry()
-         .selector('#' + su_ids.entry_modal)
-         .events( {'click': () => {
-            let elems = document.querySelectorAll('li.dd_state');
-            Array.from(elems).forEach(elem => { elem.classList.remove("active"); })
-         }});
-
+      let entry = floatingEntry().selector('#' + su_ids.entry_modal)
       entry(coords[0], coords[1] - window.scrollY, html);
 
       Object.assign(ids, su_ids);
@@ -2215,7 +2213,40 @@
       return { ids, html };
    }
 
-   gen.manualPlayerPosition = ({ container, bracket, position }) => {
+   gen.swapPlayerPosition = ({ container, bracket, position }) => {
+      let mp_ids = {
+         entry_field: gen.uuid(),
+      }
+
+      let entry_field = d3.select('body')
+         .append('div')
+         .attr('class', 'modal')
+         .attr('id', mp_ids.entry_field);
+
+      let coords = d3.mouse(document.body);
+      let { ids, html } = generateSwapEntry({ position });
+      let entry = floatingEntry().selector('#' + mp_ids.entry_field)
+      entry(coords[0], coords[1] - window.scrollY, html);
+
+      Object.assign(ids, mp_ids);
+      let id_obj = idObj(ids);
+      return id_obj;
+   }
+
+   function generateSwapEntry({ position }) {
+      let ids = {
+         new_position: gen.uuid(),
+      }
+      let html = `
+         <div class="player-entry noselect">
+            <div class="player-position">${lang.tr('drp')}: ${position || ''}</div>
+            <div class="player-position"> <div class="player-index">${lang.tr('new')} ${lang.tr('pos')}: <input id="${ids.new_position}"> </div> </div>
+         </div>
+      `;
+      return { ids, html };
+   }
+
+   gen.manualPlayerPosition = ({ container, position }) => {
       let mp_ids = {
          entry_field: gen.uuid(),
       }
@@ -2227,14 +2258,7 @@
 
       let coords = d3.mouse(document.body);
       let { ids, html } = generateEntryField({ position });
-
-      let entry = floatingEntry()
-         .selector('#' + mp_ids.entry_field)
-         .events( {'click': () => {
-            let elems = document.querySelectorAll('li.dd_state');
-            Array.from(elems).forEach(elem => { elem.classList.remove("active"); })
-         }});
-
+      let entry = floatingEntry().selector('#' + mp_ids.entry_field)
       entry(coords[0], coords[1] - window.scrollY, html);
 
       Object.assign(ids, mp_ids);
@@ -2929,7 +2953,7 @@
          let dragdrop = gen.dragdrop && team.players ? ` draggable="true" ondragstart="drag(event, this)"` : '';
 
          let team_rank = team.rank < 2000 ? ` team_rank='${team.rank}'` : '';
-         let team_id = team.players ? ` team_id='${team.players.map(p=>p.id).join("|")}' ` : '';
+         let team_id = team.players ? ` team_id='${team.players.map(p=>p.id).sort().join("|")}' ` : '';
          let html = `<div ${team_rank} ${team_id} ${duplicate} class='team_box${border}${team_click}'${background}>
                         <div class='flexcol${border_padding}'${dragdrop}>`;
          html += team.players ? team.players.map(p => playerRow(p)).join('') : playerRow(team, true);
