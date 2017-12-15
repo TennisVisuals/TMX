@@ -13,7 +13,6 @@
 
 .playerprofile {
    width: 100%;
-/*   min-height: 15em; */
    font-size: 1em;
    -webkit-justify-content: center;
    justify-content: center;
@@ -24,6 +23,20 @@
 }
 .player_info {
    margin-bottom: 1em;
+}
+.player_details {
+   width: 80%;
+   height: 100%;
+   display: flex;
+   flex-direction: row;
+   -webkit-flex-direction: row;
+   flex-wrap: wrap;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: stretch;
+   align-content: stretch;
+   -webkit-align-items: stretch;
+   align-items: stretch;
 }
 .player_actions {
    width: 100%;
@@ -189,7 +202,17 @@
    align-items: center;
 }
 
-.pdata { width: 100%; }
+/* .pdata { width: 100%; } */
+.pdetail {
+   height: 100%;
+   display: flex;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   -webkit-align-content: flex-start;
+   align-content: flex-start;
+   margin-left: 1em;
+   margin-right: 1em;
+}
 .pdata_row { 
    width: 100%; 
    display: flex;
@@ -205,7 +228,6 @@
 }
 .pdata_value { 
    width: 50%; 
-   padding-left: 1em;
    display: flex;
    -webkit-justify-content: flex-start;
    justify-content: flex-start;
