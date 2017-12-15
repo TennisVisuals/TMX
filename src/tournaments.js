@@ -454,26 +454,30 @@ let tournaments = function() {
       container.locations_actions.element.addEventListener('click', newLocation);
 
       function cMenu({ selector, coords, options, clickAction }) {
-         let cmenu = contextMenu()
-            .selector(selector)
-            .items(...options)
-            .events({ 
-               'item': { 'click': clickAction },
-               'cleanup': cleanUp,
-            });
+         let font_size = options.length < 7 ? 18 : 16;
+         if (options.length) {
+            let cmenu = contextMenu()
+               .options({ colors: { default: '#BCFDFB' }, font: { size: font_size }})
+               .selector(selector)
+               .items(...options)
+               .events({ 
+                  'item': { 'click': clickAction },
+                  'cleanup': cleanUp,
+               });
 
-         // avoid delayed click propagation
-         setTimeout(function() { setup(); }, 200);
+            // avoid delayed click propagation
+            setTimeout(function() { setup(); }, 200);
 
-         function setup() {
-            cmenu(coords[0], coords[1]);
-            // this is not the same as escapeModal() !!!!
-            gen.escapeFx = () => { cmenu.cleanUp(); gen.escapeFx = undefined; };
-         }
+            function setup() {
+               cmenu(coords[0], coords[1]);
+               // this is not the same as escapeModal() !!!!
+               gen.escapeFx = () => { cmenu.cleanUp(); gen.escapeFx = undefined; };
+            }
 
-         function cleanUp() {
-            tree_draw.unHighlightCells();
-            gen.escapeFx = undefined;
+            function cleanUp() {
+               tree_draw.unHighlightCells();
+               gen.escapeFx = undefined;
+            }
          }
       }
 
@@ -664,13 +668,17 @@ let tournaments = function() {
 
       // SUPPORTING FUNCTIONS
       function playerClick(d, n) {
-         if (d.player && d.player.puid) {
-            player.displayPlayerProfile(d.player.puid).then(()=>{}, ()=>{});
-         } else if (d.data && d.data.team && d.data.team.length && d.data.team[n] && d.data.team[n].puid) {
-            player.displayPlayerProfile(d.data.team[n].puid).then(()=>{}, ()=>{});
+         if (!controlIntercept()) {
+            if (d.player && d.player.puid) {
+               player.displayPlayerProfile(d.player.puid).then(()=>{}, ()=>{});
+            } else if (d.data && d.data.team && d.data.team.length && d.data.team[n] && d.data.team[n].puid) {
+               player.displayPlayerProfile(d.data.team[n].puid).then(()=>{}, ()=>{});
+            }
          }
       }
       
+      function controlIntercept() { return d3.event.ctrlKey || d3.event.shiftKey }
+
       function signOutTournamentPlayer(player) {
          player.signed_in = false;
          saveTournament(tournament);
@@ -829,6 +837,7 @@ let tournaments = function() {
          // TODO: remove this hack...
          if (env.org == 'HTS') {
             let legacy = {
+               '10': 'U10',
                '12': 'U12',
                '14': 'U14',
                '16': 'U16',
@@ -3696,18 +3705,22 @@ let tournaments = function() {
 
          // TODO: ability to sort by either name or rank
 
+         let category = tournament.category;
+         if (env.org == 'HTS') {
+            let legacy = {
+               '10': 'U10',
+               '12': 'U12',
+               '14': 'U14',
+               '16': 'U16',
+               '18': 'U18',
+               '20': 'S',
+            }
+            if (legacy[category]) category = legacy[category];
+         }
 
-         // HTS Tournaments only have one category...
-         // TODO: in the future this list should be sorted by tournament.categories...
-         let category = isNaN(tournament.category) ? '20' : tournament.category;
-         let options = [
-            {key: 'U10', value: '10'},
-            {key: 'U12', value: '12'},
-            {key: 'U14', value: '14'},
-            {key: 'U16', value: '16'},
-            {key: 'U18', value: '18'},
-            {key: 'S',   value: '20'},
-         ].filter(c=>c.value == category);
+         let options = Object.keys(point_tables[env.org] && point_tables[env.org].categories)
+            .map(r => ({ key: r, value: r }))
+            .filter(c=>c.value == category);
 
          let prior_value = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : undefined;
          if (options.map(o=>o.value).indexOf(prior_value) < 0) prior_value = undefined;
@@ -3943,7 +3956,8 @@ let tournaments = function() {
 
          // TODO: the profile can be specified in the tournament configuration
          let profile = env.profile || tournamentParser.profiles[env.org];
-         let points_table = point_tables[profile.points];
+         // let points_table = point_tables[profile.points];
+         let points_table = rank.pointsTable(profile.points, points_date);
 
          let match_data = { matches, points_table, points_date };
          let points = rank.calcMatchesPoints(match_data);
@@ -4798,12 +4812,16 @@ let tournaments = function() {
 
          function positionClick(d) {
             d3.event.preventDefault();
-            if (!state.edit) return;
-            if (d3.event.ctrlKey || d3.event.shiftKey) {
-               contextPopUp(d);
-               return;
+            if (state.edit) {
+               if (d3.event.ctrlKey || d3.event.shiftKey) {
+                  contextPopUp(d);
+               } else {
+                  treePositionClick(d);
+               }
             }
+         }
 
+         function treePositionClick(d) {
             let node = d3.select(this);
             highlightCell(node);
 
@@ -5137,20 +5155,14 @@ let tournaments = function() {
          }
 
          function rrContextPopUp(d) {
-            var draw = displayed_draw_event.draw;
-            var info = drawFx.drawInfo(draw);
-            if (info.unfilled_positions.length) {
-               rrIncompleteContext(d, draw, info);
-            } else {
-               rrCompleteContext(d, draw, info);
+            if (state.edit) {
+               var draw = displayed_draw_event.draw;
+               var info = drawFx.drawInfo(draw);
+               rrContextActions(d, draw, info);
             }
          }
 
-         function rrCompleteContext(d, draw, info) {
-            console.log('swap, lucky loser and alternates');
-         }
-
-         function rrIncompleteContext(d, draw, info) {
+         function rrContextActions(d, draw, info) {
             if (!draw.unseeded_placements) draw.unseeded_placements = [];
 
             function hashFx(h) { return [h.bracket, h.position].join('|'); }
@@ -5172,7 +5184,7 @@ let tournaments = function() {
                placeTeam(coords, unplaced_teams, placement, info);
             } else if (d.player && placement.position) {
                // placement.position restricts removal to cells with full name because removing from row 0 causes errors...
-               removeRRteam(coords, placement, d, draw);
+               assignedRRoptions(coords, placement, d, draw);
             }
 
             function placeTeam(coords, unplaced_teams, placement, info) {
@@ -5184,43 +5196,75 @@ let tournaments = function() {
                cMenu({ selector, coords, options, clickAction })
             }
 
-            function removeRRteam(coords, placement, cell, draw) {
+            function assignedRRoptions(coords, placement, cell, draw) {
                let info = drawFx.drawInfo(draw);
                let bracket = draw.brackets[placement.bracket];
-               let options = [{ option: lang.tr('draws.remove'), key: 'remove' }, { option: lang.tr('actions.cancel'), key: 'cancel' }];
-               let unseeded_position = draw.unseeded_placements.reduce((p, c) => c.id == cell.player.id ? true : p, undefined);
+               let active = info.unfilled_positions.length == 0;
+               let options = [];
+               let player_matches = bracket.matches.filter(m=>m.puids.indexOf(cell.player.puid)>=0 && m.score);
+               if (!player_matches.length) {
+                  options.push({ option: lang.tr('draws.remove'), key: 'remove' });
+                  if (active) { options.push({ option: lang.tr('draws.alternate'), key: 'alternate' }); }
+                  options.push({ option: lang.tr('actions.cancel'), key: 'cancel' });
+               }
+               // TODO: normalize => automated draws add c.team[n] to unseeded_placements whereas manual draws add c.id
+               let unseeded_position = draw.unseeded_placements.reduce((p, c) => c.id == cell.player.id || (c.team && c.team[0].id == cell.player.id) ? true : p, undefined);
                let clickAction = (d, i) => {
                   if (d.key == 'remove') {
-                     if (info.unfilled_positions.length) {
-                        if (unseeded_position) {
-                           bracket.players = bracket.players.filter(p=>p.puid != cell.player.puid);
-                           draw.unseeded_placements = draw.unseeded_placements
-                              .filter(f=> {
-                                 let equal = f.position.bracket == placement.bracket && f.position.position == placement.position
-                                 return !equal;
-                              });
-
-                        } else {
-                           draw.seed_placements.forEach(seed_group => {
-                              seed_group.placements = seed_group.placements
-                                 .filter(sgp => !(sgp.position.bracket == placement.bracket && sgp.position.position == placement.position));
+                     if (unseeded_position) {
+                        draw.unseeded_placements = draw.unseeded_placements
+                           .filter(f=> {
+                              let equal = f.position.bracket == placement.bracket && f.position.position == placement.position
+                              return !equal;
                            });
-                           bracket.players = bracket.players.filter(player => player.id != cell.player.id);
-                        }
-                        drawFx.matches(draw);
-                        rr_draw.data(draw);
-                        rr_draw.updateBracket(placement.bracket, true);
-
+                        bracket.players = bracket.players.filter(p=>p.puid != cell.player.puid);
                      } else {
-                        console.log('complete draw');
+                        draw.seed_placements.forEach(seed_group => {
+                           seed_group.placements = seed_group.placements
+                              .filter(sgp => !(sgp.position.bracket == placement.bracket && sgp.position.position == placement.position));
+                        });
+                        bracket.players = bracket.players.filter(player => player.id != cell.player.id);
                      }
+                     drawFx.matches(draw);
+                     rr_draw.data(draw);
+                     rr_draw.updateBracket(placement.bracket, true);
                      saveTournament(tournament);
+                  }
+                  if (d.key == 'alternate') {
+                     let alternates = eligiblePlayers(displayed_draw_event).map(p=>[p]);
+                     return rrAlternates({ selector, info, placement, coords, draw, options: alternates });
                   }
                }
                if (unseeded_position || (!cell.player.seed || cell.player.seed > draw.brackets.length)) {
                   cMenu({ selector, coords, options, clickAction })
                }
             }
+         }
+
+         function rrAlternates({ selector, info, placement, coords, draw, options }) {
+            let teams = optionNames(options);
+            let clickAction = (d, i) => {
+               let new_team = options[i];
+               let bracket = draw.brackets[placement.bracket];
+               let old_player = bracket.players.reduce((p, c) => c.draw_position == placement.position ? c : p, undefined);
+
+               new_team.forEach(player => {
+                  player.draw_position = placement.position;
+                  delete player.seed;
+               });
+
+               // now remove old player from bracket
+               bracket.players = bracket.players.filter(p=>p.draw_position != placement.position);
+               // and add new player to bracket
+               bracket.players.push(new_team[0]);
+
+               swapApproved(displayed_draw_event, [old_player], new_team);
+               drawFx.matches(draw);
+               rr_draw.data(draw);
+               rr_draw.updateBracket(placement.bracket, true);
+               saveTournament(tournament);
+            }
+            cMenu({ selector, coords, options: teams, clickAction })
          }
 
          function placeRRplayer(team, placement, info) {
@@ -5240,7 +5284,8 @@ let tournaments = function() {
             rr_draw.updateBracket(placement.bracket);
 
             // test to see if draw is complete
-            if (e.draw.unseeded_placements.length && e.draw.unseeded_placements.length == e.draw.unseeded_teams.length) {
+            let all_unseeded_placed = (e.draw.unseeded_placements.length && e.draw.unseeded_placements.length == e.draw.unseeded_teams.length);
+            if (all_unseeded_placed) {
                drawCreated(e);
                drawFx.matches(e.draw);
                rr_draw.data(e.draw);
@@ -5267,7 +5312,7 @@ let tournaments = function() {
             let ids = remove.map(p=>p.id);
             if (ids.length == 2) {
                evt.approved = evt.approved.filter(a=>util.intersection(a, ids).length != 2);
-               evt.approved.push(add.map(p=>p.id));
+               evt.approved.push(add.map(p=>p.id).sort().join('|'));
             } else {
                evt.approved = evt.approved.filter(a=>a!=ids[0]);
                evt.approved.push(add[0].id);
@@ -6091,7 +6136,8 @@ let tournaments = function() {
       }
 
       let profile = env.profile || tournamentParser.profiles[env.org];
-      let points_table = point_tables[profile.points];
+      // let points_table = point_tables[profile.points];
+      let points_table = rank.pointsTable(profile.points, points_date);
 
       // if there are no gendered ranking settings, 
       // all matches modified with same ranking settings
@@ -6315,7 +6361,8 @@ let tournaments = function() {
 
          let points_date = new Date(tournament.points_date || tournament.end);
          let profile = env.profile || tournamentParser.profiles[env.org];
-         let points_table = point_tables[profile.points];
+         // let points_table = point_tables[profile.points];
+         let points_table = pointsTable(profile.points, points_date);
 
          let rankings = {
             category: undefined,
