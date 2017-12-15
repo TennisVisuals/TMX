@@ -559,7 +559,10 @@ let config = function() {
    function updateTournaments() {
       if (!navigator.onLine) return;
       let id = busy.message(`<p>${lang.tr('refresh.calendar')}...</p>`, searchBox.updateSearch);
-      let done = () => busy.done(id);
+      let done = () => {
+         busy.done(id);
+         if (gen.content == 'calendar') tournaments.displayCalendar();
+      }
       let addNew = (trnys) => util.performTask(db.addTournament, trnys, false).then(done, done);
       let notConfigured = () => { done(); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       coms.fetchNewTournaments().then(addNew, notConfigured);
