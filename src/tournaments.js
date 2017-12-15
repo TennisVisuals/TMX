@@ -165,7 +165,17 @@ let tournaments = function() {
 
          function displayTournyCal(tournaments) {
 
-            if (category) tournaments = tournaments.filter(t => t.category == (category == 20 ? 'S' : category));
+            let categories = util.unique(tournaments.map(t => t.category)).sort();
+            let options = [{ key: '-', value: '' }].concat(...categories.map(c => ({ key: c, value: c })));
+
+            if (env.org == 'HTS') {
+               let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
+               options.forEach(o => o.key = legacy[o.key] || o.key);
+            }
+
+            calendar_container.category.ddlb.setOptions(options);
+
+            if (category) tournaments = tournaments.filter(t => t.category == category);
             tournaments = tournaments.filter(t => t.end <= end);
 
             gen.calendarRows(calendar_container.rows.element, tournaments);
@@ -836,14 +846,7 @@ let tournaments = function() {
 
          // TODO: remove this hack...
          if (env.org == 'HTS') {
-            let legacy = {
-               '10': 'U10',
-               '12': 'U12',
-               '14': 'U14',
-               '16': 'U16',
-               '18': 'U18',
-               '20': 'S',
-            }
+            let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
             if (legacy[age_category]) age_category = legacy[age_category];
          }
 
@@ -2071,7 +2074,7 @@ let tournaments = function() {
          }
          eventName();
         
-         let details = gen.displayEventDetails(container, e, genders, surfaces, formats, draw_types, state.edit);
+         let details = gen.displayEventDetails(tournament, container, e, genders, surfaces, formats, draw_types, state.edit);
 
          let addAll = () => modifyApproved.addAll(e);
          let removeAll = () => modifyApproved.removeAll(e);
@@ -3707,14 +3710,7 @@ let tournaments = function() {
 
          let category = tournament.category;
          if (env.org == 'HTS') {
-            let legacy = {
-               '10': 'U10',
-               '12': 'U12',
-               '14': 'U14',
-               '16': 'U16',
-               '18': 'U18',
-               '20': 'S',
-            }
+            let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
             if (legacy[category]) category = legacy[category];
          }
 
@@ -5861,7 +5857,7 @@ let tournaments = function() {
       }
 
       function legacyTournamentOptions() {
-         let legacy = gen.legacyTournamentTab(container.tournament.element);
+         let legacy = gen.legacyTournamentTab(container.tournament.element, tournament);
          Object.assign(container, legacy.container);
          legacyTournament(tournament, container);
       }

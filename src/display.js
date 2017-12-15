@@ -1214,8 +1214,8 @@
       `;
 
       gen.showConfigModal(html);
-      dd.attachDropDown({ id: ids.category, options: getCategories() });
-      dd.attachDropDown({ id: ids.rank, label: `${lang.tr('rnk')}:`, options: getRanks() });
+      dd.attachDropDown({ id: ids.category, options: getCategories(tournament) });
+      dd.attachDropDown({ id: ids.rank, label: `${lang.tr('rnk')}:`, options: getRanks(tournament) });
 
       let container = idObj(ids);
 
@@ -1572,17 +1572,7 @@
       return idObj(ids);
    }
 
-   let categories = [
-      {key: '-', value: ''},
-      {key: 'U10', value: '10'},
-      {key: 'U12', value: '12'},
-      {key: 'U14', value: '14'},
-      {key: 'U16', value: '16'},
-      {key: 'U18', value: '18'},
-      {key: 'S',   value: '20'},
-   ];
-
-   gen.legacyTournamentTab = (elem) => {
+   gen.legacyTournamentTab = (elem, tournament) => {
       let ids = {
          start_date: gen.uuid(),
          end_date: gen.uuid(),
@@ -1618,13 +1608,13 @@
       if (elem) {
          elem.innerHTML = html;
 
-         dd.attachDropDown({ id: ids.sgl_rank, label: lang.tr('ddlb.singles'), options: getRanks() });
-         dd.attachDropDown({ id: ids.dbl_rank, label: lang.tr('ddlb.doubles'), options: getRanks() });
-         dd.attachDropDown({ id: ids.category, label: lang.tr('ddlb.category'), options: getCategories() });
+         dd.attachDropDown({ id: ids.sgl_rank, label: lang.tr('ddlb.singles'), options: getRanks(tournament) });
+         dd.attachDropDown({ id: ids.dbl_rank, label: lang.tr('ddlb.doubles'), options: getRanks(tournament) });
+         dd.attachDropDown({ id: ids.category, label: lang.tr('ddlb.category'), options: getCategories(tournament) });
 
-         dd.attachDropDown({ id: ids.w_sgl_rank, options: getRanks() });
-         dd.attachDropDown({ id: ids.w_dbl_rank, options: getRanks() });
-         dd.attachDropDown({ id: ids.w_category, options: getCategories() });
+         dd.attachDropDown({ id: ids.w_sgl_rank, options: getRanks(tournament) });
+         dd.attachDropDown({ id: ids.w_dbl_rank, options: getRanks(tournament) });
+         dd.attachDropDown({ id: ids.w_category, options: getCategories(tournament) });
       }
 
       let container = elem ? idObj(ids) : undefined;
@@ -2725,7 +2715,7 @@
       return idObj(ids);
    }
 
-   gen.displayEventDetails = (container, e, genders, surfaces, formats, draw_types, edit) => {
+   gen.displayEventDetails = (tournament, container, e, genders, surfaces, formats, draw_types, edit) => {
       let ids = {
          gender: gen.uuid(),
          category: gen.uuid(),
@@ -2797,9 +2787,9 @@
 
       dd.attachDropDown({ id: ids.gender,  options: genders });
       dd.attachDropDown({ id: ids.format,  options: formats });
-      dd.attachDropDown({ id: ids.category,  options: getCategories() });
+      dd.attachDropDown({ id: ids.category,  options: getCategories(tournament) });
       dd.attachDropDown({ id: ids.draw_type,  options: draw_types });
-      dd.attachDropDown({ id: ids.rank,  options: getRanks() });
+      dd.attachDropDown({ id: ids.rank,  options: getRanks(tournament) });
       dd.attachDropDown({ id: ids.surface,  options: surfaces });
       return idObj(ids);
    }
@@ -3058,7 +3048,7 @@
 
       gen.reset();
       selectDisplay(html, 'calendar');
-      dd.attachDropDown({ id: ids.category, label: lang.tr('ddlb.category'), options: getCategories() });
+      dd.attachDropDown({ id: ids.category, label: lang.tr('ddlb.category'), options: [{ value: '', key: '-' }] });
 
       return idObj(ids);
    }
@@ -3079,27 +3069,30 @@
    }
 
    function calendarRow(tournament) {
-      if (!tournament.category) return;
-      let background = new Date().getTime() > tournament.end ? 'calendar_past' : 'calendar_future';
-      let actual_rankings = '';
-      if (tournament.accepted) {
-         let rankDiff = (rank) => `<span class='${rank != tournament.rank ? "diff" : ""}'>${rank}</span>`;
-         actual_rankings = Object.keys(tournament.accepted).map(key => {
-            let singles = rankDiff(tournament.accepted[key].sgl_rank);
-            let doubles = rankDiff(tournament.accepted[key].dbl_rank);
-            return `<span style='white-space: nowrap'>${key}: [S-${singles}, D-${doubles}]</span>`;
-         }).join('<span>&nbsp;</span>');
-      }
+      if (tournament.category) {
+         let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
+         let category = env.org == 'HTS' ? legacy[tournament.category] || tournament.category : tournament.category;
+         let background = new Date().getTime() > tournament.end ? 'calendar_past' : 'calendar_future';
+         let actual_rankings = '';
+         if (tournament.accepted) {
+            let rankDiff = (rank) => `<span class='${rank != tournament.rank ? "diff" : ""}'>${rank}</span>`;
+            actual_rankings = Object.keys(tournament.accepted).map(key => {
+               let singles = rankDiff(tournament.accepted[key].sgl_rank);
+               let doubles = rankDiff(tournament.accepted[key].dbl_rank);
+               return `<span style='white-space: nowrap'>${key}: [S-${singles}, D-${doubles}]</span>`;
+            }).join('<span>&nbsp;</span>');
+         }
 
-      return `
-         <div tuid='${tournament.tuid}' class='calendar_click calendar_row ${background}'>
-            <span class='dates' style='overflow: hidden'> ${displayDate(tournament.start)}&nbsp;/ ${displayDate(tournament.end)} </span>
-            <div class='name'>${tournament.name}</div>
-            <div class='category'>${tournament.category}</div>
-            <div class='rank'>${tournament.rank}</div>
-            <!-- <div class='actual'>${actual_rankings}</div> -->
-            <!-- <div class='draws'>${tournament.draws || ''}</div> -->
-         </div>`;
+         return `
+            <div tuid='${tournament.tuid}' class='calendar_click calendar_row ${background}'>
+               <span class='dates' style='overflow: hidden'> ${displayDate(tournament.start)}&nbsp;/ ${displayDate(tournament.end)} </span>
+               <div class='name'>${tournament.name}</div>
+               <div class='category'>${category}</div>
+               <div class='rank'>${tournament.rank}</div>
+               <!-- <div class='actual'>${actual_rankings}</div> -->
+               <!-- <div class='draws'>${tournament.draws || ''}</div> -->
+            </div>`;
+      }
    }
 
    gen.splashScreen = (components) => {
@@ -3750,12 +3743,16 @@
       }
    }
 
-   function getRanks() {
-      return [{key: '-', value: ''}].concat(...Object.keys(point_tables[env.org] && point_tables[env.org].rankings).map(r => ({ key: r, value: r })));
+   function getRanks(tournament) {
+      let points_date = tournament ? new Date(tournament.points_date || tournament.end) : new Date();
+      let points_table = rank.pointsTable(env.org, points_date);
+      return [{key: '-', value: ''}].concat(...Object.keys(points_table && points_table.rankings).map(r => ({ key: r, value: r })));
    }
 
-   function getCategories() {
-      return [{key: '-', value: ''}].concat(...Object.keys(point_tables[env.org] && point_tables[env.org].categories).map(r => ({ key: r, value: r })));
+   function getCategories(tournament) {
+      let points_date = tournament ? new Date(tournament.points_date || tournament.end) : new Date();
+      let points_table = rank.pointsTable(env.org, points_date);
+      return [{key: '-', value: ''}].concat(...Object.keys(points_table && points_table.categories).map(r => ({ key: r, value: r })));
    }
 
    function getGenders() {
