@@ -826,7 +826,7 @@
       return category;
    }
 
-   rank.pointsTable(org, calc_date) {
+   rank.pointsTable = (org, calc_date) => {
       return point_tables[env.org];
    }
 
