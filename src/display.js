@@ -1748,7 +1748,7 @@
             <div class='filter_row'>
                <div class='category_filter'>
                   <div class='calendar_date' style='font-weight: bold'>
-                     <div class='calabel'>Points valid from:</div>
+                     <div class='calabel'>${lang.tr('phrases.pointsvalidfrom')}:</div>
                      <input tabindex='-1' class='calinput' id='${ids.points_valid}' disabled>
                   </div>
                </div>
@@ -3281,7 +3281,7 @@
    function tabRankLists(categories, week, year) {
       let category_keys = Object.keys(categories).sort();
       let tabs = category_keys.map((category, i) => {
-         let tab = (category == 'U20') ? 'Seniors' : category;
+         let tab = category;
          let content = categoryRankList(category, categories[category], i);
          return { tab, content }
       });
