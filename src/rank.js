@@ -21,6 +21,7 @@
       // TODO: remove this hack...
       if (env.org == 'HTS') {
          let legacy = {
+            '10': 'U10',
             '12': 'U12',
             '14': 'U14',
             '16': 'U16',
@@ -142,13 +143,6 @@
          rankings = rankings[gender] || rankings;
          return match.format == 'doubles' ? rankings.dbl_rank : rankings.sgl_rank;
       }
-
-      // calculates points for winner of match
-      // TODO: in order to calculate points for loser of match there needs to
-      // be a function which returns the round prior to the match round...
-      // a loser could be assigned points for losing ONLY IF they already had
-      // points for a prior round... or if it is determined that the match is
-      // not the FIRST ROUND of the tournament
 
       matches.forEach(match => {
          if (date) { match.date = date.getTime(); }
@@ -832,6 +826,10 @@
       return category;
    }
 
+   rank.pointsTable(org, calc_date) {
+      return point_tables[env.org];
+   }
+
    function performTask(fx, data, bulkResults = true) {
       return new Promise(function(resolve, reject) {
          let results = [];
@@ -862,62 +860,3 @@
    this.rank = rank;
  
 }();
-
-/*
-
-   // HOW TO TEST FOR DUPLICATE POINTS
-
-   db.findAllPlayers().then(p=>players=p);
-   db.findAllPoints().then(p => points = p);
-
-   // players with all their points
-   pp = players.map(player => { return { player, points: points.filter(p=>p.id == player.id) }});
-
-   // players who actually have points
-   pwp = pp.filter(p=>p.points.length > 1);
-
-   let moreThanOne = (tpoints) => {
-     let singles = tpoints.filter(p => p.format == 'singles');
-     let doubles = tpoints.filter(p => p.format == 'doubles');
-     if (singles.length > 1 || doubles.length > 1) return true;
-   }
-
-   // players with multiple tournament points in same category
-   pwmtp = pwp.map(pwp => {
-      let tpoints = {};
-      pwp.points.forEach(point => {
-         if (!tpoints[point.tuid]) tpoints[point.tuid] = [];
-         tpoints[point.tuid].push(point);
-      });
-      let mult = Object.keys(tpoints).map(key => moreThanOne(tpoints[key])).reduce((a, b) => a && (b || true));
-      if (mult) {
-         pwp.tpoints = tpoints;
-         return pwp;
-      }
-   }).filter(f=>f);
-
-   // points to be removed...
-
-   muids = [
-      "CRO-BAB50852-HTS153-singles-KV2",
-      "HTS423belvanovićDJA2marincelSLV3RRQ2",
-      "CRO-GOL11387-HTS153-singles-KV2",
-      "CRO-KEŠ68790-HTS153-singles-KV1",
-      "CRO-LOZ38833-HTS153-singles-KV2",
-      "CRO-MAR48578-HTS153-singles-KV1",
-      "CRO-PRE13229-HTS175-singles-KV3",
-      "CRO-PUH18643-HTS172-singles-KV1",
-      "CRO-REZ31324-HTS153-singles-KV3",
-      "CRO-RIH68249-HTS153-singles-KV3",
-      "CRO-SIT33815-HTS272-doubles-17.-32.",
-      "CRO-SOL83583-HTS153-singles-KV3",
-      "CRO-STE43903-HTS153-singles-KV2",
-      "CRO-SUD96075-HTS153-singles-KV3",
-      "CRO-SVJ15789-HTS153-singles-KV1",
-      "CRO-VER28764-HTS153-singles-KV2",
-      "HTS409lekoBAL5žufićBAL5culmanovaLJD6čupićRBC6QF",
-   ];
-
-   let delp = (muid) => db.db.points.where('muid').equals(muid).delete().then(c => console.log( "Deleted " + c));
-
-*/
