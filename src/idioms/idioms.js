@@ -270,6 +270,7 @@
          schedulepriority: 'Match Scheduling Priority',
          send: 'Send',
          export: 'Export',
+         pointsvalidfrom: 'Points Valid From',
       },
 
       events: {
@@ -614,6 +615,7 @@
          schedulepriority: 'Prioritet raspoređivanja utakmica',
          send: 'Poslati',
          export: 'Izvoz',
+         pointsvalidfrom: 'Bodova vrijedi od',
       },
 
       events: {
