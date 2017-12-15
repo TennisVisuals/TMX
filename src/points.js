@@ -2,7 +2,17 @@
    var point_tables = {};
 
    point_tables.HTS = {
+      validity: [
+         { from: '2010-01-01', to: '2017-12-31', table: 'HTS1' },
+         { from: '2018-01-01', to: '2100-12-31', table: 'HTS2' },
+      ],
       categories: {
+         'U10': { 
+            singles: { mapping: undefined, multiplier:  0 },
+            doubles: { mapping: undefined, multipler:   0 },
+            ages:    { from:  7, to: 10 },
+            ranking: { }
+         },
          'U12': { 
             singles: { mapping: "singles", multiplier:  1 },
             doubles: { mapping: "doubles", multipler:   1 },
@@ -29,7 +39,7 @@
             ranking: {
                singles: { events: 6, lists: { 'U12': 6, 'U14': 6, 'U16': 6, 'U18': 2 } },
                doubles: { events: 4, lists: { 'U12': 4, 'U14': 4, 'U16': 4, 'U18': 2 } },
-         }
+            }
          },
          'U18': {
             singles: { mapping: "singles", multiplier:  8 },
@@ -38,7 +48,7 @@
             ranking: {
                singles: { events: 6, lists: { 'U14': 6, 'U16': 6, 'U18': 6, 'S': 6 } },
                doubles: { events: 4, lists: { 'U14': 4, 'U16': 4, 'U18': 4, 'S': 2 } },
-         }
+            }
          },
          'S':   {
             singles: { mapping: "singles", multiplier: 16 },
