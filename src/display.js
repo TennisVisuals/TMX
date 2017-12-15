@@ -1212,9 +1212,10 @@
             </div>
          </div>
       `;
+
       gen.showConfigModal(html);
-      dd.attachDropDown({ id: ids.category, options: categories });
-      dd.attachDropDown({ id: ids.rank, label: `${lang.tr('rnk')}:`, options: ranks });
+      dd.attachDropDown({ id: ids.category, options: getCategories() });
+      dd.attachDropDown({ id: ids.rank, label: `${lang.tr('rnk')}:`, options: getRanks() });
 
       let container = idObj(ids);
 
@@ -1242,10 +1243,6 @@
          first_name: gen.uuid(),
          entry_form: gen.uuid(),
       }
-      let genders = [
-         {key: `${lang.tr("genders.male")}`, value: 'M'},
-         {key: `${lang.tr("genders.female")}`, value: 'W'},
-      ];
 
       let html = `
          <div class='add_player' style='margin: 2em'>
@@ -1299,7 +1296,7 @@
       `;
       gen.showConfigModal(html, 'visible');
       let id_obj = idObj(ids);
-      dd.attachDropDown({ id: ids.gender, options: genders });
+      dd.attachDropDown({ id: ids.gender, options: getGenders() });
       return id_obj;
    }
 
@@ -1308,12 +1305,18 @@
       let registration = player.registration(p);
 
       let name = util.normalizeName([p.first_name, p.last_name].join(' '), false);
-      let clubdata = !club.name || !club.code ? '' :
-         `<div class='flexrow'><div class='pdata_label'>${lang.tr('clb')}:</div><div class='pdata_value'>${club.name}&nbsp;(${club.code})</div></div>`;
+      let clubdata = !club.name ? '' :
+         `<div class='flexrow'><div class='pdata_label'>${lang.tr('clb')}:</div><div class='pdata_value'>${club.name}</div></div>`;
+      let clubcode = !club.code ? '' :
+         `<div class='flexrow'><div class='pdata_label'>${lang.tr('clb')}:</div><div class='pdata_value'>${club.code}</div></div>`;
       let cropin = !p.cropin ? '' :
          `<div class='flexrow'><div class='pdata_label'>CROPIN:</div><div class='pdata_value'>${p.cropin || ''}</div></div>`;
       let birth = !p.birth ? '' :
          `<div class='flexrow'><div class='pdata_label'>${lang.tr('bd')}:</div><div class='pdata_value'>${displayYear(p.birth)}</div></div>`;
+      let city = !p.city ? '' :
+         `<div class='flexrow'><div class='pdata_label'>${lang.tr('cty')}:</div><div class='pdata_value'>${p.city}</div></div>`;
+      let country = !p.ioc ? '' :
+         `<div class='flexrow'><div class='pdata_label'>${lang.tr('cnt')}:</div><div class='pdata_value'>${p.ioc}</div></div>`;
 
       let expired_medical = medical != false ? '' :
          `<div class='flexrow'>
@@ -1331,9 +1334,16 @@
       let html = `
          <div class='player_data'>
             <h2 style='margin-left: 1em; margin-right: 1em;'>${name}</h2>
-            <div class='flexcol pdata' style="width: 100%">
-               ${cropin} ${clubdata} ${birth} ${expired_medical} ${expired_registration}
+
+            <div class='player_details'>
+               <div class='pdetail' style="height: 100%">
+                  ${cropin} ${clubdata} ${clubcode}
+               </div>
+               <div class='pdetail' style="height: 100%">
+                  ${birth} ${expired_medical} ${expired_registration} ${city} ${country}
+               </div>
             </div>
+
             <div class='flexcol' style='width: 50%'>
                <div></div>
                <div></div>
@@ -1562,19 +1572,6 @@
       return idObj(ids);
    }
 
-   let ranks = [
-      {key: '-', value: ''},
-      {key: '1', value: '1'},
-      {key: '2', value: '2'},
-      {key: '3', value: '3'},
-      {key: '4', value: '4'},
-      {key: '5', value: '5'},
-      {key: '6', value: '6'},
-      {key: '7', value: '7'},
-      {key: '8', value: '8'},
-      {key: 'M', value: 'M'},
-   ];
-
    let categories = [
       {key: '-', value: ''},
       {key: 'U10', value: '10'},
@@ -1621,13 +1618,13 @@
       if (elem) {
          elem.innerHTML = html;
 
-         dd.attachDropDown({ id: ids.sgl_rank, label: lang.tr('ddlb.singles'), options: ranks });
-         dd.attachDropDown({ id: ids.dbl_rank, label: lang.tr('ddlb.doubles'), options: ranks });
-         dd.attachDropDown({ id: ids.category, label: lang.tr('ddlb.category'), options: categories });
+         dd.attachDropDown({ id: ids.sgl_rank, label: lang.tr('ddlb.singles'), options: getRanks() });
+         dd.attachDropDown({ id: ids.dbl_rank, label: lang.tr('ddlb.doubles'), options: getRanks() });
+         dd.attachDropDown({ id: ids.category, label: lang.tr('ddlb.category'), options: getCategories() });
 
-         dd.attachDropDown({ id: ids.w_sgl_rank, options: ranks });
-         dd.attachDropDown({ id: ids.w_dbl_rank, options: ranks });
-         dd.attachDropDown({ id: ids.w_category, options: categories });
+         dd.attachDropDown({ id: ids.w_sgl_rank, options: getRanks() });
+         dd.attachDropDown({ id: ids.w_dbl_rank, options: getRanks() });
+         dd.attachDropDown({ id: ids.w_category, options: getCategories() });
       }
 
       let container = elem ? idObj(ids) : undefined;
@@ -2800,9 +2797,9 @@
 
       dd.attachDropDown({ id: ids.gender,  options: genders });
       dd.attachDropDown({ id: ids.format,  options: formats });
-      dd.attachDropDown({ id: ids.category,  options: categories });
+      dd.attachDropDown({ id: ids.category,  options: getCategories() });
       dd.attachDropDown({ id: ids.draw_type,  options: draw_types });
-      dd.attachDropDown({ id: ids.rank,  options: ranks });
+      dd.attachDropDown({ id: ids.rank,  options: getRanks() });
       dd.attachDropDown({ id: ids.surface,  options: surfaces });
       return idObj(ids);
    }
@@ -3061,7 +3058,7 @@
 
       gen.reset();
       selectDisplay(html, 'calendar');
-      dd.attachDropDown({ id: ids.category, label: lang.tr('ddlb.category'), options: categories});
+      dd.attachDropDown({ id: ids.category, label: lang.tr('ddlb.category'), options: getCategories() });
 
       return idObj(ids);
    }
@@ -3751,6 +3748,22 @@
             target.transition().duration(duration).style('height', '0px').transition().duration(0).style('display', 'none');
          }
       }
+   }
+
+   function getRanks() {
+      return [{key: '-', value: ''}].concat(...Object.keys(point_tables[env.org] && point_tables[env.org].rankings).map(r => ({ key: r, value: r })));
+   }
+
+   function getCategories() {
+      return [{key: '-', value: ''}].concat(...Object.keys(point_tables[env.org] && point_tables[env.org].categories).map(r => ({ key: r, value: r })));
+   }
+
+   function getGenders() {
+      return [
+         {key: `${lang.tr("genders.male")}`, value: 'M'},
+         {key: `${lang.tr("genders.female")}`, value: 'W'},
+      ];
+
    }
 
    if (typeof define === "function" && define.amd) define(gen); else if (typeof module === "object" && module.exports) module.exports = gen;
