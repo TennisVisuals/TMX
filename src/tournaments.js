@@ -3714,10 +3714,8 @@ let tournaments = function() {
             if (legacy[category]) category = legacy[category];
          }
 
-         let options = Object.keys(point_tables[env.org] && point_tables[env.org].categories)
-            .map(r => ({ key: r, value: r }))
-            .filter(c=>c.value == category);
-
+         let points_date = new Date(tournament.points_date || tournament.end);
+         let options = rank.orgCategories(env.org, points_date).map(r => ({ key: r, value: r })).filter(c=>c.value == category);
          let prior_value = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : undefined;
          if (options.map(o=>o.value).indexOf(prior_value) < 0) prior_value = undefined;
          
@@ -3952,7 +3950,6 @@ let tournaments = function() {
 
          // TODO: the profile can be specified in the tournament configuration
          let profile = env.profile || tournamentParser.profiles[env.org];
-         // let points_table = point_tables[profile.points];
          let points_table = rank.pointsTable(profile.points, points_date);
 
          let match_data = { matches, points_table, points_date };
@@ -5852,7 +5849,7 @@ let tournaments = function() {
                }
             },
          });
-         pointsDatePicker.setMinDate(points_date);
+         pointsDatePicker.setMinDate(tournament.start);
 
       }
 

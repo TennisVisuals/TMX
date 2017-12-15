@@ -18,15 +18,8 @@
       category = category || (match.event && match.event.category);
       event_rank = event_rank || (match.event && match.event.rank);
 
-      // TODO: remove this hack...
       if (env.org == 'HTS') {
-         let legacy = {
-            '10': 'U10',
-            '12': 'U12',
-            '14': 'U14',
-            '16': 'U16',
-            '18': 'U18',
-            '20': 'S',
+         let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S',
          }
          if (legacy[category]) category = legacy[category];
       }
@@ -77,10 +70,12 @@
    }
 
    rank.calcMatchesPoints = ({ matches, points_table, points_date }) => {
+      console.log(points_table);
       let player_points = { singles: {}, doubles: {} };
       matches.forEach(match => {
          if (points_date) { match.date = points_date.getTime(); }
          let ranking_attributes = points_table.rankings[match.event.rank];
+         if (!ranking_attributes) return;
          let first_round_points =  ranking_attributes.first_round_points && ranking_attributes.first_round_points[match.event.draw_type];
 
          let losing_rounds = {
@@ -427,6 +422,7 @@
 
                let total = point_events.length ? reduce(point_events) : 0;
 
+               // TODO: remove ref to HTS
                // 'U' necessary because 20 was not showing up when added to object!!
                if (category >= base && total > 0) rpts[`U${category}`] = { total, singles, doubles, singles_up, doubles_up, team };
             });
@@ -443,10 +439,14 @@
    rank.calculatePlayerCategories = calculatePlayerCategories;
    function calculatePlayerCategories({birth_year, calc_date, calc_year}) {
       if (!calc_date && !calc_year) return [];
+
+      // remove ref to HTS structure
       let categories = [12, 14, 16, 18, 20];
+
       calc_year = calc_year || new Date(calc_date).getFullYear();
       let player_age = calc_year - birth_year;
       return categories
+      // remove ref to HTS structure
          .filter(category => (category == 20 && player_age >= 20) || (category >= player_age && category <= player_age + 5));
    }
 
@@ -493,6 +493,7 @@
             cpts[category] = cpoints;
          });
 
+         // TODO this whole section needs to change to use new pointsTable()
          function calcCategory(category) {
 
             let usingles = [];
@@ -534,6 +535,7 @@
             }
 
             // take top 6 singles and top 4 doubles
+            // remove ref to HTS structure
             singles = bigPoints(singles).slice(0, +category == 20 ? 10 : 6);
             doubles = bigPoints(doubles).slice(0, +category == 20 ? 10 : 4);
 
@@ -812,6 +814,7 @@
 
    rank.validCategory = (category, year, birth) => {
       let age = yearEndAge(year, birth);
+      // TODO: remove ref to HTS structure
       if (age > 16 && category == 20) return true;
       if (age > category) return false;
       if (age < category - 4) return false;
@@ -820,14 +823,38 @@
 
    rank.baseCategory = (born, year = new Date().getFullYear()) => {
       let age = yearEndAge(year, new Date(born, 1, 1).getTime());
+
+      // TODO: remove ref to HTS structure
       let categories = [18, 16, 14, 12, 10];
       let category = 20;
+
       categories.forEach(c => { if (age <= c) category = c});
       return category;
    }
 
+   // NOTICE: It may be necessary sometimes to have the point table equal to
+   // the tournament start date rather than the tournament end or point calc date
+   // for instance, if a tournament straddles the boundary between the valid
+   // range of two differnt point tables...
    rank.pointsTable = (org, calc_date) => {
-      return point_tables[env.org];
+      let org_tables = point_tables[env.org];
+
+      if (calc_date && org_tables.validity) {
+
+         // necessary to normalize getTime() values
+         let calc_date_string = util.formatDate(calc_date);
+
+         let calc_time = new Date(calc_date_string).getTime();
+         let valid = org_tables.validity.reduce((p, c) => new Date(c.from).getTime() <= calc_time && new Date(c.to).getTime() >= calc_time ? c : p, undefined);
+         return valid ? org_tables.tables[valid.table] : {};
+      } else {
+         return point_tables[env.org];
+      }
+   }
+
+   rank.orgCategories = (org, calc_date) => {
+      let points_table = rank.pointsTable(env.org, calc_date);
+      return points_table ? Object.keys(points_table.categories) : ['U10', 'U12', 'U14', 'U16', 'U18', 'S'];
    }
 
    function performTask(fx, data, bulkResults = true) {
