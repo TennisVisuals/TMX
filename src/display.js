@@ -116,14 +116,9 @@
    }
 
    gen.svgModal = ({ x, y, options, callback }) => {
-      if (!options || !options.length) {
-         cleanUp();
-         return;
-      }
-      let opts = options.map(o => {
-         if (typeof o == 'object' && o.label) return o.label;
-         return o;
-      });
+      if (!options || !options.length) { return cleanUp(); }
+      let opts = options.map(o => (typeof o == 'object' && o.label) ? o.label : o);
+
       let root = d3.select('body');
       let svg = root.append('svg')
          .attr('id', 'svgmodal')
@@ -133,15 +128,14 @@
       let menu = contextMenu().selector(svg.node()).events({ 'cleanup': cleanUp });
       menu
          .items(...opts)
-         .events({ 'item': { 'click': returnSelection } });
+         .events({ 'item': { 'click': (d, i) => returnSelection(options[i], i) } });
       menu(x, y);
 
       document.body.style.overflow  = 'hidden';
       gen.escapeFx = () => cleanUp();
 
       function returnSelection(d, i) {
-         let v = (typeof options[i] == 'object' && options[i].value) ? options[i].value : undefined;
-         if (typeof callback == 'function') callback(d, i, v);
+         if (typeof callback == 'function') callback(d, i);
       }
       function cleanUp() { 
          gen.escapeFx = undefined;
@@ -880,6 +874,7 @@
          cancel: gen.uuid(),
       }
 
+      // TODO: Auth currently not used...
       let submit = gen.submitKey();
 
       let tabdata = [];
@@ -1673,6 +1668,7 @@
          localdownload: gen.uuid(),
          localdownload_state: gen.uuid(),
          authorize: gen.uuid(),
+         cloudfetch: gen.uuid(),
       }
 
       let classes = {
@@ -1968,6 +1964,11 @@
             <img src='./icons/keys.png' class='club_link'>
          </div>
          `;
+      let cloudfetch_button = !editable ? '' :
+         `<div id='${ids.cloudfetch}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.fetch")}' style='display: none'>
+            <img src='./icons/cloudfetch.png' class='club_link'>
+         </div>
+         `;
       let edit_button = !editable ? '' :
          `<div id='${ids.edit}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.edit")}'><img src='./icons/edit.png' class='club_link'></div>`;
       let finish_button = !editable ? '' :
@@ -1978,7 +1979,8 @@
          <div id='${ids.container}' class='tournament_container'>
             <div class='tournament_info'> 
                <div id='${ids.name}'><h2>${tournament.name}</h2></div>
-               ${authorize_button}${edit_button}${finish_button}
+               <div class='flexrow'>${authorize_button}${cloudfetch_button}</div>
+               ${edit_button}${finish_button}
             </div>
             ${tabs}
          </div>
