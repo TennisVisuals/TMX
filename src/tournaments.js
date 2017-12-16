@@ -142,7 +142,14 @@ let tournaments = function() {
       }
       calendar_container.category.ddlb = new dd.DropDown({ element: calendar_container.category.element, onChange: genCal });
       calendar_container.category.ddlb.selectionBackground();
-      if (category) calendar_container.category.ddlb.setValue(category);
+      if (category) {
+         let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
+         if (config.env().org.abbr == 'HTS' && legacy[category]) {
+            calendar_container.category.ddlb.setValue(legacy[category]);
+         } else {
+            calendar_container.category.ddlb.setValue(category);
+         }
+      }
 
       calendar_container.add.element.addEventListener('click', () => createNewTournament({ title: lang.tr('tournaments.new'), callback: saveNewTournament }));
 
@@ -850,9 +857,8 @@ let tournaments = function() {
          }
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
-         let points_date = tournament_date ? new Date(tournament_date) : new Date();
-         let profile = config.env().profile || tournamentParser.profiles[config.env().org.abbr];
-         let points_table = rank.pointsTable(profile.points, points_date);
+         let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+         let points_table = config.pointsTable({calc_date});
 
          let categories = points_table && points_table.categories;
          let ages = categories && categories[age_category] ? categories[age_category].ages : { from: 8, to: 100 };
@@ -3724,8 +3730,8 @@ let tournaments = function() {
          }
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
-         let points_date = tournament_date ? new Date(tournament_date) : new Date();
-         let categories = rank.orgCategories(config.env().org.abbr, points_date).map(r => ({ key: r, value: r }));
+         let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+         let categories = config.orgCategories({ calc_date }).map(r => ({ key: r, value: r }));
          let options = categories.filter(c=>c.value == category);
          let prior_value = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : undefined;
          if (options.map(o=>o.value).indexOf(prior_value) < 0) prior_value = undefined;
@@ -3955,9 +3961,7 @@ let tournaments = function() {
          // remove any calculated points or rankings
          matches.forEach(match => match.players.forEach(p => p=player.cleanPlayer(p)));
 
-         // TODO: the profile can be specified in the tournament configuration
-         let profile = config.env().profile || tournamentParser.profiles[config.env().org.abbr] || {};
-         let points_table = rank.pointsTable(profile.points, points_date);
+         let points_table = config.pointsTable({ calc_date: points_date });
 
          let match_data = { matches, points_table, points_date };
          let points = rank.calcMatchesPoints(match_data);
@@ -6139,8 +6143,7 @@ let tournaments = function() {
          return;
       }
 
-      let profile = config.env().profile || tournamentParser.profiles[config.env().org.abbr];
-      let points_table = rank.pointsTable(profile.points, points_date);
+      let points_table = config.pointsTable({ calc_date: points_date });
 
       // if there are no gendered ranking settings, 
       // all matches modified with same ranking settings
@@ -6366,8 +6369,7 @@ let tournaments = function() {
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
          let points_date = tournament_date ? new Date(tournament_date) : new Date();
-         let profile = config.env().profile || tournamentParser.profiles[config.env().org.abbr];
-         let points_table = pointsTable(profile.points, points_date);
+         let points_table = pointsTable({ calc_date: points_date });
 
          let rankings = {
             category: undefined,

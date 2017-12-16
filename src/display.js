@@ -3749,16 +3749,16 @@
 
    function getRanks(tournament) {
       let tournament_date = tournament && (tournament.points_date || tournament.end);
-      let points_date = tournament_date ? new Date(tournament_date) : new Date();
-      let points_table = rank.pointsTable(config.env().org.abbr, points_date);
+      let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+      let points_table = config.pointsTable({calc_date});
       let rankings = [{key: '-', value: ''}];
       return !points_table.rankings ? rankings : rankings.concat(...Object.keys(points_table.rankings).map(r => ({ key: r, value: r })));
    }
 
    function getCategories(tournament) {
       let tournament_date = tournament && (tournament.points_date || tournament.end);
-      let points_date = tournament_date ? new Date(tournament_date) : new Date();
-      let points_table = rank.pointsTable(config.env().org.abbr, points_date);
+      let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+      let points_table = config.pointsTable({calc_date});
       let categories = [{key: '-', value: ''}];
       return !points_table.categories ? categories : categories.concat(...Object.keys(points_table.categories).map(r => ({ key: r, value: r })));
    }

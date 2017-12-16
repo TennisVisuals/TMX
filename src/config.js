@@ -43,14 +43,12 @@ let config = function() {
    // END queryString
 
    var env = {
-      // org: 'HTS',
+      version: '0.9.3',
       org: {
          name: undefined,
          abbr: undefined,
          ouid: undefined
       },
-      profile: undefined,     // can now be set to 'HTS2018' for new point tables
-      version: '0.9.3',
       auto_update: {
          players: false,
          registered_players: false,
@@ -63,11 +61,15 @@ let config = function() {
       broadcast: true,
       livescore: false,
       autodraw: true,
-      calendar: {},
+      calendar: {
+         start: undefined,
+         end: undefined,
+         category: undefined
+      },
    }
 
-   fx.env = () => { return env; }
-   fx.setCalendar = (obj) => { Object.keys(obj).forEach(key => { if (env.calendar[key]) env.calendar[key] = obj[key]; }); }
+   fx.env = () => env;
+   fx.setCalendar = (obj) => Object.keys(obj).forEach(key => { if (Object.keys(env.calendar).indexOf(key) >= 0) env.calendar[key] = obj[key]; });
    fx.setMap = (map) => env.map = map;
 
    // not visible/accesible outside of this module
@@ -432,7 +434,6 @@ let config = function() {
 
          function setEnv(settings) {
 
-            // let app = settings.reduce((p, c) => c.key == 'appComponents' ? c : p, undefined);
             let app = getKey('appComponents');
             if (app && app.components) {
                Object.keys(app.components).forEach(key => {
@@ -444,6 +445,9 @@ let config = function() {
 
             let org = getKey('orgData');
             if (org) { Object.keys(env.org).forEach(key => { if (org[key]) env.org[key] = org[key]; }); }
+
+            let pt = getKey('pointsTable');
+            if (pt) o.settings.points_table = pt.table;
 
             let user = settings.reduce((p, c) => c.key == 'userUUID' ? c : p, undefined);
             if (!user) db.addSetting({ key: 'userUUID', value: UUID.generate() });
@@ -480,6 +484,32 @@ let config = function() {
    }
 
    fx.geoposition = () => { return device.geoposition; }
+
+   // NOTICE: It may be necessary sometimes to have the point table equal to
+   // the tournament start date rather than the tournament end or point calc date
+   // for instance, if a tournament straddles the boundary between the valid
+   // range of two differnt point tables...
+   fx.pointsTable = ({ calc_date }) => {
+      let org_tables = o.settings.points_table;
+
+      if (!org_tables || !calc_date || !org_tables.validity) {
+         return {};
+      } else {
+         // necessary to normalize getTime() values
+         let calc_date_string = util.formatDate(calc_date);
+
+         let calc_time = new Date(calc_date_string).getTime();
+         let valid = org_tables.validity.reduce((p, c) => new Date(c.from).getTime() <= calc_time && new Date(c.to).getTime() >= calc_time ? c : p, undefined);
+         return valid ? org_tables.tables[valid.table] : {};
+      }
+   }
+
+   fx.orgCategories = ({calc_date}) => {
+      let points_table = fx.pointsTable({calc_date});
+      return fx.validPointsTable(points_table) ? Object.keys(points_table.categories) : ['U10', 'U12', 'U14', 'U16', 'U18', 'S'];
+   }
+
+   fx.validPointsTable = (table) => { return typeof table == 'object' && Object.keys(table).length; }
 
    fx.init = () => {
       gen.initModals();
