@@ -95,14 +95,12 @@ let tournaments = function() {
       let calendar_container = gen.calendarContainer();
 
       function updateStartDate() {
-         // env.calendar.start = start;
          config.setCalendar({start});
          startPicker.setStartRange(new Date(start));
          endPicker.setStartRange(new Date(start));
          endPicker.setMinDate(new Date(start));
       };
       function updateEndDate() {
-         // env.calendar.end = end;
          config.setCalendar({end});
          startPicker.setEndRange(new Date(end));
          startPicker.setMaxDate(new Date(end));
@@ -139,7 +137,6 @@ let tournaments = function() {
 
       let genCal = (value) => {
          category = value;
-         // env.calendar.category = category;
          config.setCalendar({category});
          generateCalendar({ start, end, category });
       }
@@ -171,7 +168,7 @@ let tournaments = function() {
             let categories = util.unique(tournaments.map(t => t.category)).sort();
             let options = [{ key: '-', value: '' }].concat(...categories.map(c => ({ key: c, value: c })));
 
-            if (config.env().org == 'HTS') {
+            if (config.env().org.abbr == 'HTS') {
                let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
                options.forEach(o => o.key = legacy[o.key] || o.key);
             }
@@ -847,16 +844,16 @@ let tournaments = function() {
          let age_category = tournament.category;
 
          // TODO: remove this hack...
-         if (config.env().org == 'HTS') {
+         if (config.env().org.abbr == 'HTS') {
             let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
             if (legacy[age_category]) age_category = legacy[age_category];
          }
 
-         let points_date = new Date(tournament.points_date || tournament.end);
-         let profile = config.env().profile || tournamentParser.profiles[config.env().org];
+         let tournament_date = tournament && (tournament.points_date || tournament.end);
+         let points_date = tournament_date ? new Date(tournament_date) : new Date();
+         let profile = config.env().profile || tournamentParser.profiles[config.env().org.abbr];
          let points_table = rank.pointsTable(profile.points, points_date);
 
-         // let categories = point_tables[config.env().org] && point_tables[config.env().org].categories;
          let categories = points_table && points_table.categories;
          let ages = categories && categories[age_category] ? categories[age_category].ages : { from: 8, to: 100 };
 
@@ -1057,8 +1054,8 @@ let tournaments = function() {
 
                if (document.body.scrollIntoView) document.body.scrollIntoView();
 
-               // TODO: insure that config.env().org is appropriately set when externalRequest URLs are configured
-               if (tournament.sid == config.env().org) coms.fetchRankLists().then(()=>{}, ()=>{});
+               // TODO: insure that config.env().org.abbr is appropriately set when externalRequest URLs are configured
+               if (tournament.sid == config.env().org.abbr) coms.fetchRankLists().then(()=>{}, ()=>{});
 
             }
          });
@@ -3717,14 +3714,19 @@ let tournaments = function() {
 
          // TODO: ability to sort by either name or rank
 
+         // TODO: temporary; HTS only has one category per tournament...
+         // in the future there will need to be a variable to keep track of
+
          let category = tournament.category;
-         if (config.env().org == 'HTS') {
+         if (config.env().org.abbr == 'HTS') {
             let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
             if (legacy[category]) category = legacy[category];
          }
 
-         let points_date = new Date(tournament.points_date || tournament.end);
-         let options = rank.orgCategories(config.env().org, points_date).map(r => ({ key: r, value: r })).filter(c=>c.value == category);
+         let tournament_date = tournament && (tournament.points_date || tournament.end);
+         let points_date = tournament_date ? new Date(tournament_date) : new Date();
+         let categories = rank.orgCategories(config.env().org.abbr, points_date).map(r => ({ key: r, value: r }));
+         let options = categories.filter(c=>c.value == category);
          let prior_value = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : undefined;
          if (options.map(o=>o.value).indexOf(prior_value) < 0) prior_value = undefined;
          
@@ -3735,12 +3737,7 @@ let tournaments = function() {
          });
          container.category_filter.ddlb = new dd.DropDown({ element: container.category_filter.element, id: container.category_filter.id });
          container.category_filter.ddlb.selectionBackground();
-
-         // TODO: temporary; HTS only has one category per tournament...
-         // in the future there will need to be a variable to keep track of
-         if (tournament.categories && tournament.categories.length) prior_value = tournament.categories[0];
-         if (isNaN(prior_value)) prior_value == 20;
-         container.category_filter.ddlb.setValue(prior_value || tournament.category);
+         container.category_filter.ddlb.setValue(prior_value || category);
          container.category_filter.ddlb.lock();
 
          // playersTab has a category DDLB... and this should be used for ordering players...
@@ -3950,7 +3947,8 @@ let tournaments = function() {
       }
 
       function tournamentPoints(tournament, matches) {
-         let points_date = new Date(tournament.points_date || tournament.end);
+         let tournament_date = tournament && (tournament.points_date || tournament.end);
+         let points_date = tournament_date ? new Date(tournament_date) : new Date();
 
          tabVisible(container, 'PT', matches && matches.length);
          if (!matches || !matches.length) return;
@@ -3958,7 +3956,7 @@ let tournaments = function() {
          matches.forEach(match => match.players.forEach(p => p=player.cleanPlayer(p)));
 
          // TODO: the profile can be specified in the tournament configuration
-         let profile = config.env().profile || tournamentParser.profiles[config.env().org];
+         let profile = config.env().profile || tournamentParser.profiles[config.env().org] || {};
          let points_table = rank.pointsTable(profile.points, points_date);
 
          let match_data = { matches, points_table, points_date };
@@ -5840,7 +5838,8 @@ let tournaments = function() {
             tournamentOptions(days);
          }
 
-         let points_date = new Date(tournament.points_date || tournament.end);
+         let tournament_date = tournament && (tournament.points_date || tournament.end);
+         let points_date = tournament_date ? new Date(tournament_date) : new Date();
          let pointsDatePicker = new Pikaday({
             field: container.points_valid.element,
             i18n: lang.obj('i18n'),
@@ -6120,7 +6119,8 @@ let tournaments = function() {
    // only paramater is date because that is what is passed by calendar object
    function calcPlayerPoints({ date, tournament, container, filters=[] }) {
 
-      let points_date = new Date(tournament.points_date || date || tournament.end);
+      let tournament_date = tournament && (tournament.points_date || date || tournament.end);
+      let points_date = tournament_date ? new Date(tournament_date) : new Date();
       let tuid = tournament.tuid;
       let matches = tournament.matches.slice();
 
@@ -6193,9 +6193,11 @@ let tournaments = function() {
       d3.select(`#${tab}` + container.container.id).style('display', visible ? 'flex' : 'none');
    }
 
-   function displayTournamentPoints(container, points, filters) {
+   function displayTournamentPoints(container, points={}, filters) {
 
       let filterPointsByGender = (obj) => {
+         if (!obj) return {};
+
          // keep if gender is not in the filters
          let filtered = Object.keys(obj).filter(k => filters.indexOf(obj[k].gender) < 0);
          // recreate objects
@@ -6362,7 +6364,8 @@ let tournaments = function() {
       return new Promise( (resolve, reject) => {
          db.db.matches.where('tournament.tuid').equals(tournament.tuid).toArray(calcPoints); 
 
-         let points_date = new Date(tournament.points_date || tournament.end);
+         let tournament_date = tournament && (tournament.points_date || tournament.end);
+         let points_date = tournament_date ? new Date(tournament_date) : new Date();
          let profile = config.env().profile || tournamentParser.profiles[config.env().org];
          let points_table = pointsTable(profile.points, points_date);
 

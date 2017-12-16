@@ -3073,7 +3073,7 @@
    function calendarRow(tournament) {
       if (tournament.category) {
          let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
-         let category = config.env().org == 'HTS' ? legacy[tournament.category] || tournament.category : tournament.category;
+         let category = config.env().org.abbr == 'HTS' ? legacy[tournament.category] || tournament.category : tournament.category;
          let background = new Date().getTime() > tournament.end ? 'calendar_past' : 'calendar_future';
          let actual_rankings = '';
          if (tournament.accepted) {
@@ -3748,15 +3748,19 @@
    }
 
    function getRanks(tournament) {
-      let points_date = tournament ? new Date(tournament.points_date || tournament.end) : new Date();
-      let points_table = rank.pointsTable(config.env().org, points_date);
-      return [{key: '-', value: ''}].concat(...Object.keys(points_table && points_table.rankings).map(r => ({ key: r, value: r })));
+      let tournament_date = tournament && (tournament.points_date || tournament.end);
+      let points_date = tournament_date ? new Date(tournament_date) : new Date();
+      let points_table = rank.pointsTable(config.env().org.abbr, points_date);
+      let rankings = [{key: '-', value: ''}];
+      return !points_table.rankings ? rankings : rankings.concat(...Object.keys(points_table.rankings).map(r => ({ key: r, value: r })));
    }
 
    function getCategories(tournament) {
-      let points_date = tournament ? new Date(tournament.points_date || tournament.end) : new Date();
-      let points_table = rank.pointsTable(config.env().org, points_date);
-      return [{key: '-', value: ''}].concat(...Object.keys(points_table && points_table.categories).map(r => ({ key: r, value: r })));
+      let tournament_date = tournament && (tournament.points_date || tournament.end);
+      let points_date = tournament_date ? new Date(tournament_date) : new Date();
+      let points_table = rank.pointsTable(config.env().org.abbr, points_date);
+      let categories = [{key: '-', value: ''}];
+      return !points_table.categories ? categories : categories.concat(...Object.keys(points_table.categories).map(r => ({ key: r, value: r })));
    }
 
    function getGenders() {

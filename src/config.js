@@ -1,34 +1,10 @@
 let config = function() {
 
-   let fx = {};
-   let queryString = {};
-   let idiom = {
-      "key": "defaultIdiom",
-      "class": "userInterface",
-      "ioc": "cro"
-   };
+   // module container
+   var fx = {};
 
-   let components = {
-      players: true,
-      tournaments: true,
-      clubs: true,
-      tournament_search: true,
-      club_search: true,
-      settings: true,
-      importexport: true,
-      autodraw: true,
-      keys: false,
-   }
-
-   fx.settings = {
-      categories: {
-         externalRequest: [ 'fetchClubs', 'fetchNewPlayers', 'fetchNewTournaments', 'fetchRankList', 'fetchRegisteredPlayers' ],
-         userInterface: [ 'defaultIdiom', ],
-      },
-   };
-
-   let clearHistory = () => history.pushState('', document.title, window.location.pathname);
-
+   // BEGIN queryString
+   var queryString = {};
    (function () {
      let query = window.location.search.substring(1);
      let vars = query.split("&");
@@ -46,8 +22,90 @@ let config = function() {
      clearHistory();
    })();
 
+   // http://localhost:8065/devel/ranking/?settingsURL=http://hts.hr/pin/json/settings.json
+   // https://courthive.com/tmx/?settingsURL=http://hts.hr/pin/json/settings.json
+   function checkQueryString() {
+      return new Promise((resolve, reject) => {
+         if (queryString.settingsURL) {
+            if (queryString.settingsURL.indexOf('http') != 0) return resolve();
+            coms.fetchJSON(queryString.settingsURL).then(updateSettings, console.log).then(resolve, console.log);
+         } else if (queryString.resetDB) {
+            if (!queryString.resetDB.indexOf('true') == 0) return resolve();
+            config.resetDB().then(resolve);
+         } else if (queryString.actionKey) {
+            coms.sendKey(queryString.actionKey);
+            resolve();
+         } else {
+            resolve();
+         }
+      });
+   }
+   // END queryString
+
+   var env = {
+      // org: 'HTS',
+      org: {
+         name: undefined,
+         abbr: undefined,
+         ouid: undefined
+      },
+      profile: undefined,     // can now be set to 'HTS2018' for new point tables
+      version: '0.9.3',
+      auto_update: {
+         players: false,
+         registered_players: false,
+      },
+      map: undefined,
+      map_provider: undefined, // 'google' or 'leaflet'
+      orientation: undefined,
+      reset_new_versions: false,
+      geolocate: true,
+      broadcast: true,
+      livescore: false,
+      autodraw: true,
+      calendar: {},
+   }
+
+   fx.env = () => { return env; }
+   fx.setCalendar = (obj) => { Object.keys(obj).forEach(key => { if (env.calendar[key]) env.calendar[key] = obj[key]; }); }
+   fx.setMap = (map) => env.map = map;
+
+   // not visible/accesible outside of this module
+   var o = {
+      components: {
+         players: true,
+         tournaments: true,
+         clubs: true,
+         tournament_search: true,
+         club_search: true,
+         settings: true,
+         importexport: true,
+         autodraw: true,
+         keys: false
+      },
+      settings: {
+         point_tables: {}
+      }
+   }
+
+   // This probably needs to be implemented differently...
+   fx.settings = {
+      categories: {
+         externalRequest: [ 'fetchClubs', 'fetchNewPlayers', 'fetchNewTournaments', 'fetchRankList', 'fetchRegisteredPlayers' ],
+         userInterface: [ 'defaultIdiom', ],
+      },
+   };
+
+   function clearHistory() { history.pushState('', document.title, window.location.pathname); }
+
    fx.idiomSelector = () => {
       return new Promise((resolve, reject) => {
+         var idiom = {
+            "key": "defaultIdiom",
+            "class": "userInterface",
+            "ioc": "gbr"
+         };
+
          let options = lang.options().sort().map(value => { 
             return { key: `<div class=''><img src="./assets/flags/${value.toUpperCase()}.png" class='idiom_flag'></div>`, value }
          });
@@ -79,25 +137,6 @@ let config = function() {
             resolve();
          }
          db.findSetting('defaultIdiom').then(setIdiom, (error) => console.log('error:', error));
-      });
-   }
-
-   // http://localhost:8065/devel/ranking/?settingsURL=http://hts.hr/pin/json/settings.json
-   // https://courthive.com/tmx/?settingsURL=http://hts.hr/pin/json/settings.json
-   function checkQueryString() {
-      return new Promise((resolve, reject) => {
-         if (queryString.settingsURL) {
-            if (queryString.settingsURL.indexOf('http') != 0) return resolve();
-            coms.fetchJSON(queryString.settingsURL).then(updateSettings, console.log).then(resolve, console.log);
-         } else if (queryString.resetDB) {
-            if (!queryString.resetDB.indexOf('true') == 0) return resolve();
-            config.resetDB().then(resolve);
-         } else if (queryString.actionKey) {
-            coms.sendKey(queryString.actionKey);
-            resolve();
-         } else {
-            resolve();
-         }
       });
    }
 
@@ -240,7 +279,6 @@ let config = function() {
                db.addCalcDate(data);
             }, (err) => console.log(err));
          } else {
-            // TODO: add to idioms
             gen.showModal(`<h2>${lang.tr('phrases.nopointcalcs')}</h2>`);
          }
 
@@ -292,11 +330,11 @@ let config = function() {
             player.displayPlayerProfile(puid).then(()=>{}, ()=>{});
          }
       };
-      if (components.tournament_search) searchBox.searchType.tournaments = function(tuid) {
+      if (o.components.tournament_search) searchBox.searchType.tournaments = function(tuid) {
          searchBox.active.tournament = { tuid };
          tournaments.displayTournament();
       };
-      if (components.club_search) searchBox.searchType.clubs = function(cuid) {
+      if (o.components.club_search) searchBox.searchType.clubs = function(cuid) {
          searchBox.active.club = { cuid };
          displayClub();
       };
@@ -344,7 +382,7 @@ let config = function() {
          }
       }
 
-      if (components.tournament_search) searchBox.populateSearch.tournaments = function() {
+      if (o.components.tournament_search) searchBox.populateSearch.tournaments = function() {
          db.findAllTournaments().then(arr => {
             searchBox.searchCount(arr.length);
             searchBox.searchCategory('search_tournament_total');
@@ -361,7 +399,7 @@ let config = function() {
          });
       };
 
-      if (components.club_search) searchBox.populateSearch.clubs = function() {
+      if (o.components.club_search) searchBox.populateSearch.clubs = function() {
          db.findAllClubs().then(arr => {
             searchBox.searchCount(arr.length);
             searchBox.searchCategory('search_clubs_total');
@@ -394,15 +432,18 @@ let config = function() {
 
          function setEnv(settings) {
 
-            let app = settings.reduce((p, c) => c.key == 'appComponents' ? c : p, undefined);
+            // let app = settings.reduce((p, c) => c.key == 'appComponents' ? c : p, undefined);
+            let app = getKey('appComponents');
             if (app && app.components) {
                Object.keys(app.components).forEach(key => {
                   let bool = util.string2boolean(app.components[key]);
-                  if (bool != undefined) components[key] = bool;
+                  if (bool != undefined) o.components[key] = bool;
                });
+               env.autodraw = o.components.autodraw != undefined ? o.components.autodraw : true;
             }
 
-            env.autodraw = components.autodraw != undefined ? components.autodraw : true;
+            let org = getKey('orgData');
+            if (org) { Object.keys(env.org).forEach(key => { if (org[key]) env.org[key] = org[key]; }); }
 
             let user = settings.reduce((p, c) => c.key == 'userUUID' ? c : p, undefined);
             if (!user) db.addSetting({ key: 'userUUID', value: UUID.generate() });
@@ -410,6 +451,8 @@ let config = function() {
             // turn off info labels...
             // if no info gen.info = '';
             resolve();
+
+            function getKey(key) { return settings.reduce((p, c) => c.key == key ? c : p, undefined); }
          }
       });
    }
@@ -437,29 +480,6 @@ let config = function() {
    }
 
    fx.geoposition = () => { return device.geoposition; }
-
-   var env = {
-      org: 'HTS',
-      profile: undefined,     // can now be set to 'HTS2018' for new point tables
-      version: '0.9.3',
-      auto_update: {
-         players: false,
-         registered_players: false,
-      },
-      map: undefined,
-      map_provider: undefined, // 'google' or 'leaflet'
-      orientation: undefined,
-      reset_new_versions: false,
-      geolocate: true,
-      broadcast: true,
-      livescore: false,
-      autodraw: true,
-      calendar: {},
-   }
-
-   fx.env = () => { return env; }
-   fx.setCalendar = (obj) => { Object.keys(obj).forEach(key => { if (env.calendar[key]) env.calendar[key] = obj[key]; }); }
-   fx.setMap = (map) => env.map = map;
 
    fx.init = () => {
       gen.initModals();
@@ -607,7 +627,7 @@ let config = function() {
 
    function splash() {
       tournaments.reset();
-      let container = gen.splashScreen(components);
+      let container = gen.splashScreen(o.components);
 
       splashEvent(container, 'tournaments', tournaments.displayCalendar);
       splashEvent(container, 'players', displayPlayers);

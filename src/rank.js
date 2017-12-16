@@ -18,7 +18,7 @@
       category = category || (match.event && match.event.category);
       event_rank = event_rank || (match.event && match.event.rank);
 
-      if (config.env().org == 'HTS') {
+      if (config.env().org.abbr == 'HTS') {
          let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S',
          }
          if (legacy[category]) category = legacy[category];
@@ -71,7 +71,7 @@
 
    rank.calcMatchesPoints = ({ matches, points_table, points_date }) => {
       let player_points = { singles: {}, doubles: {} };
-      if (!points_table) return;
+      if (!validPointsTable(points_table)) return;
       matches.forEach(match => {
          if (points_date) { match.date = points_date.getTime(); }
          let ranking_attributes = points_table.rankings[match.event.rank];
@@ -837,25 +837,26 @@
    // for instance, if a tournament straddles the boundary between the valid
    // range of two differnt point tables...
    rank.pointsTable = (org, calc_date) => {
-      let org_tables = point_tables[config.env().org];
+      let org_tables = point_tables[config.env().org.abbr];
 
-      if (calc_date && org_tables.validity) {
-
+      if (!org_tables || !calc_date || !org_tables.validity) {
+         return {};
+      } else {
          // necessary to normalize getTime() values
          let calc_date_string = util.formatDate(calc_date);
 
          let calc_time = new Date(calc_date_string).getTime();
          let valid = org_tables.validity.reduce((p, c) => new Date(c.from).getTime() <= calc_time && new Date(c.to).getTime() >= calc_time ? c : p, undefined);
          return valid ? org_tables.tables[valid.table] : {};
-      } else {
-         return point_tables[config.env().org];
       }
    }
 
    rank.orgCategories = (org, calc_date) => {
-      let points_table = rank.pointsTable(config.env().org, calc_date);
-      return points_table ? Object.keys(points_table.categories) : ['U10', 'U12', 'U14', 'U16', 'U18', 'S'];
+      let points_table = rank.pointsTable(config.env().org.abbr, calc_date);
+      return validPointsTable(points_table) ? Object.keys(points_table.categories) : ['U10', 'U12', 'U14', 'U16', 'U18', 'S'];
    }
+
+   function validPointsTable(table) { return typeof table == 'object' && Object.keys(table).length; }
 
    function performTask(fx, data, bulkResults = true) {
       return new Promise(function(resolve, reject) {
