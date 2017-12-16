@@ -3956,7 +3956,7 @@ let tournaments = function() {
          matches.forEach(match => match.players.forEach(p => p=player.cleanPlayer(p)));
 
          // TODO: the profile can be specified in the tournament configuration
-         let profile = config.env().profile || tournamentParser.profiles[config.env().org] || {};
+         let profile = config.env().profile || tournamentParser.profiles[config.env().org.abbr] || {};
          let points_table = rank.pointsTable(profile.points, points_date);
 
          let match_data = { matches, points_table, points_date };
@@ -6139,7 +6139,7 @@ let tournaments = function() {
          return;
       }
 
-      let profile = config.env().profile || tournamentParser.profiles[config.env().org];
+      let profile = config.env().profile || tournamentParser.profiles[config.env().org.abbr];
       let points_table = rank.pointsTable(profile.points, points_date);
 
       // if there are no gendered ranking settings, 
@@ -6366,7 +6366,7 @@ let tournaments = function() {
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
          let points_date = tournament_date ? new Date(tournament_date) : new Date();
-         let profile = config.env().profile || tournamentParser.profiles[config.env().org];
+         let profile = config.env().profile || tournamentParser.profiles[config.env().org.abbr];
          let points_table = pointsTable(profile.points, points_date);
 
          let rankings = {

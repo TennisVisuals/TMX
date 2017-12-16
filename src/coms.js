@@ -323,8 +323,8 @@ let coms = function() {
 
          function fetchNew(trnys, params) {
 
-            // for tournaments to be updated automatically they must have an .sid attribute equal to config.env().org
-            let tids = trnys.filter(t=>t.sid && t.sid == config.env().org).map(t=>t.tuid.replace(t.sid, ''));
+            // for tournaments to be updated automatically they must have an .sid attribute equal to config.env().org.abbr
+            let tids = trnys.filter(t=>t.sid && t.sid == config.env().org.abbr).map(t=>t.tuid.replace(t.sid, ''));
             let max_id = Math.max(...tids, 0);
 
             let request_object = { [params.type]: params.url + max_id };
@@ -345,7 +345,7 @@ let coms = function() {
                t.end = new Date(t.end).getTime();
 
                // TODO: This needs to be a configured SID (Site ID?) and not config.env().org (HTS)
-               t.tuid = `${config.env().org}${t.tuid}`;
+               t.tuid = `${config.env().org.abbr}${t.tuid}`;
             });
             resolve(trnys);
          }
