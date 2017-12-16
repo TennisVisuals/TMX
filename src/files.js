@@ -328,16 +328,17 @@
    function scheduleCell(match, lines=false) {
       let format = lang.tr(`formats.${match.format || ''}`);
       let category = match.event ? match.event.category : '';
-      let nb = match.schedule ? match.schedule.nb || '' : ''
+      let time_detail = !match.schedule ? "" : `${match.schedule.time_prefix || ''} ${match.schedule.time || ''}`;
+      if (match.schedule) console.log(match);
       let display = {
-         nb,
+         time_detail,
          round: `${match.gender || ''}${category} ${format} ${match.round_name || ''}`,
          oop: match.oop || '',
          player1: match.players ? teamName(match, match.team_players[0]) : '',
          vs: match.players ? match.score ? 'def.' : 'vs.' : '',
          player2: match.players ? teamName(match, match.team_players[1]) : '',
          spacer: match.spacer || '',
-         scoreline: `${match.score || ''} ${match.judge || ''}`,
+         scoreline: `${match.score || ''}`,
          spacer: match.spacer || '',
       }
       let x = ' ';
@@ -345,7 +346,7 @@
          table: {
             widths: ['*'],
             body: [
-               [ { text: display.nb || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.time_detail || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
                [ { text: display.round || x, style: 'centeredItalic', margin: [0, 0, 0, 0] }, ],
                [ { text: display.oop || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
                [ { text: display.player1 || x, style: 'teamName', margin: [0, 0, 0, 0] }, ],
