@@ -1121,6 +1121,7 @@ let tournaments = function() {
          container.edit.element.style.display = state.edit ? 'none' : 'inline';
          container.finish.element.style.display = state.edit ? 'inline' : 'none';
          container.authorize.element.style.display = 'none';
+         container.cloudfetch.element.style.display = 'none';
          authorizeTournaments();
 
          document.querySelector('.refresh_registrations').style.opacity = state.edit ? 1 : 0;
@@ -1143,6 +1144,7 @@ let tournaments = function() {
             db.findSetting('superUser').then(setting => {
                if (setting && setting.auth && util.string2boolean(setting.auth.tournaments)) {
                   container.authorize.element.style.display = 'inline';
+                  container.cloudfetch.element.style.display = 'inline';
                }
             });
          }
@@ -3258,52 +3260,52 @@ let tournaments = function() {
             let { oop_round } = identifyRound(ev);
             if (oop_round) {
                let options = [
-                  lang.tr('schedule.matchestime'),
-                  lang.tr('schedule.notbefore'),
-                  lang.tr('schedule.followedby'),
-                  lang.tr('schedule.afterrest'),
-                  lang.tr('schedule.tba'),
-                  lang.tr('schedule.nextavailable'),
-                  lang.tr('schedule.clear'),
+                  { label: lang.tr('schedule.matchestime'), key: 'matchestime' },
+                  { label: lang.tr('schedule.notbefore'), key: 'notbefore' },
+                  { label: lang.tr('schedule.followedby'), key: 'followedby' },
+                  { label: lang.tr('schedule.afterrest'), key: 'afterrest' },
+                  { label: lang.tr('schedule.tba'), key: 'tba' },
+                  { label: lang.tr('schedule.nextavailable'), key: 'next' },
+                  { label: lang.tr('schedule.clear'), key: 'clear' },
                ];
                gen.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: modifySchedules });
 
                function modifySchedules(choice, index) {
-                  console.log('OOP round:', oop_round, 'selection was:', choice, index);
-                  if (index == 0) {
+                  console.log(choice);
+                  if (choice.key == 'matchestime') {
                      filterDayMatches();
                      // gen.timePicker({ hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
                      gen.timePicker({ hour_range: { start: 8 }, minute_increment: 5, callback: setTime })
-                  } else if (index == 1) {
+                  } else if (choice.key == 'notbefore') {
                      modifyMatchSchedule([{ attr: 'time_prefix', value: 'NB ' }]);
-                  } else if (index == 2) {
+                  } else if (choice.key == 'followedby') {
                      let pairs = [
                         { attr: 'time_prefix', value: '' },
                         { attr: 'time', value: '' },
                         { attr: 'heading', value: 'Followed By' },
                      ];
                      modifyMatchSchedule(pairs);
-                  } else if (index == 3) {
+                  } else if (choice.key == 'afterrest') {
                      let pairs = [
                         { attr: 'time_prefix', value: 'After Rest' },
                         { attr: 'time', value: '' },
                         { attr: 'heading', value: '' },
                      ];
                      modifyMatchSchedule(pairs);
-                  } else if (index == 4) {
+                  } else if (choice.key == 'tba') {
                      let pairs = [
                         { attr: 'time_prefix', value: 'TBA' },
                         { attr: 'time', value: '' },
                      ];
                      modifyMatchSchedule(pairs);
-                  } else if (index == 5) {
+                  } else if (choice.key == 'next') {
                      let pairs = [
                         { attr: 'time_prefix', value: '' },
                         { attr: 'time', value: '' },
                         { attr: 'heading', value: 'Next Available' },
                      ];
                      modifyMatchSchedule(pairs);
-                  } else if (index == 6) {
+                  } else if (choice.key == 'clear') {
                      let pairs = [
                         { attr: 'time_prefix', value: '' },
                         { attr: 'time', value: '' },
@@ -3344,12 +3346,12 @@ let tournaments = function() {
                let options = [];
                if (!complete) {
                   options = [
-                     lang.tr('draws.matchtime'),      // 0
-                     lang.tr('draws.timeheader'),     // 1
-                     lang.tr('draws.changestatus'),   // 2
-                     lang.tr('draws.umpire'),         // 3
-                     lang.tr('draws.penalty'),        // 4
-                     lang.tr('draws.remove')          // 5
+                     { label: lang.tr('draws.matchtime'), key: 'matchtime' },
+                     { label: lang.tr('draws.timeheader'), key: 'timeheader' },
+                     { label: lang.tr('draws.changestatus'), key: 'changestatus' },
+                     { label: lang.tr('draws.umpire'), key: 'umpire' },
+                     { label: lang.tr('draws.penalty'), key: 'penalty' },
+                     { label: lang.tr('draws.remove'), key: 'remove' },
                   ];
                } else {
                   return;
@@ -3358,11 +3360,11 @@ let tournaments = function() {
 
                function modifySchedule(choice, index) {
                   if (!complete) {
-                     if (index == 0) {
+                     if (choice.key == 'matchtime') {
                         let time_string = match.schedule && match.schedule.time;
                         // gen.timePicker({ time_string, hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
                         gen.timePicker({ hour_range: { start: 8 }, minute_increment: 5, callback: setTime })
-                     } else if (index == 1) {
+                     } else if (choice.key == 'timeheader') {
                         let headings = [
                            lang.tr('schedule.notbefore'),
                            lang.tr('schedule.followedby'),
@@ -3374,7 +3376,7 @@ let tournaments = function() {
                         setTimeout(function() {
                            gen.svgModal({ x: ev.clientX, y: ev.clientY, options: headings, callback: timeHeading });
                         }, 200);
-                     } else if (index == 2) {
+                     } else if (choice.key == 'changestatus') {
                         let statuses = [
                            lang.tr('schedule.oncourt'),
                            lang.tr('schedule.warmingup'),
@@ -3385,10 +3387,10 @@ let tournaments = function() {
                         setTimeout(function() {
                            gen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: matchStatus });
                         }, 200);
-                     } else if (index == 3) {
+                     } else if (choice.key == 'umpire') {
                         addUmpire(match, 'schedule');
                         return;
-                     } else if (index == 4) {
+                     } else if (choice.key == 'penalty') {
                         let statuses = [
                            { label: lang.tr('penalties.fail2signout'), value: 'fail2signout' },
                            { label: lang.tr('penalties.illegalcoaching'), value: 'illegalcoaching' },
@@ -3404,7 +3406,7 @@ let tournaments = function() {
                         setTimeout(function() {
                            gen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: assessPenalty });
                         }, 200);
-                     } else if (index == 5) {
+                     } else if (choice.key == 'remove') {
                         returnToUnscheduled(match, target);
                         return;
                      }
@@ -5556,6 +5558,8 @@ let tournaments = function() {
                   delete d.data.match.winner;
                   delete d.data.match.loser;
                   delete d.data.match.set_scores;
+                  delete d.data.match.schedule;
+
                   // TODO: check whether removing a final qualifying round
                   saveTournament(tournament);
                   tree_draw();
