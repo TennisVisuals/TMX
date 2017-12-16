@@ -373,7 +373,6 @@ let config = function() {
    }
 
    function initDB() {
-      localStorage.ranking_version = env.version;
       db.initDB().then(checkQueryString).then(envSettings).then(DBReady);
 
       function DBReady() {
@@ -429,6 +428,36 @@ let config = function() {
       });
    }
 
+   var device = {
+      isStandalone: 'standalone' in window.navigator && window.navigator.standalone,
+      isIDevice: (/iphone|ipod|ipad/i).test(window.navigator.userAgent),
+      isWindows: (/indows/i).test(window.navigator.userAgent),
+      isMobile: (typeof window.orientation !== "undefined"),
+      geoposition: {},
+   }
+
+   fx.geoposition = () => { return device.geoposition; }
+
+   var env = {
+      org: 'HTS',
+      profile: undefined,     // can now be set to 'HTS2018' for new point tables
+      version: '0.9.3',
+      auto_update: {
+         players: false,
+         registered_players: false,
+      },
+      map_provider: undefined, // 'google' or 'leaflet'
+      orientation: undefined,
+      reset_new_versions: false,
+      geolocate: true,
+      broadcast: true,
+      livescore: false,
+      autodraw: true,
+      calendar: {},
+   }
+
+   fx.env = () => { return env; }
+
    fx.init = () => {
       gen.initModals();
       config.search();
@@ -440,16 +469,7 @@ let config = function() {
 
       coms.connectSocket();
 
-      let version = localStorage.ranking_version;
-      if (!version || (env.reset_new_versions && version < env.version)) {
-         console.log(version);
-         // TODO: Is this still necessary?
-         // db.resetDB(initDB);
-         initDB();
-      } else {
-         initDB();
-      }
-
+      initDB();
       load.reset();
 
       // to disable context menu on the page
