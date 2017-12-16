@@ -446,6 +446,7 @@ let config = function() {
          players: false,
          registered_players: false,
       },
+      map: undefined,
       map_provider: undefined, // 'google' or 'leaflet'
       orientation: undefined,
       reset_new_versions: false,
@@ -457,6 +458,8 @@ let config = function() {
    }
 
    fx.env = () => { return env; }
+   fx.setCalendar = (obj) => { Object.keys(obj).forEach(key => { if (env.calendar[key]) env.calendar[key] = obj[key]; }); }
+   fx.setMap = (map) => env.map = map;
 
    fx.init = () => {
       gen.initModals();
@@ -468,7 +471,6 @@ let config = function() {
       }
 
       coms.connectSocket();
-
       initDB();
       load.reset();
 

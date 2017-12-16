@@ -281,7 +281,7 @@
 
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
-      let notice = env.notice ? `<h3>${env.notice}</h3>` : '';
+      let notice = config.env().notice ? `<h3>${config.env().notice}</h3>` : '';
       let html = `
          <h2 style='margin: 1em;'>${text}</h2>
          ${notice}
@@ -3073,7 +3073,7 @@
    function calendarRow(tournament) {
       if (tournament.category) {
          let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
-         let category = env.org == 'HTS' ? legacy[tournament.category] || tournament.category : tournament.category;
+         let category = config.env().org == 'HTS' ? legacy[tournament.category] || tournament.category : tournament.category;
          let background = new Date().getTime() > tournament.end ? 'calendar_past' : 'calendar_future';
          let actual_rankings = '';
          if (tournament.accepted) {
@@ -3400,10 +3400,11 @@
       let infoWindow = new google.maps.InfoWindow();
       let latlngbounds = new google.maps.LatLngBounds();
 
-      env.map = new google.maps.Map(mapCanvas, mapOptions);
+      let map = new google.maps.Map(mapCanvas, mapOptions);
+      config.setMap(map);
 
       // retrieve lat/lng from click event
-      google.maps.event.addListener(env.map, 'click', function (e) {
+      google.maps.event.addListener(config.env().map, 'click', function (e) {
           alert("Latitude: " + e.latLng.lat() + "\r\nLongitude: " + e.latLng.lng());
       });
 
@@ -3411,7 +3412,7 @@
       // https://stackoverflow.com/questions/7905733/google-maps-api-3-get-coordinates-from-right-click
       // also has example of using infoWindow
       /*
-      google.maps.event.addListener(env.map, "rightclick", function(e) {
+      google.maps.event.addListener(config.env().map, "rightclick", function(e) {
           let lat = e.latLng.lat();
           let lng = e.latLng.lng();
           alert("Lat=" + lat + "; Lng=" + lng);
@@ -3423,7 +3424,7 @@
       /*
       let marker = new google.maps.Marker({
           position: myLatlng,
-          map: env.map,
+          map: config.env().map,
           title: 'Click to zoom'
       });
 
@@ -3677,7 +3678,7 @@
       }
 
       if (gps) {
-         if (env.map_provider == 'google') {
+         if (config.env().map_provider == 'google') {
             let opts = {
                id: id_obj.map.id,
                lat: +club.lat,
@@ -3686,7 +3687,7 @@
             gen.googleMap(opts);
          } 
 
-         if (env.map_provider == 'leaflet') {
+         if (config.env().map_provider == 'leaflet') {
             // some ideas: https://leanpub.com/leaflet-tips-and-tricks/read
 
             let mapLink = '<a href="http://openstreetmap.org">OpenStreetMap</a>';
@@ -3698,20 +3699,21 @@
             let Esri_WorldImagery = L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
             });
-            // env.map = L.map(id_obj.map.id).setView([+club.lat, +club.long], 16).addLayer(layer); // street map
-            env.map = L.map(id_obj.map.id).setView([+club.lat, +club.long], 16).addLayer(Esri_WorldImagery); // satellite imagery
+            // let map = L.map(id_obj.map.id).setView([+club.lat, +club.long], 16).addLayer(layer); // street map
+            let map = L.map(id_obj.map.id).setView([+club.lat, +club.long], 16).addLayer(Esri_WorldImagery); // satellite imagery
+            config.setMap(ap);
 
-            let marker = L.marker([+club.lat, +club.long]).addTo(env.map);
+            let marker = L.marker([+club.lat, +club.long]).addTo(config.env().map);
 
-            // env.map.on('click', function(e) { alert(e.latlng.lat); });
+            // config.env().map.on('click', function(e) { alert(e.latlng.lat); });
             // http://leafletjs.com/reference.html#events
-            env.map.on('click', function(e) { alert(e.latlng); });
+            map.on('click', function(e) { alert(e.latlng); });
 
             // alternate: 
             // http://plnkr.co/edit/9vm81YsQxnkAFs35N8Jo?p=preview
-            env.map.on("contextmenu", function (event) {
+            map.on("contextmenu", function (event) {
               console.log("Coordinates: " + event.latlng.toString());
-              L.marker(event.latlng).addTo(env.map);
+              L.marker(event.latlng).addTo(config.env().map);
             });
          }
       }
@@ -3747,13 +3749,13 @@
 
    function getRanks(tournament) {
       let points_date = tournament ? new Date(tournament.points_date || tournament.end) : new Date();
-      let points_table = rank.pointsTable(env.org, points_date);
+      let points_table = rank.pointsTable(config.env().org, points_date);
       return [{key: '-', value: ''}].concat(...Object.keys(points_table && points_table.rankings).map(r => ({ key: r, value: r })));
    }
 
    function getCategories(tournament) {
       let points_date = tournament ? new Date(tournament.points_date || tournament.end) : new Date();
-      let points_table = rank.pointsTable(env.org, points_date);
+      let points_table = rank.pointsTable(config.env().org, points_date);
       return [{key: '-', value: ''}].concat(...Object.keys(points_table && points_table.categories).map(r => ({ key: r, value: r })));
    }
 

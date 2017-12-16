@@ -41,7 +41,7 @@ let coms = function() {
          }
          if (data.directive == 'new version') {
             gen.homeIconState('notice');
-            env.notice = data.notice || 'New Version Available';
+            config.env().notice = data.notice || 'New Version Available';
          }
       }
    }
@@ -55,8 +55,8 @@ let coms = function() {
    }
 
    fx.connectSocket = () => {
-      // if (env.broadcast && navigator.onLine && !oi.socket) {   
-      if (env.broadcast && !oi.socket) {   
+      // if (config.env().broadcast && navigator.onLine && !oi.socket) {   
+      if (config.env().broadcast && !oi.socket) {   
          oi.socket = io.connect('/match', oi.connectionOptions);
          oi.socket.on('connect', comsConnect);                                 
          oi.socket.on('disconnect', comsDisconnect);
@@ -70,12 +70,12 @@ let coms = function() {
       fx.emitTmx({ key });
    }
 
-   fx.endBroadcast = () => { env.broadcast = false; }
+   fx.endBroadcast = () => { config.env().broadcast = false; }
 
    fx.broadcasting = () => {
-      if (env.broadcast && oi.socket) return true;
-      // if (env.broadcast && !oi.socket && navigator.onLine) { connectSocket(); }
-      if (env.broadcast && !oi.socket) { connectSocket(); }
+      if (config.env().broadcast && oi.socket) return true;
+      // if (config.env().broadcast && !oi.socket && navigator.onLine) { connectSocket(); }
+      if (config.env().broadcast && !oi.socket) { connectSocket(); }
       return false;
    }
 
@@ -323,8 +323,8 @@ let coms = function() {
 
          function fetchNew(trnys, params) {
 
-            // for tournaments to be updated automatically they must have an .sid attribute equal to env.org
-            let tids = trnys.filter(t=>t.sid && t.sid == env.org).map(t=>t.tuid.replace(t.sid, ''));
+            // for tournaments to be updated automatically they must have an .sid attribute equal to config.env().org
+            let tids = trnys.filter(t=>t.sid && t.sid == config.env().org).map(t=>t.tuid.replace(t.sid, ''));
             let max_id = Math.max(...tids, 0);
 
             let request_object = { [params.type]: params.url + max_id };
@@ -344,8 +344,8 @@ let coms = function() {
                t.start = new Date(t.start).getTime();
                t.end = new Date(t.end).getTime();
 
-               // TODO: This needs to be a configured SID (Site ID?) and not env.org (HTS)
-               t.tuid = `${env.org}${t.tuid}`;
+               // TODO: This needs to be a configured SID (Site ID?) and not config.env().org (HTS)
+               t.tuid = `${config.env().org}${t.tuid}`;
             });
             resolve(trnys);
          }

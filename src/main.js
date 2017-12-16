@@ -25,26 +25,6 @@
 
 let dev = { };
 
-// TODO: env.org should be replaced by a setting
-// new tournaments created in the local client should not include env.org
-let env = {
-   org: 'HTS',
-   profile: undefined,     // can now be set to 'HTS2018' for new point tables
-   version: '0.9.3',
-   auto_update: {
-      players: false,
-      registered_players: false,
-   },
-   map_provider: undefined, // 'google' or 'leaflet'
-   orientation: undefined,
-   reset_new_versions: false,
-   geolocate: true,
-   broadcast: true,
-   livescore: false,
-   autodraw: true,
-   calendar: {},
-}
-
 let busy = {
    count: 0,
    callbacks: {},
