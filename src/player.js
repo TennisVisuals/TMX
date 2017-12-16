@@ -10,6 +10,8 @@ let player = function() {
       override: undefined,
       displayFx: undefined,
    };
+         
+   function catchTab(evt) { if (evt.which == 9) { evt.preventDefault(); } }
 
    /* points expire after one year */
    let expireDate = (date) => date - (365 * 24 * 60 * 60 * 1000);
@@ -354,7 +356,6 @@ let player = function() {
          player_container.ioc.typeAhead = new Awesomplete(player_container.ioc.element, { list });
 
          let selection_flag = false;
-         let defineCountry = (value) => player.ioc = value;
          let selectComplete = (c) => { 
             selection_flag = true; 
             player.ioc = c.text.value; 
@@ -362,7 +363,6 @@ let player = function() {
             player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
          }
          player_container.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
-         let catchTab = (evt) => { if (evt.which == 9) { evt.preventDefault(); } }
          player_container.ioc.element.addEventListener('keydown', catchTab , false);
          player_container.ioc.element.addEventListener("keydown", function(evt) { 
             // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
@@ -382,18 +382,17 @@ let player = function() {
 
       // Club Awesomplete
       db.findAllClubs().then(clubs => {
-         let list = clubs.map(club => ({ label: club.name, value: club.id }));
+         let list = clubs.map(club => ({ label: club.name, value: club }));
          player_container.club.typeAhead = new Awesomplete(player_container.club.element, { list });
 
          let selection_flag = false;
-         let defineCountry = (value) => player.club = value;
          let selectComplete = (c) => { 
             selection_flag = true; 
-            player.club = c.text.value; 
+            player.club = c.text.value.id; 
+            player.club_code = c.text.value.code; 
             player_container.club.element.value = c.text.label;
          }
          player_container.club.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
-         let catchTab = (evt) => { if (evt.which == 9) { evt.preventDefault(); } }
          player_container.club.element.addEventListener('keydown', catchTab , false);
          player_container.club.element.addEventListener("keydown", function(evt) { 
             // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
@@ -413,7 +412,8 @@ let player = function() {
       let defineAttr = (attr, evt, required, elem) => {
          player[attr] = elem ? elem.value : evt? evt.target.value : undefined;
          if (required) player_container[attr].element.style.background = player[attr] ? 'white' : 'yellow';
-         if ((!evt || evt.which == 13) && (!required || (required && player[attr]))) nextFieldFocus(attr);
+         if ((!evt || evt.which == 13) && (!required || (required && player[attr]))) return nextFieldFocus(attr);
+
       }
 
       let saveNewPlayer = () => { 
@@ -449,6 +449,7 @@ let player = function() {
          if (valid_date) return defineAttr('birth', evt, true, elem);
       }
 
+      player_container.last_name.element.addEventListener('keydown', (evt) => { if (evt.shiftKey && evt.which == 9) nextFieldFocus('email'); });
       player_container.last_name.element.addEventListener('keyup', (evt) => defineAttr('last_name', evt, true));
       player_container.first_name.element.addEventListener('keyup', (evt) => defineAttr('first_name', evt, true));
       player_container.birth.element.addEventListener('keyup', birthKeyUp);
