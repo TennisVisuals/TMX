@@ -219,6 +219,7 @@
          removeall: 'Remove All',
          addall: 'Add All',
          key: 'Authorize',
+         fetch: 'Download'
       },
 
       ddlb: {
@@ -564,6 +565,7 @@
          removeall: 'Makni sve',
          addall: 'Dodaj sve',
          key: 'Ovlastiti',
+         fetch: 'Preuzimanje'
       },
 
       ddlb: {

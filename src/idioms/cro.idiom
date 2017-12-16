@@ -166,6 +166,7 @@
          removeall: 'Makni sve',
          addall: 'Dodaj sve',
          key: 'Ovlastiti',
+         fetch: 'Preuzimanje'
       },
 
       ddlb: {

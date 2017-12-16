@@ -219,6 +219,7 @@
          removeall: 'Remove All',
          addall: 'Add All',
          key: 'Authorize',
+         fetch: 'Download'
       },
 
       ddlb: {
