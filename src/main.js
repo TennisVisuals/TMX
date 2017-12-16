@@ -45,14 +45,6 @@ let env = {
    calendar: {},
 }
 
-let device = {
-   isStandalone: 'standalone' in window.navigator && window.navigator.standalone,
-   isIDevice: (/iphone|ipod|ipad/i).test(window.navigator.userAgent),
-   isWindows: (/indows/i).test(window.navigator.userAgent),
-   isMobile: (typeof window.orientation !== "undefined"),
-   geoposition: {},
-}
-
 let busy = {
    count: 0,
    callbacks: {},
