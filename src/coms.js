@@ -81,7 +81,7 @@ let coms = function() {
 
    fx.broadcastScore = (match) => {
       // format match_message the way the old tournaments client requires
-      var coords = device.geoposition.coords || {};
+      var coords = config.geoposition().coords || {};
       var sparts = scoreBoard.convertStringScore({ string_score: match.score, winner_index: match.winner });
       var sets = !sparts ? {} : sparts.map(s=> {
          // TODO: supertiebreak is a hack until courthive.com/tournaments is updated
