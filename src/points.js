@@ -11,13 +11,13 @@
             categories: {
                'U10': { 
                   singles: { mapping: undefined, multiplier:  0 },
-                  doubles: { mapping: undefined, multipler:   0 },
+                  doubles: { mapping: undefined, multiplier:  0 },
                   ages:    { from:  7, to: 10 },
                   ranking: { }
                },
                'U12': { 
                   singles: { mapping: "singles", multiplier:  1 },
-                  doubles: { mapping: "doubles", multipler:   1 },
+                  doubles: { mapping: "doubles", multiplier:  1 },
                   ages:    { from:  9, to: 12 },
                   ranking: {
                      singles: { events: 6, lists: { 'U12': 6, 'U14': 2 } },
@@ -26,9 +26,8 @@
                },
                'U14': {
                   singles: { mapping: "singles", multiplier:  2 },
-                  doubles: { mapping: "doubles", multipler:   2 },
+                  doubles: { mapping: "doubles", multiplier:  2 },
                   ages:    { from: 10, to: 14 },
-                  ranklist: [ 'U12', 'U14' ],
                   ranking: {
                      singles: { events: 6, lists: { 'U12': 6, 'U14': 6, 'U16': 2 } },
                      doubles: { events: 4, lists: { 'U12': 4, 'U14': 4, 'U16': 2 } },
@@ -36,7 +35,7 @@
                },
                'U16': {
                   singles: { mapping: "singles", multiplier:  4 },
-                  doubles: { mapping: "doubles", multipler:   4 },
+                  doubles: { mapping: "doubles", multiplier:  4 },
                   ages:    { from: 12, to: 16 },
                   ranking: {
                      singles: { events: 6, lists: { 'U12': 6, 'U14': 6, 'U16': 6, 'U18': 2 } },
@@ -45,7 +44,7 @@
                },
                'U18': {
                   singles: { mapping: "singles", multiplier:  8 },
-                  doubles: { mapping: "doubles", multipler:   8 },
+                  doubles: { mapping: "doubles", multiplier:  8 },
                   ages:    { from: 13, to: 18 },
                   ranking: {
                      singles: { events: 6, lists: { 'U14': 6, 'U16': 6, 'U18': 6, 'S': 6 } },
@@ -54,7 +53,7 @@
                },
                'S':   {
                   singles: { mapping: "singles", multiplier: 16 },
-                  doubles: { mapping: "doubles", multipler:  16 },
+                  doubles: { mapping: "doubles", multiplier: 16 },
                   ages:    { from: 16, to: 100 },
                   ranking: {
                      singles: { events: 10, lists: { 'U18': 10, 'S': 10 } },
@@ -134,13 +133,13 @@
             categories: {
                'U10': { 
                   singles: { mapping: undefined, multiplier:  0 },
-                  doubles: { mapping: undefined, multipler:   0 },
+                  doubles: { mapping: undefined, multiplier:  0 },
                   ages:    { from:  7, to: 10 },
                   ranking: { }
                },
                'U12': { 
                   singles: { mapping: "singles", multiplier:  1 },
-                  doubles: { mapping: "doubles", multipler:   1 },
+                  doubles: { mapping: "doubles", multiplier:  1 },
                   ages:    { from:  9, to: 12 },
                   ranking: {
                      singles: { events: 6, lists: { 'U12': 6, 'U14': 2 } },
@@ -149,7 +148,7 @@
                },
                'U14': {
                   singles: { mapping: "singles", multiplier:  2 },
-                  doubles: { mapping: "doubles", multipler:   2 },
+                  doubles: { mapping: "doubles", multiplier:  2 },
                   ages:    { from: 10, to: 14 },
                   ranklist: [ 'U12', 'U14' ],
                   ranking: {
@@ -159,7 +158,7 @@
                },
                'U16': {
                   singles: { mapping: "singles", multiplier:  3 },
-                  doubles: { mapping: "doubles", multipler:   3 },
+                  doubles: { mapping: "doubles", multiplier:  3 },
                   ages:    { from: 12, to: 16 },
                   ranking: {
                      singles: { events: 6, lists: { 'U14': 6, 'U16': 6, 'U18': 2 } },
@@ -168,7 +167,7 @@
                },
                'U18': {
                   singles: { mapping: "singles", multiplier:  4 },
-                  doubles: { mapping: "doubles", multipler:   4 },
+                  doubles: { mapping: "doubles", multiplier:  4 },
                   ages:    { from: 13, to: 18 },
                   ranking: {
                      singles: { events: 6, lists: { 'U16': 6, 'U18': 6, 'S': 6 } },
@@ -176,8 +175,8 @@
                   }
                },
                'S':   {
-                  singles: { mapping: "singles", multiplier: 6},
-                  doubles: { mapping: "doubles", multipler:  6},
+                  singles: { mapping: "singles", multiplier: 6 },
+                  doubles: { mapping: "doubles", multiplier: 6 },
                   ages:    { from: 16, to: 100 },
                   ranking: {
                      singles: { events: 10, lists: { 'U18': 10, 'S': 10 } },
