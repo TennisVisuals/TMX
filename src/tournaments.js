@@ -86,22 +86,24 @@ let tournaments = function() {
    fx.displayCalendar = displayCalendar;
    function displayCalendar() {
 
-      let category = env.calendar.category;
+      let category = config.env().calendar.category;
       let month_start = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
 
-      let start = env.calendar.start || new Date().getTime();
-      let end = env.calendar.end || new Date(start).setMonth(new Date(start).getMonth()+1);
+      let start = config.env().calendar.start || new Date().getTime();
+      let end = config.env().calendar.end || new Date(start).setMonth(new Date(start).getMonth()+1);
 
       let calendar_container = gen.calendarContainer();
 
       function updateStartDate() {
-         env.calendar.start = start;
+         // env.calendar.start = start;
+         config.setCalendar({start});
          startPicker.setStartRange(new Date(start));
          endPicker.setStartRange(new Date(start));
          endPicker.setMinDate(new Date(start));
       };
       function updateEndDate() {
-         env.calendar.end = end;
+         // env.calendar.end = end;
+         config.setCalendar({end});
          startPicker.setEndRange(new Date(end));
          startPicker.setMaxDate(new Date(end));
          endPicker.setEndRange(new Date(end));
@@ -137,7 +139,8 @@ let tournaments = function() {
 
       let genCal = (value) => {
          category = value;
-         env.calendar.category = category;
+         // env.calendar.category = category;
+         config.setCalendar({category});
          generateCalendar({ start, end, category });
       }
       calendar_container.category.ddlb = new dd.DropDown({ element: calendar_container.category.element, onChange: genCal });
@@ -168,7 +171,7 @@ let tournaments = function() {
             let categories = util.unique(tournaments.map(t => t.category)).sort();
             let options = [{ key: '-', value: '' }].concat(...categories.map(c => ({ key: c, value: c })));
 
-            if (env.org == 'HTS') {
+            if (config.env().org == 'HTS') {
                let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
                options.forEach(o => o.key = legacy[o.key] || o.key);
             }
@@ -347,7 +350,7 @@ let tournaments = function() {
          if (!tournament.published) {
             coms.emitTmx({
                event: 'Push Tournament',
-               version: env.version,
+               version: config.env().version,
                tuid: tournament.tuid,
                tournament: CircularJSON.stringify(tournament)
             });
@@ -669,7 +672,7 @@ let tournaments = function() {
       filteredTabs();
       
       if (!tMatches() || tournament.events) {
-         let remote_request = env.auto_update.registered_players;
+         let remote_request = config.env().auto_update.registered_players;
          updateRegisteredPlayers(remote_request);
       }
 
@@ -841,16 +844,20 @@ let tournaments = function() {
 
       function enableAddPlayer() {
          let year = new Date().getFullYear();
-
          let age_category = tournament.category;
 
          // TODO: remove this hack...
-         if (env.org == 'HTS') {
+         if (config.env().org == 'HTS') {
             let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
             if (legacy[age_category]) age_category = legacy[age_category];
          }
 
-         let categories = point_tables[env.org] && point_tables[env.org].categories;
+         let points_date = new Date(tournament.points_date || tournament.end);
+         let profile = config.env().profile || tournamentParser.profiles[config.env().org];
+         let points_table = rank.pointsTable(profile.points, points_date);
+
+         // let categories = point_tables[config.env().org] && point_tables[config.env().org].categories;
+         let categories = points_table && points_table.categories;
          let ages = categories && categories[age_category] ? categories[age_category].ages : { from: 8, to: 100 };
 
          let min_year = year - ages.from;
@@ -1050,8 +1057,8 @@ let tournaments = function() {
 
                if (document.body.scrollIntoView) document.body.scrollIntoView();
 
-               // TODO: insure that env.org is appropriately set when externalRequest URLs are configured
-               if (tournament.sid == env.org) coms.fetchRankLists().then(()=>{}, ()=>{});
+               // TODO: insure that config.env().org is appropriately set when externalRequest URLs are configured
+               if (tournament.sid == config.env().org) coms.fetchRankLists().then(()=>{}, ()=>{});
 
             }
          });
@@ -1590,7 +1597,7 @@ let tournaments = function() {
          let actions = d3.select(container.event_details.element);
 
          let auto_setting = document.querySelector('.' + classes.auto_draw);
-         auto_setting.style.display = e.active || !state.edit || !env.autodraw ? 'none' : 'inline';
+         auto_setting.style.display = e.active || !state.edit || !config.env().autodraw ? 'none' : 'inline';
 
          eventBackground(e);
          toggleAutoDraw(e.automated);
@@ -1657,7 +1664,7 @@ let tournaments = function() {
                      tournament.events.push(e);
                      coms.emitTmx({ 
                         event: 'Add Event',
-                        version: env.version,
+                        version: config.env().version,
                         notice: `${tournament.name} => ${e.name} ${e.draw_type} ${e.automated ? 'Auto' : 'Manual'}` 
                      });
                      let i = tournament.events.length - 1;
@@ -3711,13 +3718,13 @@ let tournaments = function() {
          // TODO: ability to sort by either name or rank
 
          let category = tournament.category;
-         if (env.org == 'HTS') {
+         if (config.env().org == 'HTS') {
             let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
             if (legacy[category]) category = legacy[category];
          }
 
          let points_date = new Date(tournament.points_date || tournament.end);
-         let options = rank.orgCategories(env.org, points_date).map(r => ({ key: r, value: r })).filter(c=>c.value == category);
+         let options = rank.orgCategories(config.env().org, points_date).map(r => ({ key: r, value: r })).filter(c=>c.value == category);
          let prior_value = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : undefined;
          if (options.map(o=>o.value).indexOf(prior_value) < 0) prior_value = undefined;
          
@@ -3951,7 +3958,7 @@ let tournaments = function() {
          matches.forEach(match => match.players.forEach(p => p=player.cleanPlayer(p)));
 
          // TODO: the profile can be specified in the tournament configuration
-         let profile = env.profile || tournamentParser.profiles[env.org];
+         let profile = config.env().profile || tournamentParser.profiles[config.env().org];
          let points_table = rank.pointsTable(profile.points, points_date);
 
          let match_data = { matches, points_table, points_date };
@@ -4407,7 +4414,7 @@ let tournaments = function() {
             match.tournament = { name: tournament.name, tuid: tournament.tuid, category: tournament.category, round: match.round_name || match.round };
 
             // for now, not broadcasting when score is entered
-            if (env.livescore && coms.broadcasting()) {
+            if (config.env().livescore && coms.broadcasting()) {
                e.up_to_date = true;
                coms.broadcastScore(match);
             } else {
@@ -4520,7 +4527,7 @@ let tournaments = function() {
                match.tournament = { name: tournament.name, tuid: tournament.tuid, category: tournament.category, round: match.round_name || match.round };
 
                // for now, not broadcasting when score is entered
-               if (env.livescore && coms.broadcasting()) {
+               if (config.env().livescore && coms.broadcasting()) {
                   e.up_to_date = true;
                   coms.broadcastScore(match);
                } else {
@@ -6132,8 +6139,7 @@ let tournaments = function() {
          return;
       }
 
-      let profile = env.profile || tournamentParser.profiles[env.org];
-      // let points_table = point_tables[profile.points];
+      let profile = config.env().profile || tournamentParser.profiles[config.env().org];
       let points_table = rank.pointsTable(profile.points, points_date);
 
       // if there are no gendered ranking settings, 
@@ -6357,8 +6363,7 @@ let tournaments = function() {
          db.db.matches.where('tournament.tuid').equals(tournament.tuid).toArray(calcPoints); 
 
          let points_date = new Date(tournament.points_date || tournament.end);
-         let profile = env.profile || tournamentParser.profiles[env.org];
-         // let points_table = point_tables[profile.points];
+         let profile = config.env().profile || tournamentParser.profiles[config.env().org];
          let points_table = pointsTable(profile.points, points_date);
 
          let rankings = {
