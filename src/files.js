@@ -329,7 +329,6 @@
       let format = lang.tr(`formats.${match.format || ''}`);
       let category = match.event ? match.event.category : '';
       let time_detail = !match.schedule ? "" : `${match.schedule.time_prefix || ''} ${match.schedule.time || ''}`;
-      if (match.schedule) console.log(match);
       let display = {
          time_detail,
          round: `${match.gender || ''}${category} ${format} ${match.round_name || ''}`,
