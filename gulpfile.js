@@ -11,10 +11,13 @@ var exec = require('child_process').exec;
 
 var banner = "// CourtHive Ranking\n";
 
+let rootdir = '~/Development/node/CourtHive';
+// let rootdir = '/Users/posiwid/Development/Projects/node/AiP/v4';
+
 let pkg = {
    source: 'source',
    min: 'minimized',
-   destination: '/Users/posiwid/Development/Projects/node/AiP/v4/app/static/ranking',
+   destination: `${rootdir}/app/static/ranking`,
 }
 
 gulp.task('copy-manifest', function() {
@@ -47,6 +50,7 @@ gulp.task('concat-lib', function() {
          '../components/minimized/pdfmake.min.js',
          '../components/minimized/vfs_fonts.js',
          '../components/minimized/socket.io.min.1.7.2.js',
+         '../components/minimized/circular-json.min.js',
 
          '../components/ugly/ladderChart.min.js',
          '../components/ugly/yearCal.min.js',
@@ -115,7 +119,8 @@ gulp.task('concat-src', function() {
 });
 
 gulp.task('uglify-src', function (cb) {
-   let tfx = 'node /Users/posiwid/Development/Projects/node/AiP/v3/node_modules/babili/bin/babili.js source.js > minimized/source.min.js';
+//   let tfx = 'node /Users/posiwid/Development/Projects/node/AiP/v3/node_modules/babili/bin/babili.js source.js > minimized/source.min.js';
+   let tfx = '/Users/charlesallen/Development/node_modules/babel-minify/bin/minify.js source.js > minimized/source.min.js';
    exec(tfx, function (err, stdout, stderr) { cb(err); });
 })
 
@@ -161,8 +166,10 @@ gulp.task('src', gulp.series('concat-idioms', 'concat-src'));
 gulp.task('big-concat', gulp.series('src', 'uglify-src'));
 gulp.task('source', gulp.series('big-concat', 'copy-src'));
 gulp.task('html', gulp.parallel('css', 'compress-html'));
-gulp.task('code', gulp.parallel('source', 'copy-manifest'));
 
-gulp.task('default', gulp.parallel('code', gulp.parallel('resources', 'html')));
+//gulp.task('code', gulp.parallel('source', 'copy-manifest'));
+
+// gulp.task('default', gulp.parallel('code', gulp.parallel('resources', 'html')));
+gulp.task('default', gulp.parallel('source', gulp.parallel('resources', 'html')));
 
 
