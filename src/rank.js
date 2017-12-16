@@ -70,8 +70,8 @@
    }
 
    rank.calcMatchesPoints = ({ matches, points_table, points_date }) => {
-      console.log(points_table);
       let player_points = { singles: {}, doubles: {} };
+      if (!points_table) return;
       matches.forEach(match => {
          if (points_date) { match.date = points_date.getTime(); }
          let ranking_attributes = points_table.rankings[match.event.rank];
