@@ -217,6 +217,8 @@ let tournaments = function() {
    }
 
    function getTournamentOptions(tournament) {
+      // TODO: legacy category
+      console.log('CATEGOFY BOMB');
       let category = isNaN(tournament.category) ? 20 : +tournament.category;
       let opts = tournament.rank_opts || { category, sgl_rank: tournament.rank, dbl_rank: tournament.rank };
 
@@ -747,9 +749,12 @@ let tournaments = function() {
             new_player.signed_in = true;
             if (!new_player.rankings) new_player.rankings = {};
             new_player.full_name = `${new_player.last_name.toUpperCase()}, ${util.normalizeName(new_player.first_name)}`;
-            coms.fetchRankList(tournament.category).then(addRanking, addPlayer);
+
+            let rank_category = config.legacyCategory(tournament.category);
+            coms.fetchRankList(rank_category).then(addRanking, addPlayer);
 
             function addRanking(rank_list) {
+               console.log(rank_list);
                if (!rank_list || !rank_list.rankings || !rank_list.rankings.players) return addPlayer();
                let player_rankings = rank_list.rankings.players;
 
@@ -1061,7 +1066,10 @@ let tournaments = function() {
                if (document.body.scrollIntoView) document.body.scrollIntoView();
 
                // TODO: insure that config.env().org.abbr is appropriately set when externalRequest URLs are configured
-               if (tournament.sid == config.env().org.abbr) coms.fetchRankLists().then(()=>{}, ()=>{});
+               let tournament_date = tournament && (tournament.points_date || tournament.end);
+               let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+               let categories = config.orgCategories({calc_date});
+               if (tournament.sid == config.env().org.abbr) coms.fetchRankLists(categories).then(()=>{}, ()=>{});
 
             }
          });
@@ -1231,36 +1239,30 @@ let tournaments = function() {
 
       function printDrawOrder(evt) {
          evt = evt || findEventByID(displayed_event);
-
-         if (!evt) {
-            console.log('Event Must Be Saved!');
-            return;
-         }
+         if (!evt) console.log('Event Must Be Saved!');
 
          // if an event is not found or there are not approved players, abort
-         if (!evt || !evt.approved) return;
-
          // abort if no category has been defined
-         if (!evt.category) return;
+         if (evt && evt.approved && evt.category) {
+            let category = config.legacyCategory(evt.category);
+            let t_players;
+            if (evt.format == 'S') {
+               t_players = tournament.players
+                  .filter(player=>evt.approved.indexOf(player.id) >= 0)
+                  .filter(player=>player.signed_in);
+            } else {
+               let teams = approvedTeams(evt).map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));;
+               return exp.doublesSignInPDF({ tournament, teams });
+            }
 
-         let category = isNaN(evt.category) ? 20 : +evt.category;
+            if (t_players && t_players.length) {
+               t_players = orderPlayersByRank(t_players, category);
+               console.log('tournament players:', t_players);
 
-         let t_players;
-         if (evt.format == 'S') {
-            t_players = tournament.players
-               .filter(player=>evt.approved.indexOf(player.id) >= 0)
-               .filter(player=>player.signed_in);
-         } else {
-            let teams = approvedTeams(evt).map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));;
-            exp.doublesSignInPDF({ tournament, teams });
+               // configured for listing players by Position in draw "Draw Order"
+               exp.orderedPlayersPDF({ tournament, players: t_players, event_name: evt.name, doc_name: lang.tr('mdo'), extra_pages: false })
+            }
          }
-
-         // abort if there are no players
-         if (!t_players || !t_players.length) return;
-
-         t_players = orderPlayersByRank(t_players, category);
-         // configured for listing players by Position in draw "Draw Order"
-         exp.orderedPlayersPDF({ tournament, players: t_players, event_name: evt.name, doc_name: lang.tr('mdo'), extra_pages: false })
       }
 
       function printSignInList() {
@@ -1456,12 +1458,6 @@ let tournaments = function() {
          }
       }
 
-
-      function categoryFudge(category) {
-         if (isNaN(category)) return category;
-         return `U${category}`;
-      }
-
       function eventList(regen_drawstab = false) {
          let events = [];
          let highlight_listitem;
@@ -1483,11 +1479,7 @@ let tournaments = function() {
                   name: e.name,
                   rank: e.rank,
                   active: e.active,
-
-                  // actual category name should be used...
-                  // at present category gets changed from 'S' to 'S', to 20 & etc.
-                  category: categoryFudge(e.category),
-
+                  category: config.legacyCategory(e.category),
                   published: e.published,
                   up_to_date: e.up_to_date,
                   draw_created: e.draw_created,
@@ -2080,7 +2072,7 @@ let tournaments = function() {
 
       function configureEventSelections(e) {
          let eventName = () => {
-            e.name = `${getKey(genders, e.gender)} ${e.category} ${getKey(formats, e.format)}`;
+            e.name = `${getKey(genders, e.gender)} ${config.legacyCategory(e.category)} ${getKey(formats, e.format)}`;
             gen.setEventName(container, e);
             eventList(true);
          }
@@ -2114,7 +2106,13 @@ let tournaments = function() {
          }
          details.category.ddlb = new dd.DropDown({ element: details.category.element, onChange: filterCategory });
          if (e.category || tournament.category) {
-            details.category.ddlb.setValue(e.category || tournament.category);
+            let ctgy = e.category || tournament.category;
+            if (config.env().org.abbr == 'HTS') {
+               let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
+               if (legacy[ctgy]) ctgy = legacy[ctgy];
+            }
+
+            details.category.ddlb.setValue(ctgy);
             if (tournament.category) details.category.ddlb.lock();
          }
 
@@ -2248,33 +2246,40 @@ let tournaments = function() {
 
       fx.orderPlayersByRank = orderPlayersByRank;
       function orderPlayersByRank(players, category) {
-         if (!players) return [];
-         category = category || (isNaN(tournament.category) ? 20 : tournament.category);
+         if (players) {
 
-         players.forEach(player => {
-            if (player.modified_ranking) {
-               player.category_ranking = player.modified_ranking;
-            } else if (player.rankings && player.rankings[category]) {
-               player.category_ranking = +player.rankings[category];
-            } else if (player.rank) {
-               player.category_ranking = +player.rank;
-            }
-         });
+            // return the original HTS ranking #s [10, 12, 14, 16, 18, 20]
+            // TODO: all player rankings should use ['U10', 'U12', 'U14', 'U16', 'U18', 'S']
+            category = config.legacyCategory(category, true);
+            console.log('Order PBR legacy...', category, 'need to replace');
 
-         let ranked = players.filter(player => player.category_ranking);
-         let unranked = players.filter(player => !player.category_ranking);
+            players.forEach(player => {
+               if (player.modified_ranking) {
+                  player.category_ranking = player.modified_ranking;
+               } else if (player.rankings && player.rankings[category]) {
+                  player.category_ranking = +player.rankings[category];
+               } else if (player.rank) {
+                  player.category_ranking = +player.rank;
+               }
+            });
 
-         // sort unranked by full_name (last, first)
-         playerSort(unranked);
+            let ranked = players.filter(player => player.category_ranking);
+            let unranked = players.filter(player => !player.category_ranking);
 
-         let mr_players = ranked.filter(player => mrPlayer(player, category));
-         let ranked_players = ranked.filter(player => !mrPlayer(player, category));
+            // sort unranked by full_name (last, first)
+            playerSort(unranked);
 
-         // sort ranked players by category ranking, or, if equivalent, subrank
-         mr_players.sort((a, b) => (a.category_ranking == b.category_ranking) ? a.subrank - b.subrank : a.category_ranking - b.category_ranking);
-         ranked_players.sort((a, b) => (a.category_ranking == b.category_ranking) ? a.subrank - b.subrank : a.category_ranking - b.category_ranking);
+            let mr_players = ranked.filter(player => mrPlayer(player, category));
+            let ranked_players = ranked.filter(player => !mrPlayer(player, category));
 
-         return [].concat(...mr_players, ...ranked_players, ...unranked);
+            // sort ranked players by category ranking, or, if equivalent, subrank
+            mr_players.sort((a, b) => (a.category_ranking == b.category_ranking) ? a.subrank - b.subrank : a.category_ranking - b.category_ranking);
+            ranked_players.sort((a, b) => (a.category_ranking == b.category_ranking) ? a.subrank - b.subrank : a.category_ranking - b.category_ranking);
+
+            return [].concat(...mr_players, ...ranked_players, ...unranked);
+         } else {
+            return [];
+         }
 
          function mrPlayer(player, category) { return player.MR && player.MR[category]; }
       }
@@ -3907,25 +3912,21 @@ let tournaments = function() {
       }
 
       function checkDuplicateRankings(display_order) {
-         let displayed_players = displayedPlayers();
+         if (state.edit && tournament.players) {
+            let displayed_players = displayedPlayers();
+            let signed_in = displayed_players.filter(p=>p.signed_in);
 
-         if (!state.edit || !tournament.players) return;
+            // separate male & femail
+            let m = signed_in.filter(f=>f.sex == 'M');
+            let w = signed_in.filter(f=>f.sex == 'W');
 
-         let signed_in = displayed_players.filter(p=>p.signed_in);
-
-         let m = signed_in.filter(f=>f.sex == 'M');
-         let w = signed_in.filter(f=>f.sex == 'W');
-
-         let duplicate_puids = rankDuplicates(m);
-         rankDuplicates(w, duplicate_puids);
+            let duplicate_puids = rankDuplicates(m);
+            rankDuplicates(w, duplicate_puids);
+         }
       }
 
       function rankDuplicates(players, active_puids=[]) {
-
-         // TODO: this should be EVENT category
-         let category = isNaN(tournament.category) ? '20' : tournament.category;
-
-         let non_mr_players = players.filter(p=>!mrPlayer(p, category));
+         let non_mr_players = players.filter(p=>!mrPlayer);
          let all_rankings = non_mr_players.map(p=>p.category_ranking);
          let count = util.arrayCount(all_rankings);
          let duplicates = Object.keys(count).reduce((p, k) => { if (!isNaN(k) && count[k] > 1) p.push(+k); return p; }, []);
@@ -3938,7 +3939,11 @@ let tournaments = function() {
          }
          return duplicate_puids;
 
-         function mrPlayer(player, category) { return player.MR && player.MR[category]; }
+         function mrPlayer(player) {
+            // TODO:  MR players is HTS specific
+            let category = config.legacyCategory(tournament.category, true);
+            return player.MR && player.MR[category];
+         }
       }
 
       function enableSubRankEntry(visible, puids) {
@@ -4137,8 +4142,9 @@ let tournaments = function() {
       function eventBroadcastObject(tourny, evt, draw) {
          let ebo = { 
             tournament: {
-               tuid: tourny.tuid,
                name: tourny.name,
+               tuid: tourny.tuid,
+               org: config.env().org,
                start: tourny.start,
                end: tourny.end,
             },
@@ -4183,6 +4189,7 @@ let tournaments = function() {
             tournament: {
                tuid: tourny.tuid,
                name: tourny.name,
+               org: config.env().org,
                start: tourny.start,
                end: tourny.end,
             },
@@ -4264,10 +4271,10 @@ let tournaments = function() {
             score: match.match.score,
             status: match.match.status,
             tournament: {
-               sid: tournament.sid,
-               tuid: tournament.tuid,
-               category: tournament.category,
                name: tournament.name,
+               tuid: tournament.tuid,
+               sid: tournament.sid,
+               org: config.env().org,
                start: tournament.start,
                end: tournament.end,
                rank: tournament.rank,
@@ -4413,7 +4420,13 @@ let tournaments = function() {
 
             match.teams = outcome.teams;
 
-            match.tournament = { name: tournament.name, tuid: tournament.tuid, category: tournament.category, round: match.round_name || match.round };
+            match.tournament = {
+               name: tournament.name,
+               tuid: tournament.tuid,
+               org: config.env().org,
+               category: tournament.category,
+               round: match.round_name || match.round
+            };
 
             // for now, not broadcasting when score is entered
             if (config.env().livescore && coms.broadcasting()) {
@@ -4526,7 +4539,13 @@ let tournaments = function() {
                match.players = [].concat(...outcome.teams);
                match.teams = outcome.teams;
 
-               match.tournament = { name: tournament.name, tuid: tournament.tuid, category: tournament.category, round: match.round_name || match.round };
+               match.tournament = {
+                  name: tournament.name,
+                  tuid: tournament.tuid,
+                  org: config.env().org,
+                  category: tournament.category,
+                  round: match.round_name || match.round
+               };
 
                // for now, not broadcasting when score is entered
                if (config.env().livescore && coms.broadcasting()) {
@@ -6568,6 +6587,10 @@ let tournaments = function() {
          if (!value) { setTimeout(function() { container.category.ddlb.selectionBackground('yellow'); }, 200); }
          trny.category = value;
       }
+
+      dd.attachDropDown({ id: container.category.id, options: config.orgCategoryOptions() });
+      dd.attachDropDown({ id: container.rank.id, label: `${lang.tr('rnk')}:`, options: config.orgRankingOptions() });
+
       container.category.ddlb = new dd.DropDown({ element: container.category.element, onChange: setCategory });
       container.category.ddlb.selectionBackground('yellow');
 
@@ -6671,6 +6694,7 @@ let tournaments = function() {
          onSelect: function() {
             end = this.getDate();
             updateEndDate();
+            updateCategoriesAndRankings();
             validateDate(undefined, 'end', container.end.element);
             if (end < start) {
                startPicker.gotoYear(end.getFullYear());
