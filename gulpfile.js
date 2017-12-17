@@ -103,7 +103,7 @@ gulp.task('concat-src', function() {
          'src/tabs.js', 
          'src/dropdown.js', 
          'src/display.js', 
-         'src/points.js', 
+//         'src/points.js', 
          'src/rank.js', 
          'src/xlsDraws.js', 
          'src/hts.js', 
