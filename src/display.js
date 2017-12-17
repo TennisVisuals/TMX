@@ -1181,7 +1181,7 @@
                         <div id='${ids.rank}' class='flexjustifystart rankddlb'> </div>
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
-                        <input id='${ids.association}' value='${tournament.sid || ''}' placeholder='HTS'>
+                        <input id='${ids.association}' value='${tournament.sid || ''}' placeholder="National Association">
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.organizer}' value='${tournament.organizer || ''}' placeholder='Tennis Club'>
@@ -1209,8 +1209,11 @@
       `;
 
       gen.showConfigModal(html);
-      dd.attachDropDown({ id: ids.category, options: getCategories(tournament) });
+      /*
+      let options = config.orgCategoryOptions({calc_date: new Date()});
+      dd.attachDropDown({ id: ids.category, options });
       dd.attachDropDown({ id: ids.rank, label: `${lang.tr('rnk')}:`, options: getRanks(tournament) });
+      */
 
       let container = idObj(ids);
 
