@@ -149,13 +149,10 @@ let coms = function() {
       fx.emitTmx({ eventCircular });
    }
 
-   fx.deleteEvent = (data) => {
-      if (!data || !data.euid) return;
-      if (connected) {
-         oi.socket.emit('tmx delete event', data);
-      } else {
-         queue.push({ header: 'tmx delete event', data });
-      }
+   // todo: convert this to use emitTmx (to take advantage of queue
+   fx.deleteEvent = (deleteRequest) => {
+      if (!deleteRequest || !deleteRequest.euid) return;
+      fx.emitTmx({deleteRequest});
    }
 
    fx.deleteMatch = (data) => {
@@ -168,6 +165,7 @@ let coms = function() {
    }
 
    fx.emitTmx = (data) => {
+      // TODO: keep this in o so db call unnecessary...?
       db.findSetting('userUUID').then(sendTMX);
 
       function sendTMX(uuuid) {
@@ -175,6 +173,7 @@ let coms = function() {
          if (connected) {
             oi.socket.emit('tmx', data);
          } else {
+            // TODO: make this a persistent que in db...
             queue.push({ header: 'tmx', data });
          }
       }
@@ -417,7 +416,8 @@ let coms = function() {
    }
 
    fx.fetchRankLists = fetchRankLists;
-   function fetchRankLists(categories = [12, 14, 16, 18, 's']) {
+   function fetchRankLists(categories) {
+      console.log('categories:', categories);
       return new Promise((resolve, reject) => {
          Promise.all(categories.map(c=>fetchRankList(c, true))).then(rankObj, rankErr)
 
@@ -428,6 +428,7 @@ let coms = function() {
          }
 
          function rankObj(rankings) {
+            conso.e.log('rankings:', rankings);
             let failures = rankings.filter(f=>!f.valid);
             if (failures.length) notify(failures);
             let obj = Object.assign({}, ...rankings.filter(f=>f.valid).map(r => { return { [r.rankings.category]: r }}));
@@ -438,34 +439,30 @@ let coms = function() {
 
    fx.fetchRankList = fetchRankList;
    function fetchRankList(category, suppress_notice) {
-
       return new Promise((resolve, reject) => {
 
-         // ++++++++++++++++++++++++++++++++++++++++++++++++++++ FIX ALL THIS!
-         // TODO: something smarter for the future...
-         if (isNaN(category)) {
-            category = category.toLowerCase();
-         } else {
-            category = +category;
-         }
-         if (category == '10' || category == 10) return reject({ error: 'No Rank List for U10' });
-         // ++++++++++++++++++++++++++++++++++++++++++++++++++++
+         console.log('fetching list for category:', category);
 
-         db.findRankings(category).then(checkRankings, err => reject({ error: err }));
+         let search_category = parseInt(config.legacyCategory(category, true));
+         db.findRankings(search_category).then(checkRankings, err => reject({ error: err }));
 
          function checkRankings(rankings) {
             let today = new Date();
+
+            rankings.category = config.legacyCategory(rankings.category);
+
+            console.log('rankings:', rankings);
+
             let rankings_date = rankings ? new Date(rankings.date) : undefined;
             if (!rankings || today.getMonth() != rankings_date.getMonth() || today.getFullYear() != rankings_date.getFullYear()) {
                if (navigator.onLine) {
                   db.findSetting('fetchRankList').then(checkSettings, reject);
                } else {
-                  let listname = category == 's' ? 'Seniors' : `U${category}`;
                   if (!suppress_notice) { 
                      // TODO: This is supposed to be a notice that rank list is out of date
                      console.log([listname]); 
                   }
-                  resolve({ listname, valid: false, rankings });
+                  resolve({ listname: category, valid: false, rankings });
                }
             } else {
                resolve({ valid: true, rankings });
