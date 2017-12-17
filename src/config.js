@@ -77,13 +77,13 @@ let config = function() {
       components: {
          players: true,
          tournaments: true,
-         clubs: true,
+         clubs: false,
          tournament_search: true,
          club_search: true,
          settings: true,
          importexport: true,
          autodraw: true,
-         keys: false
+         keys: true
       },
       settings: {
          point_tables: {}
@@ -449,8 +449,11 @@ let config = function() {
             let pt = getKey('pointsTable');
             if (pt) o.settings.points_table = pt.table;
 
-            let user = settings.reduce((p, c) => c.key == 'userUUID' ? c : p, undefined);
-            if (!user) db.addSetting({ key: 'userUUID', value: UUID.generate() });
+            o.settings.uuuid = settings.reduce((p, c) => c.key == 'userUUID' ? c : p, undefined);
+            if (!o.settings.uuuid) {
+               o.settings.uuuid = UUID.generate();
+               db.addSetting({ key: 'userUUID', value: o.settings.uuuid });
+            }
 
             // turn off info labels...
             // if no info gen.info = '';
@@ -507,6 +510,18 @@ let config = function() {
    fx.orgCategories = ({calc_date}) => {
       let points_table = fx.pointsTable({calc_date});
       return fx.validPointsTable(points_table) ? Object.keys(points_table.categories) : ['U10', 'U12', 'U14', 'U16', 'U18', 'S'];
+   }
+
+   fx.orgCategoryOptions = ({calc_date=new Date()} = {}) => {
+      let points_table = config.pointsTable({calc_date});
+      let categories = [{key: '-', value: ''}].concat(...config.orgCategories({calc_date}).map(c=>({key: c, value: c})) );
+      return categories;
+   }
+
+   fx.orgRankingOptions = ({calc_date=new Date()} = {}) => {
+      let points_table = config.pointsTable({calc_date});
+      let rankings = points_table.rankings ? Object.keys(points_table.rankings) : ['1', '2', '3', '4', '5', '6'];
+      return [{key: '-', value: ''}].concat(...rankings.map(r=>({key: r, value: r})));
    }
 
    fx.validPointsTable = (table) => { return typeof table == 'object' && Object.keys(table).length; }
@@ -742,6 +757,17 @@ let config = function() {
          document.getElementById('searchcount').style.color = 'black';
          document.getElementById('homeicon').className = `icon15 homeicon_black`;
       }
+   }
+
+   fx.legacyCategory = (category, reverse) => {
+      let ctgy = category;
+      if (config.env().org.abbr == 'HTS') {
+         let legacy = reverse ?
+            { 'U10': '10', 'U12': '12', 'U14': '14', 'U16': '16', 'U18': '18', 'S': '20', } :
+            { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', };
+         if (legacy[ctgy]) ctgy = legacy[ctgy];
+      }
+      return ctgy;
    }
 
    return fx;
