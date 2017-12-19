@@ -777,10 +777,10 @@ var tournamentParser = function() {
       tournament_data = tp.profile == 'HTS' ? tp.HTS_tournamentData(workbook) : {};
       if (Object.keys(tournament_data).length) {
          let rank = tournament_data.rang_turnira ? parseInt(tournament_data.rang_turnira.match(/\d+/)) : undefined;
-         // tournament_rank = tournament_data.rang_turnira ? parseInt(tournament_data.rang_turnira.match(/\d+/)[0]) : undefined;
          tournament_rank = rank && rank.length ? rank[0] : undefined;
          tournament_category = tournament_data.draw ? tournament_data.draw.match(/\d+/) : undefined;
          tournament_category = tournament_category ? parseInt(tournament_category[0]) : 20;
+         tournament_category = config.legacyCategory(tournament_category);
       }
 
       let processSheet = ({ sheet_names, sheet_name }) => {
@@ -800,6 +800,7 @@ var tournamentParser = function() {
             let number = /\d+/;
             let type = tp.value(sheet['A2']);
             tournament_category = number.test(type) ? number.exec(type) : undefined;
+            console.log(tournament_category);
          }
 
          let processMatch = (match) => {
@@ -828,7 +829,7 @@ var tournamentParser = function() {
                tournament.code = tournament_data.id_turnira;
                tournament.name = tournament_data.name;
                tournament.rank = draw.rank || tournament_rank;
-               tournament.category = tournament_category;
+               tournament.category = config.legacyCategory(tournament_category);
                tournament.draw = tournament_data.draw;
 
                Object.assign(row, { date: tp.dateProcess.HTS(tournament_data.datum_turnir), });
