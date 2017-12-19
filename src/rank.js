@@ -1,30 +1,14 @@
 !function() {
 
-   // TODO: This needs to be in settings
-   var rank = {
-      plus2: true, // add best 2 from 1 category above
-      plus4: true, // add best 2 from 2 categories above
-      plus6: true, // add best 2 from 2 categories above
-      minus2: true, // add all from category below
-      minus4: false, // add all from 2 categories below
-   };
-
    // requires db{}, util{}, exp{}
+   var rank = {};
 
-   function unique(arr) { return arr.filter((item, i, s) => s.lastIndexOf(item) == i); }
    function fullName(player) { return `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; }
-
    function calcPoints(match, points_table, category, event_rank) {
-      category = category || (match.event && match.event.category);
+      category = config.legacyCategory(category || (match.event && match.event.category));
       event_rank = event_rank || (match.event && match.event.rank);
 
-      if (config.env().org.abbr == 'HTS') {
-         let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S',
-         }
-         if (legacy[category]) category = legacy[category];
-      }
-
-      // deal with legacy situation...
+      // TODO: deal with legacy situation...
       let match_round = match.round_name || match.round;
 
       // draw_positions is total # of draw positions
@@ -45,6 +29,7 @@
    }
 
    function pointData(match, player, name, points) {
+      let category = match.event ? match.event.category : match.tournament ? match.tournament.category : '';
       return { 
          name,
          points, 
@@ -57,7 +42,7 @@
          format: match.format,
          rank: match.event ? match.event.rank : match.tournament ? match.tournament.rank : '',
          tuid: match.tournament.tuid,
-         category: match.event ? match.event.category : match.tournament ? match.tournament.category : '',
+         category,
          tournament_name: match.tournament.name,
          event_name: match.event ? match.event.name : undefined,
          euid: match.event ? match.event.euid : undefined,
@@ -141,14 +126,13 @@
 
       matches.forEach(match => {
          if (date) { match.date = date.getTime(); }
-         if (category) match.tournament.category = +category;
-
          match.tournament.rank = determineRank(match, rankings);
 
          if (!match.consolation) {
             let points = calcPoints(match, points_table, category, match.tournament.rank);
             match.teams[match.winner].forEach(pindex => {
-               let player = match.players[pindex];
+               if (typeof pindex == 'object') console.log('match.teams objects not indices');
+               let player = typeof pindex == 'object' ? pindex : match.players[pindex];
                let name = fullName(player);
                let pp = player_points[match.format];
                if (!pp[name] || points > pp[name].points) { pp[name] = pointData(match, player, name, points); }
@@ -183,13 +167,13 @@
                   Object.keys(category_points).forEach(category => {
                      if (!categories[category]) categories[category] = { M: [], W: [] };
                      if (player.sex) {
-                        let details ={ 
+                        let details = { 
                            born,
                            id: player.id,
                            ioc: player.ioc,
                            puid: player.puid, 
                            club: player.club,
-                           category: rank.baseCategory(born, year),
+                           category: rank.eligibleCategories({ birth_year: born, calc_year: year }).base_category,
                            points: player.points[year][week][category],
                            name: `${player.last_name}, ${player.first_name}`,
                         };
@@ -224,7 +208,9 @@
                let last_points;
                let last_ranking;
                categories[category][gender].forEach((player, i) => {
-                  let eligible_categories = calculatePlayerCategories({ birth_year: player.born, calc_date: ranking_date });
+
+                  let eligible_categories = rank.eligibleCategories({ birth_year: player.born, calc_date: ranking_date }).categories;
+
                   let numeric_category = parseInt(category.match(/\d+/)[0]);
                   if (eligible_categories.indexOf(numeric_category) >= 0 && player.points.total) {
                      if (!rankings[player.puid]) rankings[player.puid] = {};
@@ -273,7 +259,7 @@
          db.pointsAfter(points_date).then(cP, reject);
 
          function cP(points) {
-            let puids = unique(points.map(p => p.puid));
+            let puids = util.unique(points.map(p => p.puid));
             let data = puids.map(puid => { return { puid, start_date, end_date, } });
             if (data.length) {
                performTask(rank.calculatePlayerRankingPoints, data, false).then(addCalcs, reject);
@@ -303,10 +289,6 @@
       });
    }
 
-   function invalidCategories(categories, year, birth) {
-      return Object.keys(categories).filter(category => !rank.validCategory(category, year, birth));
-   }
-
    // intended to be passed as a parameter into db.modify
    // 'item' in this context refers to 'player'
    function modifyPlayerRankHistory ({ item, week, year, rankings }) {
@@ -328,7 +310,8 @@
          ranking_points
             .filter(row => row.year == year)
             .forEach(row => {
-               let invalid_categories = invalidCategories(row.categories, year, item.birth);
+               let birth_year = new Date(item.birth).getFullYear();
+               let invalid_categories = rank.eligibleCategories({ birth_year, calc_year: year }).ineligible;
                invalid_categories.forEach(category => delete row.categories[category]);
                item.points[year][row.week] = row.categories;
             });
@@ -373,7 +356,6 @@
       let addWeek = (date) => { let now = new Date(date); return now.setDate(now.getDate() + 7); }
 
       return new Promise((resolve, reject) => {
-
          db.findPlayer(puid).then(player => db.findPlayerPoints(puid).then(points => calcRankingPoints(player, points)));
 
          function calcRankingPoints(player, points) {
@@ -402,12 +384,10 @@
 
             let rpts = {};
             let born = player.birth ? new Date(player.birth).getFullYear() : undefined;
-            let base = rank.baseCategory(born, new Date(ranking_date).getFullYear());
+            let { categories, base_category } = rank.eligibleCategories({ birth_year: born, calc_date: ranking_date });
             Object.keys(cpts).map(category => {
                let point_events = cpts[category];
-
                let reduce = (point_events) => point_events.map(p => +p.points).reduce((a, b) => a + b, 0);
-
                let team_events = point_events.filter(e=>e.tournament_type == 'MO');
                let singles_events = point_events.filter(e=>e.format == 'singles' && e.tournament_type != 'MO');
                let singles_events_up = singles_events.filter(e=>e.category > category);
@@ -421,10 +401,7 @@
                let doubles_up = doubles_events_up.length ? reduce(doubles_events_up) : 0;
 
                let total = point_events.length ? reduce(point_events) : 0;
-
-               // TODO: remove ref to HTS
-               // 'U' necessary because 20 was not showing up when added to object!!
-               if (category >= base && total > 0) rpts[`U${category}`] = { total, singles, doubles, singles_up, doubles_up, team };
+               if (categories.indexOf(category) >= 0 && total > 0) rpts[category] = { total, singles, doubles, singles_up, doubles_up, team };
             });
 
             return {
@@ -436,30 +413,15 @@
       });
    }
 
-   rank.calculatePlayerCategories = calculatePlayerCategories;
-   function calculatePlayerCategories({birth_year, calc_date, calc_year}) {
-      if (!calc_date && !calc_year) return [];
-
-      // remove ref to HTS structure
-      let categories = [12, 14, 16, 18, 20];
-
-      calc_year = calc_year || new Date(calc_date).getFullYear();
-      let player_age = calc_year - birth_year;
-      return categories
-      // remove ref to HTS structure
-         .filter(category => (category == 20 && player_age >= 20) || (category >= player_age && category <= player_age + 5));
-   }
-
    rank.calculateRankingPoints = (player, points, ranking_date) => {
-
       // TODO: tournament_type specification is HR specific.  Should be 'Team';
       let team = (pts) => pts.filter(f=>f.tournament_type == 'MO');
       let singles = (pts) => pts.filter(f=>f.format == 'singles' && f.tournament_type != 'MO');
       let doubles = (pts) => pts.filter(f=>f.format != 'singles' && f.tournament_type != 'MO');
       let expireDate = (date) => date - (365 * 24 * 60 * 60 * 1000);
 
-      let player_year = player.birth ? new Date(player.birth).getFullYear() : undefined;
-      let eligible_categories = calculatePlayerCategories({ birth_year: player_year, calc_date: ranking_date });
+      let birth_year = player.birth ? new Date(player.birth).getFullYear() : undefined;
+      let eligible_categories = rank.eligibleCategories({ birth_year, calc_date: ranking_date }).categories;
       let pDate = (p) => new Date(p).getTime();
       let valid = points.filter(p => pDate(p.date) > expireDate(ranking_date) && pDate(p.date) <= ranking_date);
 
@@ -476,13 +438,9 @@
       let oMap = (keys, arr, fx) => Object.assign(...keys.map(k => ({ [k]: fx(arr, k) })));
 
       let cpts = {};
-      let categories = unique([].concat(...valid.map(v=>+v.category), ...eligible_categories));
+      let categories = util.unique([].concat(...valid.map(v=>+v.category), ...eligible_categories));
 
-      // add older categories for which player is eligible
-      // do it this way so that younger categories for which there are no points
-      // are not added...
-      let max_category = Math.max(...categories);
-      eligible_categories.forEach(category => { if (category > max_category) categories.push(category) });
+      let points_table = config.pointsTable({calc_date: ranking_date});
 
       if (categories.length) {
          let category_points = oMap(categories, valid, categoryFilter);
@@ -493,51 +451,30 @@
             cpts[category] = cpoints;
          });
 
-         // TODO this whole section needs to change to use new pointsTable()
          function calcCategory(category) {
+            let category_table = points_table.categories[category];
+            if (!category_table || !Object.keys(category_table.ranking).length) return { singles: [], doubles: [], team: [] };
 
-            let usingles = [];
-            let udoubles = [];
-
-            // first take the two highest from category above
-            if (rank.plus2 && category_points[+category + 2]) {
-               usingles = category_points[+category + 2].singles.slice(0, 2);
-               udoubles = category_points[+category + 2].doubles.slice(0, 2);
+            function formatPoints(format) {
+               let points = [];
+               if (!category_table.ranking[format]) return points
+               Object.keys(category_table.ranking[format].lists).forEach(c => {
+                  let limit = category_table.ranking[format].lists[c];
+                  let cpts = category_points[c];
+                  if (cpts && cpts[format]) points = points.concat(...cpts[format].slice(0, limit));
+               });
+               return points;
             }
 
-            // also take the two highest from two categories above
-            if (rank.plus4 && category_points[+category + 4]) {
-               usingles = [].concat(...usingles, category_points[+category + 4].singles.slice(0, 2));
-               udoubles = [].concat(...udoubles, category_points[+category + 4].doubles.slice(0, 2));
-            }
+            let singles = formatPoints('singles');
+            let doubles = formatPoints('doubles');
+            let singles_max = category_table.ranking.singles.events;
+            let doubles_max = category_table.ranking.doubles.events;
+            singles = bigPoints(singles).slice(0, singles_max);
+            doubles = bigPoints(doubles).slice(0, doubles_max);
 
-            // limit to two highest from higher categories
-            usingles = bigPoints(usingles).slice(0,2);
-            udoubles = bigPoints(udoubles).slice(0,2);
-
-            // add all category points
             // team points only count for the category in which they were earned
             let team = category_points[category].team;
-
-            let singles = [].concat(...usingles, category_points[category].singles);
-            let doubles = [].concat(...udoubles, category_points[category].doubles);
-
-            // add all points from category BELOW
-            if (rank.minus2 && category_points[+category - 2]) {
-               singles = [].concat(...singles, category_points[+category - 2].singles);
-               doubles = [].concat(...doubles, category_points[+category - 2].doubles);
-            }
-
-            // add all points from 2 categories BELOW
-            if (rank.minus4 && category_points[+category - 4]) {
-               singles = [].concat(...singles, category_points[+category - 4].singles);
-               doubles = [].concat(...doubles, category_points[+category - 4].doubles);
-            }
-
-            // take top 6 singles and top 4 doubles
-            // remove ref to HTS structure
-            singles = bigPoints(singles).slice(0, +category == 20 ? 10 : 6);
-            doubles = bigPoints(doubles).slice(0, +category == 20 ? 10 : 4);
 
             return { singles, doubles, team };
          }
@@ -806,31 +743,23 @@
     }
 
    function yearEndAge(year, birthday) {
-      let year_end = new Date(`${year + 1}-01-01`);
+      let year_end = new Date(`${parseInt(year) + 1}-01-01`);
       var ageDifMs = year_end - new Date(birthday).getTime();
       var ageDate = new Date(ageDifMs);
       return Math.abs(ageDate.getUTCFullYear() - 1970);
    }
 
-   rank.validCategory = (category, year, birth) => {
-      let age = yearEndAge(year, birth);
-      // TODO: remove ref to HTS structure
-      if (age > 16 && category == 20) return true;
-      if (age > category) return false;
-      if (age < category - 4) return false;
-      return true;
-   }
-
-   rank.baseCategory = (born, year = new Date().getFullYear()) => {
-      let age = yearEndAge(year, new Date(born, 1, 1).getTime());
-
-      // TODO: remove ref to HTS structure
-      let categories = [18, 16, 14, 12, 10];
-      let category = 20;
-
-      categories.forEach(c => { if (age <= c) category = c});
-      return category;
-   }
+   rank.eligibleCategories = ({birthday, birth_year, calc_date, calc_year}) => {
+      if (birthday && util.validDate(birthday)) birth_year = new Date(birthday).getFullYear();
+      if (calc_date && util.validDate(calc_date)) calc_year = new Date(calc_date).getFullYear();
+      if (!birth_year || birth_year.toString().length != 4) return { categories: [] };
+      if (!calc_year) calc_year = new Date().getFullYear();
+      if (!calc_date) calc_date = new Date(calc_year, 1, 1);
+      let age = yearEndAge(calc_year, new Date(birth_year, 1, 1).getTime());
+      let eligibility = config.eligibleCategories({age, calc_date});
+      Object.assign(eligibility, { age });
+      return eligibility;
+   };
 
    function performTask(fx, data, bulkResults = true) {
       return new Promise(function(resolve, reject) {
