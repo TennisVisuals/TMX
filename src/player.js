@@ -29,7 +29,7 @@ let player = function() {
    }
 
    fx.displayPlayerProfile = displayPlayerProfile;
-   function displayPlayerProfile(puid) {
+   function displayPlayerProfile(puid, ranking_date) {
       return new Promise((resolve, reject) => {
          let container;
 
@@ -38,22 +38,18 @@ let player = function() {
 
             if (player) {
 
-               if (fx.override) {
-                  // club and points are not important
-                  return resolve(fx.override(player));
-               }
+               // club and points are not important
+               if (fx.override) { return resolve(fx.override(player)); }
 
                db.findClub(player.club + '').then(club => {
-
                   container = gen.playerProfile(fx.displayFx);
                   container.info.element.innerHTML = gen.playerInfo(player, club || {});
 
                   if (club && club.code) player.club_code = club.code;
-
                   if (fx.action && typeof fx.actions[fx.action] == 'function') return resolve(fx.actions[fx.action](container, player));
 
                   // otherwise default to displaying player points
-                  db.findPlayerPoints(puid).then(points => resolve(displayPoints(player, club, points)));
+                  db.findPlayerPoints(puid).then(points => resolve(displayPoints(player, club, points, ranking_date)));
                });
             } else {
                console.log('player not found');
@@ -61,18 +57,15 @@ let player = function() {
             }
          });
 
-         function displayPoints(player, club, points) {
-
-            // TODO: make it possible to view points for different ranking dates
-            let ranking_date = new Date();
-
+         function displayPoints(player, club, points, ranking_date=new Date()) {
             let cpts = rank.calculateRankingPoints(player, points, ranking_date);
-            let eligible_categories = rank.calculatePlayerCategories({ birth_year: new Date(player.birth).getFullYear(), calc_date: ranking_date.getTime() });
+            let birth_year = new Date(player.birth).getFullYear();
+            let eligible_categories = rank.eligibleCategories({ birth_year, calc_date: ranking_date }).categories;
 
             let tabdata = [];
             Object.keys(cpts).forEach(category => {
-               if (eligible_categories.indexOf(+category) >= 0 && cpts[category].length) {
-                  let tab = (category == 20) ? 'Senior' : 'U' + category;
+               if (eligible_categories.indexOf(category) >= 0 && cpts[category].length) {
+                  let tab = category;
                   let content = gen.playerPoints(cpts[category], lang.tr('rlp') + tab);
                   tabdata.push({ tab, content });
                }
@@ -92,7 +85,6 @@ let player = function() {
 
             let ranking_time_series = player.rankings ? processTimeSeries(player.rankings, 'rankings') : undefined;
             gen.displayPlayerRankChart(container, ranking_time_series);
-
             gen.tabbedPlayerRankings(tabdata, container);
 
             let dt = (evt) => tournaments.displayTournament({tuid: util.getParent(evt.target, 'point_click').getAttribute('tuid')});
@@ -306,35 +298,38 @@ let player = function() {
    fx.medical = (player) => player.right_to_play_until ? new Date(player.right_to_play_until) > new Date() : true;
 
    fx.createNewPlayer = createNewPlayer;
-   function createNewPlayer({player_data={}, category, callback} = {}) {
+   function createNewPlayer({player_data={}, category, callback, date=new Date()} = {}) {
       let player = {
          first_name: player_data.first_name,
          last_name: player_data.last_name,
          sex: player_data.sex || 'M',
       }
 
-      let player_container = gen.createNewPlayer(player);
-
+      let points_table = config.pointsTable({calc_date: date});
+      let categories = points_table && points_table.categories;
+      category = category ? config.legacyCategory(category) : 0;
+      let ages = category && categories && categories[category] ? categories[category].ages : { from: 6, to: 100 };
       let year = new Date().getFullYear();
+      let min_year = year - parseInt(ages.from);
+      let max_year = year - parseInt(ages.to);
+      let daterange = { start: `${max_year}-12-31`, end: `${min_year}-1-1` };
 
-      // TODO: update how categories are handled...
-      category = !category ? 0 : category == 's' ? 20 : +category;
-
-      let max_year = category == 20 || category == 0 ? 1900 : year - category;
-      let min_year = !category || category == 20 ? year : max_year + 5;
-      let daterange = { start: `${max_year}-1-1`, end: `${min_year}-1-1` };
-
+      let player_container = gen.createNewPlayer(player);
       player_container.last_name.element.style.background = player.last_name ? 'white' : 'yellow';
       player_container.first_name.element.style.background = player.first_name ? 'white' : 'yellow';
       player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
       player_container.birth.element.style.background = util.validDate(player.birth, daterange) ? 'white' : 'yellow';
 
-      let start_date = new Date(new Date().getFullYear() - 8, new Date().getMonth(), 1);
+      // try to make a reasonable start year
+      let start_year = year - max_year < 17 ? max_year : min_year - 10;
+
+      let start_date = new Date(start_year, 11, 31);
       let birthdayPicker = new Pikaday({
          field: player_container.birth.element,
          i18n: lang.obj('i18n'),
          defaultDate: start_date,
-         maxDate: new Date(),
+         minDate: new Date(max_year, 0, 1),
+         maxDate: new Date(min_year, 11, 31),
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
       let field_order = [ 'last_name', 'first_name', 'birth', 'ioc', 'city', 'club', 'phone', 'email', 'cancel', 'save' ];
