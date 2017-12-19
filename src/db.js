@@ -71,6 +71,7 @@ let db = function() {
       if (!format && gender && gender == point.gender) return delete ref.value;
    }).then(resolve, reject));
    db.deleteAllPlayerRankings = () => db.db.players.toCollection().modify(player => delete player.rankings);
+   db.deleteAllPlayerPoints = () => db.db.players.toCollection().modify(player => delete player.points);
 
    // database cleanup
    db.deleteAllTournamentMatches = () => db.db.tournaments.toCollection().modify(tournament => delete tournament.matches);
