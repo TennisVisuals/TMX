@@ -14,7 +14,6 @@ let coms = function() {
 
    let o = {
       errors: false,
-      auth: true,
    }
 
    let queue = [];
@@ -62,9 +61,32 @@ let coms = function() {
          oi.socket.on('disconnect', comsDisconnect);
          oi.socket.on('connect_error', comsError);
          oi.socket.on('tmx directive', tmxDirective);
-         oi.socket.on('tmx error', (err) => console.log(err));
+         oi.socket.on('tmx error', tmxError);
+         oi.socket.on('tourny record', receiveTournament);
       }
    } 
+
+   function tmxError(err) {
+      if (err.error) {
+         let message = `Error Message from Server<p>${err.error}`;
+         let container = gen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+      }
+   }
+
+   function receiveTournament(record) {
+      let published_tournament = CircularJSON.parse(record);
+      let message = `
+         <p>Received Tournament Record</p>
+         <p>Publish Time:<br>${new Date(published_tournament.published).toGMTString()}</p>
+         <p>Replace Local Copy?</p>
+      `;
+      let msg = gen.okCancelMessage(message, saveTournament, () => gen.closeModal());
+      function saveTournament() {
+         db.addTournament(published_tournament);
+         tournaments.displayTournament({tuid: published_tournament.tuid});
+         gen.closeModal();
+      }
+   }
 
    fx.sendKey = (key) => {
       fx.emitTmx({ key });
@@ -164,6 +186,15 @@ let coms = function() {
       }
    }
 
+   fx.requestTournament = (tuid) => {
+      if (connected) {
+         oi.socket.emit('tmx tourny', { tuid, authorized: true });
+      } else {
+         let message = `Offline: must be connected to internet`;
+         let container = gen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+      }
+   }
+
    fx.emitTmx = (data) => {
       // TODO: keep this in o so db call unnecessary...?
       db.findSetting('userUUID').then(sendTMX);
@@ -197,6 +228,7 @@ let coms = function() {
          let result = JSON.parse(remote.responseText);
          let data = result.data ? result.data.split('').filter(f=>f.charCodeAt() > 13).join('') : undefined;
          let json_data = attemptJSONparse(data);
+         if (!json_data) console.log('request failed:', request);
 
          callback({ json: json_data } || result); 
       }
@@ -211,7 +243,6 @@ let coms = function() {
       }
 
       catch(e) {
-         console.log('ERROR');
          return undefined;
       }
    }
@@ -249,8 +280,6 @@ let coms = function() {
    fx.fetchPlayerDates = fetchPlayerDates;
    function fetchPlayerDates() {
       return new Promise((resolve, reject) => {
-         if (!o.auth) return reject();
-
          db.findSetting('fetchPlayerDates').then(fetchNew, reject);
 
          function fetchNew(params) {
@@ -276,8 +305,6 @@ let coms = function() {
    fx.fetchNewClubs = fetchNewClubs;
    function fetchNewClubs() {
       return new Promise((resolve, reject) => {
-         if (!o.auth) return reject();
-
          db.findSetting('fetchClubs').then(checkSettings, reject);
 
          function checkSettings(params) {
@@ -311,8 +338,6 @@ let coms = function() {
    fx.fetchNewTournaments = fetchNewTournaments;
    function fetchNewTournaments() {
       return new Promise((resolve, reject) => {
-         if (!o.auth) return reject();
-
          db.findSetting('fetchNewTournaments').then(checkSettings, reject);
 
          function checkSettings(params) {
@@ -355,8 +380,6 @@ let coms = function() {
    fx.fetchNewPlayers = fetchNewPlayers;
    function fetchNewPlayers() {
       return new Promise((resolve, reject) => {
-         if (!o.auth) return reject();
-
          db.findSetting('fetchNewPlayers').then(checkSettings, reject);
 
          function checkSettings(params) {
@@ -417,7 +440,6 @@ let coms = function() {
 
    fx.fetchRankLists = fetchRankLists;
    function fetchRankLists(categories) {
-      console.log('categories:', categories);
       return new Promise((resolve, reject) => {
          Promise.all(categories.map(c=>fetchRankList(c, true))).then(rankObj, rankErr)
 
@@ -428,7 +450,6 @@ let coms = function() {
          }
 
          function rankObj(rankings) {
-            conso.e.log('rankings:', rankings);
             let failures = rankings.filter(f=>!f.valid);
             if (failures.length) notify(failures);
             let obj = Object.assign({}, ...rankings.filter(f=>f.valid).map(r => { return { [r.rankings.category]: r }}));
@@ -440,19 +461,10 @@ let coms = function() {
    fx.fetchRankList = fetchRankList;
    function fetchRankList(category, suppress_notice) {
       return new Promise((resolve, reject) => {
-
-         console.log('fetching list for category:', category);
-
-         let search_category = parseInt(config.legacyCategory(category, true));
-         db.findRankings(search_category).then(checkRankings, err => reject({ error: err }));
+         db.findRankings(category).then(checkRankings, err => reject({ error: err }));
 
          function checkRankings(rankings) {
             let today = new Date();
-
-            rankings.category = config.legacyCategory(rankings.category);
-
-            console.log('rankings:', rankings);
-
             let rankings_date = rankings ? new Date(rankings.date) : undefined;
             if (!rankings || today.getMonth() != rankings_date.getMonth() || today.getFullYear() != rankings_date.getFullYear()) {
                if (navigator.onLine) {
@@ -475,8 +487,9 @@ let coms = function() {
          }
 
          function fetchList(params) {
-            if (!o.auth) return reject({ error: 'not authorized' });
-
+            // Legacy to avoid call when no list is available
+            if (config.env().org.abbr == 'HTS' && category == '10') return reject();
+            
             let request_object = { [params.type]: params.url + category };
             let request = JSON.stringify(request_object);
             function responseHandler(data) {
@@ -534,8 +547,6 @@ let coms = function() {
          }
 
          function remoteRequest(params) {
-            if (!o.auth) return reject({ error: 'not authorized' });
-
             let request_object = { [params.type]: params.url + id };
             let request = JSON.stringify(request_object);
 
