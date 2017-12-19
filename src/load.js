@@ -60,8 +60,8 @@
          filetype: validExtension(filename),
       };
 
-      let category = parts[0].match(/\d+/) || (parts[0] == 'RS' ? [20] : undefined);
-      if (category) meta.filecategory = category[0];
+      let parse_category = parts[0].match(/\d+/) || (parts[0] == 'RS' ? [20] : undefined);
+      if (parse_category) meta.filecategory = config.legacyCategory(parse_category[0]);
 
       if (filename[0] == 'R') {
          let datestring = filename.split('_')[1].match(/\d+/)[0];
@@ -152,12 +152,15 @@
          let rank_lists = {};
          if (!Array.isArray(rows)) return busy.done(id);
 
-         let categories = util.unique(rows.map(r=>r.category)).map(c=>isNaN(c) ? c : +c);
+         let categories = util.unique(rows.map(r=>config.legacyCategory(r.category)));
+
          let category_rankings = categories.map(category => {
             let records = rows.filter(f=>f.category == category);
             let player_rankings = Object.assign({}, ...records.map(r => { return { [r.id]: r }}));
             return { category, players: player_rankings, date: new Date().getTime() };
          });
+
+         console.log('check category rankings:', category_rankings);
 
          util.performTask(db.addCategoryRankings, category_rankings, false).then(done, done);
 
@@ -189,9 +192,10 @@
                end: determineDate(record.end),
                draws: record.draws || '',
                rank: record.rank,
-               category: record.category,
+               category: config.legacyCategory(record.category),
 
             };
+            console.log(tournament.category);
             if (record.id && tournament.name) tournaments.push(tournament);
          }
       });
@@ -226,6 +230,8 @@
          }
 
          function setTournament(tournament) {
+            tournament.category = config.legacyCategory(tournament.category);
+
             if (Object.keys(tournament).length) {
                load.loaded.tournament.sid = 'HTS';
                load.loaded.meta.tuid = tournament.tuid;
@@ -242,9 +248,8 @@
                   load.loaded.meta.rank = +accepted.sgl_rank || +tournament.rank;
                   load.loaded.meta.dbl_rank = +accepted.dbl_rank;
                   load.loaded.tournament.rank = load.loaded.meta.rank;
-                  load.loaded.meta.category = accepted.category == 'S' ? 20 : +accepted.category;
+                  load.loaded.meta.category = config.legacyCategory(accepted.category);
                   load.loaded.tournament.category = load.loaded.meta.category;
-
                   load.loaded.results.ranks = { singles: load.loaded.meta.rank, doubles: load.loaded.meta.dbl_rank };
 
                } else {
@@ -256,7 +261,6 @@
                      if (!load.loaded.tournament.rank) load.loaded.tournament.rank = +tournament.rank;
                   }
                   if (tournament.category) {
-                     tournament.category = tournament.category == 'S' ? 20: +tournament.category;
                      load.loaded.meta.category = tournament.category;
                      if (load.loaded.tournament.category && load.loaded.meta.category != load.loaded.tournament.category) {
                         console.log('CATEGORY MISMATCH', load.loaded.tournament.category, load.loaded.meta.category, load.loaded.tournament);
@@ -274,6 +278,7 @@
                   match.tournament.start = tournament.start;
                   match.tournament.end = tournament.end;
                   match.tournament.tuid = tournament.tuid;
+                  match.tournament.category = tournament.category;
                });
             }
             return resolve();
@@ -399,7 +404,10 @@
          .filter(action => {
 
             // first exclude and players who are too old for the category
-            let valid = action.result.filter(result => rank.validCategory(load.loaded.tournament.category, load.loaded.date.getFullYear(), result.birth));
+            let valid = action.result.filter(result => {
+               let eligible_categories = rank.eligibleCategories({ birth_day: result.birth, calc_date: load.loaded.date }).categories;
+               return eligible_categories.indexOf(load.loaded.tournament.category) >= 0 
+            });
             if (valid.length == 1) {
                action.original = action.player;
                action.player = valid[0];
@@ -730,7 +738,9 @@
          { attr: 'sex', header: 'Gender' }, 
       ]; 
       let rankings = extractWorkbookRows(workbook.Sheets.Rankings, headers);
-      rankings.forEach(ranking => { if (ranking.category == 'S') ranking.category = 's'; });
+      // rankings.forEach(ranking => { if (ranking.category == 'S') ranking.category = 's'; });
+      rankings.forEach(ranking => { ranking.category == config.legacyCategory(ranking.category); });
+      console.log('check ranking categories:', rankings);
       return rankings;
    }
 
@@ -802,11 +812,8 @@
 
             load.loaded.tournament.category = load.loaded.tournament.category ? load.loaded.tournament.category.match(/\d+/) : undefined;
             load.loaded.tournament.category = load.loaded.tournament.category ? parseInt(load.loaded.tournament.category[0]) : 20;
+            load.loaded.tournament.category = config.legacyCategory(load.loaded.tournament.category);
             load.loaded.meta.category = load.loaded.tournament.category;
-
-            let tid = load.loaded.tournament.id_turnira;
-            if (tid && tid[0] == 'R') load.loaded.id_category = (tid[1] == 'S') ? 20 : tid.substring(1,3);
-
          } else {
             load.loaded.tournament = { name: workbook.Sheets[workbook.SheetNames[0]].A1.v };
          }
