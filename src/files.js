@@ -506,7 +506,7 @@
    }
 
    exp.printDrawPDF = (tournament, data, options, selected_event, event) => {
-      let info = drawFx.drawInfo(data);
+      let info = drawFx().drawInfo(data);
       if (info.draw_type == 'tree') return exp.treeDrawPDF({ tournament, data, options, selected_event, info, event });
       if (info.draw_type == 'roundrobin') return exp.rrDrawPDF({ tournament, data, options, selected_event, info, event });
    }
@@ -607,8 +607,6 @@
          // currently done in tournaments.css #offscreen
 
          let element = document.getElementById('offscreen');
-
-         // let info = drawFx.drawInfo(data);
 
          // create an off-screen draw so that sizing is uninhibited by screen real-estate
          let draw = rrDraw();
@@ -1471,7 +1469,6 @@
 
    exp.getDataUri = getDataUri;
    function getDataUri(url) {
-      console.log('requesting file');
       return new Promise( (resolve, reject) => {
           var image = new Image();
 
