@@ -15,6 +15,7 @@
    }
 
    util.string2boolean = (string) => {
+      if (typeof string == 'boolean') return string;
       if (string === 'true') return true;
       if (string === 'false') return false;
    }
@@ -116,6 +117,21 @@
                   optionsObject[vKeys[k]] = valuesObject[vKeys[k]];
               }
           }
+      }
+   }
+
+   util.boolAttrs = boolAttrs;
+   function boolAttrs(optionsObject) {
+      if (!optionsObject) return;
+      var oKeys = Object.keys(optionsObject);
+      for (var k=0; k < oKeys.length; k++) {
+        var oo = optionsObject[oKeys[k]];
+        if (typeof oo == 'object' && typeof vo !== 'function' && oo.constructor !== Array) {
+            boolAttrs(optionsObject[oKeys[k]]);
+        } else {
+            if (oo === 'true') optionsObject[oKeys[k]] = true;
+            if (oo === 'false') optionsObject[oKeys[k]] = false;
+        }
       }
    }
 
@@ -223,7 +239,7 @@
 
    util.validDate = (datestring, range) => {
       if (!datestring) return false;
-      let dateparts = datestring.split('-');
+      let dateparts = util.formatDate(datestring).split('-');
       if (isNaN(dateparts.join(''))) return false;
       if (dateparts.length != 3) return false;
       if (dateparts[0].length != 4) return false;
