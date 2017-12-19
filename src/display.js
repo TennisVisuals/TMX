@@ -568,6 +568,8 @@
    }
 
    gen.playerPoints = (point_events, title, expire_date) => {
+
+      // TODO: date picker to regenerate tabs to show point total for specific dates...
       let html = `
          <div class='section_row flexrow section_header'>
             <div class='ptrny'><b>${lang.tr('trn')}</b></div>
@@ -694,7 +696,6 @@
    }
    
    function formatTeams(match, which, puid) {
-
       function playerBlock(pindex, side) {
          let p = match.players[pindex];
          let player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
@@ -960,7 +961,7 @@
          {key: `CP1250`, value: 'win'},
       ];
 
-      Object.assign(ids, external_requests.ids);
+      Object.assign(ids, external_requests.ids, draws.ids, points.ids, categories.ids, general.ids);
       let id_obj = idObj(ids);
 
       jsTabs.load(id_obj.container.element);
@@ -1087,11 +1088,27 @@
    }
 
    gen.drawSettings = (settings) => {
-      let ids = {};
+      let ids = {
+         compressed_draw_formats: gen.uuid(),
+         display_flags: gen.uuid(),
+      };
       let ddlb = [];
       let html = `
          <div style='min-height: 150px'>
          <h2>Settings for Draws</h2>
+         <div class='flexcenter' style='width: 100%;'>
+             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+                <div class='tournament_attr'>
+                    <label class='calabel'>Compressed Draw Formats:</label>
+                    <input type='checkbox' id="${ids.compressed_draw_formats}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>Country Flags Displayed:</label>
+                    <input type='checkbox' id="${ids.display_flags}">
+                </div>
+             </div>
+         </div>
+
          </div>
       `;
       return { ids, html, ddlb }
@@ -3075,8 +3092,7 @@
 
    function calendarRow(tournament) {
       if (tournament.category) {
-         let legacy = { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', }
-         let category = config.env().org.abbr == 'HTS' ? legacy[tournament.category] || tournament.category : tournament.category;
+         let category = config.legacyCategory(tournament.category, true);
          let background = new Date().getTime() > tournament.end ? 'calendar_past' : 'calendar_future';
          let actual_rankings = '';
          if (tournament.accepted) {
