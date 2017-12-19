@@ -66,9 +66,21 @@ let config = function() {
          end: undefined,
          category: undefined
       },
+      draws: {
+         fx: {
+            compressed_draw_formats: true,
+         },
+         tree_draw: {
+            flags: { display: true },
+         },
+         rr_draw: {}
+      },
    }
 
    fx.env = () => env;
+
+   // fx.o = () => o;
+
    fx.setCalendar = (obj) => Object.keys(obj).forEach(key => { if (Object.keys(env.calendar).indexOf(key) >= 0) env.calendar[key] = obj[key]; });
    fx.setMap = (map) => env.map = map;
 
@@ -86,7 +98,22 @@ let config = function() {
          keys: true
       },
       settings: {
-         point_tables: {}
+         points_table: {
+            validity: [ { from: "1900-01-01", to: "2100-12-31", table: "default" }, ],
+            tables : {
+               default: {
+                  categories: {
+                     "U10": { ages: { from:  7, to: 10 }, },
+                     "U12": { ages: { from:  9, to: 12 }, },
+                     "U14": { ages: { from: 10, to: 14 }, },
+                     "U16": { ages: { from: 12, to: 16 }, },
+                     "U18": { ages: { from: 13, to: 18 }, },
+                     "S":   { ages: { from: 16, to: 100 }, }
+                  },
+                  rankings: { "1": {}, "2": {}, "3": {}, "4": {}, "5": {}, "6": {}, "7": {}, "8": {} }
+               }
+            }
+         }
       }
    }
 
@@ -117,6 +144,7 @@ let config = function() {
             lang.set(ioc);
             idiom.ioc = ioc;
             db.addSetting(idiom);
+            splash();
          }
          let idiom_ddlb = new dd.DropDown({ element: document.getElementById('idiomatic'), onChange });
 
@@ -159,6 +187,18 @@ let config = function() {
 
          if (container.save.element) container.save.element.addEventListener('click', saveSettings);
 
+         container.compressed_draw_formats.element.addEventListener('click', compressedDrawFormats);
+         container.compressed_draw_formats.element.checked = util.string2boolean(env.draws.fx.compressed_draw_formats);
+         function compressedDrawFormats(evt) {
+            env.draws.fx.compressed_draw_formats = container.compressed_draw_formats.element.checked;
+         }
+
+         container.display_flags.element.addEventListener('click', displayFlags);
+         container.display_flags.element.checked = util.string2boolean(env.draws.tree_draw.flags.display);
+         function displayFlags(evt) {
+            env.draws.tree_draw.flags.display = container.display_flags.element.checked;
+         }
+
          function saveSettings() {
             let settings = [];
 
@@ -171,6 +211,12 @@ let config = function() {
                }
                settings.push(setting);
             });
+
+            let draw_settings = {
+               key: 'drawSettings',
+               settings: env.draws
+            }
+            settings.push(draw_settings);
 
             settings.push(getImage('orgLogo', 'org_logo_display'));
             settings.push(getImage('orgName', 'org_name_display'));
@@ -449,6 +495,24 @@ let config = function() {
             let pt = getKey('pointsTable');
             if (pt) o.settings.points_table = pt.table;
 
+            let td = getKey('treeDraw');
+            if (td) {
+               util.boolAttrs(td.options);
+               env.draws.tree_draw = td.options;
+            }
+
+            let draws = getKey('drawFx');
+            if (draws && draws.settings) {
+               util.boolAttrs(draws.settings);
+               util.keyWalk(draws.settings, env.draws.fx);
+            }
+
+            let rd = getKey('rrDraw');
+            if (rd) {
+               util.boolAttrs(rd.options);
+               env.draws.rr_draw = rd.options;
+            }
+
             o.settings.uuuid = settings.reduce((p, c) => c.key == 'userUUID' ? c : p, undefined);
             if (!o.settings.uuuid) {
                o.settings.uuuid = UUID.generate();
@@ -462,6 +526,11 @@ let config = function() {
             function getKey(key) { return settings.reduce((p, c) => c.key == key ? c : p, undefined); }
          }
       });
+   }
+
+   fx.drawOptions = ({draw}) => {
+      let type = draw.options().bracket ? 'rr_draw' : 'tree_draw';
+      if (env.draws[type]) draw.options(env.draws[type]);
    }
 
    fx.resetDB = () => {
@@ -509,7 +578,29 @@ let config = function() {
 
    fx.orgCategories = ({calc_date}) => {
       let points_table = fx.pointsTable({calc_date});
-      return fx.validPointsTable(points_table) ? Object.keys(points_table.categories) : ['U10', 'U12', 'U14', 'U16', 'U18', 'S'];
+      return fx.validPointsTable(points_table) ? Object.keys(points_table.categories) : [];
+   }
+
+   fx.eligibleCategories = ({age, calc_date}) => {
+      let points_table = fx.pointsTable({calc_date});
+      if (!fx.validPointsTable(points_table)) return [];
+      let base_category = null;
+      let minimum_age = 100;
+      let ineligible = [];
+      let categories = Object.keys(points_table.categories)
+         .filter(category => {
+            let c = points_table.categories[category];
+            let from = parseInt(c.ages.from);
+            let to = parseInt(c.ages.to);
+            let valid = util.range(from, to+1).indexOf(age) >= 0;
+            if (!valid) ineligible.push(category);
+            if (valid && from < minimum_age) {
+               minimum_age = from;
+               base_category = category;
+            }
+            return valid;
+         });
+      return { categories, base_category, ineligible };
    }
 
    fx.orgCategoryOptions = ({calc_date=new Date()} = {}) => {
@@ -520,7 +611,7 @@ let config = function() {
 
    fx.orgRankingOptions = ({calc_date=new Date()} = {}) => {
       let points_table = config.pointsTable({calc_date});
-      let rankings = points_table.rankings ? Object.keys(points_table.rankings) : ['1', '2', '3', '4', '5', '6'];
+      let rankings = points_table.rankings ? Object.keys(points_table.rankings) : [];
       return [{key: '-', value: ''}].concat(...rankings.map(r=>({key: r, value: r})));
    }
 
@@ -761,10 +852,14 @@ let config = function() {
 
    fx.legacyCategory = (category, reverse) => {
       let ctgy = category;
-      if (config.env().org.abbr == 'HTS') {
+      if (fx.env().org.abbr == 'HTS') {
+         /*
          let legacy = reverse ?
             { 'U10': '10', 'U12': '12', 'U14': '14', 'U16': '16', 'U18': '18', 'S': '20', } :
             { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', };
+         */
+         let legacy = reverse ?  { '20': 'S', } : { 'S': '20', };
+
          if (legacy[ctgy]) ctgy = legacy[ctgy];
       }
       return ctgy;
