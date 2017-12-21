@@ -1019,8 +1019,8 @@
 
       function analyzeImage(url, dimensions, size) {
          let wh_ratio = dimensions.width / dimensions.height;
-         if (wh_ratio < 3 || wh_ratio > 3.5) {
-            gen.popUpMessage(`<div>Ratio: ${wh_ratio}</div><div>Width / Height Ratio must be between 4 and 4.5</div>`);
+         if (wh_ratio < 2.8 || wh_ratio > 3.5) {
+            gen.popUpMessage(`<div>Ratio: ${wh_ratio}</div><div>Width / Height Ratio must be between 3 and 3.5</div>`);
             return;
          }
          document.getElementById(div_id).innerHTML = "<img width='200px' src='" + url + "' />";
@@ -2089,21 +2089,16 @@
    }
 
    gen.scheduleBox = ({ match={}, luid, court, oop_round, editable } = {}) => {
-
       let ids = { scorebox: gen.uuid(), }
-
       let empty = !Object.keys(match).length;
       let offgrid = empty && !court;
       let complete = match.winner != undefined;
       let inprogress = match.status == 'inprogress' || (match.score && match.winner == undefined);
       let conflict = match.scheduling == 'conflict';
       let timepressure = match.scheduling == 'timepressure';
-
       let background = conflict ? '#F5A9A9' : timepressure ? 'lightyellow' : inprogress ? '#CEF6CE' : complete ? '#E0ECF8' : 'white';
-
-      let droptarget = editable && !complete && !offgrid ? ` ondragover="event.preventDefault();"` : '';
-      let dragdrop = droptarget ? ' dragdrop' : '';
-
+      let droptarget = `ondragover="event.preventDefault();"`;
+      let dragdrop = ' dragdrop';
       let draggable = editable && !complete && !offgrid && !empty ? ` draggable="true"` : '';
       let content = offgrid ? '' : !empty ? scheduledMatchHTML(match) : gen.emptyOOPround(editable);
 
