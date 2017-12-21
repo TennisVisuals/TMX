@@ -482,7 +482,7 @@ let coms = function() {
          }
 
          function checkSettings(params) {
-            if (!params) return reject({ error: lang.tr('phrases.notconfigured') });
+            if (!params || !params.url) return reject({ error: lang.tr('phrases.notconfigured') });
             fetchList(params);
          }
 
