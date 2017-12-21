@@ -43,7 +43,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.3',
+      version: '0.9.4',
       org: {
          name: undefined,
          abbr: undefined,
@@ -69,12 +69,22 @@ let config = function() {
       draws: {
          fx: {
             compressed_draw_formats: true,
+            consolation_seeding: false
          },
          tree_draw: {
             flags: { display: true },
          },
-         rr_draw: {}
+         rr_draw: {},
       },
+      default_score_format: {
+         final_set_supertiebreak: false,
+         games_for_set: 6,
+         max_sets: 3,
+         sets_to_win: 2,
+         supertiebreak_to: 10,
+         tiebreak_to: 7,
+         tiebreaks_at: 6
+      }
    }
 
    fx.env = () => env;
@@ -501,10 +511,22 @@ let config = function() {
                env.draws.tree_draw = td.options;
             }
 
-            let draws = getKey('drawFx');
+            let draws = getKey('drawSettings');
             if (draws && draws.settings) {
                util.boolAttrs(draws.settings);
-               util.keyWalk(draws.settings, env.draws.fx);
+               util.keyWalk(draws.settings, env.draws);
+            }
+
+            let default_score_format = getKey('defaultScoreFormat');
+            if (default_score_format && default_score_format.settings) {
+               util.boolAttrs(default_score_format.settings);
+               util.keyWalk(default_score_format.settings, env.default_score_format);
+            }
+
+            let draw_fx = getKey('drawFx');
+            if (draw_fx && draw_fx.settings) {
+               util.boolAttrs(draw_fx.settings);
+               util.keyWalk(draw_fx.settings, env.draws.fx);
             }
 
             let rd = getKey('rrDraw');
