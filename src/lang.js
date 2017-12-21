@@ -358,7 +358,7 @@
          notbefore: 'Not Before',
          followedby: 'Followed By',
          afterrest: 'After Rest',
-         tba: 'Court TBA',
+         tba: 'TBA',
          nextavailable: 'Next Available',
          oncourt: 'On Court',
          warmingup: 'Warming Up',
