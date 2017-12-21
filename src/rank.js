@@ -453,7 +453,9 @@
 
          function calcCategory(category) {
             let category_table = points_table.categories[category];
-            if (!category_table || !Object.keys(category_table.ranking).length) return { singles: [], doubles: [], team: [] };
+            if (!category_table || !category_table.rankings || !Object.keys(category_table.ranking).length) {
+               return { singles: [], doubles: [], team: [] };
+            }
 
             function formatPoints(format) {
                let points = [];
