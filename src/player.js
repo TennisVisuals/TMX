@@ -156,7 +156,7 @@ let player = function() {
 
    fx.matchOutcome = matchOutcome;
    function matchOutcome(match, puid) {
-      let player_won = false;
+      let player_won = null;
       let winning_puids = [];
       let losing_puids = [];
 
