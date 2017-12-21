@@ -293,8 +293,8 @@ let scoreBoard = function() {
                // ... the other needs to be f.games_for_set - 1 or f.games_for_set
                // if (p1 == f.games_for_set + 1 && p2 < f.games_for_set - 1) replaceValue(f.games_for_set);
                // if (p2 == f.games_for_set + 1 && p1 < f.games_for_set - 1) replaceValue(f.games_for_set);
-               if (p1 == f.tiebreaks_at + 1 && p2 < f.tiebreaks_at - 1) replaceValue(f.tiebreaks_at);
-               if (p2 == f.tiebreaks_at + 1 && p1 < f.tiebreaks_at - 1) replaceValue(f.tiebreaks_at);
+               if (p1 == f.tiebreaks_at + 1 && p2 < f.tiebreaks_at - 1) { replaceValue(f.tiebreaks_at); }
+               if (p2 == f.tiebreaks_at + 1 && p1 < f.tiebreaks_at - 1) { replaceValue(f.tiebreaks_at); }
             }
          }
 
@@ -388,7 +388,7 @@ let scoreBoard = function() {
             if (g0 !== undefined && g1 !== undefined && g0 !== '' && g1 !== '') {
                // if .games attribute present, then normal set
                // if tiebreak score, check that there is a tiebreak value
-               if (tbScore(g0, g1) && !s[0].tiebreak && !s[1].tiebreak) return [0, 0];
+               if (tbScore(g0, g1) && s[0].tiebreak == undefined && s[1].tiebreak == undefined) return [0, 0];
 
                // if minimum score difference not met (or games_for_set exceeded) there is no winner
                if (f.games_for_set == f.tiebreaks_at) {
@@ -701,7 +701,7 @@ let scoreBoard = function() {
                } else {
                   outcome = m;
                }
-               tbscore = tbscore !== null ? tbscore : (score && score.tiebreak ? score.tiebreak : null);
+               tbscore = tbscore !== null ? tbscore : (score && score.tiebreak != undefined ? score.tiebreak : null);
                return score || undefined;
 
             });
@@ -711,7 +711,7 @@ let scoreBoard = function() {
 
          // add spacer for score without tiebreak score
          if (tbscore !== null) {
-            scores.forEach(s => { if (!s.tiebreak) s.spacer = tbscore; });
+            scores.forEach(s => { if (!s.tiebreak != undefined) s.spacer = tbscore; });
          }
 
          return scores;
@@ -763,7 +763,7 @@ let scoreBoard = function() {
             .map(s => {
                // ignore anything that was not recognized
                if (!s) return;
-               let tiebreak = s.tiebreak ? `(${s.tiebreak})` : '';
+               let tiebreak = s.tiebreak != undefined ? `(${s.tiebreak})` : '';
                return `${s.games}${tiebreak}`;
             })
             // filter out anything that was not recognized
@@ -864,6 +864,7 @@ let scoreBoard = function() {
 
       function setsTo(value) {
          f.games_for_set = parseInt(value);
+         f.tiebreaks_at = value;
          let tbat_options = [
             {key: `${value-1}-${value-1}`, value: value - 1},
             {key: `${value}-${value}`, value: value},
