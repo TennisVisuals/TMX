@@ -565,6 +565,7 @@
       return rows;
    }
 
+   load.loadJSON = loadJSON;
    function loadJSON(json) {
       if (!Object.keys(json).length && !json.length) return;
 
