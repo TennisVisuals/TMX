@@ -16,6 +16,8 @@
       escapeFx: undefined,
    };
 
+   let dfx = drawFx();
+
    document.addEventListener('keydown', evt => { 
       // capture key up/left/down/right events and pass to subscribed function
       if (evt.key.indexOf('Arrow') == 0 && typeof gen.arrowFx == 'function') gen.arrowFx(evt.key); 
@@ -713,13 +715,17 @@
       let pleft = puid && player_position == 'left' ? ' player' : '';
       let pright = puid && player_position == 'right' ? ' player' : '';
       let complete = match.winner != undefined;
-      let left_position = match.winner || 0;
-      let right_position = 1 - left_position;
+
+      let left_position = 0;
+      let right_position = 1;
+      let left_outcome = (!complete || puid) ? '' : match.winner_index == 0 ? ' winner' : ' loser';
+      let right_outcome = (!complete || puid) ? '' : match.winner_index == 1 ? ' winner' : ' loser';
+
       let left_team = match.team_players[left_position].map(p=>playerBlock(p, 'left')).join('');
       let right_team = match.team_players[right_position].map(p=>playerBlock(p, 'right')).join('');
 
-      let left_html = `<div class='team left_team${complete && !puid ? " winner" : ""}${pleft}'>${left_team}</div>`;
-      let right_html = `<div class='team right_team${complete && !puid ? " loser" : ""}${pright}'>${right_team}</div>`;
+      let left_html = `<div class='team left_team${left_outcome}${pleft}'>${left_team}</div>`;
+      let right_html = `<div class='team right_team${right_outcome}${pright}'>${right_team}</div>`;
       let html = `
          <div class='team left_team${complete ? " winner" : ""}'>${left_team}</div>
          <div>&nbsp;-&nbsp;</div>
@@ -750,6 +756,12 @@
          return '&nbsp;';
       }
 
+      function matchScore(match) {
+         let scr = match.score;
+         if (match.winner_index == 1) scr = dfx.reverseScore(scr);
+         return scr.replace(/\-/g, '&#8209;')
+      }
+
       let round_icon = `
          <div class='${gen.info}' label='${lang.tr("rnd")}'>
             <div class='match_block_icon drawsize_header'></div>
@@ -771,7 +783,7 @@
       let tournament = { header: '', cell: 'flexcenter flexjustifystart padright trim15', column: 'tournament', fx: tournamentData };
       let time = { header: time_icon || '${lang.tr("time")}', cell: 'flexcenter padaround', column: 'time', fx: matchTime };
       let players = { header: `${lang.tr('pyr')} [${lang.tr('rnk').toLowerCase()}]`, cell: 'matchrow', column: 'teamcolumn', fx: formatTeams };
-      let score = { header: lang.tr('scr'), cell: 'flexcenter flexjustifystart padright matchscore', column: '', fx: (m) => m.score.replace(/\-/g, '&#8209;') };
+      let score = { header: lang.tr('scr'), cell: 'flexcenter flexjustifystart padright matchscore', column: '', fx: matchScore };
       let duration = { header: lang.tr('duration'), cell: 'flexcenter flexjustifystart duration padaround', column: '', fx: (m) => m.duration || '' };
       let court = { header: court_icon, cell: 'flexcenter padaround', column: 'court', fx: courtData };
       let statuz = { header: status_icon || 'Status', cell: 'flexcenter padaround', column: 'status', fx: (m) => m.status || '' };
@@ -2123,22 +2135,21 @@
    }
 
    function scheduledMatchHTML(match) {
-      let complete = match.winner != undefined;
+      let winner_index = match.winner_index;
+      let complete = winner_index != undefined;
 
       let teams = !match.team_players ? [] : match.team_players.map(teamName);
-      let divider = complete ? 'def.' : 'vs.';
+      let divider = 'vs.';
 
-      let first_team = complete && match.winner == 0 ? `<b>${teams[0]}</b>` : teams[0];
-      let second_team = complete && match.winner == 1 ? `<b>${teams[1]}</b>` : teams[1];
-
-      // let first_team = complete ? teams[match.winner] : teams[0];
-      // if (complete) first_team = `<b>${first_team}</b>`;
-      // let second_team = complete ? teams[1 - match.winner] : teams[1];
-
+      let first_team = complete && winner_index == 0 ? `<b>${teams[0]}</b>` : teams[0];
+      let second_team = complete && winner_index == 1 ? `<b>${teams[1]}</b>` : teams[1];
       let format = match.format ? util.normalizeName(match.format) : '';
 
+      let score = match.score || '';
+      if (score && winner_index) score = dfx.reverseScore(score);
+
       let match_status = match.status ? `<div class='match_status'>${match.status}</div>` : '&nbsp;';
-      let score = match.score ? `<div class='match_score'>${match.score}</div>` : match_status;
+      let displayed_score = score ? `<div class='match_score'>${score}</div>` : match_status;
       let status_message = (match.status && match.score && !match.umpire) ? match.status : '';
       let umpire = match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : status_message;
       let heading = match.schedule.heading ? `${match.schedule.heading} ` : '';
@@ -2155,7 +2166,7 @@
             <div class='scheduled_team'>${first_team || ''}</div>
             <div class='divider'>${teams.length ? divider : ''}</div>
             <div class='scheduled_team'>${second_team || ''}</div>
-            ${score}${umpire}
+            ${displayed_score}${umpire}
          </div>
       `;
       return html;
@@ -3056,7 +3067,7 @@
                   </div>
                </div>
                <div id='${ids.category}'></div>
-               <div id='${ids.add}' class='add_tournament_action info' label='${lang.tr("tournaments.add")}'><div class='calendar_add_tournament'></div></div>
+               <div id='${ids.add}' class='add_tournament_action infoleft' label='${lang.tr("tournaments.add")}'><div class='calendar_add_tournament'></div></div>
             </div>
 
             <div id='${ids.rows}' class='flexcol' style='width: auto;'></div>
