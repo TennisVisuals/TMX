@@ -548,9 +548,10 @@ let scoreBoard = function() {
 
          let score = set_scores.map(s => {
             if (s[winner].supertiebreak) { return `${s[winner].supertiebreak}-${s[loser].supertiebreak}`; }
-            let t1 = s[winner].tiebreak != undefined ? `(${s[winner].tiebreak})` : '';
-            let t2 = s[loser].tiebreak != undefined ? `(${s[loser].tiebreak})` : '';
-            return `${s[winner].games}${t1}-${s[loser].games}${t2}`;
+            let t1 = s[winner].tiebreak;
+            let t2 = s[loser].tiebreak;
+            let tiebreak = t1 != undefined || t2 != undefined ? `(${[t1, t2].filter(f=>f >= 0).join('-')})` : '';
+            return `${s[winner].games}-${s[loser].games}${tiebreak}`;
          }).join(' ');
 
          let position = teams[winner][0].draw_position;
@@ -695,13 +696,13 @@ let scoreBoard = function() {
 
                let score;
                if (sst.test(m)) {
-                  score = { games: +sst.exec(m)[1], tiebreak: +sst.exec(m)[2] }
+                  tbscore = +sst.exec(m)[2];
+                  score = { games: +sst.exec(m)[1] }
                } else if (ss.test(m)) {
                   score = { games: +ss.exec(m)[1] }
                } else {
                   outcome = m;
                }
-               tbscore = tbscore !== null ? tbscore : (score && score.tiebreak != undefined ? score.tiebreak : null);
                return score || undefined;
 
             });
@@ -711,7 +712,8 @@ let scoreBoard = function() {
 
          // add spacer for score without tiebreak score
          if (tbscore !== null) {
-            scores.forEach(s => { if (!s.tiebreak != undefined) s.spacer = tbscore; });
+            let min_games = Math.min(...scores.map(s=>s.games));
+            scores.forEach(s => { if (s.games == min_games) { s.tiebreak = tbscore } else { s.spacer = tbscore; } });
          }
 
          return scores;
@@ -748,30 +750,38 @@ let scoreBoard = function() {
       return sets;
    }
 
+   fx.reverseScore = reverseScore;
    function reverseScore(score, split=' ') {
-      if (!score) return;
-      let ss = /(\d+)/;
-      let sst = /(\d+)\((\d+)\)/;
-      // TODO: strip off any characters at the end that are not a set score
-      // if split is ' ' then it will be last of array, otherwise it will be at
-      // the end of the the last element, split by ' '
-      return score.split(split).map(set_score => {
-         let scores = set_score
-            .split('-')
-            .map(s => sst.test(s) ? { games: sst.exec(s)[1], tiebreak: sst.exec(s)[2] } : ss.test(s) ? { games: ss.exec(s)[1] } : undefined)
-            .reverse()
-            .map(s => {
-               // ignore anything that was not recognized
-               if (!s) return;
-               let tiebreak = s.tiebreak != undefined ? `(${s.tiebreak})` : '';
-               return `${s.games}${tiebreak}`;
-            })
-            // filter out anything that was not recognized
-            .filter(f=>f)
-            .join('-');
+      let irreversible = null;
+      if (score) {
+         let reversed = score.split(split).map(parseSet).join(split);
+         let result = (irreversible) ? `${irreversible} ${reversed}` : reversed;
+         return result;
+      }
 
-         return scores;
-      }).join(split);
+      function parseSet(set) {
+         let set_scores = set.split('-').map(parseSetScore).reverse().filter(f=>f);
+         let set_score = set_scores.map(s=>s.games).filter(f=>f).join('-');
+         let tb_score = set_scores.map(s=>s.tiebreak).filter(f=>f).join('~');
+         let tiebreak = tb_score ? `(${tb_score})` : '';
+         return `${set_score}${tiebreak}`;
+      }
+
+      function parseSetScore(set) {
+         let ss = /(\d+)/;
+         let sst = /(\d+)\((\d+)\)/;
+         if (sst.test(set)) return { games: sst.exec(set)[1], tiebreak: sst.exec(set)[2].split('~').filter(f=>f).reverse().join('~') };
+         if (ss.test(set)) return { games: ss.exec(set)[1] };
+         irreversible = set;
+         return undefined;
+      }
+
+      function formatSet(set) {
+         if (set) {
+            let tiebreak = set.tiebreak ? `(${set.tiebreak})` : '';
+            return `${set.games}${tiebreak}`;
+         }
+      }
    }
 
    fx.configureScoring = configureScoring;
