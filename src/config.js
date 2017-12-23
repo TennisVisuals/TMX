@@ -43,7 +43,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.4',
+      version: '0.9.4.3',
       org: {
          name: undefined,
          abbr: undefined,
@@ -87,9 +87,8 @@ let config = function() {
       }
    }
 
-   fx.env = () => env;
-
-   // fx.o = () => o;
+   // don't want accessor to be able to modify original
+   fx.env = () => JSON.parse(JSON.stringify(env));
 
    fx.setCalendar = (obj) => Object.keys(obj).forEach(key => { if (Object.keys(env.calendar).indexOf(key) >= 0) env.calendar[key] = obj[key]; });
    fx.setMap = (map) => env.map = map;
