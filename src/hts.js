@@ -16,7 +16,8 @@
                let format = point.format == 'singles' ? 'S' : 'D';
                let tournament_type = point.tournament_type || 'TU'
                let kategorija_turnira = point.category;
-               let kategorija_igraca = rank.baseCategory(born, new Date(point.date).getFullYear());
+               let eligible_categories = rank.eligibleCategories({ birth_year: born, calc_date: new Date() });
+               let kategorija_igraca = eligible_categories.base_category;
                let plasman = convertRound(point.round) || point.placement;
 
                // if (!plasman) console.log(point);
