@@ -1,26 +1,24 @@
-!function() {
-
+let util = function() {
    // requires Diacritics (diacritics.js)
+   let fx = {};
 
-   let util = {};
+   fx.replaceDiacritics = (text) => Diacritics.replace(text);
+   fx.nameHash = (name) => fx.replaceDiacritics(name.replace(/[-_,.\ ]+/g, "")).toLowerCase();
 
-   util.replaceDiacritics = (text) => Diacritics.replace(text);
-   util.nameHash = (name) => util.replaceDiacritics(name.replace(/[-_,.\ ]+/g, "")).toLowerCase();
-
-   util.normalizeScore = (score) => {
+   fx.normalizeScore = (score) => {
       let clean_score = cleanScore.normalize(score);
       if (clean_score) return clean_score.join(' ');
       alert(`Score can't be normalized: ${score}`);
       return score;
    }
 
-   util.string2boolean = (string) => {
+   fx.string2boolean = (string) => {
       if (typeof string == 'boolean') return string;
       if (string === 'true') return true;
       if (string === 'false') return false;
    }
 
-   util.weekDays = (date) => {
+   fx.weekDays = (date) => {
       let dates = [0, 1, 2, 3, 4, 5, 6].map(i => dayOfWeek(date, i));
       return dates;
 
@@ -33,7 +31,7 @@
             
    }
 
-   util.formatDate = (date, separator = '-') => {
+   fx.formatDate = (date, separator = '-') => {
       if (!date) return '';
 
       let d = new Date(date),
@@ -47,9 +45,9 @@
       return [year, month, day].join(separator);
    }
 
-   util.isDate = (date) => new Date(date) !== "Invalid Date" && !isNaN(new Date(date));
+   fx.isDate = (date) => new Date(date) !== "Invalid Date" && !isNaN(new Date(date));
 
-   util.performTask = (fx, data, bulkResults = true) => {
+   fx.performTask = (fx, data, bulkResults = true) => {
       return new Promise(function(resolve, reject) {
          let results = [];
          if (!data.length) return reject();
@@ -73,10 +71,10 @@
       });
    }
 
-   util.normalizeName = (name, noaccents = true) => {
+   fx.normalizeName = (name, noaccents = true) => {
       if (!name) { return; }
       var particles = ['del', 'de', 'di', 'du', 'van', 'von', 'ten']; 
-      if (noaccents) name = util.replaceDiacritics(name.trim());
+      if (noaccents) name = fx.replaceDiacritics(name.trim());
       name = name.replace(/\s+/g,' ').trim();
       var nNames = name.split(' ').map(m => m.toLowerCase());
 
@@ -102,7 +100,7 @@
       function replaceAt(s, n, t) { return s.substring(0, n) + t + s.substring(n + 1); }
    }
 
-   util.keyWalk = keyWalk;
+   fx.keyWalk = keyWalk;
    function keyWalk(valuesObject, optionsObject) {
       if (!valuesObject || !optionsObject) return;
       var vKeys = Object.keys(valuesObject);
@@ -120,7 +118,7 @@
       }
    }
 
-   util.boolAttrs = boolAttrs;
+   fx.boolAttrs = boolAttrs;
    function boolAttrs(optionsObject) {
       if (!optionsObject) return;
       var oKeys = Object.keys(optionsObject);
@@ -136,16 +134,16 @@
    }
 
    // DOM
-   util.getParent = (elem, class_name) => Array.from(elem.classList).indexOf(class_name) >= 0 ? elem : findUpClass(elem, class_name);
+   fx.getParent = (elem, class_name) => Array.from(elem.classList).indexOf(class_name) >= 0 ? elem : findUpClass(elem, class_name);
 
    /*
-   util.selectParent = (elem, class_name) => {
-      let container = util.getParent(elem, class_name);
+   fx.selectParent = (elem, class_name) => {
+      let container = fx.getParent(elem, class_name);
       return d3.select(container);
    }
    */
 
-   util.findUpClass = findUpClass;
+   fx.findUpClass = findUpClass;
    function findUpClass(el, class_name) {
       while (el.parentNode) {
          el = el.parentNode;
@@ -154,7 +152,7 @@
       return null;
    }
 
-   util.getChildrenByClassName = getChildrenByClassName;
+   fx.getChildrenByClassName = getChildrenByClassName;
    function getChildrenByClassName(elem, className) {
      var matches  = [];
      function traverse(node) {
@@ -167,25 +165,25 @@
      return matches;
    }
 
-   util.addEventToClass = (cls, fx, node = document, e = 'click') => {
+   fx.addEventToClass = (cls, fx, node = document, e = 'click') => {
       Array.from(node.querySelectorAll('.' + cls)).forEach(elem => elem.addEventListener(e, fx)); 
    }
 
    // Miscellaneous Functions
-   util.unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
-   util.subSort = (arr, i, n, sortFx) => [].concat(...arr.slice(0, i), ...arr.slice(i, i + n).sort(sortFx), ...arr.slice(i + n, arr.length));
-   util.inPlaceSubSort = (arr, i, n, sortFx) => {
+   fx.unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
+   fx.subSort = (arr, i, n, sortFx) => [].concat(...arr.slice(0, i), ...arr.slice(i, i + n).sort(sortFx), ...arr.slice(i + n, arr.length));
+   fx.inPlaceSubSort = (arr, i, n, sortFx) => {
       let newarray = [].concat(...arr.slice(0, i), ...arr.slice(i, i + n).sort(sortFx), ...arr.slice(i + n, arr.length));
       arr.length = 0;
       arr.push.apply(arr, newarray);
       return arr;
    }
-   util.arrayMap = (array) => new Map([...new Set(array)].map( x => [x, array.filter(y => y === x).length]));
-   util.arrayCount = (array) => array.reduce((r,k) => { r[k] = ++r[k] || 1; return r},{});
-   util.occurrences = (val, arr) => arr.reduce((r,val) => { r[val] = 1+r[val] || 1; return r},{})[val] || 0;
-   util.indices = (val, arr) => arr.reduce((a, e, i) => { if (e === val) a.push(i); return a; }, []) 
+   fx.arrayMap = (array) => new Map([...new Set(array)].map( x => [x, array.filter(y => y === x).length]));
+   fx.arrayCount = (array) => array.reduce((r,k) => { r[k] = ++r[k] || 1; return r},{});
+   fx.occurrences = (val, arr) => arr.reduce((r,val) => { r[val] = 1+r[val] || 1; return r},{})[val] || 0;
+   fx.indices = (val, arr) => arr.reduce((a, e, i) => { if (e === val) a.push(i); return a; }, []) 
 
-   util.hashReduce = (arr) => {
+   fx.hashReduce = (arr) => {
       return arr.reduce((l, c) => {
          let hash = c.sort().join('|');
          if (l.indexOf(hash) < 0) l.push(hash);
@@ -193,19 +191,19 @@
       }, []).map(r=>r.split('|'));
    }
 
-   // util.missingNumbers = (a) => Array.from(Array(Math.max(...a)).keys()).map((n, i) => a.indexOf(i) < 0? i : null).filter(f=>f);
-   util.missingNumbers = (a, l=true) => Array.from(Array(Math.max(...a)).keys()).map((n, i) => a.indexOf(i) < 0  && (!l || i > Math.min(...a)) ? i : null).filter(f=>f);
-   util.range = (start, end) => Array.from({length: (end - start)}, (v, k) => k + start);
-   util.numArr = (count) => [...Array(count)].map((_, i) => i);
-   util.intersection = (a, b) => a.filter(n => b.indexOf(n) !== -1).filter((e, i, c) => c.indexOf(e) === i);
+   // fx.missingNumbers = (a) => Array.from(Array(Math.max(...a)).keys()).map((n, i) => a.indexOf(i) < 0? i : null).filter(f=>f);
+   fx.missingNumbers = (a, l=true) => Array.from(Array(Math.max(...a)).keys()).map((n, i) => a.indexOf(i) < 0  && (!l || i > Math.min(...a)) ? i : null).filter(f=>f);
+   fx.range = (start, end) => Array.from({length: (end - start)}, (v, k) => k + start);
+   fx.numArr = (count) => [...Array(count)].map((_, i) => i);
+   fx.intersection = (a, b) => a.filter(n => b.indexOf(n) !== -1).filter((e, i, c) => c.indexOf(e) === i);
 
-   util.passFail = (array, conditionFx) => {
+   fx.passFail = (array, conditionFx) => {
       let result = { pass: [], fail: [] };
       array.forEach(item => result[conditionFx(item) ? 'pass' : 'fail'].push(item));
       return result;
    }
 
-   util.swapElements = (obj1, obj2) => {
+   fx.swapElements = (obj1, obj2) => {
       // save the location of obj2
       var parent2 = obj2.parentNode;
       var next2 = obj2.nextSibling;
@@ -227,19 +225,19 @@
          }
       }
    }
-   util.moveNode = (destination_id, source_id) => {
+   fx.moveNode = (destination_id, source_id) => {
       let source = document.getElementById(source_id);
       let target = source.parentNode.removeChild(source);
       let destination = document.getElementById(destination_id);
       destination.innerHTML = '';
       destination.append(target);
    }
-   util.log2 = (val) => Math.log(val) / Math.LN2;
-   util.nearestPow2 = (val) => Math.pow(2, Math.round( Math.log(val) / Math.log(2)));
+   fx.log2 = (val) => Math.log(val) / Math.LN2;
+   fx.nearestPow2 = (val) => Math.pow(2, Math.round( Math.log(val) / Math.log(2)));
 
-   util.validDate = (datestring, range) => {
+   fx.validDate = (datestring, range) => {
       if (!datestring) return false;
-      let dateparts = util.formatDate(datestring).split('-');
+      let dateparts = fx.formatDate(datestring).split('-');
       if (isNaN(dateparts.join(''))) return false;
       if (dateparts.length != 3) return false;
       if (dateparts[0].length != 4) return false;
@@ -259,7 +257,7 @@
       return (new Date(minDate) <= new Date(maxDate));
    }
 
-   util.dateRange = (startDt, endDt) => {
+   fx.dateRange = (startDt, endDt) => {
        var error = ((isDate(endDt)) && (isDate(startDt)) && isValidDateRange(startDt, endDt)) ? false : true;
        var between = [];
        if (error) {
@@ -275,13 +273,12 @@
        return between;
    }
 
-   util.sameDay = (d1, d2) => {
+   fx.sameDay = (d1, d2) => {
      return d1.getFullYear() === d2.getFullYear() &&
        d1.getMonth() === d2.getMonth() &&
        d1.getDate() === d2.getDate();
    }
 
-   if (typeof define === "function" && define.amd) define(util); else if (typeof module === "object" && module.exports) module.exports = util;
-   this.util = util;
+   return fx;
  
 }();
