@@ -209,10 +209,14 @@
    exp.ignoredJSON = () => tableJSON('ignored');
    exp.clubsJSON = () => tableJSON('clubs');
 
-   exp.tournamentsJSON = () => {
+   exp.tournamentsJSON = (clean=true) => {
       db.findAll('tournaments').then(arr => {
-         arr.forEach(a => { delete a.events; delete a.players; delete a.registered; delete a.matches; });
-         exp.downloadJSON(`tournaments.json`, arr)
+         if (clean) {
+            arr.forEach(a => { delete a.events; delete a.players; delete a.registered; delete a.matches; });
+            exp.downloadJSON(`tournaments.json`, arr)
+         } else {
+            exp.downloadCircularJSON(`tournaments.json`, arr)
+         }
       })
    }
 
