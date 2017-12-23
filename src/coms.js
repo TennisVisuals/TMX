@@ -42,6 +42,9 @@ let coms = function() {
             gen.homeIconState('notice');
             config.env().notice = data.notice || 'New Version Available';
          }
+         if (data.directive == 'load data' && data.content) {
+            load.loadJSON(data.content);
+         }
       }
    }
 
@@ -432,10 +435,16 @@ let coms = function() {
    }
 
    function notify(failures) {
+      console.log('failure to update rank lists');
+      return;
+      // shouldn't be trying to update rank lists if there is no URL for updating!!
+
+      /*
       let failed_lists = failures.filter(f=>f).map(f=>f.listname).join(', ');
       // TODO: add to idioms
       let message = `Out-of-date Rank Lists: ${failed_lists}<p>Must be online to update`;
       let container = gen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+      */
    }
 
    fx.fetchRankLists = fetchRankLists;
@@ -487,6 +496,7 @@ let coms = function() {
          }
 
          function fetchList(params) {
+            console.log('fetching list:', params);
             // Legacy to avoid call when no list is available
             if (config.env().org.abbr == 'HTS' && category == '10') return reject();
             
