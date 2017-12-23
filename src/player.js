@@ -312,7 +312,7 @@ let player = function() {
       let year = new Date().getFullYear();
       let min_year = year - parseInt(ages.from);
       let max_year = year - parseInt(ages.to);
-      let daterange = { start: `${max_year}-12-31`, end: `${min_year}-1-1` };
+      let daterange = { start: `${max_year}-01-01`, end: `${min_year}-12-31` };
 
       let player_container = gen.createNewPlayer(player);
       player_container.last_name.element.style.background = player.last_name ? 'white' : 'yellow';
