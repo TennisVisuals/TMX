@@ -1311,7 +1311,7 @@ let tournaments = function() {
          eventBackground(e);
          enableDrawOrderPrinting();
          if (update_players) { eventPlayers(e); }
-         if (e.draw_type == 'Q' && event_config.qualifiers) {
+         if (e.draw_type == 'Q' && event_config && event_config.qualifiers) {
             event_config.qualifiers.ddlb.selectionBackground(!e.qualifiers ? 'red' : 'white');
          }
       }
@@ -1516,6 +1516,10 @@ let tournaments = function() {
             gender = genders_signed_in.filter(g=>existing_gendered_singles.indexOf(g) < 0)[0];
          }
 
+         let score_format = config.env().default_score_format;
+         let stb = score_format.final_set_supertiebreak ? '/S' : '';
+         let scoring = `${score_format.max_sets}/${score_format.games_for_set}/${score_format.tiebreak_to}T${stb}`;
+
          let e = {
             gender,
             links: {},
@@ -1531,7 +1535,8 @@ let tournaments = function() {
             category: tournament.category || '',
             rank: tournament.rank || '',
             surface: tournament.surface || 'C',
-            score_format: config.env().default_score_format,
+            score_format,
+            scoring
          };
          displayEvent({e});
       }
@@ -2169,16 +2174,17 @@ let tournaments = function() {
          details.draw_type.ddlb.setValue(e.draw_type || 'E');
          configDrawType(e);
 
-         let displayScoring = (score) => details.scoring.element.innerHTML = score;
+         let displayScoring = (scoring_format) => details.scoring.element.innerHTML = scoring_format;
          let changeScoring = () => {
             if (state.edit && !e.active) {
                document.body.style.overflow  = 'hidden';
                let cfg_obj = gen.scoreBoardConfig();
-               let config = d3.select(cfg_obj.config.element);
+               let sb_config = d3.select(cfg_obj.config.element);
 
-               let f = scoreBoard.options();
+               let f = config.env().default_score_format;
+               // scoreBoard.options(f);
                scoreBoard.configureScoring(cfg_obj, f);
-               config.on('click', removeConfigScoring);
+               sb_config.on('click', removeConfigScoring);
                cfg_obj.cancel.element.addEventListener('click', removeConfigScoring)
                cfg_obj.accept.element.addEventListener('click', modifyEventScoring)
 
@@ -2203,7 +2209,7 @@ let tournaments = function() {
 
                function removeConfigScoring() {
                   displayScoring(e.scoring);
-                  config.remove();
+                  sb_config.remove();
                   document.body.style.overflow = null;
                }
             }
@@ -2348,17 +2354,49 @@ let tournaments = function() {
             if (!completed_matches.length) return [];
 
             let winner_ids = [].concat(...completed_matches.map(match => match.match.winner.map(team=>team.id)));
-            let loser_ids = [].concat(...completed_matches.map(match => match.match.loser.map(team=>team.id)));
+            let all_loser_ids = [].concat(...completed_matches.map(match => match.match.loser.map(team=>team.id)));
+            let losing_players = tournament.players.filter(p=>all_loser_ids.indexOf(p.id) >= 0);
+            let no_wins_ids = all_loser_ids.filter(i => winner_ids.indexOf(i) < 0);
+            let alternate_ids = all_loser_ids.filter(i=>no_wins_ids.indexOf(i) < 0);
 
-            // TODO: add in support for feed-in draws...
-            // Unless e.structure == 'feed', filter out teams who had a win
-            if (!e.structure) loser_ids = loser_ids.filter(i => winner_ids.indexOf(i) < 0);
+            let event_rounds = {};
+            let exit_profiles = {};
+            completed_matches.forEach(match => {
+               let round = match.round;
+               let loser_id = match.match.loser[0].id;
+               let winner_id = match.match.winner[0].id;
+               if (!event_rounds[loser_id]) event_rounds[loser_id] = []
+               if (!event_rounds[winner_id]) event_rounds[winner_id] = [];
+               event_rounds[loser_id].push(round);
+               event_rounds[winner_id].push(round);
 
-            // TODO: configurable by settings whether alternates possible
-            // alternates are filtered tournament players who are not in the linked draw
-            let alternate_ids = [];
+               if (!exit_profiles[loser_id]) exit_profiles[loser_id] = {};
+               exit_profiles[loser_id] = {
+                  muid: match.match.muid,
+                  exit_round: round,
+                  round_name: match.match.round_name,
+                  event_rounds: event_rounds[loser_id],
+                  winner: {
+                     id: winner_id,
+                     name: `${match.match.winner[0].first_name} ${match.match.winner[0].last_name}`
+                  }
+               };
+            });
 
-            available_players = available_players.filter(p=>loser_ids.indexOf(p.id) >= 0 || alternate_ids.indexOf(p.id) >= 0);
+            Object.keys(exit_profiles).forEach(ep => {
+               let profile = exit_profiles[ep];
+               profile.winner.event_rounds = event_rounds[profile.winner.id];
+               profile.winner.exit_round = exit_profiles[profile.winner.id] ? exit_profiles[profile.winner.id].exit_round : undefined;
+            });
+
+            available_players.forEach(p => {
+               if (alternate_ids.indexOf(p.id) >= 0) {
+                  p.alternate = true;
+                  p.exit_profile = exit_profiles[p.id];
+               }
+            });
+
+            available_players = available_players.filter(p=>no_wins_ids.indexOf(p.id) >= 0 || alternate_ids.indexOf(p.id) >= 0);
          }
 
          if (e.gender) modifyApproved.filterGender(e);
@@ -2702,15 +2740,18 @@ let tournaments = function() {
          let qualifier_ids = linkedQ && linkedQ.qualified ? linkedQ.qualified.map(teamHash) : [];
 
          let linkedE = findEventByID(e.links['E']);
-         let alternate_ids = (e.draw_type == 'C' && linkedE && linkedE.approved) ?
-            eligible.map(el => el.id).filter(i => linkedE.approved.indexOf(i) < 0) : [];
+
+         // TODO: make this configurable
+         let alternate_ids = (e.draw_type == 'C') ? eligible.filter(el => el.alternate).filter(f=>f).map(el=>el.id) : [];
 
          if (e.format == 'S') {
             eligible.forEach(p => { 
                if (qualifier_ids.indexOf(p.id) >= 0) {
                   p.full_name = `<div style='color: green'>${p.full_name}&nbsp;<span class='player_seed'>[Q]</span></div>`; 
                } else if (alternate_ids.indexOf(p.id) >= 0) {
-                  p.full_name = `<div style='color: orange'>${p.full_name}&nbsp;<span class='player_seed'>[A]</span></div>`; 
+                  let profile = p.exit_profile;
+                  let color = profile.exit_round == Math.min(...profile.winner.event_rounds) ? 'green' : '#BB7C3A';
+                  p.full_name = `<div style='color: ${color}'>${p.full_name}&nbsp;<span class='player_seed'>[A]</span></div>`; 
                } else {
                   if (p.order) p.full_name = `${p.full_name}&nbsp;<span class='player_order'>(${p.order})</span>`; 
                }
@@ -4256,13 +4297,18 @@ let tournaments = function() {
          let players;
          let team_players;
 
-
          if (match.match.winner && match.match.winner[0]) {
-            players = [].concat(...match.match.winner, ...match.match.loser);
+            players = [].concat(...match.teams[0], ...match.teams[1]);
             team_players = [
-               match.match.winner.map((p, i) => i),
-               match.match.loser.map((p, i) => match.match.winner.length + i),
+               match.teams[0].map((p, i) => i),
+               match.teams[1].map((p, i) => match.teams[0].length + i)
             ];
+
+            // players = [].concat(...match.match.winner, ...match.match.loser);
+            // team_players = [
+            //    match.match.winner.map((p, i) => i),
+            //    match.match.loser.map((p, i) => match.match.winner.length + i),
+            // ];
          } else {
             // TODO: lots of confusion with .winner being binary or player/team 
             //       and .winner_index
@@ -4311,7 +4357,9 @@ let tournaments = function() {
                euid: e.euid,
             },
             umpire: match.match.umpire,
-            winner: match.match.winner ? 0 : undefined,
+            winner: match.match.winner_index,
+            winner_index: match.match.winner_index,
+            // winner: match.match.winner ? 0 : undefined,
          }
          if (source) obj.source = match.match;
          return obj;
@@ -4884,7 +4932,8 @@ let tournaments = function() {
                existing_scores = scoreBoard.convertStringScore({
                   string_score: d.data.match.score,
                   score_format: d.data.match.score_format || {},
-                  winner_index: d.data.match.winner_index
+                  winner_index: d.data.match.winner_index,
+                  set_scores:   d.data.match.set_scores
                });
             }
 
@@ -5419,13 +5468,12 @@ let tournaments = function() {
          }
 
          function assignedPlayerOptions({ selector, position, node, coords, info, draw, seed }) {
-            let active = info.unassigned.length == 0; // this should be e.active ?
-            if (seed && seed < 3 && !active) {
+            let unfinished = info.unassigned.length; // this should be e.active ?
+            if (seed && seed < 3 && unfinished) {
                gen.popUpMessage('Cannot Remove 1st/2nd Seed');
                return;
             }
             let teams = optionNames([node.data.team]);
-            let unfinished = info.unassigned.length;
             let unfinished_options = teams.map(t => `${lang.tr('draws.remove')}: ` + t);
 
             let bye_positions = info.byes.map(b=>b.data.dp);
@@ -5621,15 +5669,24 @@ let tournaments = function() {
 
             if (d.data.match && d.data.match.score && (!d.parent || !d.parent.data || !d.parent.data.team)) {
                let options = [`${lang.tr('draws.remove')}: ${lang.tr('mtc')}`];
+
+
+               // if deleting a match, delete all references in node
                let clickAction = (c, i) => {
                   delete d.data.dp;
                   delete d.data.team;
                   delete d.data.round_name;
+                  delete d.data.match.complete;
+                  delete d.data.match.winner_index;
+                  delete d.data.match.round_name;
+                  delete d.data.match.players;
                   delete d.data.match.score;
                   delete d.data.match.winner;
                   delete d.data.match.loser;
                   delete d.data.match.set_scores;
                   delete d.data.match.schedule;
+
+                  if (d.data.ancestor && d.data.ancestor.match) delete d.data.ancestor.match;
 
                   // TODO: check whether removing a final qualifying round
                   saveTournament(tournament);
@@ -6258,7 +6315,7 @@ let tournaments = function() {
       }
    }
 
-   function pointsTabVisible(container, tournament, visible) {
+   function pointsTabVisible(container, tournament, visible=true) {
       let tournament_date = tournament && (tournament.points_date || tournament.end);
       let calc_date = tournament_date ? new Date(tournament_date) : new Date();
       let points_table = config.pointsTable({calc_date});
