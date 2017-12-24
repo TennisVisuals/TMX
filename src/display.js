@@ -937,14 +937,21 @@
       let points = gen.pointsSettings(points_settings);
       let draw_settings = settings.filter(s=>s.category == 'drawSettings');
       let draws = gen.drawSettings(draw_settings);
+      let publishing_settings = settings.filter(s=>s.category == 'publishingSettings');
+      let publishing = gen.publishingSettings(publishing_settings);
+
+      /*
       let external_request_settings = settings.filter(s=>s.category == 'externalRequest');
       let external_requests = gen.externalRequestSettings(external_request_settings);
+      */
+      let external_requests = {};
 
       let tabdata = [];
       if (general.html) tabdata.push({ tab: lang.tr('settings.general'), content: general.html });
       if (categories.html) tabdata.push({ tab: lang.tr('settings.categories'), content: categories.html });
       if (points.html) tabdata.push({ tab: lang.tr('settings.points'), content: points.html });
       if (draws.html) tabdata.push({ tab: lang.tr('settings.draws'), content: draws.html });
+      if (publishing.html) tabdata.push({ tab: lang.tr('settings.publishing'), content: publishing.html });
       if (external_requests.html) tabdata.push({ tab: lang.tr('settings.data'), content: external_requests.html });
       let tabs = jsTabs.generate(tabdata);
 
@@ -973,19 +980,20 @@
          {key: `CP1250`, value: 'win'},
       ];
 
-      Object.assign(ids, external_requests.ids, draws.ids, points.ids, categories.ids, general.ids);
+      Object.assign(ids, external_requests.ids, publishing.ids, draws.ids, points.ids, categories.ids, general.ids);
       let id_obj = idObj(ids);
 
       jsTabs.load(id_obj.container.element);
-      if (id_obj.cancel.element) id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
 
-      external_requests.ddlb.forEach(ddlb => {
-         let ddlbkey = `${ddlb.key}_ddlb`;
-         dd.attachDropDown({ id: ids[ddlbkey], options: external_file_options });
-         ddlb.dropdown = new dd.DropDown({ element: id_obj[ddlbkey].element });
-         ddlb.dropdown.selectionBackground();
-         ddlb.dropdown.setValue(ddlb.value);
-      });
+      if (external_requests.ddlb) {
+         external_requests.ddlb.forEach(ddlb => {
+            let ddlbkey = `${ddlb.key}_ddlb`;
+            dd.attachDropDown({ id: ids[ddlbkey], options: external_file_options });
+            ddlb.dropdown = new dd.DropDown({ element: id_obj[ddlbkey].element });
+            ddlb.dropdown.selectionBackground();
+            ddlb.dropdown.setValue(ddlb.value);
+         });
+      }
 
       let org_logo = document.getElementById('org_logo');
       org_logo.addEventListener('change', evt => handleFileUpload(evt, 'orgLogo', 'org_logo_display'));
@@ -1080,22 +1088,14 @@
    gen.categorySettings = (settings) => {
       let ids = {};
       let ddlb = [];
-      let html = `
-         <div style='min-height: 150px'>
-         <h2>Categories</h2>
-         </div>
-      `;
+      let html = ``;
       return { ids, html, ddlb }
    }
 
    gen.pointsSettings = (settings) => {
       let ids = {};
       let ddlb = [];
-      let html = `
-         <div style='min-height: 150px'>
-         <h2>Criteria for Points</h2>
-         </div>
-      `;
+      let html = ``;
       return { ids, html, ddlb }
    }
 
@@ -1117,6 +1117,33 @@
                 <div class='tournament_attr'>
                     <label class='calabel'>Country Flags Displayed:</label>
                     <input type='checkbox' id="${ids.display_flags}">
+                </div>
+             </div>
+         </div>
+
+         </div>
+      `;
+      return { ids, html, ddlb }
+   }
+
+   gen.publishingSettings = (settings) => {
+      let ids = {
+         require_confirmation: gen.uuid(),
+         publish_on_score_entry: gen.uuid(),
+      };
+      let ddlb = [];
+      let html = `
+         <div style='min-height: 150px'>
+         <h2>Settings for Draws</h2>
+         <div class='flexcenter' style='width: 100%;'>
+             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+                <div class='tournament_attr'>
+                    <label class='calabel'>Require confirmation:</label>
+                    <input type='checkbox' id="${ids.require_confirmation}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>Publish when scores entered:</label>
+                    <input type='checkbox' id="${ids.publish_on_score_entry}">
                 </div>
              </div>
          </div>
