@@ -16,6 +16,30 @@
       escapeFx: undefined,
    };
 
+   // BUSY fx ---------------------------------------------------------
+   let busy = {
+      count: 0,
+      callbacks: {},
+   }
+
+   gen.busy = {};
+   gen.busy.message = (text, callback) => {
+      busy.count += 1;
+      if (callback) busy.callbacks[busy.count] = callback;
+      gen.showProcessing(text);
+      return busy.count;
+   }
+
+   gen.busy.done = (id) => {
+      if (id && busy.callbacks[id]) {
+         busy.callbacks[id]();
+         delete busy.callbacks[id];
+      }
+      busy.count -= 1;
+      if (!busy.count) gen.closeModal();
+   }
+   // END BUSY fx ---------------------------------------------------------
+
    let dfx = drawFx();
 
    document.addEventListener('keydown', evt => { 

@@ -45,7 +45,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.4.4',
+      version: '0.9.4.6',
       org: {
          name: undefined,
          abbr: undefined,
@@ -785,8 +785,8 @@ let config = function() {
 
    function updatePlayers() {
       if (!navigator.onLine) return;
-      let id = busy.message(`<p>${lang.tr('refresh.players')}...</p>`, searchBox.updateSearch);
-      let done = () => busy.done(id);
+      let id = gen.busy.message(`<p>${lang.tr('refresh.players')}...</p>`, searchBox.updateSearch);
+      let done = () => gen.busy.done(id);
       let addNew = (players) => load.processPlayers(players).then(done, done);
       let notConfigured = (err) => { done(); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       coms.fetchNewPlayers().then(addNew, notConfigured);
@@ -794,9 +794,9 @@ let config = function() {
 
    function updateTournaments() {
       if (!navigator.onLine) return;
-      let id = busy.message(`<p>${lang.tr('refresh.calendar')}...</p>`, searchBox.updateSearch);
+      let id = gen.busy.message(`<p>${lang.tr('refresh.calendar')}...</p>`, searchBox.updateSearch);
       let done = () => {
-         busy.done(id);
+         gen.busy.done(id);
          if (gen.content == 'calendar') tournaments.displayCalendar();
       }
       let addNew = (trnys) => util.performTask(db.addTournament, trnys, false).then(done, done);
@@ -806,8 +806,8 @@ let config = function() {
 
    function updateClubs() {
       if (!navigator.onLine) return;
-      let id = busy.message(`<p>${lang.tr('refresh.clubs')}...</p>`, searchBox.updateSearch);
-      let done = () => busy.done(id);
+      let id = gen.busy.message(`<p>${lang.tr('refresh.clubs')}...</p>`, searchBox.updateSearch);
+      let done = () => gen.busy.done(id);
       let addNew = (clubs) => util.performTask(db.addClub, clubs, false).then(done, done);
       let notConfigured = () => { done(); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       coms.fetchNewClubs().then(addNew, notConfigured);
