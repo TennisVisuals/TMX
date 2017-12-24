@@ -496,7 +496,6 @@ let coms = function() {
          }
 
          function fetchList(params) {
-            console.log('fetching list:', params);
             // Legacy to avoid call when no list is available
             if (config.env().org.abbr == 'HTS' && category == '10') return reject();
             
@@ -566,7 +565,7 @@ let coms = function() {
                   players.forEach(player => {
                      player.first_name = player.first_name.trim();
                      player.last_name = player.last_name.trim();
-                     player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name)}`;
+                     player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name), false}`;
 
                      if (category) {
                         // player.rankings, if present, are used before player.rank
