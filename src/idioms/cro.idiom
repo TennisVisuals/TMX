@@ -98,6 +98,7 @@
          points: 'Bodovi',
          draws: 'Ždrijebovi',
          data: 'Podaci',
+         publishing: 'Objavljivanje',
       },
 
       search: {

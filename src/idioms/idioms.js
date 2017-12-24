@@ -150,6 +150,7 @@
          points: 'Points',
          draws: 'Draws',
          data: 'Data',
+         publishing: 'Publishing',
       },
 
       search: {
@@ -497,6 +498,7 @@
          points: 'Bodovi',
          draws: 'Ždrijebovi',
          data: 'Podaci',
+         publishing: 'Objavljivanje',
       },
 
       search: {

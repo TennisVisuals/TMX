@@ -150,6 +150,7 @@
          points: 'Points',
          draws: 'Draws',
          data: 'Data',
+         publishing: 'Publishing',
       },
 
       search: {
