@@ -322,7 +322,7 @@
       if (team.length == 1) {
          let p = match.players[team[0]];
          let club = p.club_code ? ` (${p.club_code})` : '';
-         let full_name = `${util.normalizeName(p.first_name)} ${util.normalizeName(p.last_name).toUpperCase()}`; 
+         let full_name = `${util.normalizeName(p.first_name, false)} ${util.normalizeName(p.last_name, false).toUpperCase()}`; 
          return `${full_name}${club}`;
       } else {
          return team.map(p => util.normalizeName(match.players[p].last_name).toUpperCase()).join('/');
