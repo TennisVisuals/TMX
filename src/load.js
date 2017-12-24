@@ -101,8 +101,8 @@
 
             player.hash = util.nameHash(name);
             player.birth = determineDate(player.birth);
-            player.first_name = util.normalizeName(player.first_name);
-            player.last_name = util.normalizeName(player.last_name);
+            player.first_name = util.normalizeName(player.first_name, false);
+            player.last_name = util.normalizeName(player.last_name, false);
             player.foreign = player.foreign == 'true' || player.foreign == 'Y';
             player.represents_ioc = player.represents_ioc == 'true' || player.represents_ioc == 'Y';
             player.residence_permit = player.residence_permit == 'true' || player.residence_permit == 'Y';
@@ -788,8 +788,8 @@
                }
                all_players.push({ 
                   hash: player.hash,
-                  first_name: util.normalizeName(player.first_name),
-                  last_name: util.normalizeName(player.last_name),
+                  first_name: util.normalizeName(player.first_name, false),
+                  last_name: util.normalizeName(player.last_name, false),
                   club: player.club,
                   ioc: player.ioc,
                });
