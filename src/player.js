@@ -414,7 +414,7 @@ let player = function() {
       let saveNewPlayer = () => { 
          let valid_date = util.validDate(player.birth, daterange);
          if (!valid_date || !player.first_name || !player.last_name || !player.ioc) return;
-            player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name)}`;
+            player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
 
          if (typeof callback == 'function') callback(player); 
          gen.closeModal();
