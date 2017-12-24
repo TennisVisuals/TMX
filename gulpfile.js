@@ -108,7 +108,7 @@ gulp.task('concat-src', function() {
          'src/xlsDraws.js', 
          'src/hts.js', 
          'src/config.js',
-         'src/main.js',
+//         'src/main.js',
          'src/player.js',
          'src/tournaments.js',
          'src/scoreBoard.js',
