@@ -368,7 +368,12 @@ let tournaments = function() {
       });
 
       container.publish_draw.element.addEventListener('click', () => {
-         gen.okCancelMessage(lang.tr('draws.publishQ'), broadcast, () => gen.closeModal());
+         if (config.env().publishing.require_confirmation) {
+            gen.okCancelMessage(lang.tr('draws.publishQ'), broadcast, () => gen.closeModal());
+         } else {
+            broadcast();
+         }
+
          function broadcast() {
             broadcastEvent(tournament, displayed_draw_event);
             gen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
@@ -737,7 +742,7 @@ let tournaments = function() {
          let addNew = () => {
             new_player.signed_in = true;
             if (!new_player.rankings) new_player.rankings = {};
-            new_player.full_name = `${new_player.last_name.toUpperCase()}, ${util.normalizeName(new_player.first_name)}`;
+            new_player.full_name = `${new_player.last_name.toUpperCase()}, ${util.normalizeName(new_player.first_name, false)}`;
 
             let rank_category = config.legacyCategory(tournament.category);
             coms.fetchRankList(rank_category).then(addRanking, addPlayer);
@@ -2182,7 +2187,6 @@ let tournaments = function() {
                let sb_config = d3.select(cfg_obj.config.element);
 
                let f = config.env().default_score_format;
-               // scoreBoard.options(f);
                scoreBoard.configureScoring(cfg_obj, f);
                sb_config.on('click', removeConfigScoring);
                cfg_obj.cancel.element.addEventListener('click', removeConfigScoring)
@@ -2948,10 +2952,10 @@ let tournaments = function() {
          if (team.length == 1) {
             let p = match.players[team[0]];
             let club = p.club_code ? ` (${p.club_code})` : '';
-            let full_name = `${util.normalizeName(p.first_name)} ${util.normalizeName(p.last_name).toUpperCase()}`; 
+            let full_name = `${util.normalizeName(p.first_name, false)} ${util.normalizeName(p.last_name, false).toUpperCase()}`; 
             return `${full_name}${club}`;
          } else {
-            return team.map(p => util.normalizeName(match.players[p].last_name).toUpperCase()).join('/');
+            return team.map(p => util.normalizeName(match.players[p].last_name, false).toUpperCase()).join('/');
          }
       }
 
@@ -4501,12 +4505,16 @@ let tournaments = function() {
                round: match.round_name || match.round
             };
 
-            // for now, not broadcasting when score is entered
-            if (config.env().livescore && coms.broadcasting()) {
-               e.up_to_date = true;
-               coms.broadcastScore(match);
-            } else {
-               e.up_to_date = false;
+            e.up_to_date = false;
+            if (coms.broadcasting()) {
+               if (config.env().livescore) {
+                  e.up_to_date = true;
+                  coms.broadcastScore(match);
+               }
+               if (config.env().publishing.publish_on_score_entry) {
+                  e.up_to_date = true;
+                  broadcastEvent(tournament, displayed_draw_event);
+               }
             }
 
             gen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
@@ -4536,7 +4544,6 @@ let tournaments = function() {
 
       function scoreTreeDraw(e, existing_scores, outcome) {
          if (!outcome) return e;
-         // let node = null;
 
          if (existing_scores) {
             // if updating existing scores, don't advance position
@@ -4620,12 +4627,16 @@ let tournaments = function() {
                   round: match.round_name || match.round
                };
 
-               // for now, not broadcasting when score is entered
-               if (config.env().livescore && coms.broadcasting()) {
-                  e.up_to_date = true;
-                  coms.broadcastScore(match);
-               } else {
-                  e.up_to_date = false;
+               e.up_to_date = false;
+               if (coms.broadcasting() ) {
+                  if (config.env().livescore) {
+                     e.up_to_date = true;
+                     coms.broadcastScore(match);
+                  }
+                  if (config.env().publishing.publish_on_score_entry) {
+                     e.up_to_date = true;
+                     broadcastEvent(tournament, displayed_draw_event);
+                  }
                }
 
                gen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
@@ -6171,12 +6182,12 @@ let tournaments = function() {
       function updateRegisteredPlayers(remote_request, show_notice) {
          if (!state.edit) return;
          // TODO: add to idioms
-         let id = show_notice ? busy.message(`<p>${lang.tr("refresh.registered")}</p>`) : undefined;
+         let id = show_notice ? gen.busy.message(`<p>${lang.tr("refresh.registered")}</p>`) : undefined;
          let done = (registered) => {
             addRegistered(registered);
-            busy.done(id);
+            gen.busy.done(id);
          }
-         let notConfigured = (err) => { busy.done(id); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
+         let notConfigured = (err) => { gen.busy.done(id); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
          coms.fetchRegisteredPlayers(tournament.tuid, tournament.category, remote_request).then(done, notConfigured);
       }
 
