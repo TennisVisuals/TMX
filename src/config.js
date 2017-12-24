@@ -1,3 +1,5 @@
+var dev = {};
+
 let config = function() {
 
    // module container
@@ -29,9 +31,9 @@ let config = function() {
          if (queryString.settingsURL) {
             if (queryString.settingsURL.indexOf('http') != 0) return resolve();
             coms.fetchJSON(queryString.settingsURL).then(updateSettings, console.log).then(resolve, console.log);
-         } else if (queryString.resetDB) {
-            if (!queryString.resetDB.indexOf('true') == 0) return resolve();
-            config.resetDB().then(resolve);
+//         } else if (queryString.resetDB) {
+//            if (!queryString.resetDB.indexOf('true') == 0) return resolve();
+//            config.resetDB().then(resolve);
          } else if (queryString.actionKey) {
             coms.sendKey(queryString.actionKey);
             resolve();
@@ -43,7 +45,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.4.3',
+      version: '0.9.4.4',
       org: {
          name: undefined,
          abbr: undefined,
@@ -84,6 +86,10 @@ let config = function() {
          supertiebreak_to: 10,
          tiebreak_to: 7,
          tiebreaks_at: 6
+      },
+      publishing: {
+         require_confirmation: true,
+         publish_on_score_entry: false,
       }
    }
 
@@ -195,6 +201,7 @@ let config = function() {
          let { container, external_requests } = gen.settings(settings);
 
          if (container.save.element) container.save.element.addEventListener('click', saveSettings);
+         if (container.cancel.element) container.cancel.element.addEventListener('click', revertSettings);
 
          container.compressed_draw_formats.element.addEventListener('click', compressedDrawFormats);
          container.compressed_draw_formats.element.checked = util.string2boolean(env.draws.fx.compressed_draw_formats);
@@ -208,24 +215,48 @@ let config = function() {
             env.draws.tree_draw.flags.display = container.display_flags.element.checked;
          }
 
+         container.require_confirmation.element.addEventListener('click', requireConfirmation);
+         container.require_confirmation.element.checked = util.string2boolean(env.publishing.require_confirmation);
+         function requireConfirmation(evt) {
+            env.publishing.require_confirmation = container.require_confirmation.element.checked;
+            if (env.publishing.require_confirmation) {
+               env.publishing.publish_on_score_entry = false;
+               container.publish_on_score_entry.element.checked = false;
+            }
+         }
+
+         container.publish_on_score_entry.element.addEventListener('click', publishOnScoreEntry);
+         container.publish_on_score_entry.element.checked = util.string2boolean(env.publishing.publish_on_score_entry);
+         function publishOnScoreEntry(evt) {
+            env.publishing.publish_on_score_entry = container.publish_on_score_entry.element.checked;
+            if (env.publishing.publish_on_score_entry) {
+               env.publishing.require_confirmation = false;
+               container.require_confirmation.element.checked = false;
+            }
+         }
+
+         function revertSettings() {
+            envSettings();
+            gen.closeModal();
+         }
+
          function saveSettings() {
             let settings = [];
 
-            external_requests.ddlb.forEach(item => {
-               let setting = {
-                  key: item.key,
-                  url: container[item.key].element.value,
-                  type: item.dropdown.getValue(),
-                  category: 'externalRequest',
-               }
-               settings.push(setting);
-            });
-
-            let draw_settings = {
-               key: 'drawSettings',
-               settings: env.draws
+            if (external_requests && external_requests.ddlb) {
+               external_requests.ddlb.forEach(item => {
+                  let setting = {
+                     key: item.key,
+                     url: container[item.key].element.value,
+                     type: item.dropdown.getValue(),
+                     category: 'externalRequest',
+                  }
+                  settings.push(setting);
+               });
             }
-            settings.push(draw_settings);
+
+            settings.push({ key: 'publishingSettings', settings: env.publishing });
+            settings.push({ key: 'drawSettings', settings: env.draws });
 
             settings.push(getImage('orgLogo', 'org_logo_display'));
             settings.push(getImage('orgName', 'org_name_display'));
@@ -514,6 +545,12 @@ let config = function() {
             if (draws && draws.settings) {
                util.boolAttrs(draws.settings);
                util.keyWalk(draws.settings, env.draws);
+            }
+
+            let publishing = getKey('publishingSettings');
+            if (publishing && publishing.settings) {
+               util.boolAttrs(publishing.settings);
+               util.keyWalk(publishing.settings, env.publishing);
             }
 
             let default_score_format = getKey('defaultScoreFormat');
