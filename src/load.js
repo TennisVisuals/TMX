@@ -116,7 +116,7 @@
 
       function done() {
          // TODO: calculate timeout based on # of imports
-         setTimeout(function() { busy.done(id); }, 3000);
+         setTimeout(function() { gen.busy.done(id); }, 3000);
       }
    }
 
@@ -128,7 +128,7 @@
 
    function importClubsCSV(clubs) {
       let callback = () => searchBox.searchSelect('clubs');
-      let id = busy.message('<p>Loading Clubs...</p>', callback);
+      let id = gen.busy.message('<p>Loading Clubs...</p>', callback);
       clubs.forEach(club => { 
          if (club.courts) {
             let courts = club.courts ? club.courts.split(',') : [0, 0];
@@ -137,20 +137,20 @@
          if (club.email) club.email = club.email.split(',');
          if (club.notes) delete club.notes;
       });;
-      util.performTask(db.addClub, clubs, false).then(() => busy.done(id), () => busy.done(id));
+      util.performTask(db.addClub, clubs, false).then(() => gen.busy.done(id), () => gen.busy.done(id));
    }
 
    function importClubsJSON(clubs) {
       let callback = () => searchBox.searchSelect('clubs');
-      let id = busy.message('<p>Loading Clubs...</p>', callback);
-      util.performTask(db.addClub, clubs, false).then(() => busy.done(id), () => busy.done(id));
+      let id = gen.busy.message('<p>Loading Clubs...</p>', callback);
+      util.performTask(db.addClub, clubs, false).then(() => gen.busy.done(id), () => gen.busy.done(id));
    }
 
    function importRankings(rows) {
       return new Promise((resolve, reject) => {
-         let id = busy.message('<p>Loading Rankings...</p>');
+         let id = gen.busy.message('<p>Loading Rankings...</p>');
          let rank_lists = {};
-         if (!Array.isArray(rows)) return busy.done(id);
+         if (!Array.isArray(rows)) return gen.busy.done(id);
 
          let categories = util.unique(rows.map(r=>config.legacyCategory(r.category)));
 
@@ -165,7 +165,7 @@
          util.performTask(db.addCategoryRankings, category_rankings, false).then(done, done);
 
          function done(foo) { 
-            busy.done(id); 
+            gen.busy.done(id); 
             return resolve();
          }
       });
@@ -173,7 +173,7 @@
 
    function importTournaments(rows) {
       let callback = () => searchBox.searchSelect('tournaments');
-      let id = busy.message('<p>Loading Tournaments...</p>', callback);
+      let id = gen.busy.message('<p>Loading Tournaments...</p>', callback);
       let tournaments = [];
       if (!Array.isArray(rows)) rows = [rows];
 
@@ -202,19 +202,19 @@
       util.performTask(db.addTournament, tournaments, false).then(done, done);
 
       function done(foo) { 
-         setTimeout(function() { busy.done(id); }, 2000);
+         setTimeout(function() { gen.busy.done(id); }, 2000);
       }
    }
 
    load.addNewTournaments = (trnys) => {
       let callback = () => searchBox.searchSelect('tournaments');
-      let id = busy.message('<p>Loading Tournaments...</p>');
+      let id = gen.busy.message('<p>Loading Tournaments...</p>');
       console.log(id);
-      util.performTask(db.addTournament, trnys, false).then(done, () => busy.done(id));
+      util.performTask(db.addTournament, trnys, false).then(done, () => gen.busy.done(id));
 
       function done(foo) {
          console.log('done:', foo);
-         busy.done(id);
+         gen.busy.done(id);
       }
    }
 
@@ -614,11 +614,11 @@
    }
 
    function loadTask(fx, arr, what = '', callback) {
-      if (busy && what) busy.message(`<p>Loading ${what}...</p>`);
+      if (gen.busy && what) gen.busy.message(`<p>Loading ${what}...</p>`);
       util.performTask(fx, Array.isArray(arr) ? arr : [arr], false).then(finish, finish);
 
       function finish(results) { 
-         if (busy) busy.done();
+         gen.busy.done();
          if (callback && typeof callback == 'function') callback();
       }
    }
@@ -647,7 +647,7 @@
 
    function loadPlayerList(arr) { 
       let callback = () => searchBox.searchSelect('players');
-      let id = busy.message('<p>Loading Players...</p>', callback);
+      let id = gen.busy.message('<p>Loading Players...</p>', callback);
       load.importPlayerList(arr, id); 
    }
 
@@ -667,7 +667,7 @@
       }
 
       if (workbook_type == 'courthive_imports') {
-         let id = busy.message('<p>Loading...</p>', reload);
+         let id = gen.busy.message('<p>Loading...</p>', reload);
 
          let players = extractPlayers(workbook);
          let tournaments = extractTournaments(workbook);
@@ -677,7 +677,7 @@
          let addTournaments = () => new Promise((resolve, reject) => util.performTask(db.addTournament, tournaments, false).then(resolve, resolve));
          let addRankings = () => importRankings(rankings);
 
-         addPlayers().then(addTournaments).then(addRankings).then(()=>busy.done(id));
+         addPlayers().then(addTournaments).then(addRankings).then(()=>gen.busy.done(id));
       }
 
    }
