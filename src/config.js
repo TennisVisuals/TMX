@@ -45,7 +45,8 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.4.6',
+      version: '0.9.5.1',
+      version_check: undefined,
       org: {
          name: undefined,
          abbr: undefined,
@@ -112,6 +113,12 @@ let config = function() {
          autodraw: true,
          keys: true
       },
+      settings_tabs: {
+         org: true,
+         data: false,
+         draws: true,
+         publishing: true,
+      },
       settings: {
          points_table: {
             validity: [ { from: "1900-01-01", to: "2100-12-31", table: "default" }, ],
@@ -131,6 +138,8 @@ let config = function() {
          }
       }
    }
+
+   fx.o = () => JSON.parse(JSON.stringify(o));
 
    // This probably needs to be implemented differently...
    fx.settings = {
@@ -198,40 +207,71 @@ let config = function() {
       db.findAllSettings().then(displaySettings);
 
       function displaySettings(settings) {
-         let { container, external_requests } = gen.settings(settings);
+
+         let external_request_settings = settings.filter(s=>s.category == 'externalRequest');
+
+         let v = o.settings_tabs;
+         let tabs = {
+            org: v.org ? gen.orgSettings() : undefined,
+            categories: v.categories ? gen.categorySettings() : undefined,
+            points: v.points ? gen.pointsSettings() : undefined,
+            draws: v.draws ? gen.drawSettings() : undefined,
+            publishing: v.publishing ? gen.publishingSettings() : undefined,
+            data: v.data ? gen.externalRequestSettings(external_request_settings) : undefined
+         }
+
+         let { container } = gen.settings(tabs);
+
+         if (tabs.data && tabs.data.ddlb) {
+            let external_file_options = [
+               {key: `UTF-8`, value: 'url'},
+               {key: `CP1250`, value: 'win'},
+            ];
+            tabs.data.ddlb.forEach(ddlb => {
+               let ddlbkey = `${ddlb.key}_ddlb`;
+               dd.attachDropDown({ id: container[ddlbkey].id, options: external_file_options });
+               ddlb.dropdown = new dd.DropDown({ element: container[ddlbkey].element });
+               ddlb.dropdown.selectionBackground();
+               ddlb.dropdown.setValue(ddlb.value);
+            });
+         }
 
          if (container.save.element) container.save.element.addEventListener('click', saveSettings);
          if (container.cancel.element) container.cancel.element.addEventListener('click', revertSettings);
 
-         container.compressed_draw_formats.element.addEventListener('click', compressedDrawFormats);
-         container.compressed_draw_formats.element.checked = util.string2boolean(env.draws.fx.compressed_draw_formats);
-         function compressedDrawFormats(evt) {
-            env.draws.fx.compressed_draw_formats = container.compressed_draw_formats.element.checked;
-         }
+         if (v.draws) {
+            container.compressed_draw_formats.element.addEventListener('click', compressedDrawFormats);
+            container.compressed_draw_formats.element.checked = util.string2boolean(env.draws.fx.compressed_draw_formats);
+            function compressedDrawFormats(evt) {
+               env.draws.fx.compressed_draw_formats = container.compressed_draw_formats.element.checked;
+            }
 
-         container.display_flags.element.addEventListener('click', displayFlags);
-         container.display_flags.element.checked = util.string2boolean(env.draws.tree_draw.flags.display);
-         function displayFlags(evt) {
-            env.draws.tree_draw.flags.display = container.display_flags.element.checked;
-         }
-
-         container.require_confirmation.element.addEventListener('click', requireConfirmation);
-         container.require_confirmation.element.checked = util.string2boolean(env.publishing.require_confirmation);
-         function requireConfirmation(evt) {
-            env.publishing.require_confirmation = container.require_confirmation.element.checked;
-            if (env.publishing.require_confirmation) {
-               env.publishing.publish_on_score_entry = false;
-               container.publish_on_score_entry.element.checked = false;
+            container.display_flags.element.addEventListener('click', displayFlags);
+            container.display_flags.element.checked = util.string2boolean(env.draws.tree_draw.flags.display);
+            function displayFlags(evt) {
+               env.draws.tree_draw.flags.display = container.display_flags.element.checked;
             }
          }
 
-         container.publish_on_score_entry.element.addEventListener('click', publishOnScoreEntry);
-         container.publish_on_score_entry.element.checked = util.string2boolean(env.publishing.publish_on_score_entry);
-         function publishOnScoreEntry(evt) {
-            env.publishing.publish_on_score_entry = container.publish_on_score_entry.element.checked;
-            if (env.publishing.publish_on_score_entry) {
-               env.publishing.require_confirmation = false;
-               container.require_confirmation.element.checked = false;
+         if (v.publishing) {
+            container.require_confirmation.element.addEventListener('click', requireConfirmation);
+            container.require_confirmation.element.checked = util.string2boolean(env.publishing.require_confirmation);
+            function requireConfirmation(evt) {
+               env.publishing.require_confirmation = container.require_confirmation.element.checked;
+               if (env.publishing.require_confirmation) {
+                  env.publishing.publish_on_score_entry = false;
+                  container.publish_on_score_entry.element.checked = false;
+               }
+            }
+
+            container.publish_on_score_entry.element.addEventListener('click', publishOnScoreEntry);
+            container.publish_on_score_entry.element.checked = util.string2boolean(env.publishing.publish_on_score_entry);
+            function publishOnScoreEntry(evt) {
+               env.publishing.publish_on_score_entry = container.publish_on_score_entry.element.checked;
+               if (env.publishing.publish_on_score_entry) {
+                  env.publishing.require_confirmation = false;
+                  container.require_confirmation.element.checked = false;
+               }
             }
          }
 
@@ -243,8 +283,8 @@ let config = function() {
          function saveSettings() {
             let settings = [];
 
-            if (external_requests && external_requests.ddlb) {
-               external_requests.ddlb.forEach(item => {
+            if (tabs.data && tabs.data.ddlb) {
+               tabs.data.ddlb.forEach(item => {
                   let setting = {
                      key: item.key,
                      url: container[item.key].element.value,
@@ -258,8 +298,10 @@ let config = function() {
             settings.push({ key: 'publishingSettings', settings: env.publishing });
             settings.push({ key: 'drawSettings', settings: env.draws });
 
-            settings.push(getImage('orgLogo', 'org_logo_display'));
-            settings.push(getImage('orgName', 'org_name_display'));
+            if (v.org) {
+               settings.push(getImage('orgLogo', 'org_logo_display'));
+               settings.push(getImage('orgName', 'org_name_display'));
+            }
 
             updateSettings(settings);
             gen.closeModal();
@@ -268,7 +310,6 @@ let config = function() {
    }
 
    function getImage(settings_key, image_id) {
-
       let elem = document.getElementById(image_id);
       let url = elem.querySelector('img').getAttribute('src')
       let setting = {
@@ -547,6 +588,12 @@ let config = function() {
                util.keyWalk(draws.settings, env.draws);
             }
 
+            let settings_tabs = getKey('settingsTabs');
+            if (settings_tabs && settings_tabs.settings) {
+               util.boolAttrs(settings_tabs.settings);
+               util.keyWalk(settings_tabs.settings, o.settings_tabs);
+            }
+
             let publishing = getKey('publishingSettings');
             if (publishing && publishing.settings) {
                util.boolAttrs(publishing.settings);
@@ -732,6 +779,7 @@ let config = function() {
             version: env.version
          });
       }
+      env.version_check = new Date().getTime();
    }
 
    function displayClub(cuid) {
@@ -821,7 +869,7 @@ let config = function() {
 
    function splash() {
       tournaments.reset();
-      let container = gen.splashScreen(o.components);
+      let container = gen.splashScreen(o.components, o.settings_tabs);
 
       splashEvent(container, 'tournaments', tournaments.displayCalendar);
       splashEvent(container, 'players', displayPlayers);
@@ -832,6 +880,11 @@ let config = function() {
 
       // Revert behavior of search box to normal
       searchBox.normalFunction();
+
+      if (!env.version_check || env.version_check + 86400000 < new Date().getTime()) {
+         coms.emitTmx({ version: env.version });
+         env.version_check = new Date().getTime();
+      }
 
       function splashEvent(container, child, fx) {
          if (container[child].element) container[child].element.addEventListener('click', fx);
