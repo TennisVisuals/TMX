@@ -99,8 +99,6 @@ let scoreBoard = function() {
             outcome.teams = teams;
             outcome.set_scores = set_scores;
             outcome.score_format = f;
-         } else {
-            console.log('no outcome; format not changed');
          }
          scoreboard.remove();
          if (typeof callback == 'function') {
