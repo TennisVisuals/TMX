@@ -145,6 +145,7 @@
       },
 
       settings: {
+         organization: 'Organization',
          general: 'General',
          categories: 'Categories',
          points: 'Points',
@@ -493,6 +494,7 @@
       },
 
       settings: {
+         organization: 'Organizacija',
          general: 'Općenito',
          categories: 'Kategorije',
          points: 'Bodovi',

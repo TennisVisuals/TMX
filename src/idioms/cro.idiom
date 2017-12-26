@@ -93,6 +93,7 @@
       },
 
       settings: {
+         organization: 'Organizacija',
          general: 'Općenito',
          categories: 'Kategorije',
          points: 'Bodovi',

@@ -145,6 +145,7 @@
       },
 
       settings: {
+         organization: 'Organization',
          general: 'General',
          categories: 'Categories',
          points: 'Points',
