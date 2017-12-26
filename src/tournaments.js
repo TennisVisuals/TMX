@@ -511,28 +511,34 @@ let tournaments = function() {
 
          let luids = tournament.locations.map(l=>l.luid);
          let luid = luids.length == 1 ? luids[0] : container.location_filter.ddlb.getValue();
-         let courts = courtData(luid);
+         let courts = courtData(tournament, luid);
+
+         let court_names = {};
+         courts.forEach(ct => court_names[ctuuid(ct)] = ct.name);
 
          let { completed_matches, pending_matches } = tournamentEventMatches({ tournament, source: true });
          let all_matches = [].concat(...pending_matches, completed_matches);
 
          let scheduled_cells = all_matches
             .filter(m=>m.schedule && m.schedule.day == displayed_schedule_day)
-            .map(m=>`${m.schedule.oop_round}|${m.schedule.court}|${m.schedule.luid}`);
+            .map(m=>`${m.schedule.oop_round}|${m.schedule.luid}|${m.schedule.index}`);
 
-         let available_cells = [].concat(...courts.map(c => c.availability.map(a => `${a}|${c.name}|${c.luid}`)))
+         let available_cells = [].concat(...courts.map(c => c.availability.map(a => `${a}|${c.luid}|${c.index}`)))
             .filter(cell => scheduled_cells.indexOf(cell) < 0)
             .map(c => {
-               let [ or, court, luid ] = c.split('|');
-               return { oop_round: parseInt(or), court, luid };
+               let [ or, luid, index ] = c.split('|');
+               let court = court_names[`${luid}|${index}`];
+               return { oop_round: parseInt(or), court, luid, index };
             })
             // sort in reverse order since popping available removes from tail
             .sort((a, b) => b.oop_round - a.oop_round);
 
          // subsort courts by column order so filled left to right
-         let court_names = courts.map(c=>c.name);
-         function cindex(cell) { return court_names.indexOf(cell.court); }
+         // let court_uuids = courts.map(c=>`${c.luid}|${c.index}`);
+         let court_uuids = courts.map(ctuuid);
+         function cindex(cell) { return court_uuids.indexOf(ctuuid(cell)); }
          function sortCourts(a, b) { return cindex(b) - cindex(a); }
+
          let available_oop = available_cells.map(c => c.oop_round);
          util.unique(available_oop).forEach(oop_round => {
             let indices = util.indices(oop_round, available_oop);
@@ -624,6 +630,7 @@ let tournaments = function() {
                      oop_round: available.oop_round,
                      court: available.court,
                      luid: available.luid,
+                     index: available.index
                   }
                   match.schedule = schedule;
                   match.source.schedule = Object.assign({}, match.schedule);
@@ -1217,7 +1224,7 @@ let tournaments = function() {
 
          let luids = tournament.locations.map(l=>l.luid);
          let luid = luids.length == 1 ? luids[0] : container.location_filter.ddlb.getValue();
-         let courts = courtData(luid);
+         let courts = courtData(tournament, luid);
          let court_names = courts.map(c=>c.name);
 
          let print_matches = all_matches.filter(f=>f.schedule && f.schedule.day == displayed_schedule_day && court_names.indexOf(f.schedule.court) >= 0);
@@ -1460,7 +1467,7 @@ let tournaments = function() {
                if (displayed_event && displayed_event == e.euid) highlight_listitem = i;
                let info = !e.draw ? {} : dfx.drawInfo(e.draw);
 
-               let matches = eventMatches(e);
+               let matches = eventMatches(e, tournament);
                let scheduled = matches.filter(m=>m.match.schedule && m.match.schedule.court).length;
 
                // TODO: draws need to be regenerated here, as necessary
@@ -1568,6 +1575,7 @@ let tournaments = function() {
 
       function eventBackground(e, background='white') {
          e = e || findEventByID(displayed_event);
+         if (e.euid != displayed_event) return;
          if (!e) return;
          if (e.draw_created) background = '#EFFBF2';
          if (e.active) background = '#EFF5FB';
@@ -2035,7 +2043,12 @@ let tournaments = function() {
          attributes.address.element.style.border = disabled ? 'none' : '';
          attributes.courts.element.style.border = disabled ? 'none' : '';
          attributes.identifiers.element.style.border = disabled ? 'none' : '';
-         
+
+         defineAttr('abbreviation', undefined, { length: 3 }, attributes.abbreviation.element);
+         defineAttr('name', undefined, { length: 5 }, attributes.name.element);
+         defineAttr('address', undefined, { length: 5 }, attributes.name.element);
+         defineAttr('courts', undefined, { number: true }, attributes.courts.element);
+
          let field_order = [ 'abbreviation', 'name', 'address', 'courts', 'identifiers' ];
 
          function nextFieldFocus(field, increment=1, delay=50) {
@@ -2048,6 +2061,7 @@ let tournaments = function() {
 
          function defineAttr(attr, evt, required, element) {
             if (evt) element = evt.target;
+            if (!evt && !element) return;
             let value = element.value.trim();
             l[attr] = value;
             if (required) {
@@ -2065,8 +2079,8 @@ let tournaments = function() {
                }
                attributes[attr].element.style.background = valid ? 'white' : 'yellow';
             }
-            let increment = (evt.which == 9 && evt.shiftKey) ? -1 : 1;
-            if (!evt || evt.which == 13 || evt.which == 9) nextFieldFocus(attr, increment);
+            let increment = (evt && evt.which == 9 && evt.shiftKey) ? -1 : 1;
+            if (evt && (evt.which == 13 || evt.which == 9)) nextFieldFocus(attr, increment);
          }
       }
 
@@ -2354,7 +2368,7 @@ let tournaments = function() {
             let linked = findEventByID(e.links['E']);
 
             // find all completed matches from linked elimination draw
-            let completed_matches = eventMatches(linked).filter(m=>m.match.winner);
+            let completed_matches = eventMatches(linked, tournament).filter(m=>m.match.winner);
             if (!completed_matches.length) return [];
 
             let winner_ids = [].concat(...completed_matches.map(match => match.match.winner.map(team=>team.id)));
@@ -2948,34 +2962,15 @@ let tournaments = function() {
          if (display) displaySchedule();
       }
 
-      function teamName(match, team) {
+      function teamName(match, team, remove_diacritics) {
          if (team.length == 1) {
             let p = match.players[team[0]];
             let club = p.club_code ? ` (${p.club_code})` : '';
-            let full_name = `${util.normalizeName(p.first_name, false)} ${util.normalizeName(p.last_name, false).toUpperCase()}`; 
+            let full_name = `${util.normalizeName(p.first_name, remove_diacritics)} ${util.normalizeName(p.last_name, remove_diacritics).toUpperCase()}`; 
             return `${full_name}${club}`;
          } else {
-            return team.map(p => util.normalizeName(match.players[p].last_name, false).toUpperCase()).join('/');
+            return team.map(p => util.normalizeName(match.players[p].last_name, remove_diacritics).toUpperCase()).join('/');
          }
-      }
-
-      function courtData(luid) {
-         let courts = [];
-         tournament.locations.forEach(l => {
-            let identifiers = l.identifiers ? l.identifiers.split(',').join(' ').split(' ').filter(f=>f) : [];
-            if (!luid || luid == l.luid) { 
-               util.range(1, +l.courts + 1).forEach(i => {
-                  let identifier = identifiers[i - 1] || i;
-                  let court = { 
-                     luid: l.luid,
-                     name: `${l.abbreviation} ${identifier}`,
-                     availability: [1,2,3,4,5,6,7,8,9,10],
-                  };
-                  courts.push(court);
-               });
-            }
-         });
-         return courts;
       }
 
       // separated this function from scheduleTab() because uglify caused errors
@@ -3008,7 +3003,7 @@ let tournaments = function() {
          let search_list = all_matches;
          filterSearchList();
 
-         let courts = courtData();
+         let courts = courtData(tournament);
          let oop_rounds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
          let date_options = date_range.map(d => ({ key: localizeDate(d), value: util.formatDate(d) }));
@@ -3069,12 +3064,12 @@ let tournaments = function() {
             search_list = all_matches
                // finished matches shouldn't be moved
                .filter(match => match.winner == undefined)
-               .map(match => ({ value: match.muid, label: match.team_players.map(team=>teamName(match, team)).join(' v. ') }) );
+               .map(match => ({ value: match.muid, label: match.team_players.map(team=>teamName(match, team, true)).join(' v. ') }) );
          }
 
          function displayCourts() {
             let luid = container.location_filter.ddlb.getValue();
-            courts = courtData(luid);
+            courts = courtData(tournament, luid);
             filterDayMatches();
             displayScheduleGrid();
          }
@@ -3122,6 +3117,7 @@ let tournaments = function() {
             let sb = gen.scheduleBox({ match, editable: true});
             target.innerHTML = sb.innerHTML;
             target.style.background = sb.background;
+            gen.scaleTeams(target);
          }
 
          function removeFromUnscheduled(muid) {
@@ -3191,6 +3187,7 @@ let tournaments = function() {
             function scheduleMatch(source_muid) {
                let target = util.getParent(evt.target, 'schedule_box');
                let luid = target.getAttribute('luid');
+               let index = target.getAttribute('index');
                let court = target.getAttribute('court');
                let oop_round = target.getAttribute('oop_round');
                let source_match = muid_key[source_muid];
@@ -3198,7 +3195,7 @@ let tournaments = function() {
                if (source_match.winner != undefined) return;
 
                let source_schedule = source_match.schedule && source_match.schedule.court ? Object.assign({}, source_match.schedule) : {};
-               let target_schedule = { luid, court, oop_round, day: displayed_schedule_day };
+               let target_schedule = { luid, index, court, oop_round, day: displayed_schedule_day };
 
                let previously_scheduled = Object.keys(source_schedule).length;
                if (!previously_scheduled || target_schedule.day != source_match.schedule.day) {
@@ -3290,9 +3287,10 @@ let tournaments = function() {
 
             if (target_muid == '') {
                let luid = target.getAttribute('luid');
+               let index = target.getAttribute('index');
                let court = target.getAttribute('court');
                let oop_round = target.getAttribute('oop_round');
-               target_match.schedule = { luid, court, oop_round, day: displayed_schedule_day };
+               target_match.schedule = { luid, index, court, oop_round, day: displayed_schedule_day };
             }
 
             if (itemtype != 'unscheduled') {
@@ -3590,6 +3588,7 @@ let tournaments = function() {
 
                   let sb = gen.scheduleBox({ match, editable: true});
                   target.innerHTML = sb.innerHTML;
+                  gen.scaleTeams(target);
                   target.style.background = sb.background;
                   target.setAttribute('draggable', match.winner != undefined ? 'false' : 'true');
                   target.setAttribute('ondragover', "event.preventDefault();");
@@ -3687,7 +3686,6 @@ let tournaments = function() {
       }
 
       function newLocation() {
-         console.log('create new location');
          let l = {
             name: '',
             courts: 0,
@@ -4055,7 +4053,7 @@ let tournaments = function() {
          showSchedule();
 
          // add round_name to matches
-         eventMatches(e);
+         eventMatches(e, tournament);
          saveTournament(tournament);
       }
 
@@ -4138,7 +4136,7 @@ let tournaments = function() {
             let euid = evt.target.getAttribute('euid');
             if (!muid || !euid) return;
             let e = findEventByID(euid);
-            let match = eventMatches(e).reduce((p, c) => p = (c.match.muid == muid) ? c : p, undefined);
+            let match = eventMatches(e, tournament).reduce((p, c) => p = (c.match.muid == muid) ? c : p, undefined);
             if (state.edit && match.match.winner == undefined) {
                if (match.match.schedule && match.match.schedule.court) {
                   enterMatchScore(e, match);
@@ -4155,7 +4153,7 @@ let tournaments = function() {
             let euid = evt.target.getAttribute('euid');
             if (!muid || !euid) return;
             let e = findEventByID(euid);
-            let match = eventMatches(e).reduce((p, c) => p = (c.match.muid == muid) ? c : p, undefined);
+            let match = eventMatches(e, tournament).reduce((p, c) => p = (c.match.muid == muid) ? c : p, undefined);
             if (state.edit && match.match.winner == undefined) {
                gen.popUpMessage('context menu');
             }
@@ -4188,7 +4186,7 @@ let tournaments = function() {
       function eventMatchStorageObjects(tournament, evt, source) {
          if (!evt.draw) return { complete: [], incomplete: []};
 
-         let matches = eventMatches(evt);
+         let matches = eventMatches(evt, tournament);
 
          // for Round Robin Draw to be considered qualification it needs to be linked to an Elimination Draw
          let draw_format = evt.draw.brackets ? 'round_robin' : 'tree';
@@ -4427,6 +4425,7 @@ let tournaments = function() {
          container.recycle.element.style.display = !active && svg && state.edit ? 'inline' : 'none';
       }
 
+// TOOD: Defunct?
       function enableDrawOrderPrinting() {
          let e = findEventByID(displayed_event);
          let visible = state.edit && e && !e.automated && !e.active && e.approved && e.approved.length;
@@ -4481,7 +4480,7 @@ let tournaments = function() {
 
          let puids = outcome.teams.map(t=>t[0].puid);
          let findMatch = (e, n) => (util.intersection(n.match.puids, puids).length == 2) ? n : e;
-         let match_event = eventMatches(e).reduce(findMatch, undefined);
+         let match_event = eventMatches(e, tournament).reduce(findMatch, undefined);
 
          if (match_event) {
             let match = match_event.match;
@@ -4545,9 +4544,51 @@ let tournaments = function() {
       function scoreTreeDraw(e, existing_scores, outcome) {
          if (!outcome) return e;
 
-         if (existing_scores) {
+         let linked = findEventByID(e.links['E']);
+         let node = !existing_scores ? null : dfx.findMatchNodeByTeamPositions(e.draw, outcome.positions);
+         let previous_winner = node && node.match && node.match.winner ? node.match.winner.map(m=>m.id) : undefined;
+         let current_winner = outcome.winner != undefined ? outcome.teams[outcome.winner].map(m=>m.id) : undefined;
+
+         let info = dfx.drawInfo(e.draw);
+         let finalist_dp = info.final_round.map(m=>m.data.dp);
+         let qualifier_index = finalist_dp.indexOf(outcome.position);
+         let qualified = e.draw_type == 'Q' && previous_winner && qualifier_index >= 0;
+         let qualifier_changed = !previous_winner ? undefined : util.intersection(previous_winner, current_winner).length == 0;
+
+         if (previous_winner && linked) {
+            let linked_info = dfx.drawInfo(linked.draw);
+            let advanced_positions = linked_info.match_nodes.filter(n=>n.data.match && n.data.match.players);
+            let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
+            let position_in_linked = [].concat(...linked_info.nodes
+               .filter(n => n.data.team && util.intersection(n.data.team.map(t=>t.id), previous_winner).length)
+               .map(n => n.data.dp));
+            let active_in_linked = util.intersection(active_player_positions, position_in_linked).length;
+            if (qualifier_changed) {
+               if (active_in_linked) return gen.popUpMessage(lang.tr('phrases.cannotchangewinner'));
+               // replace qualifier
+               e.qualified = e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0);
+               e.qualified.push(outcome.teams[outcome.winner])
+
+               // modify linked draw
+               linked.approved = linked.approved.filter(a=>previous_winner.indexOf(a) < 0);
+               linked.approved.push(current_winner.join('|'));
+               linked.draw.opponents = linked.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length < 0);
+               linked.draw.opponents.push(outcome.teams[outcome.winner]);
+               linked_info.nodes.forEach(n => {
+                  if (!n.height && util.intersection(n.data.team.map(t=>t.id), previous_winner).length) {
+                     let draw_position = n.data.team[0].draw_position;
+                     let new_team = outcome.teams[outcome.winner].map(t => Object.assign({}, t, { draw_position, qualifier: true, entry: 'Q' }));
+                     n.data.team = new_team;
+                  }
+               });
+               linked.changed = true;
+            }
+         }
+
+         if (!existing_scores) {
+            dfx.advancePosition({ node: e.draw, position: outcome.position });
+         } else {
             // if updating existing scores, don't advance position
-            let node = dfx.findMatchNodeByTeamPositions(e.draw, outcome.positions);
             let result = dfx.advanceToNode({
                node,
                score: outcome.score,
@@ -4556,18 +4597,11 @@ let tournaments = function() {
                score_format: outcome.score_format,
             });
 
-            if (!outcome.complete && result && !result.advanced) {
-               gen.popUpMessage(lang.tr('phrases.matchmustbecomplete'));
-               return; 
-            }
-
-            if (outcome.complete && result && !result.advanced) { 
-               gen.popUpMessage(lang.tr('phrases.cannotchangewinner'));
-               return; 
-            }
-         } else {
-            dfx.advancePosition({ node: e.draw, position: outcome.position });
+            if (!outcome.complete && result && !result.advanced) return gen.popUpMessage(lang.tr('phrases.matchmustbecomplete'));
+            if (outcome.complete && result && !result.advanced) return gen.popUpMessage(lang.tr('phrases.cannotchangewinner'));
          }
+
+         if (e.draw_type == 'Q' && !qualified) qualifyTeam(e, outcome.teams[outcome.winner], qualifier_index + 1);
 
          // modifyPositionScore removes winner/loser if match incomplete
          dfx.modifyPositionScore({ 
@@ -4579,69 +4613,49 @@ let tournaments = function() {
             set_scores: outcome.set_scores
          });
 
-         if (e.draw_type == 'Q' && outcome) {
-            let info = dfx.drawInfo(e.draw);
-            let finalist_dp = info.final_round.map(m=>m.data.dp);
-            let qualifier_index = finalist_dp.indexOf(outcome.position);
-            if (outcome.complete && qualifier_index >= 0) {
-               if (existing_scores) {
-                  console.log('HAS THE WINNER CHANGED?')
-                  // TODO: determine whether winner of match has changed
-                  // 1. remove previous winner from linked.qualified
-                  // 2. remove previous winner from draw (if applicable)
-                  // 3. qualify new winner
-               } else {
-                  qualifyTeam(e, outcome.teams[outcome.winner], qualifier_index + 1);
-               }
-            }
+         let puids = outcome.teams.map(t=>t.map(p=>p.puid).join('|'));
+         let findMatch = (e, n) => {
+            let tpuids = n.teams.map(t=>t.map(p=>p.puid).join('|'));
+            let pint = util.intersection(tpuids, puids);
+            return pint.length == 2 ? n : e; 
          }
+         let match_event = eventMatches(e, tournament).reduce(findMatch, undefined);
+         if (match_event) {
+            let match = match_event.match;
 
-         if (outcome.complete) {
-            let puids = outcome.teams.map(t=>t.map(p=>p.puid).join('|'));
-            let findMatch = (e, n) => {
-               let tpuids = n.teams.map(t=>t.map(p=>p.puid).join('|'));
-               let pint = util.intersection(tpuids, puids);
-               return pint.length == 2 ? n : e; 
-            }
-            let match_event = eventMatches(e).reduce(findMatch, undefined);
-            if (match_event) {
-               let match = match_event.match;
+            match.score = outcome.score;
+            if (outcome.score) match.status = '';
+            match.winner_index = outcome.winner;
 
-               match.score = outcome.score;
-               if (outcome.score) match.status = '';
-               match.winner_index = outcome.winner;
+            match.muid = match.muid || UUID.new();
+            match.winner = outcome.teams[outcome.winner];
+            match.loser = outcome.teams[1 - outcome.winner];
+            match.date = match.date || new Date().getTime();
 
-               match.muid = match.muid || UUID.new();
-               match.winner = outcome.teams[outcome.winner];
-               match.loser = outcome.teams[1 - outcome.winner];
-               match.date = match.date || new Date().getTime();
+            match.players = [].concat(...outcome.teams);
+            match.teams = outcome.teams;
 
-               match.players = [].concat(...outcome.teams);
-               match.teams = outcome.teams;
+            match.tournament = {
+               name: tournament.name,
+               tuid: tournament.tuid,
+               org: config.env().org,
+               category: tournament.category,
+               round: match.round_name || match.round
+            };
 
-               match.tournament = {
-                  name: tournament.name,
-                  tuid: tournament.tuid,
-                  org: config.env().org,
-                  category: tournament.category,
-                  round: match.round_name || match.round
-               };
-
-               e.up_to_date = false;
-               if (coms.broadcasting() ) {
-                  if (config.env().livescore) {
-                     e.up_to_date = true;
-                     coms.broadcastScore(match);
-                  }
-                  if (config.env().publishing.publish_on_score_entry) {
-                     e.up_to_date = true;
-                     broadcastEvent(tournament, displayed_draw_event);
-                  }
+            e.up_to_date = false;
+            if (coms.broadcasting() ) {
+               if (config.env().livescore) {
+                  e.up_to_date = true;
+                  coms.broadcastScore(match);
                }
-
-               gen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
-
+               if (config.env().publishing.publish_on_score_entry) {
+                  e.up_to_date = true;
+                  broadcastEvent(tournament, displayed_draw_event);
+               }
             }
+
+            gen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
          }
 
          e.active = true;
@@ -4887,11 +4901,21 @@ let tournaments = function() {
                      delete d.match.winner_index;
                      delete d.match.loser;
                      delete d.match.score;
+                     delete d.match.set_scores;
                      delete d.match.teams;
+                     delete d.match.complete;
+                     delete d.match.round_name;
                      delete d.match.tournament;
 
                      // update one bracket without regenerating all brackets!
                      rr_draw.updateBracket(d.bracket);
+
+                     displayed_draw_event.up_to_date = false;
+                     if (config.env().publishing.publish_on_score_entry) {
+                        displayed_draw_event.up_to_date = true;
+                        broadcastEvent(tournament, displayed_draw_event);
+                     }
+                     gen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
                      saveTournament(tournament);
                   }
                }
@@ -5676,30 +5700,97 @@ let tournaments = function() {
          function drawActiveContextClick(d, coords) {
             let draw = e.draw;
             let position = d.data.dp;
+
+            let info = dfx.drawInfo(draw);
+            let linked = findEventByID(e.links['E']);
+            let linked_info = null;
+
             let selector = d3.select('#' + container.draws.id + ' svg').node();
+            let finalist_dp = info.final_round.map(m=>m.data.dp);
+            let qualifier_index = finalist_dp.indexOf(position);
+            let qualified = qualifier_index >= 0;
 
-            if (d.data.match && d.data.match.score && (!d.parent || !d.parent.data || !d.parent.data.team)) {
+            let match_score = d.data.match && d.data.match.score;
+            var active_in_linked = null;
+
+            if (match_score && qualified && linked) {
+               linked_info = dfx.drawInfo(linked.draw);
+               let team_ids = d.data.team.map(m=>m.id);
+               let advanced_positions = linked_info.match_nodes.filter(n=>n.data.match && n.data.match.players);
+               let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
+               let position_in_linked = [].concat(...linked_info.nodes
+                  .filter(node => node.data.team && util.intersection(node.data.team.map(t=>t.id), team_ids).length)
+                  .map(node => node.data.dp));
+               active_in_linked = util.intersection(active_player_positions, position_in_linked).length;
+            }
+
+            let possible_to_remove = (!d.parent || !d.parent.data || !d.parent.data.team);
+
+            if (match_score && possible_to_remove && !active_in_linked) {
                let options = [`${lang.tr('draws.remove')}: ${lang.tr('mtc')}`];
-
 
                // if deleting a match, delete all references in node
                let clickAction = (c, i) => {
+                  if (qualified) {
+                     let team_ids = d.data.team.map(m=>m.id);
+                     if (linked) {
+                        // Remove player from linked draw
+                        linked.approved = linked.approved.filter(a=>team_ids.indexOf(a) < 0);
+                        linked.changed = true;
+                        linked.draw.opponents = linked.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), team_ids).length == 0);
+                        linked_info.nodes.forEach(node => {
+                           if (!node.height && util.intersection(node.data.team.map(t=>t.id), team_ids).length) {
+                              node.data.qualifier = true;
+                              node.data.team = node.data.team.map(team => ({ bye: undefined, entry: 'Q', qualifier: true, draw_position: team.draw_position }) );
+                           }
+                        });
+                     }
+
+                     // must occur after team removed from linked draw approved
+                     e.qualified = e.qualified.filter(q=>util.intersection(q.map(m=>m.id), team_ids).length == 0);
+                     setDrawSize(e);
+
+                     // must occur after e.qualified is updated
+                     if (linked) {
+                        approvedChanged(linked);
+                        setDrawSize(linked);
+                        linked.changed = true;
+                        linked.up_to_date = false;
+
+                        // TODO: how to generate draw without affecting displayed...
+                        /*
+                        if (config.env().publishing.publish_on_score_entry) {
+                           linked.up_to_date = true;
+                           broadcastEvent(tournament, linked);
+                        }
+                        */
+                     }
+                  }
+
                   delete d.data.dp;
                   delete d.data.team;
                   delete d.data.round_name;
-                  delete d.data.match.complete;
-                  delete d.data.match.winner_index;
-                  delete d.data.match.round_name;
-                  delete d.data.match.players;
+                  delete d.data.match.date;
+                  delete d.data.match.teams;
                   delete d.data.match.score;
-                  delete d.data.match.winner;
+                  delete d.data.match.entry;
                   delete d.data.match.loser;
-                  delete d.data.match.set_scores;
+                  delete d.data.match.winner;
+                  delete d.data.match.players;
+                  delete d.data.match.complete;
                   delete d.data.match.schedule;
-
+                  delete d.data.match.set_scores;
+                  delete d.data.match.round_name;
+                  delete d.data.match.winner_index;
                   if (d.data.ancestor && d.data.ancestor.match) delete d.data.ancestor.match;
 
-                  // TODO: check whether removing a final qualifying round
+                  e.changed = true;
+                  e.up_to_date = false;
+                  if (config.env().publishing.publish_on_score_entry) {
+                     e.up_to_date = true;
+                     broadcastEvent(tournament, displayed_draw_event);
+                  }
+                  gen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
                   saveTournament(tournament);
                   tree_draw();
                   matchesTab();
@@ -5866,6 +5957,7 @@ let tournaments = function() {
          let sb = gen.scheduleBox({ match, editable: true});
          if (schedule_box) {
             schedule_box.innerHTML = sb.innerHTML;
+            gen.scaleTeams(target);
             schedule_box.style.background = sb.background;
             schedule_box.setAttribute('draggable', 'true');
             saveTournament(tournament);
@@ -6875,7 +6967,7 @@ let tournaments = function() {
       setTimeout(function() { container.name.element.focus(); }, 50);
    }
 
-   function eventMatches(e) {
+   function eventMatches(e, tournament) {
       if (e.draw) {
          let round_names = [];
 
@@ -6887,13 +6979,20 @@ let tournaments = function() {
          let matches = dfx.matches(e.draw, round_names);
 
          if (true) {
+            let court_names = {};
+            if (!tournament.locations) tournament.locations = [];
+            tournament.locations.map(l=>l.luid).forEach(luid => courtData(tournament, luid).forEach(ct => court_names[ctuuid(ct)] = ct.name));
+
             matches.forEach(match => {
                let schedule = match.match.schedule;
-               if (schedule && schedule.oop_round && schedule.court) {
-                  let court_matches = matches
-                     .filter(m => m.match.schedule && m.match.schedule.court == schedule.court)
-                     .filter(m => m.match.schedule.oop_round < schedule.oop_round && m.match.winner == undefined);
-                  schedule.after = court_matches.length;
+               if (schedule) {
+                  schedule.court = court_names[ctuuid(schedule)];
+                  if (schedule && schedule.oop_round && schedule.luid) {
+                     let court_matches = matches
+                        .filter(m => m.match.schedule && ctuuid(m.match.schedule) == ctuuid(schedule))
+                        .filter(m => m.match.schedule.oop_round < schedule.oop_round && m.match.winner == undefined);
+                     schedule.after = court_matches.length;
+                  }
                }
             });
          }
@@ -6902,6 +7001,28 @@ let tournaments = function() {
       }
       return [];
    }
+
+   function courtData(tournament, luid) {
+      let courts = [];
+      tournament.locations.forEach(l => {
+         let identifiers = l.identifiers ? l.identifiers.split(',').join(' ').split(' ').filter(f=>f) : [];
+         if (!luid || luid == l.luid) { 
+            util.range(1, +l.courts + 1).forEach(index => {
+               let identifier = identifiers[index - 1] || index;
+               let court = { 
+                  luid: l.luid,
+                  name: `${l.abbreviation} ${identifier}`,
+                  availability: [1,2,3,4,5,6,7,8,9,10],
+                  index
+               };
+               courts.push(court);
+            });
+         }
+      });
+      return courts;
+   }
+
+   function ctuuid(schedule) { return schedule ? `${schedule.luid}|${schedule.index}` : ''; }
 
    function addMUIDs(e) {
       if (!e.draw) return;
