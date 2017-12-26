@@ -307,7 +307,7 @@
 
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
-      let notice = config.env().notice ? `<h3>${config.env().notice}</h3>` : '';
+      let notice = coms.notice ? `<h3>${coms.notice}</h3>` : '';
       let html = `
          <h2 style='margin: 1em;'>${text}</h2>
          ${notice}
@@ -943,8 +943,7 @@
       return { container: id_obj };
    }
 
-   gen.settings = (settings) => {
-      if (!settings) return;
+   gen.settings = (tabs) => {
 
       let ids = {
          save: gen.uuid(),
@@ -953,31 +952,14 @@
          container: gen.uuid(),
       }
 
-      let general_settings = settings.filter(s=>s.category == 'generalSettings');
-      let general = gen.generalSettings(general_settings);
-      let category_settings = settings.filter(s=>s.category == 'categorySettings');
-      let categories = gen.categorySettings(category_settings);
-      let points_settings = settings.filter(s=>s.category == 'pointsSettings');
-      let points = gen.pointsSettings(points_settings);
-      let draw_settings = settings.filter(s=>s.category == 'drawSettings');
-      let draws = gen.drawSettings(draw_settings);
-      let publishing_settings = settings.filter(s=>s.category == 'publishingSettings');
-      let publishing = gen.publishingSettings(publishing_settings);
-
-      /*
-      let external_request_settings = settings.filter(s=>s.category == 'externalRequest');
-      let external_requests = gen.externalRequestSettings(external_request_settings);
-      */
-      let external_requests = {};
-
       let tabdata = [];
-      if (general.html) tabdata.push({ tab: lang.tr('settings.general'), content: general.html });
-      if (categories.html) tabdata.push({ tab: lang.tr('settings.categories'), content: categories.html });
-      if (points.html) tabdata.push({ tab: lang.tr('settings.points'), content: points.html });
-      if (draws.html) tabdata.push({ tab: lang.tr('settings.draws'), content: draws.html });
-      if (publishing.html) tabdata.push({ tab: lang.tr('settings.publishing'), content: publishing.html });
-      if (external_requests.html) tabdata.push({ tab: lang.tr('settings.data'), content: external_requests.html });
-      let tabs = jsTabs.generate(tabdata);
+      if (tabs.org && tabs.org.html) tabdata.push({ tab: lang.tr('settings.organization'), content: tabs.org.html });
+      if (tabs.categories && tabs.categories.html) tabdata.push({ tab: lang.tr('settings.categories'), content: tabs.categories.html });
+      if (tabs.points && tabs.points.html) tabdata.push({ tab: lang.tr('settings.points'), content: tabs.points.html });
+      if (tabs.draws && tabs.draws.html) tabdata.push({ tab: lang.tr('settings.draws'), content: tabs.draws.html });
+      if (tabs.publishing && tabs.publishing.html) tabdata.push({ tab: lang.tr('settings.publishing'), content: tabs.publishing.html });
+      if (tabs.data && tabs.data.html) tabdata.push({ tab: lang.tr('settings.data'), content: tabs.data.html });
+      let jtabs = jsTabs.generate(tabdata);
 
       let cancel = `
          <div id='${ids.cancel}' class='link' style='margin-left: 1em;'>
@@ -994,41 +976,28 @@
                <h2>Settings</h2>
                <div class='flexrow'>${done}${cancel}</div>
             </div>
-            <div>${tabs}</div>
+            <div>${jtabs}</div>
          </div>
       `;
       gen.showModal(html, false);
 
-      let external_file_options = [
-         {key: `UTF-8`, value: 'url'},
-         {key: `CP1250`, value: 'win'},
-      ];
-
-      Object.assign(ids, external_requests.ids, publishing.ids, draws.ids, points.ids, categories.ids, general.ids);
+      Object.assign(ids, ...Object.keys(tabs).filter(t=>tabs[t]).map(t=>tabs[t].ids));
       let id_obj = idObj(ids);
 
       jsTabs.load(id_obj.container.element);
-
-      if (external_requests.ddlb) {
-         external_requests.ddlb.forEach(ddlb => {
-            let ddlbkey = `${ddlb.key}_ddlb`;
-            dd.attachDropDown({ id: ids[ddlbkey], options: external_file_options });
-            ddlb.dropdown = new dd.DropDown({ element: id_obj[ddlbkey].element });
-            ddlb.dropdown.selectionBackground();
-            ddlb.dropdown.setValue(ddlb.value);
-         });
+      let org_logo = document.getElementById('org_logo');
+      if (org_logo) {
+         org_logo.addEventListener('change', evt => handleFileUpload(evt, 'orgLogo', 'org_logo_display'));
+         db.findSetting('orgLogo').then(url => displayImage('getLogo', url, 'org_logo_display'), console.log);
       }
 
-      let org_logo = document.getElementById('org_logo');
-      org_logo.addEventListener('change', evt => handleFileUpload(evt, 'orgLogo', 'org_logo_display'));
-
       let org_name = document.getElementById('org_name');
-      org_name.addEventListener('change', evt => handleFileUpload(evt, 'orgName', 'org_name_display'));
+      if (org_name) {
+         org_name.addEventListener('change', evt => handleFileUpload(evt, 'orgName', 'org_name_display'));
+         db.findSetting('orgName').then(url => displayImage('getName', url, 'org_name_display'), console.log);
+      }
 
-      db.findSetting('orgLogo').then(url => displayImage('getLogo', url, 'org_logo_display'), console.log);
-      db.findSetting('orgName').then(url => displayImage('getName', url, 'org_name_display'), console.log);
-
-      return { container: id_obj, external_requests };
+      return { container: id_obj };
    }
 
    function displayImage(fx, image_url, display_id) {
@@ -1081,7 +1050,7 @@
       }
    }
 
-   gen.generalSettings = (settings) => {
+   gen.orgSettings = (settings) => {
       let ids = {};
       let ddlb = [];
       let html = `
@@ -1109,21 +1078,21 @@
 
    // Create categories
    // Each category consists of minimum age, maximum age and gender
-   gen.categorySettings = (settings) => {
+   gen.categorySettings = () => {
       let ids = {};
       let ddlb = [];
       let html = ``;
       return { ids, html, ddlb }
    }
 
-   gen.pointsSettings = (settings) => {
+   gen.pointsSettings = () => {
       let ids = {};
       let ddlb = [];
       let html = ``;
       return { ids, html, ddlb }
    }
 
-   gen.drawSettings = (settings) => {
+   gen.drawSettings = () => {
       let ids = {
          compressed_draw_formats: gen.uuid(),
          display_flags: gen.uuid(),
@@ -1131,7 +1100,7 @@
       let ddlb = [];
       let html = `
          <div style='min-height: 150px'>
-         <h2>Settings for Draws</h2>
+         <h2>&nbsp;</h2>
          <div class='flexcenter' style='width: 100%;'>
              <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
                 <div class='tournament_attr'>
@@ -1150,7 +1119,7 @@
       return { ids, html, ddlb }
    }
 
-   gen.publishingSettings = (settings) => {
+   gen.publishingSettings = () => {
       let ids = {
          require_confirmation: gen.uuid(),
          publish_on_score_entry: gen.uuid(),
@@ -1158,7 +1127,7 @@
       let ddlb = [];
       let html = `
          <div style='min-height: 150px'>
-         <h2>Settings for Draws</h2>
+         <h2>&nbsp;</h2>
          <div class='flexcenter' style='width: 100%;'>
              <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
                 <div class='tournament_attr'>
@@ -1191,7 +1160,7 @@
          }
       });
 
-      let ids = { external_settings: gen.uuid(), }
+      let ids = {};
       keys.forEach(k=>ids[k] = gen.uuid());
       keys.forEach(k=>ids[`${k}_ddlb`] = gen.uuid());
 
@@ -2114,17 +2083,34 @@
    }
 
    gen.scheduleGrid = ({ element, scheduled, courts=[], oop_rounds=[], editable }) => {
+      function ctuuid(schedule) { return schedule ? `${schedule.luid}|${schedule.index}` : ''; }
       courts = [].concat(...courts, Array(Math.max(0, 10 - courts.length)).fill(''));
       let columns = courts.map(court => {
          let header = `<div class='court_header'>${court.name || ''}</div>`;
-         let court_matches = scheduled.filter(m => m.schedule && m.schedule.court == court.name);
+         let court_matches = scheduled.filter(m => m.schedule && ctuuid(m.schedule) == ctuuid(court));
          let court_times = [];
          court_matches.forEach(match => {
             if (match.schedule && match.schedule.oop_round) { court_times[match.schedule.oop_round] = match; }
          });
          let boxes = oop_rounds.map(oop_round => {
-            if (court_times[oop_round]) return gen.scheduleBox({ match: court_times[oop_round], luid: court.luid, court: court.name, oop_round, editable });
-            return gen.scheduleBox({ luid: court.luid, court: court.name, oop_round, editable });
+            if (court_times[oop_round]) {
+               return gen.scheduleBox({
+                  match: court_times[oop_round],
+                  luid: court.luid,
+                  index: court.index,
+                  court: court.name,
+                  oop_round,
+                  editable
+               });
+            } else {
+               return gen.scheduleBox({
+                  luid: court.luid,
+                  index: court.index,
+                  court: court.name,
+                  oop_round,
+                  editable
+               });
+            }
          });
          let boxes_html = boxes.map(b=>b.html).join('');
          return `<div class='court_schedule'> ${header}${boxes_html} </div> `;
@@ -2149,9 +2135,15 @@
          `;
 
       element.innerHTML = html;
+      gen.scaleTeams(element);
    }
 
-   gen.scheduleBox = ({ match={}, luid, court, oop_round, editable } = {}) => {
+   gen.scaleTeams = (container) => {
+      let scheduled_teams = container.querySelectorAll('.scheduled_team');
+      Array.from(scheduled_teams).forEach(el => util.scaleFont(el));
+   }
+
+   gen.scheduleBox = ({ match={}, luid, index, court, oop_round, editable } = {}) => {
       let ids = { scorebox: gen.uuid(), }
       let empty = !Object.keys(match).length;
       let offgrid = empty && !court;
@@ -2167,6 +2159,7 @@
 
       if (Object.keys(match).length && match.schedule) {
          if (!luid && match.schedule.luid) luid = match.schedule.luid;
+         if (!index && match.schedule.index) index = match.schedule.index;
          if (!court && match.schedule.court) court = match.schedule.court;
          if (!oop_round && match.schedule.oop_round) oop_round = match.schedule.oop_round;
       }
@@ -2175,6 +2168,7 @@
          <div id='${ids.scorebox}' 
             muid='${match.muid || ''}' 
             luid='${luid}'
+            index='${index}'
             court='${court}' 
             oop_round='${oop_round}' 
             class='schedule_box${dragdrop}' 
@@ -2206,6 +2200,7 @@
       let heading = match.schedule.heading ? `${match.schedule.heading} ` : '';
       let time_prefix = match.schedule.time_prefix ? `${match.schedule.time_prefix} ` : '';
       let header = `${heading}${time_prefix}${match.schedule.time || ''}`;
+      let font_sizes = ['1em', '1em'];
       let html = `
          <div class='header'>${header}</div> 
          <div class='catround'>
@@ -2214,9 +2209,9 @@
             <div class='round'>${match.round || ''}</div>
          </div>
          <div class='scheduled_teams'>
-            <div class='scheduled_team'>${first_team || ''}</div>
+            <div class='scheduled_team' style='font-size: ${font_sizes[0]}'>${first_team || ''}</div>
             <div class='divider'>${teams.length ? divider : ''}</div>
-            <div class='scheduled_team'>${second_team || ''}</div>
+            <div class='scheduled_team' style='font-size: ${font_sizes[1]}'>${second_team || ''}</div>
             ${displayed_score}${umpire}
          </div>
       `;
@@ -3173,7 +3168,7 @@
       }
    }
 
-   gen.splashScreen = (components) => {
+   gen.splashScreen = (components, settings_tabs) => {
       let ids = { 
          clubs: gen.uuid(),
          players: gen.uuid(),
@@ -3183,10 +3178,13 @@
          keys: gen.uuid(),
       }
 
+
+      let settings_tabs_count = Object.keys(settings_tabs).map(k=>settings_tabs[k]).reduce((p, c) => p || c);
+      let settings = action(components.settings && settings_tabs_count, ids.settings, lang.tr('set'), 'splash_settings');
+
       let players = action(components.players, ids.players, lang.tr('pyr'), 'splash_players');
       let tournaments = action(components.tournaments, ids.tournaments, lang.tr('trn'), 'splash_tournament');
       let clubs = action(components.clubs, ids.clubs, lang.tr('clb'), 'splash_clubs');
-      let settings = action(components.settings, ids.settings, lang.tr('set'), 'splash_settings');
       let importexport = action(components.importexport, ids.importexport, lang.tr('importexport'), 'splash_importexport');
       let keys = action(components.keys, ids.keys, lang.tr('keys'), 'splash_keys');
 
