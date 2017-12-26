@@ -279,6 +279,17 @@ let util = function() {
        d1.getDate() === d2.getDate();
    }
 
+   fx.isOverflowing = (el) => { return el.scrollWidth > el.clientWidth; }
+   fx.scaleFont = (el) => {
+      let counter = 0;
+      while (fx.isOverflowing(el) && counter < 20) {
+         let font_size = el.style.fontSize;
+         let size = font_size.match(/[\.\d]+/)[0];
+         let units = font_size.match(/[A-Za-z]+/)[0];
+         el.style.fontSize = `${size - .1}${units}`;
+      }
+   }
+
    return fx;
  
 }();
