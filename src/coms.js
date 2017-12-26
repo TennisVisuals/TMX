@@ -1,6 +1,9 @@
 let coms = function() {
 
-   let fx = {};
+   let fx = {
+      notice: undefined,
+      messages: [],
+   };
 
    let oi = {
       socket: undefined,
@@ -40,7 +43,7 @@ let coms = function() {
          }
          if (data.directive == 'new version') {
             gen.homeIconState('notice');
-            config.env().notice = data.notice || 'New Version Available';
+            fx.notice = data.notice || 'New Version Available';
          }
          if (data.directive == 'load data' && data.content) {
             load.loadJSON(data.content);
@@ -565,7 +568,7 @@ let coms = function() {
                   players.forEach(player => {
                      player.first_name = player.first_name.trim();
                      player.last_name = player.last_name.trim();
-                     player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name), false}`;
+                     player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
 
                      if (category) {
                         // player.rankings, if present, are used before player.rank
