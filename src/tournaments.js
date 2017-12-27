@@ -25,7 +25,8 @@ let tournaments = function() {
       byes_with_unseeded: true,
    }
 
-   let dfx = drawFx(config.env().draws.fx);
+   let dfx = drawFx();
+   fx.settingsLoaded = () => { dfx.options(config.env().drawFx); }
 
    fx.options = (values) => {
       if (!values) return o;
@@ -2449,7 +2450,7 @@ let tournaments = function() {
          // Qualifying Draws must have at least one seed per section
          if (e.draw_type == 'Q') seed_limit = Math.max(seed_limit, e.qualifiers);
 
-         // if (e.draw_type == 'C' && !config.env().draws.fx.consolation_seeding) seed_limit = 0;
+         // if (e.draw_type == 'C' && !config.env().drawFx.consolation_seeding) seed_limit = 0;
 
          let linkedQ = findEventByID(e.links['Q']) || findEventByID(e.links['R']);
          let qualifier_ids = linkedQ && linkedQ.qualified ? linkedQ.qualified.map(teamHash) : [];
@@ -2686,7 +2687,7 @@ let tournaments = function() {
          let consolation = () => {
             let linked = findEventByID(e.links['M']);
 
-            // if (!config.env().draws.fx.consolation_seeding) seed_limit = 0;
+            // if (!config.env().drawFx.consolation_seeding) seed_limit = 0;
 
             let consolation_num_players = num_players;
             if (e.structure == 'feed') {
