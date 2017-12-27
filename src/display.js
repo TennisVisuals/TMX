@@ -1728,6 +1728,7 @@
          localdownload_state: gen.uuid(),
          authorize: gen.uuid(),
          cloudfetch: gen.uuid(),
+         schedule_publish_state: gen.uuid(),
       }
 
       let classes = {
@@ -1743,6 +1744,7 @@
          refresh_registrations: gen.uuid(),
          print_schedule: gen.uuid(),
          schedule_matches: gen.uuid(),
+         publish_schedule: gen.uuid(),
       }
 
       let tournament_tab = `
@@ -1843,7 +1845,7 @@
             <div id='${ids.event_details}' class='event_details' style='display: none'>
 
                <div class='detail_header'>
-                  <div class='event_name flexcenter'>New Event</div>
+                  <div class='event_name flexcenter'>${lang.tr('events.newevent')}</div>
                   <div class='flexrow'>
                      <div class='${classes.auto_draw} info' style='display: none;' label='${lang.tr("adr")}'><div class='automation_icon automated_draw_pause'></div></div>
                      <!--
@@ -1903,8 +1905,11 @@
                   <div class='${classes.schedule_matches} ${gen.infoleft}' label='${lang.tr("phrases.schedulematches")}' style='display: none;'>
                      <div class='matches_header_inactive action_icon'></div>
                   </div>
-                  <div class='${classes.print_schedule} ${gen.infoleft}' label='${lang.tr("print.schedule")}'style='display: none;'>
+                  <div class='${classes.print_schedule} ${gen.info}' label='${lang.tr("print.schedule")}'style='display: none;'>
                      <div class='print action_icon'></div>
+                  </div>
+                  <div class='${classes.publish_schedule} ${gen.info}' label='${lang.tr("draws.publish")}' style='display: none;'>
+                     <div id='${ids.schedule_publish_state}' style='margin-left: 1em;' class='unpublished action_icon'></div>
                   </div>
                </div>
             </div>
@@ -1956,10 +1961,10 @@
                   <div id='${ids.player_reps}' class='${gen.infoleft}' label='${lang.tr("draws.playerreps")}' style='display: none'>
                      <div id='${ids.player_reps_state}' style='margin-left: 1em;' class='reps_incomplete action_icon'></div>
                   </div>
+                  <div class='${classes.print_draw}' style='display: none'><div class='print action_icon'></div></div>
                   <div id='${ids.publish_draw}' class='${gen.info}' label='${lang.tr("draws.publish")}' style='display: none'>
                      <div id='${ids.publish_state}' style='margin-left: 1em;' class='unpublished action_icon'></div>
                   </div>
-                  <div class='${classes.print_draw}' style='display: none'><div class='print action_icon'></div></div>
                </div>
             </div>
             <div id='${ids.draws}' class='tournament_match flexcol flexcenter drawdraw'> </div>
@@ -2806,6 +2811,8 @@
          scoring: gen.uuid(),
          surface: gen.uuid(),
          draw_type: gen.uuid(),
+         approved_count: gen.uuid(),
+         eligible_count: gen.uuid(),
       }
       let detail_fields = `
             <div class='column'>
@@ -2837,10 +2844,12 @@
       let removeall = !edit ? '' : `<div class='removeall ${gen.infoleft}' label='${lang.tr("tournaments.removeall")}'>-</div>`;
       let addall = !edit ? '' : `<div class='addall ${gen.infoleft}' label='${lang.tr("tournaments.addall")}'>+</div>`;
       let promoteall = !edit ? '' : `<div class='promoteall ${gen.infoleft}' label='${lang.tr("tournaments.addall")}'>+</div>`;
+      let approved_count = e && e.approved && e.approved.length ? `(${e.approved.length})` : '';
+      let eligible_count = '';
 
       let detail_players = `
          <div class='flexrow divider approved'>
-            <div>${lang.tr('events.approved')}</div>
+            <div>${lang.tr('events.approved')} <span id='${ids.approved_count}'>${approved_count}</span></div>
             ${removeall}
          </div>
          <div grouping='approved' class='approved_players player_container'></div>
@@ -2852,7 +2861,7 @@
          <div grouping='team' class='team_players player_container' style='display: none'></div>
 
          <div class='flexrow divider eligible'>
-            <div>${lang.tr('events.eligible')}</div>
+            <div>${lang.tr('events.eligible')} <span id='${ids.eligible_count}'></span></div>
             ${addall}
          </div>
          <div grouping='eligible' class='eligible_players player_container'></div>
@@ -2999,6 +3008,9 @@
       genGrouping(eligible, 'eligible');
       genGrouping(ineligible, 'ineligible');
       genGrouping(unavailable, 'unavailable');
+
+      container.approved_count.element.innerHTML = approved && approved.length ? `(${approved.length})` : '';
+      container.eligible_count.element.innerHTML = eligible && eligible.length ? `(${eligible.length})` : '';
 
       function genGrouping(players, group_class) {
          let html = players.map(row => teamBox(row)).join('');
@@ -3231,7 +3243,7 @@
 
       html += '</div>';
       gen.reset();
-      selectDisplay(html, 'players');
+      selectDisplay(html, 'importexport');
 
       return idObj(ids);
    }
@@ -3245,9 +3257,14 @@
       let html = `<div class='flexcenter container'>
 
          <div class='actions'>
-            <div id='${ids.add}' class='${gen.info} action' label='${lang.tr("actions.add_player")}'><div class='player_add_player'></div></div>
-            <div id='${ids.pointCalc}' class='${gen.info} action' label='${lang.tr("phrases.calculateranking")}'><div class='player_calc_points'></div></div>
-            <div id='${ids.rankCalc}' class='${gen.info} action' label='${lang.tr("phrases.generateranklist")}'><div class='player_calc_ranks'></div></div>
+            <div id='${ids.add}' class='${gen.info} action' label='${lang.tr("actions.add_player")}'>
+               <div class='player_add_player'></div>
+            </div>
+            <div id='${ids.pointCalc}' class='${gen.info} action' label='${lang.tr("phrases.calculateranking")}' style='display: none'>
+               <div class='player_calc_points'></div></div>
+            <div id='${ids.rankCalc}' class='${gen.info} action' label='${lang.tr("phrases.generateranklist")}' style='display: none'>
+               <div class='player_calc_ranks'></div>
+            </div>
          </div>
       `;
 
