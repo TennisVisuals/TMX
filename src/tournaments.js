@@ -385,9 +385,7 @@ let tournaments = function() {
          gen.okCancelMessage(`${lang.tr('draws.clear')}?`, clearDraw, () => gen.closeModal());
          function clearDraw() {
             displayed_draw_event.draw_created = false;
-            delete displayed_draw_event.draw;
-
-            generateDraw(displayed_draw_event);
+            generateDraw(displayed_draw_event, true);
             displayDraw({ evt: displayed_draw_event });
 
             saveTournament(tournament);
@@ -2552,11 +2550,24 @@ let tournaments = function() {
       }
 
       function approvedOpponents(e) {
-         if (e.format == 'S') { 
-            return approvedPlayers(e).map(p=>[p]);
-         } else {
-            return approvedTeams(e).map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));;
+         let approved = [];
+         let entry_data = {};
+
+         // first capture any existing entry data
+         if (['E', 'Q', 'C'].indexOf(e.draw_type) >= 0 && e.draw && e.draw.opponents) {
+            e.draw.opponents.forEach(opponent=>opponent.forEach(plyr=>entry_data[plyr.id] = plyr.entry));
          }
+
+         if (e.format == 'S') { 
+            approved = approvedPlayers(e).map(p=>[p]);
+         } else {
+            approved = approvedTeams(e).map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));;
+         }
+
+         // assign any previous entry data to players
+         approved.forEach(opponent => opponent.forEach(plyr => { if (entry_data[plyr.id]) plyr.entry = entry_data[plyr.id]; }));
+
+         return approved;
       }
 
       function checkForQualifiedTeams(e) {
@@ -2566,8 +2577,11 @@ let tournaments = function() {
          qualified.forEach(team => qualifyTeam(e, team));
       }
 
-      function generateDraw(e) {
+      function generateDraw(e, delete_existing) {
          let approved_opponents = approvedOpponents(e);
+
+         // delete any existing draw AFTER capturing any player data (entry information)
+         if (displayed_draw_event && delete_existing) delete displayed_draw_event.draw;
 
          if (!approved_opponents.length || approved_opponents.length < 2) return;
 
@@ -5455,6 +5469,7 @@ let tournaments = function() {
          }
 
          function swapApproved(evt, remove, add) {
+            if (!remove) return console.log('Missing player data', evt, remove, add);
             let ids = remove.map(p=>p.id);
             if (ids.length == 2) {
                evt.approved = evt.approved.filter(a=>util.intersection(a, ids).length != 2);
@@ -5486,7 +5501,10 @@ let tournaments = function() {
                tree_draw.data(draw)();
                saveTournament(tournament);
             }
-            cMenu({ selector, coords, options: teams, clickAction })
+            let bod = d3.select('body').node();
+            let xy = d3.mouse(bod);
+            setTimeout(function() { gen.svgModal({ x: xy[0], y: xy[1], options: teams, callback: clickAction }); }, 300);
+            // cMenu({ selector, coords, options: teams, clickAction })
          }
 
          function findSeedGroup(draw, seed) {
@@ -5713,7 +5731,7 @@ let tournaments = function() {
             let match_score = d.data.match && d.data.match.score;
             var active_in_linked = null;
 
-            if (match_score && qualified && linked) {
+            if (match_score && qualified && linked && linked.draw) {
                linked_info = dfx.drawInfo(linked.draw);
                let team_ids = d.data.team.map(m=>m.id);
                let advanced_positions = linked_info.match_nodes.filter(n=>n.data.match && n.data.match.players);
@@ -5733,17 +5751,25 @@ let tournaments = function() {
                let clickAction = (c, i) => {
                   if (qualified) {
                      let team_ids = d.data.team.map(m=>m.id);
-                     if (linked) {
+                     let player_in_linked = linked ? util.intersection(linked.approved, team_ids).length : false;
+
+                     console.log('player in linked:', player_in_linked);
+
+                     if (linked && player_in_linked) {
+
                         // Remove player from linked draw
                         linked.approved = linked.approved.filter(a=>team_ids.indexOf(a) < 0);
                         linked.changed = true;
-                        linked.draw.opponents = linked.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), team_ids).length == 0);
-                        linked_info.nodes.forEach(node => {
-                           if (!node.height && util.intersection(node.data.team.map(t=>t.id), team_ids).length) {
-                              node.data.qualifier = true;
-                              node.data.team = node.data.team.map(team => ({ bye: undefined, entry: 'Q', qualifier: true, draw_position: team.draw_position }) );
-                           }
-                        });
+
+                        if (linked_info) {
+                           linked.draw.opponents = linked.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), team_ids).length == 0);
+                           linked_info.nodes.forEach(node => {
+                              if (!node.height && util.intersection(node.data.team.map(t=>t.id), team_ids).length) {
+                                 node.data.qualifier = true;
+                                 node.data.team = node.data.team.map(team => ({ bye: undefined, entry: 'Q', qualifier: true, draw_position: team.draw_position }) );
+                              }
+                           });
+                        }
                      }
 
                      // must occur after team removed from linked draw approved
@@ -5751,7 +5777,7 @@ let tournaments = function() {
                      setDrawSize(e);
 
                      // must occur after e.qualified is updated
-                     if (linked) {
+                     if (linked && player_in_linked) {
                         approvedChanged(linked);
                         setDrawSize(linked);
                         linked.changed = true;
