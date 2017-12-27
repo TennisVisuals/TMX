@@ -2108,6 +2108,8 @@ let tournaments = function() {
         
          let details = gen.displayEventDetails(tournament, container, e, genders, surfaces, formats, draw_types, state.edit);
 
+         Object.assign(container, details);
+
          let addAll = () => modifyApproved.addAll(e);
          let removeAll = () => modifyApproved.removeAll(e);
          let promoteAll = () => promoteTeams(e);
@@ -3734,6 +3736,7 @@ let tournaments = function() {
          index = index || (location_index >= 0 ? location_index : undefined);
 
          let actions = d3.select(container.location_details.element);
+         actions.select('.event_name').html(l.name);
 
          locationBackground(l);
          configureLocationAttributes(l);
