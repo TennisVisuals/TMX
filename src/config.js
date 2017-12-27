@@ -69,11 +69,11 @@ let config = function() {
          end: undefined,
          category: undefined
       },
+      drawFx: {
+         compressed_draw_formats: true,
+         consolation_seeding: false
+      },
       draws: {
-         fx: {
-            compressed_draw_formats: true,
-            consolation_seeding: false
-         },
          tree_draw: {
             flags: { display: true },
          },
@@ -249,9 +249,9 @@ let config = function() {
 
          if (v.draws) {
             container.compressed_draw_formats.element.addEventListener('click', compressedDrawFormats);
-            container.compressed_draw_formats.element.checked = util.string2boolean(env.draws.fx.compressed_draw_formats);
+            container.compressed_draw_formats.element.checked = util.string2boolean(env.drawFx.compressed_draw_formats);
             function compressedDrawFormats(evt) {
-               env.draws.fx.compressed_draw_formats = container.compressed_draw_formats.element.checked;
+               env.drawFx.compressed_draw_formats = container.compressed_draw_formats.element.checked;
             }
 
             container.display_flags.element.addEventListener('click', displayFlags);
@@ -305,6 +305,7 @@ let config = function() {
 
             settings.push({ key: 'publishingSettings', settings: env.publishing });
             settings.push({ key: 'drawSettings', settings: env.draws });
+            settings.push({ key: 'drawFx', settings: env.drawFx });
 
             if (v.org) {
                settings.push(getImage('orgLogo', 'org_logo_display'));
@@ -563,6 +564,11 @@ let config = function() {
       }
    }
 
+   // once the environment variables have been set notify dependents
+   function settingsLoaded() {
+      tournaments.settingsLoaded();
+   }
+
    function envSettings() {
       return new Promise((resolve, reject) => {
          db.findAllSettings().then(setEnv, resolve);
@@ -617,7 +623,7 @@ let config = function() {
             let draw_fx = getKey('drawFx');
             if (draw_fx && draw_fx.settings) {
                util.boolAttrs(draw_fx.settings);
-               util.keyWalk(draw_fx.settings, env.draws.fx);
+               util.keyWalk(draw_fx.settings, env.drawFx);
             }
 
             let rd = getKey('rrDraw');
@@ -631,6 +637,8 @@ let config = function() {
                o.settings.uuuid = UUID.generate();
                db.addSetting({ key: 'userUUID', value: o.settings.uuuid });
             }
+
+            settingsLoaded();
 
             // turn off info labels...
             // if no info gen.info = '';
