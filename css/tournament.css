@@ -510,6 +510,7 @@
 }
 
 .time_header { background-image: url("../icons/time.png"); }
+.time_header_inactive { background-image: url("../icons/time_inactive.png"); }
 .opponents_header { background-image: url("../icons/players.png"); }
 .drawsize_header { background-image: url("../icons/drawbracket.png"); }
 .matches_header { background-image: url("../icons/match.png"); }

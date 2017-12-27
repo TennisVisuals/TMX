@@ -1728,7 +1728,6 @@
          localdownload_state: gen.uuid(),
          authorize: gen.uuid(),
          cloudfetch: gen.uuid(),
-         schedule_publish_state: gen.uuid(),
       }
 
       let classes = {
@@ -1745,6 +1744,7 @@
          print_schedule: gen.uuid(),
          schedule_matches: gen.uuid(),
          publish_schedule: gen.uuid(),
+         schedule_details: gen.uuid(),
       }
 
       let tournament_tab = `
@@ -1905,11 +1905,14 @@
                   <div class='${classes.schedule_matches} ${gen.infoleft}' label='${lang.tr("phrases.schedulematches")}' style='display: none;'>
                      <div class='matches_header_inactive action_icon'></div>
                   </div>
+                  <div class='${classes.schedule_details} ${gen.info}' label='Timing' style='display: none; margin-left: 1em;'>
+                     <div class='time_header_inactive action_icon'></div>
+                  </div>
                   <div class='${classes.print_schedule} ${gen.info}' label='${lang.tr("print.schedule")}'style='display: none;'>
                      <div class='print action_icon'></div>
                   </div>
                   <div class='${classes.publish_schedule} ${gen.info}' label='${lang.tr("draws.publish")}' style='display: none;'>
-                     <div id='${ids.schedule_publish_state}' style='margin-left: 1em;' class='unpublished action_icon'></div>
+                     <div style='margin-left: 1em;' class='schedule_publish_state unpublished action_icon'></div>
                   </div>
                </div>
             </div>
