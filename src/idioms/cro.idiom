@@ -228,6 +228,7 @@
 
       events: {
          name: 'Ime',
+         newevent: 'novi događaj',
          opponents: 'Protivnik',
          teams: 'Timovi',
          draw_type: 'Vrsta kostura',

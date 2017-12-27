@@ -280,6 +280,7 @@
 
       events: {
          name: 'Name',
+         newevent: 'New Event',
          opponents: 'Opponents',
          teams: 'Teams',
          draw_type: 'Draw Type',
@@ -631,6 +632,7 @@
 
       events: {
          name: 'Ime',
+         newevent: 'novi događaj',
          opponents: 'Protivnik',
          teams: 'Timovi',
          draw_type: 'Vrsta kostura',

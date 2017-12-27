@@ -280,6 +280,7 @@
 
       events: {
          name: 'Name',
+         newevent: 'New Event',
          opponents: 'Opponents',
          teams: 'Teams',
          draw_type: 'Draw Type',
