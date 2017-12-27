@@ -1678,6 +1678,7 @@ let tournaments = function() {
                         notice: `${tournament.name} => ${e.name} ${e.draw_type} ${e.automated ? 'Auto' : 'Manual'}` 
                      });
 
+                     if (!tournament.log) tournament.log = [];
                      tournament.log.push({
                         created: { name: e.name, draw_type: e.draw_type, automated: e.automated },
                         timestamp: new Date().getTime()
@@ -2655,10 +2656,11 @@ let tournaments = function() {
          }
 
          let elimination = () => {
-
             let num_players = approved_opponents.length + e.qualifiers;
+            e.draw_size = dfx.acceptedDrawSizes(num_players);
 
             // build a blank draw 
+            // TODO:  why is this == 12 ???!!???
             let structural_byes = e.draw_size == 12 ? dfx.structuralByes(e.draw_size, true) : undefined;
             e.draw = dfx.buildDraw({ teams: e.draw_size, structural_byes });
 
@@ -2702,12 +2704,13 @@ let tournaments = function() {
             let linked = findEventByID(e.links['M']);
 
             // if (!config.env().drawFx.consolation_seeding) seed_limit = 0;
+            
+            e.draw_size = dfx.acceptedDrawSizes(num_players);
 
-            let consolation_num_players = num_players;
             if (e.structure == 'feed') {
-               e.draw = dfx.feedInDraw({ teams: dfx.acceptedDrawSizes(consolation_num_players) });
+               e.draw = dfx.feedInDraw({ teams: dfx.acceptedDrawSizes(num_players) });
             } else {
-               e.draw = dfx.buildDraw({ teams: dfx.acceptedDrawSizes(consolation_num_players) });
+               e.draw = dfx.buildDraw({ teams: dfx.acceptedDrawSizes(num_players) });
                e.draw.unseeded_placements = [];
                e.draw.opponents = approved_opponents;
                e.draw.seed_placements = dfx.validSeedPlacements({ num_players, random_sort: true, seed_limit });
@@ -2994,6 +2997,7 @@ let tournaments = function() {
       function teamName(match, team, remove_diacritics) {
          if (team.length == 1) {
             let p = match.players[team[0]];
+            if (!p.last_name || !p.first_name) return '';
             let club = p.club_code ? ` (${p.club_code})` : '';
             let full_name = `${util.normalizeName(p.first_name, remove_diacritics)} ${util.normalizeName(p.last_name, remove_diacritics).toUpperCase()}`; 
             return `${full_name}${club}`;
@@ -5094,7 +5098,7 @@ let tournaments = function() {
                unplaced_teams = info.unplaced_seeds;
             } else {
                u_hash = info.unfilled_positions.map(hashFx);
-               let placements = e.draw.unseeded_placements ? e.draw.unseeded_placements.map(p=>p.id) : [];
+               let placements = e.draw.unseeded_placements ? [].concat(...e.draw.unseeded_placements.map(p=>p.team.map(m=>m.id))) : [];
                unplaced_teams = e.draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
             }
 
@@ -5358,7 +5362,10 @@ let tournaments = function() {
                   let team = unplaced_teams[i];
                   placeRRplayer(team, placement, info);
                }
-               cMenu({ selector, coords, options, clickAction })
+
+               let bod = d3.select('body').node();
+               let evt = (d3.event);
+               setTimeout(function() { gen.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: clickAction }); }, 300);
             }
 
             function assignedRRoptions(coords, placement, cell, draw) {
@@ -5526,9 +5533,8 @@ let tournaments = function() {
                saveTournament(tournament);
             }
             let bod = d3.select('body').node();
-            let xy = d3.mouse(bod);
-            setTimeout(function() { gen.svgModal({ x: xy[0], y: xy[1], options: teams, callback: clickAction }); }, 300);
-            // cMenu({ selector, coords, options: teams, clickAction })
+            let evt = (d3.event);
+            setTimeout(function() { gen.svgModal({ x: evt.clientX, y: evt.clientY, options: teams, callback: clickAction }); }, 300);
          }
 
          function findSeedGroup(draw, seed) {
@@ -6008,7 +6014,7 @@ let tournaments = function() {
          let sb = gen.scheduleBox({ match, editable: true});
          if (schedule_box) {
             schedule_box.innerHTML = sb.innerHTML;
-            gen.scaleTeams(target);
+            gen.scaleTeams(schedule_box);
             schedule_box.style.background = sb.background;
             schedule_box.setAttribute('draggable', 'true');
             saveTournament(tournament);
