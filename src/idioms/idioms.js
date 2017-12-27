@@ -134,6 +134,7 @@
       new:     'New',
 
       set: 'Settings',
+      version: 'Version',
       importexport: 'Import / Export',
 
       i18n: {
@@ -221,6 +222,7 @@
          removeall: 'Remove All',
          addall: 'Add All',
          key: 'Authorize',
+         noauth: 'Not Authorized',
          fetch: 'Download'
       },
 
@@ -483,6 +485,7 @@
       new:     'Novi',
 
       set: 'Postavke',
+      version: 'Verzija',
       importexport: 'Import / Export',
 
       i18n: {
@@ -570,6 +573,7 @@
          removeall: 'Makni sve',
          addall: 'Dodaj sve',
          key: 'Ovlastiti',
+         noauth: 'Nije ovlašten',
          fetch: 'Preuzimanje'
       },
 

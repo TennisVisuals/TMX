@@ -134,6 +134,7 @@
       new:     'New',
 
       set: 'Settings',
+      version: 'Version',
       importexport: 'Import / Export',
 
       i18n: {
@@ -221,6 +222,7 @@
          removeall: 'Remove All',
          addall: 'Add All',
          key: 'Authorize',
+         noauth: 'Not Authorized',
          fetch: 'Download'
       },
 

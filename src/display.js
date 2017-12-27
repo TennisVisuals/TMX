@@ -298,7 +298,7 @@
       return id_obj;
    }
 
-   gen.versionMessage = (text, refreshAction, okAction) => {
+   gen.homeContextMessage = (refreshAction, okAction, messages) => {
       if (searchBox.element) searchBox.element.blur();
       let ids = { 
          ok: gen.uuid(), 
@@ -307,19 +307,26 @@
 
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
-      let notice = coms.notice ? `<h3>${coms.notice}</h3>` : '';
+      let update = coms.update ? `<h3>${coms.update}</h3>` : '';
+      let refresh = update ? `<button id='${ids.refresh}' class='btn btn-medium dismiss'>${lang.tr('actions.refresh')}</button>` : '';
+      let message_list = messages && messages.length ? messages.map(formatMessage).join('') : '';
       let html = `
-         <h2 style='margin: 1em;'>${text}</h2>
-         ${notice}
+         <h2 style='margin: 1em;'>${lang.tr('version')}: ${config.env().version}</h2>
+         ${update}
+         ${message_list}
          <div class="flexcenter" style='margin-bottom: 2em;'>
-            <button id='${ids.refresh}' class='btn btn-medium dismiss'>${lang.tr('actions.refresh')}</button>
+            ${refresh}
             <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${lang.tr('actions.ok')}</button>
          </div>
       `;
       document.getElementById('processingtext').innerHTML = html;
       id_obj = idObj(ids);
       id_obj.ok.element.addEventListener('click', okAction);
-      id_obj.refresh.element.addEventListener('click', refreshAction);
+      if (update) id_obj.refresh.element.addEventListener('click', refreshAction);
+
+      function formatMessage(msg) {
+         return `<div style='margin: 1em; padding: 1px; background-color: #FECAC3'>${lang.tr(msg.title)}: ${msg.tournament}</div>`;
+      }
    }
 
    gen.popUpMessage = (text, callback) => {
@@ -2617,7 +2624,8 @@
 
    gen.homeIconState = (value) => {
       let class_name = 'icon15 homeicon';
-      if (value == 'notice') class_name += '_notification';
+      if (value == 'update') class_name += '_update';
+      if (value == 'messages') class_name += '_messages';
       document.getElementById('homeicon').className = class_name;
    }
 

@@ -1,7 +1,7 @@
 let coms = function() {
 
    let fx = {
-      notice: undefined,
+      update: undefined,
       messages: [],
    };
 
@@ -42,8 +42,8 @@ let coms = function() {
             fx.emitTmx({ authorize });
          }
          if (data.directive == 'new version') {
-            gen.homeIconState('notice');
-            fx.notice = data.notice || 'New Version Available';
+            gen.homeIconState('update');
+            fx.update = data.notice || 'New Version Available';
          }
          if (data.directive == 'load data' && data.content) {
             load.loadJSON(data.content);
@@ -68,6 +68,7 @@ let coms = function() {
          oi.socket.on('connect_error', comsError);
          oi.socket.on('tmx directive', tmxDirective);
          oi.socket.on('tmx error', tmxError);
+         oi.socket.on('tmx message', tmxMessage);
          oi.socket.on('tourny record', receiveTournament);
       }
    } 
@@ -78,6 +79,8 @@ let coms = function() {
          let container = gen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
       }
    }
+
+   function tmxMessage(msg) { config.addMessage(msg); }
 
    function receiveTournament(record) {
       let published_tournament = CircularJSON.parse(record);

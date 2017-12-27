@@ -91,7 +91,8 @@ let config = function() {
       publishing: {
          require_confirmation: true,
          publish_on_score_entry: false,
-      }
+      },
+      messages: []
    }
 
    // don't want accessor to be able to modify original
@@ -99,6 +100,13 @@ let config = function() {
 
    fx.setCalendar = (obj) => Object.keys(obj).forEach(key => { if (Object.keys(env.calendar).indexOf(key) >= 0) env.calendar[key] = obj[key]; });
    fx.setMap = (map) => env.map = map;
+   fx.addMessage = (msg) => {
+      let msgHash = (m) => Object.keys(m).map(key => m[key]).join('');
+      let message_hash = msgHash(msg);
+      let exists = env.messages.reduce((p, c) => msgHash(c) ==  message_hash ? true : p, false);
+      if (!exists) env.messages.push(msg);
+      gen.homeIconState('messages');
+   }
 
    // not visible/accesible outside of this module
    var o = {
@@ -139,7 +147,7 @@ let config = function() {
       }
    }
 
-   fx.o = () => JSON.parse(JSON.stringify(o));
+   // fx.o = () => JSON.parse(JSON.stringify(o));
 
    // This probably needs to be implemented differently...
    fx.settings = {
@@ -404,7 +412,7 @@ let config = function() {
             Array.from(container.container.element.querySelectorAll('.player_rank')).forEach(elem => elem.addEventListener('click', dpp));
 
             rank.addRankHistories(categories, selected_date).then(() => { 
-               let data = { hash: `${year}${week}rankings`, date: selected_date, type: 'rankings', year, week, valid: true };
+               let data = { hash: `${year}${week}rankings`, date: new Date(selected_date).getTime(), type: 'rankings', year, week, valid: true };
                db.addCalcDate(data);
             }, (err) => console.log(err));
          } else {
@@ -743,7 +751,11 @@ let config = function() {
 
       function closeModal() { gen.closeModal(); }
       function refreshApp() { location.reload(true); }
-      document.getElementById('go_home').addEventListener('contextmenu', () => gen.versionMessage(env.version, refreshApp, closeModal));
+      document.getElementById('go_home').addEventListener('contextmenu', () => {
+         gen.homeContextMessage(refreshApp, closeModal, env.messages)
+         env.messages = [];
+         gen.homeIconState();
+      });
 
       document.getElementById('refresh').addEventListener('click', () => updateAction());
 
