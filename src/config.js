@@ -206,8 +206,8 @@ let config = function() {
    function updateSettings(settings) {
       return new Promise((resolve, reject) => {
          if (!settings) resolve();
-         dev.settings = settings;
-         Promise.all(settings.map(s=>db.addSetting(s))).then(resolve)
+         db.db.settings.where('key').equals('superUser').delete().then(newSettings, reject);
+         function newSettings() { Promise.all(settings.map(s=>db.addSetting(s))).then(resolve, reject) }
       });
    }
 
