@@ -312,7 +312,7 @@ let config = function() {
                settings.push(getImage('orgName', 'org_name_display'));
             }
 
-            updateSettings(settings);
+            updateSettings(settings).then(settingsLoaded, err => console.log('update settings failed:', err));
             gen.closeModal();
          }
       }
@@ -565,9 +565,7 @@ let config = function() {
    }
 
    // once the environment variables have been set notify dependents
-   function settingsLoaded() {
-      tournaments.settingsLoaded();
-   }
+   function settingsLoaded() { tournaments.settingsLoaded(); }
 
    function envSettings() {
       return new Promise((resolve, reject) => {
