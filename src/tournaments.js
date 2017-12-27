@@ -748,7 +748,7 @@ let tournaments = function() {
          }
 
          let addNew = () => {
-            new_player.signed_in = true;
+            new_player.signed_in = false;
             if (!new_player.rankings) new_player.rankings = {};
             new_player.full_name = `${new_player.last_name.toUpperCase()}, ${util.normalizeName(new_player.first_name, false)}`;
 
@@ -4026,7 +4026,7 @@ let tournaments = function() {
       }
 
       function rankDuplicates(players, active_puids=[]) {
-         let non_mr_players = players.filter(p=>!mrPlayer);
+         let non_mr_players = players.filter(notMRplayer);
          let all_rankings = non_mr_players.map(p=>p.category_ranking);
          let count = util.arrayCount(all_rankings);
          let duplicates = Object.keys(count).reduce((p, k) => { if (!isNaN(k) && count[k] > 1) p.push(+k); return p; }, []);
@@ -4039,10 +4039,10 @@ let tournaments = function() {
          }
          return duplicate_puids;
 
-         function mrPlayer(player) {
+         function notMRplayer(player) {
             // TODO:  MR players is HTS specific
             let category = config.legacyCategory(tournament.category);
-            return player.MR && player.MR[category];
+            return !(player.MR && player.MR[category]);
          }
       }
 
