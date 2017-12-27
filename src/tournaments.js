@@ -152,6 +152,7 @@ let tournaments = function() {
       function saveNewTournament(tournament) {
          if (!tournament || !Object.keys(tournament).length) return;
 
+         tournament.log = [];
          if (!tournament.tuid) tournament.tuid = UUID.new();
          tournament.end = new Date(tournament.end).getTime();
          tournament.start = new Date(tournament.start).getTime();
@@ -389,6 +390,7 @@ let tournaments = function() {
             generateDraw(displayed_draw_event, true);
             displayDraw({ evt: displayed_draw_event });
 
+            logEventChange(displayed_draw_event, { fx: 'draw cleared' });
             saveTournament(tournament);
 
             enableDrawActions();
@@ -1233,10 +1235,8 @@ let tournaments = function() {
 
       function printDrawOrder(evt) {
          evt = evt || findEventByID(displayed_event);
-         if (!evt) console.log('Event Must Be Saved!');
 
-         // if an event is not found or there are not approved players, abort
-         // abort if no category has been defined
+         // if no event or no approved players or category undefined, abort
          if (evt && evt.approved && evt.category) {
             let category = config.legacyCategory(evt.category);
             let t_players;
@@ -1251,7 +1251,6 @@ let tournaments = function() {
 
             if (t_players && t_players.length) {
                t_players = orderPlayersByRank(t_players, category);
-               console.log('tournament players:', t_players);
 
                // configured for listing players by Position in draw "Draw Order"
                exp.orderedPlayersPDF({ tournament, players: t_players, event_name: evt.name, doc_name: lang.tr('mdo'), extra_pages: false })
@@ -1533,6 +1532,7 @@ let tournaments = function() {
 
          let e = {
             gender,
+            log: [],
             links: {},
             format: 'S',
             approved: [],
@@ -1634,9 +1634,17 @@ let tournaments = function() {
 
                      tournament.events.splice(index, 1);
                      removeReferences(e.euid);
-                     db.addTournament(tournament);
+
+                     if (!tournament.log) tournament.log = [];
+                     tournament.log.push({
+                        deleted: { name: e.name, draw_type: e.draw_type, log: e.log },
+                        timestamp: new Date().getTime()
+                     });
+
+                     saveTournament(tournament);
 
                      // need to regenerate to remove non-existent matches
+                     // TODO: this appears to be legacy and no longer applicable?
                      function reGen() {
                         let group_matches = groupMatches(tournament.matches);
                         match_groups = group_matches.groups;
@@ -1669,6 +1677,12 @@ let tournaments = function() {
                         version: config.env().version,
                         notice: `${tournament.name} => ${e.name} ${e.draw_type} ${e.automated ? 'Auto' : 'Manual'}` 
                      });
+
+                     tournament.log.push({
+                        created: { name: e.name, draw_type: e.draw_type, automated: e.automated },
+                        timestamp: new Date().getTime()
+                     });
+
                      let i = tournament.events.length - 1;
                      displayEvent({ e, index: i });
                      eventList();
@@ -3733,7 +3747,7 @@ let tournaments = function() {
                      closeLocationDetails();
                      tournament.locations.splice(index, 1);
                      locationList();
-                     db.addTournament(tournament);
+                     saveTournament(tournament);
 
                      let { pending_matches } = tournamentEventMatches({ tournament, source: true });
                      pending_matches.forEach(match => {
@@ -3765,7 +3779,6 @@ let tournaments = function() {
                      displayLocation({ location: l, index: i });
 
                      locationList(l.luid);
-
                      saveTournament(tournament);
                   });
                actions.select('.cancel')
@@ -4597,6 +4610,7 @@ let tournaments = function() {
                   }
                });
                linked.changed = true;
+               logEventChange(displayed_draw_event, { fx: 'qualifier changed', d: { team: outcome.teams[outcome.winner].map(t=>t.id) } });
             }
          }
 
@@ -4831,8 +4845,10 @@ let tournaments = function() {
                let qualifier_ids = linked.qualified.map(teamHash);
                if (qualifier_ids.indexOf(team[0].id) >= 0) { team[0].entry = 'Q'; }
             }
-            // tree_draw.assignPosition(position, team, bye, qualifier);
             dfx.assignPosition({ node: displayed_draw_event.draw, position, team, bye, qualifier });
+
+            let team_ids = !team ? [] : team.map(t=>t.id);
+            logEventChange(displayed_draw_event, { fx: 'position assigned', d: { position, bye, qualifier, team: team_ids } });
          }
 
          function optionNames(teams) {
@@ -4911,6 +4927,8 @@ let tournaments = function() {
             if (!complete && d.match && d.match.score) {
                let clickAction = (c, i) => {
                   if (i == 0) {
+                     logEventChange(displayed_draw_event, { fx: 'match removed', d: { teams: d.match.teams.map(team=>team.map(t=>t.id)) } });
+
                      delete d.match.date;
                      delete d.match.winner;
                      delete d.match.winner_index;
@@ -5372,6 +5390,9 @@ let tournaments = function() {
                      dfx.matches(draw);
                      rr_draw.data(draw);
                      rr_draw.updateBracket(placement.bracket, true);
+
+                     logEventChange(displayed_draw_event, { fx: 'player removed', d: { placement, team: [cell.player.id] } });
+
                      saveTournament(tournament);
                   }
                   if (d.key == 'alternate') {
@@ -5418,7 +5439,7 @@ let tournaments = function() {
                draw.opponents.push(new_team);
                draw.unseeded_placements.push({ team: new_team, position: placement });
 
-               swapApproved(displayed_draw_event, [old_player], new_team);
+               swapApproved(displayed_draw_event, [old_player], new_team, placement.position);
                if (entry) new_team.forEach(player => player.entry = entry);
                dfx.matches(draw);
                rr_draw.data(draw);
@@ -5452,6 +5473,7 @@ let tournaments = function() {
                rr_draw.data(e.draw);
                rr_draw();
             }
+            logEventChange(displayed_draw_event, { fx: 'position assigned', d: { placement, team: team.map(t=>t.id) } });
             saveTournament(tournament);
          }
 
@@ -5461,7 +5483,7 @@ let tournaments = function() {
             coords = Array.isArray(coords) ? coords : d3.mouse(container.draws.element);
 
             if (!state.edit) {
-               console.log('Not in editing state');
+               return;
             } else if (!displayed_draw_event.active) {
                drawNotActiveContextClick(d, coords);
             } else {
@@ -5469,7 +5491,7 @@ let tournaments = function() {
             }
          }
 
-         function swapApproved(evt, remove, add) {
+         function swapApproved(evt, remove, add, position) {
             if (!remove) return console.log('Missing player data', evt, remove, add);
             let ids = remove.map(p=>p.id);
             if (ids.length == 2) {
@@ -5479,6 +5501,7 @@ let tournaments = function() {
                evt.approved = evt.approved.filter(a=>a!=ids[0]);
                evt.approved.push(add[0].id);
             }
+            logEventChange(displayed_draw_event, { fx: 'player replaced', d: { position, removed: ids, added: add.map(a=>a.id) } });
          }
 
          // select either lucky losers or alternates
@@ -5496,7 +5519,7 @@ let tournaments = function() {
                let remove = draw.opponents.reduce((p, o) => o[0].draw_position == position ? o : p, undefined);
                draw.opponents = draw.opponents.filter(o=>o[0].draw_position != position);
                draw.opponents.push(team);
-               swapApproved(displayed_draw_event, remove, team);
+               swapApproved(displayed_draw_event, remove, team, position);
                if (entry) team.forEach(player => player.entry = entry);
 
                tree_draw.data(draw)();
@@ -5581,6 +5604,8 @@ let tournaments = function() {
             let options = unfinished ? unfinished_options : finished_options;
             let clickAction = (d, i) => {
                if (unfinished) {
+                  logEventChange(displayed_draw_event, { fx: 'player removed', d: { position, team: node.data.team.map(t=>t.id) } });
+
                   if (seed) {
                      delete node.data.team;
                      let seed_group = findSeedGroup(draw, seed);
@@ -5696,8 +5721,6 @@ let tournaments = function() {
                                     saveTournament(tournament);
 
                                     logEventChange(displayed_draw_event, { fx: 'swap', d: [ position, new_position ] });
-                                 } else {
-                                    console.log('not swapped');
                                  }
 
                                  removeEntryField();
@@ -5754,8 +5777,6 @@ let tournaments = function() {
                      let team_ids = d.data.team.map(m=>m.id);
                      let player_in_linked = linked ? util.intersection(linked.approved, team_ids).length : false;
 
-                     console.log('player in linked:', player_in_linked);
-
                      if (linked && player_in_linked) {
 
                         // Remove player from linked draw
@@ -5794,6 +5815,8 @@ let tournaments = function() {
                      }
                   }
 
+                  logEventChange(displayed_draw_event, { fx: 'match removed', d: { teams: d.data.match.teams.map(team=>team.map(t=>t.id)) } });
+
                   delete d.data.dp;
                   delete d.data.team;
                   delete d.data.round_name;
@@ -5810,6 +5833,7 @@ let tournaments = function() {
                   delete d.data.match.round_name;
                   delete d.data.match.winner_index;
                   if (d.data.ancestor && d.data.ancestor.match) delete d.data.ancestor.match;
+
 
                   e.changed = true;
                   e.up_to_date = false;
@@ -6052,7 +6076,6 @@ let tournaments = function() {
                updateScheduleBox(match);
             } else if (context == 'treedraw') {
                tree_draw(); 
-               console.log('update draw');
             }
          }
 
@@ -6321,6 +6344,7 @@ let tournaments = function() {
 
       function logEventChange(evt, change) {
          if (!evt.log) evt.log = [];
+         change.timestamp = new Date().getTime();
          evt.log.push(change);
       }
 
