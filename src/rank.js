@@ -364,7 +364,7 @@
                return reject();
             }
             let start_year = new Date(start_date).getFullYear();
-            let start_week = rank.getWeek(start_date);
+            let start_week = rank.getWeek(new Date(start_date));
             let end_year = new Date(end_date).getFullYear();
             let end_week = rank.getWeek(end_date);
             let date = getDateByWeek(start_week, start_year).getTime();
@@ -376,6 +376,7 @@
             }
 
             let ranking_points = date_array.map(date => calcDate(player, points, date)).filter(week => Object.keys(week.categories).length);
+
             addPointsHistory({puid, ranking_points}).then(resolve(ranking_points), reject);
          }
 
@@ -438,13 +439,13 @@
       let oMap = (keys, arr, fx) => Object.assign(...keys.map(k => ({ [k]: fx(arr, k) })));
 
       let cpts = {};
-      let categories = util.unique([].concat(...valid.map(v=>+v.category), ...eligible_categories));
+      let categories = util.unique([].concat(...valid.map(v=>v.category), ...eligible_categories));
 
       let points_table = config.pointsTable({calc_date: ranking_date});
 
       if (categories.length) {
          let category_points = oMap(categories, valid, categoryFilter);
-         let ranking_points = Object.assign(...categories.map(category => ({ [category]: calcCategory(category) })));
+         let ranking_points = Object.assign({}, ...categories.map(category => ({ [category]: calcCategory(category) })));
 
          Object.keys(ranking_points).forEach(category => {
             let cpoints = [].concat(...ranking_points[category].singles, ...ranking_points[category].doubles, ...ranking_points[category].team);
@@ -453,7 +454,7 @@
 
          function calcCategory(category) {
             let category_table = points_table.categories[category];
-            if (!category_table || !category_table.rankings || !Object.keys(category_table.ranking).length) {
+            if (!category_table || !category_table.ranking || Object.keys(category_table.ranking).length == 0) {
                return { singles: [], doubles: [], team: [] };
             }
 
