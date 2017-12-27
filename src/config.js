@@ -111,7 +111,7 @@ let config = function() {
    // not visible/accesible outside of this module
    var o = {
       components: {
-         players: true,
+         players: { add: true, calcs: false, ranklist: false },
          tournaments: true,
          clubs: false,
          tournament_search: true,
@@ -575,10 +575,8 @@ let config = function() {
 
             let app = getKey('appComponents');
             if (app && app.components) {
-               Object.keys(app.components).forEach(key => {
-                  let bool = util.string2boolean(app.components[key]);
-                  if (bool != undefined) o.components[key] = bool;
-               });
+               util.boolAttrs(app.components);
+               util.keyWalk(app.components, o.components);
                env.autodraw = o.components.autodraw != undefined ? o.components.autodraw : true;
             }
 
@@ -934,8 +932,16 @@ let config = function() {
    function displayPlayers() {
       let actions = gen.playerActions(); 
       actions.add.element.addEventListener('click', () => player.createNewPlayer({ callback }));
-      actions.pointCalc.element.addEventListener('click', () => config.pointCalc());
-      actions.rankCalc.element.addEventListener('click', () => config.rankCalc());
+
+      if (o.components.players && o.components.players.calcs) {
+         actions.pointCalc.element.style.display = 'flex';
+         actions.pointCalc.element.addEventListener('click', () => config.pointCalc());
+      }
+
+      if (o.components.players && o.components.players.ranklist) {
+         actions.rankCalc.element.style.display = 'flex';
+         actions.rankCalc.element.addEventListener('click', () => config.rankCalc());
+      }
 
       function callback(player) {
          console.log(player);
