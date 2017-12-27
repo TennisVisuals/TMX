@@ -196,7 +196,7 @@
          published: 'Published',
          publish: 'Publish',
          publishQ: 'Publish Draw?',
-         leaders: 'Leaders',
+         organizers: 'organizers',
          playerrep: 'Representative',
          playerreps: 'Representatives',
          luckylosers: 'Lucky Losers (LL)/Replacements',

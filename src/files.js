@@ -887,7 +887,7 @@
                   { text: ' ' },
                   { text: ' ' },
                   [
-                     { text: lang.tr('draws.leaders'), bold: true },
+                     { text: lang.tr('draws.organizers'), bold: true },
                      { text: ' ', },
                   ],
                   [

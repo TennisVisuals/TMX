@@ -144,7 +144,7 @@
          published: 'Objavljeno',
          publish: 'Objavi',
          publishQ: 'Objavi ždrijeb?',
-         leaders: 'Voditelji turnira',
+         organizers: 'Voditelji turnira',
          playerrep: 'Predstavnik',
          playerreps: 'Predstavnici',
          luckylosers: 'Sretni gubitnici (LL)/Zamjenjuje',
