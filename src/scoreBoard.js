@@ -2,10 +2,13 @@
 // *. should be able to RETIRE or INTERRUPT with partial tiebreak score
 // 1. editing a score with two complete sets but no winner should activate DDLB on new set
 // 2. action buttons (interrupted & etc.) should be inactive when tiebreak boxes are being used
+// 3. perhaps supertiebreak scores should be separated with '/' so that they don't get counted as games
 
 let scoreBoard = function() {
 
    let fx = {};
+
+   let stb_divider = '/';
 
    // match format configuration
    let o = {
@@ -282,15 +285,7 @@ let scoreBoard = function() {
                p1 = getComplement(value);
                sobj.p1selector.ddlb.setValue(p1);
             } else {
-               // if both values are set to f.games_for_set + 1 for normal set,
-               // ... one needs to be f.games_for_set
-               // if (p1 == f.games_for_set + 1 && p2 == f.games_for_set + 1) replaceValue(f.games_for_set);
                if (p1 == f.tiebreaks_at + 1 && p2 == f.tiebreaks_at + 1) replaceValue(f.tiebreaks_at);
-
-               // if one value is set to f.games_for_set + 1 for normal set,
-               // ... the other needs to be f.games_for_set - 1 or f.games_for_set
-               // if (p1 == f.games_for_set + 1 && p2 < f.games_for_set - 1) replaceValue(f.games_for_set);
-               // if (p2 == f.games_for_set + 1 && p1 < f.games_for_set - 1) replaceValue(f.games_for_set);
                if (p1 == f.tiebreaks_at + 1 && p2 < f.tiebreaks_at - 1) { replaceValue(f.tiebreaks_at); }
                if (p2 == f.tiebreaks_at + 1 && p1 < f.tiebreaks_at - 1) { replaceValue(f.tiebreaks_at); }
             }
@@ -545,9 +540,10 @@ let scoreBoard = function() {
          let loser = 1 - winner;
 
          let score = set_scores.map(s => {
-            if (s[winner].supertiebreak) { return `${s[winner].supertiebreak}-${s[loser].supertiebreak}`; }
+            if (s[winner].supertiebreak) { return `${s[winner].supertiebreak}${stb_divider}${s[loser].supertiebreak}`; }
             let t1 = s[winner].tiebreak;
             let t2 = s[loser].tiebreak;
+            // TODO: copy how reverseScore works in case of unfinished tiebreak
             let tiebreak = t1 != undefined || t2 != undefined ? `(${[t1, t2].filter(f=>f >= 0).join('-')})` : '';
             return `${s[winner].games}-${s[loser].games}${tiebreak}`;
          }).join(' ');
@@ -687,6 +683,12 @@ let scoreBoard = function() {
 
       let sets = string_score.split(split).map(set => {
 
+         if (set.indexOf('/') > 0) {
+            // look for supertiebreak scores using #/# format
+            let scores = set.split('/').map(m => (ss.exec(m)) ? { games: +ss.exec(m)[1] } : undefined).filter(f=>f);
+            if (scores.length == 2) return scores;
+         }
+
          // uglifier doesn't work if variable is undefined
          let tbscore = null;;
          let scores = set.split('-')
@@ -758,17 +760,19 @@ let scoreBoard = function() {
       }
 
       function parseSet(set) {
-         let set_scores = set.split('-').map(parseSetScore).reverse().filter(f=>f);
-         let set_score = set_scores.map(s=>s.games).filter(f=>f).join('-');
-         let tb_score = set_scores.map(s=>s.tiebreak).filter(f=>f).join('~');
-         let tiebreak = tb_score ? `(${tb_score})` : '';
+         let divider = set.indexOf('/') > 0 ? '/' : '-';
+         let set_scores = set.split(divider).map(parseSetScore).reverse().filter(f=>f);
+         let set_games = set_scores.map(s=>s.games);
+         let tb_scores = set_scores.map(s=>s.tiebreak).filter(f=>f);
+         let tiebreak = tb_scores.length == 1 ? `(${tb_scores[0]})` : '';
+         let set_score = tb_scores.length < 2 ? set_games.join(divider) : set_games.map((s, i) => `${s}(${tb_scores[i]})`).join(divider);
          return `${set_score}${tiebreak}`;
       }
 
       function parseSetScore(set) {
          let ss = /(\d+)/;
          let sst = /(\d+)\((\d+)\)/;
-         if (sst.test(set)) return { games: sst.exec(set)[1], tiebreak: sst.exec(set)[2].split('~').filter(f=>f).reverse().join('~') };
+         if (sst.test(set)) return { games: sst.exec(set)[1], tiebreak: sst.exec(set)[2] };
          if (ss.test(set)) return { games: ss.exec(set)[1] };
          irreversible = set;
          return undefined;
