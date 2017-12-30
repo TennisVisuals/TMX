@@ -199,7 +199,7 @@
          organizers: 'Organizers',
          playerrep: 'Representative',
          playerreps: 'Representatives',
-         luckylosers: 'Lucky Losers (LL)/Alternates',
+         substitutes: 'Substitutes (LL/Alts)',
          allindraw: 'all in draw',
          lastdirectaccept: 'Last Direct Acceptance',
          clear: 'Clear Draw',
@@ -211,6 +211,7 @@
          seedrange: 'Seeds',
          playerrange: 'All Players',
          unpublish: 'Unpublish Draw',
+         unpublishall: 'Unpublish All Events',
       },
 
       print: {
@@ -341,7 +342,7 @@
 
       signin: {
          tournament_date: 'Start Date',
-         organizer: 'Organizer',
+         organization: 'Organization',
          place: 'Location',
          id: 'Tournament ID',
          rank: 'Tournament Rank',

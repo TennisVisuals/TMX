@@ -199,7 +199,7 @@
          organizers: 'Organizers',
          playerrep: 'Representative',
          playerreps: 'Representatives',
-         luckylosers: 'Lucky Losers (LL)/Alternates',
+         substitutes: 'Substitutes (LL/Alts)',
          allindraw: 'all in draw',
          lastdirectaccept: 'Last Direct Acceptance',
          clear: 'Clear Draw',
@@ -211,6 +211,7 @@
          seedrange: 'Seeds',
          playerrange: 'All Players',
          unpublish: 'Unpublish Draw',
+         unpublishall: 'Unpublish All Events',
       },
 
       print: {
@@ -341,7 +342,7 @@
 
       signin: {
          tournament_date: 'Start Date',
-         organizer: 'Organizer',
+         organization: 'Organization',
          place: 'Location',
          id: 'Tournament ID',
          rank: 'Tournament Rank',
@@ -559,7 +560,7 @@
          organizers: 'Voditelji turnira',
          playerrep: 'Predstavnik',
          playerreps: 'Predstavnici',
-         luckylosers: 'Sretni gubitnici (LL)/Zamjenjuje',
+         substitutes: 'Zamjene (LL/A)',
          allindraw: 'svi u ždrijebu',
          lastdirectaccept: 'Zadnji direktno primljen igrač',
          clear: 'Isprazni Ždrijeb',
@@ -571,6 +572,7 @@
          seedrange: 'Rang Nositelja',
          playerrange: 'Rang Igraca',
          unpublish: 'PoniĹĄti objavljivanje',
+         unpublishall: 'Poništiti objavljivanje svih događaja',
       },
 
       print: {
@@ -701,7 +703,7 @@
 
       signin: {
          tournament_date: 'Datum početka',
-         organizer: 'Organizator',
+         organization: 'Organizacija',
          place: 'Mjesto',
          id: 'ID turnira',
          rank: 'Rang turnira',
