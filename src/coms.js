@@ -79,7 +79,10 @@ let coms = function() {
       }
    }
 
-   function tmxMessage(msg) { config.addMessage(msg); }
+   function tmxMessage(msg) {
+      if (msg.title && msg.title.indexOf('noauth') >= 0) config.addMessage(msg);
+      if (msg.authorized && msg.tuid) config.authMessage(msg);
+   }
 
    function receiveTournament(record) {
       let published_tournament = CircularJSON.parse(record);
