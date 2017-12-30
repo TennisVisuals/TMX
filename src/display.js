@@ -155,7 +155,8 @@
       menu
          .items(...opts)
          .events({ 'item': { 'click': (d, i) => returnSelection(options[i], i) } });
-      menu(x, y);
+
+      setTimeout(function() { menu(x, y); }, 300);
 
       document.body.style.overflow  = 'hidden';
       gen.escapeFx = () => cleanUp();
@@ -287,7 +288,7 @@
       let html = `
          <h2 style='margin: 1em;'>${text}</h2>
          <div class="flexcenter" style='margin-bottom: 2em;'>
-            <button id='${ids.cancel}' class='btn btn-medium dismiss'>${lang.tr('actions.cancel')}</button>
+            <button id='${ids.cancel}' class='btn btn-medium dismiss' style='display: none'>${lang.tr('actions.cancel')}</button>
             <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${lang.tr('actions.ok')}</button>
          </div>
       `;
@@ -295,6 +296,7 @@
       id_obj = idObj(ids);
       id_obj.ok.element.addEventListener('click', okAction);
       id_obj.cancel.element.addEventListener('click', cancelAction);
+      if (typeof cancelAction == 'function') id_obj.cancel.element.style.display = 'inline';
       return id_obj;
    }
 
@@ -1697,6 +1699,7 @@
          unscheduled: gen.uuid(),
          players: gen.uuid(),
          schedule_day: gen.uuid(),
+         schedule_tab: gen.uuid(),
          event_filter: gen.uuid(),
          round_filter: gen.uuid(),
          location_filter: gen.uuid(),
@@ -1896,7 +1899,7 @@
 
 
       let schedule_tab = `
-         <div class='schedule_tab'>
+         <div id='${ids.schedule_tab}' class='schedule_tab'>
             <div class='schedule_options'>
                <div class='options_left'>
                   <div id='${ids.schedule_day}'></div>
@@ -3029,20 +3032,22 @@
          let rank = team.rank < 2000 ? `(${team.rank}${subrank})` : '';
          let combined_ranking = team.players && team.rank ? `<div class="border_padding"><i>${rank}</i></div>` : '';
          let team_seed = team.players && team.seed ? `<div class="border_padding"><b>[${team.seed}]</b></div>` : '';
+         let wildcard = team.players && team.wildcard ? `<div class="border_padding"><b>[WC]</b></div>` : '';
 
          let background = team.duplicates ? ` style='background: lightyellow;'` : '';
          let duplicate = team.duplicates ? ` duplicates="${team.duplicates}"` : '';
+         let style = !wildcard ? '' : `style='color: green'`;
 
          // this is a stub for the future
          let dragdrop = gen.dragdrop && team.players ? ` draggable="true" ondragstart="drag(event, this)"` : '';
 
          let team_rank = team.rank < 2000 ? ` team_rank='${team.rank}'` : '';
          let team_id = team.players ? ` team_id='${team.players.map(p=>p.id).sort().join("|")}' ` : '';
-         let html = `<div ${team_rank} ${team_id} ${duplicate} class='team_box${border}${team_click}'${background}>
+         let html = `<div ${style} ${team_rank} ${team_id} ${duplicate} class='team_box${border}${team_click}'${background}>
                         <div class='flexcol${border_padding}'${dragdrop}>`;
          html += team.players ? team.players.map(p => playerRow(p)).join('') : playerRow(team, true);
          html += `      </div>
-                        ${team_seed} ${combined_ranking}
+                        ${wildcard || team_seed} ${combined_ranking}
                      </div>`;
          return html;
       }
@@ -3221,7 +3226,8 @@
       displayContent(html, 'splash');
       return idObj(ids);
 
-      function action(bool, id, label, icon) {
+      function action(setting, id, label, icon) {
+         let bool = (typeof setting != 'object') ? setting : Object.keys(setting).reduce((p, c) => setting[c] || p, undefined);
          if (!bool) return '';
          return `<div id='${id}' class='${gen.info} action' label="${label}"><div class='splash_icon ${icon}'></div></div>`;
       }
@@ -3260,7 +3266,7 @@
       let html = `<div class='flexcenter container'>
 
          <div class='actions'>
-            <div id='${ids.add}' class='${gen.info} action' label='${lang.tr("actions.add_player")}'>
+            <div id='${ids.add}' class='${gen.info} action' label='${lang.tr("actions.add_player")}' style='display: none'>
                <div class='player_add_player'></div>
             </div>
             <div id='${ids.pointCalc}' class='${gen.info} action' label='${lang.tr("phrases.calculateranking")}' style='display: none'>
