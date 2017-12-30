@@ -1217,7 +1217,7 @@
       let ids = {
          name: gen.uuid(),
          association: gen.uuid(),
-         organizer: gen.uuid(),
+         organization: gen.uuid(),
          category: gen.uuid(),
          rank: gen.uuid(),
          start: gen.uuid(),
@@ -1242,7 +1242,7 @@
                      <div class='tournamentattr'>${lang.tr('nm')}:</div>
                      <div class='tournamentattr'>${lang.tr('cat')}:</div>
                      <div class='tournamentattr'>${lang.tr('asn')}:</div>
-                     <div class='tournamentattr'>${lang.tr('signin.organizer')}:</div>
+                     <div class='tournamentattr'>${lang.tr('signin.organization')}:</div>
                      <div class='tournamentattr'>${lang.tr('start')}:</div>
                      <div class='tournamentattr'>${lang.tr('end')}:</div>
                      <div class='tournamentattr'>${lang.tr('ref')}:</div>
@@ -1260,7 +1260,7 @@
                         <input id='${ids.association}' value='${tournament.sid || ''}' placeholder="National Association">
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
-                        <input id='${ids.organizer}' value='${tournament.organizer || ''}' placeholder='Tennis Club'>
+                        <input id='${ids.organization}' value='${tournament.organization || ''}' placeholder='Tennis Club'>
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.start}' value='${start}' placeholder='YYYY-MM-DD'>
@@ -1733,7 +1733,8 @@
          recycle: gen.uuid(),
          start_date: gen.uuid(),
          end_date: gen.uuid(),
-         organizer: gen.uuid(),
+         organizers: gen.uuid(),
+         organization: gen.uuid(),
          judge: gen.uuid(),
          display_id: gen.uuid(),
          locations: gen.uuid(),
@@ -1797,20 +1798,26 @@
 
                 <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
                    <div class='tournament_attr'>
-                       <label class='calabel'>${lang.tr('signin.organizer')}:</label>
-                       <input class='calinput' id="${ids.organizer}" disabled>
+                       <label class='calabel'>${lang.tr('signin.organization')}:</label>
+                       <input class='calinput' id="${ids.organization}" disabled>
                    </div>
                    <div class='tournament_attr'>
-                       <label class='calabel'>${lang.tr('signin.place')}:</label>
-                       <input class='calinput' id="${ids.location}" disabled>
+                       <label class='calabel'>${lang.tr('draws.organizers')}:</label>
+                       <input class='calinput' id="${ids.organizers}" disabled>
                    </div>
                 </div>
 
                 <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
                    <div class='tournament_attr'>
+                       <label class='calabel'>${lang.tr('signin.place')}:</label>
+                       <input class='calinput' id="${ids.location}" disabled>
+                   </div>
+         <!--
+                   <div class='tournament_attr'>
                        <label class='calabel'>${lang.tr('signin.id')}:</label>
                        <input class='calinput' id="${ids.display_id}" disabled>
                    </div>
+         -->
                    <div class='tournament_attr'>
                        <label class='calabel'>${lang.tr('signin.judge')}:</label>
                        <input class='calinput' id="${ids.judge}" disabled>
