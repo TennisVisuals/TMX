@@ -342,6 +342,18 @@ let tournaments = function() {
          schedule_matches.querySelector('div').classList.toggle('matches_header');
       }
 
+      util.addEventToClass(classes.publish_schedule, publishSchedule);
+      function publishSchedule() {
+
+         // TODO: Consider whether publishing schedule is day-by-day or catholic
+
+         if (!tournament.schedule) tournament.schedule = {};
+         tournament.schedule.published = new Date().getTime();
+         tournament.schedule.up_to_date = true;
+         schedulePublishState();
+         gen.okCancelMessage('Not Implemented', () => gen.closeModal(), () => gen.closeModal());
+      }
+
       gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
       container.push2cloud.element.addEventListener('click', () => {
          if (!tournament.published) {
@@ -366,6 +378,15 @@ let tournaments = function() {
             gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
             // can't call saveTournament() here!!
             if (o.save) db.addTournament(tournament);
+         }
+      });
+
+      container.publish_draw.element.addEventListener('contextmenu', () => {
+         gen.okCancelMessage(lang.tr('draws.unpublish'), unPublishDraw, () => gen.closeModal());
+
+         function unPublishDraw() {
+            deleteEvent(tournament, displayed_draw_event);
+            gen.closeModal();
          }
       });
 
@@ -936,7 +957,6 @@ let tournaments = function() {
          if (tournament.matches && tournament.matches.length) return true;
          if (!tournament.events) return false;
 
-         // TODO: can this be replaced by drawInfo(e.draw).total_matches ??
          let { total_matches } = tournamentEventMatches({ tournament });
          return total_matches;
       }
@@ -1024,10 +1044,18 @@ let tournaments = function() {
          document.querySelector('.' + classes.print_sign_in).style.display = display ? 'inline' : 'none';
       }
 
-      function scheduleActions() {
+      function scheduleActions({ changed=false } = {}) {
          let display = state.edit ? true : false;
-         container.container.element.querySelector('.' + classes.print_schedule).style.display = display ? 'inline' : 'none';
-         container.container.element.querySelector('.' + classes.schedule_matches).style.display = display ? 'inline' : 'none';
+         container.schedule_tab.element.querySelector('.' + classes.print_schedule).style.display = display ? 'inline' : 'none';
+         container.schedule_tab.element.querySelector('.' + classes.schedule_matches).style.display = display ? 'inline' : 'none';
+         container.schedule_tab.element.querySelector('.' + classes.schedule_details).style.display = display ? 'inline' : 'none';
+
+         if (!tournament.schedule) tournament.schedule = {};
+         if (changed) tournament.schedule.up_to_date = false;
+         schedulePublishState();
+
+         let scheduled_teams = document.querySelector('.scheduled_team');
+         container.schedule_tab.element.querySelector('.' + classes.publish_schedule).style.display = display && scheduled_teams ? 'inline' : 'none';
       }
 
       function editAction() {
@@ -1087,9 +1115,9 @@ let tournaments = function() {
             }
             let message = `${location.href}?actionKey=${key_uuid}`;
             let btn = UUID.generate();
-            let ctext = `Link Copied to Clipboard`;
+            let ctext = lang.tr('phrases.linkcopied');
             coms.emitTmx({ pushKey });
-            let msg = gen.okCancelMessage(ctext, () => gen.closeModal(), () => gen.closeModal());
+            let msg = gen.okCancelMessage(ctext, () => gen.closeModal());
             copyClick();
 
             function copyClick() {
@@ -2537,7 +2565,11 @@ let tournaments = function() {
          let approved = e.approved ? e.approved.map(t=>teamObj(e, t, idmap)).sort(combinedRankSort) : [];
          let seed_limit = dfx.seedLimit(approved.length);
          let seeding = rankedTeams(approved);
-         approved.forEach((team, i) => { team.seed = (seeding && i + 1 <= seed_limit) ? i + 1 : undefined });
+         approved.forEach((team, i) => team.seed = (seeding && i + 1 <= seed_limit) ? i + 1 : undefined);
+         approved.forEach(team => {
+            team.wildcard = (e.wildcards.indexOf(team.players.map(p=>p.id).sort().join('|')) >= 0) ? true : undefined;
+            if (team.wildcard) team.players[0].entry = 'WC';
+         });
          return approved;
       }
 
@@ -2882,32 +2914,51 @@ let tournaments = function() {
                } else {
                   e.teams = e.teams.filter(team => util.intersection(team_id.split('|'), team).length == 0)
                }
+               e.wildcards = e.wildcards.filter(team => util.intersection(team_id.split('|'), team).length == 0)
                approvedChanged(e, true);
                saveTournament(tournament);
             }
          }
 
-         function addSubrank(evt) {
+         function teamContextClick(evt) {
+            var grouping = util.getParent(evt.target, 'player_container').getAttribute('grouping');
             if (!state.edit || e.active) return;
-            let grouping = util.getParent(evt.target, 'player_container').getAttribute('grouping');
-            let elem = util.getParent(evt.target, 'team_click');
-            let duplicates = elem.getAttribute('duplicates');
+            var elem = util.getParent(evt.target, 'team_click');
+            var duplicates = elem.getAttribute('duplicates');
+            if (!duplicates && grouping == 'approved') return;
 
-            if (duplicates) {
-               var team_id = elem.getAttribute('team_id');
-               var clicked = (grouping == 'approved') ? reduceTeams(approved, team_id) : reduceTeams(teams, team_id);
+            var team_id = elem.getAttribute('team_id');
+            var clicked = (grouping == 'approved') ? reduceTeams(approved, team_id) : reduceTeams(teams, team_id);
 
-               let remove = `${lang.tr('draws.remove')}: Subrank`;
-               let options = [].concat(remove, ...util.range(0, duplicates).map(d => `Subrank: ${d + 1}`));
-               gen.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: assignSubrank });
+            var options = (grouping == 'approved') ? [] : [{ label: 'Wildcard', value: 'wildcard' }, { label: 'Cancel', value: 'cancel'}];
+            if (duplicates) options.push({ label: 'Subrank', value: 'subrank' });
 
-               function assignSubrank(selection, i) {
-                  if (!e.doubles_subrank) e.doubles_subrank = {};
-                  let team_hash = clicked.players.map(p=>p.id).sort().join('|');
-                  e.doubles_subrank[team_hash] = i;
-                  approvedChanged(e, true);
-                  saveTournament(tournament);
+            gen.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: teamAction });
+
+            function teamAction(selection, i) {
+               if (selection.value == 'cancel') {
+                  return;
+               } else if (selection.value == 'wildcard') {
+                  assignWildcard();
+               } else if (selection.value == 'subrank') {
+                  let remove = [{ label: `${lang.tr('draws.remove')}: Subrank`, value: 'remove' }];
+                  let options = remove.concat(...util.range(0, duplicates).map(d => ({ label: `Subrank: ${d + 1}`, value: d + 1 })));
+                  gen.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: addSubrank });
                }
+
+               saveTournament(tournament);
+            }
+
+            function addSubrank(selection, i) {
+               if (!e.doubles_subrank) e.doubles_subrank = {};
+               e.doubles_subrank[team_id] = i;
+               approvedChanged(e, true);
+            }
+
+            function assignWildcard() {
+               if (!e.wildcards) e.wildcards = [];
+               e.wildcards.push(team_id);
+               modifyApproved.push(e, team_id.split('|'));
             }
 
             function reduceTeams(teams, team_id) {
@@ -2917,33 +2968,30 @@ let tournaments = function() {
 
          util.addEventToClass('player_click', changeGroup, container.event_details.element);
          util.addEventToClass('team_click', removeTeam, container.event_details.element);
-         util.addEventToClass('team_click', addSubrank, container.event_details.element, 'contextmenu');
+         util.addEventToClass('team_click', teamContextClick, container.event_details.element, 'contextmenu');
          util.addEventToClass('player_click', playerOptions, container.event_details.element, 'contextmenu');
 
          function playerOptions(evt) {
-            if (!state.edit || e.active) return;
+            var grouping = util.getParent(evt.target, 'player_container').getAttribute('grouping');
+            if (!state.edit || e.active || grouping == 'approved' || e.format != 'S') return;
 
-            let options = [
+            var options = [
                { label: 'Wildcard', key: 'wc' },
                { label: lang.tr('ccl'), key: 'ccl' },
             ];
             function pOpts(c, i) {
                if (c.key == 'wc') {
-                  let grouping = util.getParent(evt.target, 'player_container').getAttribute('grouping');
                   let elem = util.getParent(evt.target, 'player_click');
                   let puid = elem.getAttribute('puid');
                   let id = elem.getAttribute('uid');
-                  if (e.format == 'S') {
-                     let plyr = tournament.players.reduce((p, c) => c.id == id ? c : p, undefined);
-                     if (plyr && grouping == 'eligible') toggleWildcard(plyr, true);
-                  } else {
-                  }
+                  let plyr = tournament.players.reduce((p, c) => c.id == id ? c : p, undefined);
+                  if (plyr && grouping == 'eligible') assignWildcard(plyr, true);
                }
             }
             gen.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: pOpts });
          }
 
-         function toggleWildcard(plyr, wildcard) {
+         function assignWildcard(plyr, wildcard) {
             if (!e.wildcards) e.wildcards = [];
             if (wildcard == undefined) toggle();
             if (wildcard == false) remove();
@@ -3008,12 +3056,22 @@ let tournaments = function() {
          }
       }
 
+      function schedulePublishState() {
+         let published = tournament.schedule && tournament.schedule.published;
+         let published_state = published ? (tournament.schedule.up_to_date ? 'publisheduptodate' : 'publishedoutofdate') : 'unpublished';
+         let publish_class_name = `schedule_publish_state ${published_state} action_icon`;
+         let publish_schedule = container.schedule_tab.element.querySelector(`.${classes.publish_schedule}`);
+         publish_schedule.querySelector('div').className = publish_class_name;
+      }
+
       // separated this function from scheduleTab() because uglify caused errors
       function displaySchedule() {
          var { completed_matches, pending_matches } = tournamentEventMatches({ tournament, source: true });
 
          let img = new Image();
          img.src = "./icons/dragmatch.png";
+
+         schedulePublishState();
 
          // TODO: consider the possibility that tournament dates may not include all dates within a range
          let date_range = util.dateRange(tournament.start, tournament.end);
@@ -3140,6 +3198,7 @@ let tournaments = function() {
             util.addEventToClass('schedule_box', gridContext, container.schedule.element, 'contextmenu');
             util.addEventToClass('oop_round', roundContext, container.schedule.element, 'contextmenu');
             util.addEventToClass('schedule_box', selectMatch, container.schedule.element, 'click');
+            scheduleActions();
          }
 
          util.addEventToClass('dropremove', dropRemove, document, 'drop');
@@ -3160,6 +3219,7 @@ let tournaments = function() {
             let scheduled_match = unscheduled_matches.reduce((m, c) => c.getAttribute('muid') == muid ? c : m);
             scheduled_match.parentNode.removeChild(scheduled_match);
             pending_matches = pending_matches.filter(m=>m.muid != muid);
+            scheduleActions({ changed: true });
          }
 
          function returnToUnscheduled(match, element) {
@@ -3183,6 +3243,8 @@ let tournaments = function() {
 
             ({ completed_matches, pending_matches } = tournamentEventMatches({ tournament, source: true }));
             displayPending();
+
+            scheduleActions({ changed: true });
          }
 
          function showSearch(evt) {
@@ -3300,6 +3362,7 @@ let tournaments = function() {
             let source_match = muid_key[source_muid];
 
             returnToUnscheduled(source_match, source);
+            saveTournament(tournament);
          }
 
          function drop(ev) {
@@ -3487,9 +3550,7 @@ let tournaments = function() {
                         lang.tr('schedule.nextavailable'),
                         lang.tr('schedule.clear'),
                      ];
-                     setTimeout(function() {
-                        gen.svgModal({ x: ev.clientX, y: ev.clientY, options: headings, callback: timeHeading });
-                     }, 200);
+                     gen.svgModal({ x: ev.clientX, y: ev.clientY, options: headings, callback: timeHeading });
                   } else if (choice.key == 'changestatus') {
                      let statuses = [
                         lang.tr('schedule.oncourt'),
@@ -3498,9 +3559,7 @@ let tournaments = function() {
                         lang.tr('schedule.raindelay'),
                         lang.tr('schedule.clear'),
                      ];
-                     setTimeout(function() {
-                        gen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: matchStatus });
-                     }, 200);
+                     gen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: matchStatus });
                   } else if (choice.key == 'umpire') {
                      addUmpire(match, 'schedule');
                      return;
@@ -3517,9 +3576,7 @@ let tournaments = function() {
                         { label: lang.tr('penalties.timeviolation'), value: 'timeviolation' },
                         { label: lang.tr('penalties.latearrival'), value: 'latearrival' },
                      ];
-                     setTimeout(function() {
-                        gen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: assessPenalty });
-                     }, 200);
+                     gen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: assessPenalty });
                   } else if (choice.key == 'remove') {
                      returnToUnscheduled(match, target);
                      return;
@@ -3532,9 +3589,7 @@ let tournaments = function() {
                }
                function assessPenalty(penalty, penalty_index, penalty_value) {
                   let players = match.players.map(p=>p.full_name);
-                  setTimeout(function() {
-                     gen.svgModal({ x: ev.clientX, y: ev.clientY, options: players, callback: playerPenalty });
-                  }, 200);
+                  gen.svgModal({ x: ev.clientX, y: ev.clientY, options: players, callback: playerPenalty });
                   function playerPenalty(player, index, value) {
                      let puid = match.players[index].puid;
                      let tournament_player = tournament.players.reduce((p, s) => s.puid == puid ? s : p);
@@ -3871,7 +3926,6 @@ let tournaments = function() {
 
             let element = util.getParent(evt.target, 'player_click');
             let puid = element.getAttribute('puid');
-            // let clicked_player = tournament.players.filter(p=>p.puid == puid);
             let clicked_player = tournament.players.reduce((p, c) => { if (c.puid == puid) p = c; return p; }, undefined);
 
             let withdrawn = clicked_player.withdrawn == 'Y' || clicked_player.withdrawn == true;
@@ -5368,7 +5422,7 @@ let tournaments = function() {
 
                let bod = d3.select('body').node();
                let evt = (d3.event);
-               setTimeout(function() { gen.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: clickAction }); }, 300);
+               gen.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: clickAction });
             }
 
             function assignedRRoptions(coords, placement, cell, draw) {
@@ -5537,7 +5591,7 @@ let tournaments = function() {
             }
             let bod = d3.select('body').node();
             let evt = (d3.event);
-            setTimeout(function() { gen.svgModal({ x: evt.clientX, y: evt.clientY, options: teams, callback: clickAction }); }, 300);
+            gen.svgModal({ x: evt.clientX, y: evt.clientY, options: teams, callback: clickAction });
          }
 
          function findSeedGroup(draw, seed) {
