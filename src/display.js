@@ -311,23 +311,41 @@
       document.getElementById('processing').style.display = "flex";
       let update = coms.update ? `<h3>${coms.update}</h3>` : '';
       let refresh = update ? `<button id='${ids.refresh}' class='btn btn-medium dismiss'>${lang.tr('actions.refresh')}</button>` : '';
-      let message_list = messages && messages.length ? messages.map(formatMessage).join('') : '';
+      let message_list = messages && messages.length ? messages.map(formatMessage) : [];
+      let message_html = message_list.map(m=>m.html).join('');
       let html = `
          <h2 style='margin: 1em;'>${lang.tr('version')}: ${config.env().version}</h2>
          ${update}
-         ${message_list}
+         ${message_html}
          <div class="flexcenter" style='margin-bottom: 2em;'>
             ${refresh}
             <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${lang.tr('actions.ok')}</button>
          </div>
       `;
       document.getElementById('processingtext').innerHTML = html;
+      if (messages.length) {
+         messages.forEach((message, i) => {
+            let displayTournament = () => {
+               tournaments.displayTournament({ tuid: message.tuid });
+               gen.closeModal();
+            }
+            if (message.inDB) document.getElementById(message_list[i].msguid).addEventListener('click', displayTournament);
+         });
+      }
       id_obj = idObj(ids);
       id_obj.ok.element.addEventListener('click', okAction);
       if (update) id_obj.refresh.element.addEventListener('click', refreshAction);
 
       function formatMessage(msg) {
-         return `<div style='margin: 1em; padding: 1px; background-color: #FECAC3'>${lang.tr(msg.title)}: ${msg.tournament}</div>`;
+         let msguid = UUID.generate();
+         let color = msg.authorized ? '#D1FBA7' : '#FECAC3';
+         let pointer = msg.inDB ? 'cursor: pointer;' : '';
+         let html = `
+            <div id='${msguid}' style='margin: 1em; padding: 1px; background-color: ${color}; ${pointer}'>
+               ${lang.tr(msg.title)}: ${msg.tournament}
+            </div>
+         `;
+         return { html, msguid }
       }
    }
 
@@ -2637,6 +2655,8 @@
       let class_name = 'icon15 homeicon';
       if (value == 'update') class_name += '_update';
       if (value == 'messages') class_name += '_messages';
+      if (value == 'authorized') class_name += '_authorized';
+      if (value == 'notfound') class_name += '_notfound';
       document.getElementById('homeicon').className = class_name;
    }
 
