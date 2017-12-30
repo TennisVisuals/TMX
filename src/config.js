@@ -45,7 +45,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.6',
+      version: '0.9.6.1',
       version_check: undefined,
       org: {
          name: undefined,
@@ -106,6 +106,23 @@ let config = function() {
       let exists = env.messages.reduce((p, c) => msgHash(c) ==  message_hash ? true : p, false);
       if (!exists) env.messages.push(msg);
       gen.homeIconState('messages');
+   }
+
+   fx.authMessage = (msg) => {
+      db.findTournament(msg.tuid).then(pushMessage, err => console.log(err));
+
+      function pushMessage(tournament) {
+         if (tournament) {
+            msg.inDB = true;
+            msg.tournament = `${tournament.name}`;
+            env.messages.push(msg);
+            gen.homeIconState('authorized');
+         } else {
+            msg.tournament = "Not Found in Calendar";
+            env.messages.push(msg);
+            gen.homeIconState('notfound');
+         }
+      }
    }
 
    // not visible/accesible outside of this module
