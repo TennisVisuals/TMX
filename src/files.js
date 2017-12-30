@@ -933,16 +933,16 @@
                         { text: lang.tr('draws.seedrange'), bold: true },
                         {
                            columns: [
-                              { width: 40, stack: [ { text: `${lang.tr('draws.first')}:` }, { text: `${lang.tr('draws.last')}:` } ] },
-                              { width: 10, stack: [ { text: smin }, { text: smax } ] }
+                              { width: 35, stack: [ { text: `${lang.tr('draws.first')}:` }, { text: `${lang.tr('draws.last')}:` } ] },
+                              { width: 15, stack: [ { text: smin }, { text: smax } ] }
                            ]
                         },
                         { text: ' ' },
                         { text: lang.tr('draws.playerrange'), bold: true },
                         {
                            columns: [
-                              { width: 40, stack: [ { text: `${lang.tr('draws.first')}:` }, { text: `${lang.tr('draws.last')}:` } ] },
-                              { width: 10, stack: [ { text: omin }, { text: omax } ] }
+                              { width: 35, stack: [ { text: `${lang.tr('draws.first')}:` }, { text: `${lang.tr('draws.last')}:` } ] },
+                              { width: 15, stack: [ { text: omin }, { text: omax } ] }
                            ]
                         },
 							]
