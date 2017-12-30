@@ -1116,6 +1116,8 @@ let tournaments = function() {
             let message = `${location.href}?actionKey=${key_uuid}`;
             let btn = UUID.generate();
             let ctext = lang.tr('phrases.linkcopied');
+
+            // TODO: server won't accept pushKey unless user uuuid in superuser cache on server
             coms.emitTmx({ pushKey });
             let msg = gen.okCancelMessage(ctext, () => gen.closeModal());
             copyClick();
