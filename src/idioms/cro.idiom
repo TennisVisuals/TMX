@@ -176,6 +176,7 @@
          removeall: 'Makni sve',
          addall: 'Dodaj sve',
          key: 'Ovlastiti',
+         auth: 'Ovlastio',
          noauth: 'Nije ovlašten',
          fetch: 'Preuzimanje'
       },

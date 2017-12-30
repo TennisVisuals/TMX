@@ -229,6 +229,7 @@
          addall: 'Add All',
          key: 'Authorize',
          noauth: 'Not Authorized',
+         auth: 'Authorized',
          fetch: 'Download',
       },
 
@@ -587,6 +588,7 @@
          removeall: 'Makni sve',
          addall: 'Dodaj sve',
          key: 'Ovlastiti',
+         auth: 'Ovlastio',
          noauth: 'Nije ovlašten',
          fetch: 'Preuzimanje'
       },
