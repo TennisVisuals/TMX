@@ -45,7 +45,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.5.6',
+      version: '0.9.6',
       version_check: undefined,
       org: {
          name: undefined,
@@ -931,7 +931,10 @@ let config = function() {
 
    function displayPlayers() {
       let actions = gen.playerActions(); 
-      actions.add.element.addEventListener('click', () => player.createNewPlayer({ callback }));
+      if (o.components.players && o.components.players.add) {
+         actions.add.element.style.display = 'flex';
+         actions.add.element.addEventListener('click', () => player.createNewPlayer({ callback }));
+      }
 
       if (o.components.players && o.components.players.calcs) {
          actions.pointCalc.element.style.display = 'flex';
