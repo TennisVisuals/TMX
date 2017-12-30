@@ -385,6 +385,9 @@ let tournaments = function() {
          gen.okCancelMessage(lang.tr('draws.unpublish'), unPublishDraw, () => gen.closeModal());
 
          function unPublishDraw() {
+            displayed_draw_event.published = false;
+            displayed_draw_event.up_to_date = false;
+            gen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
             deleteEvent(tournament, displayed_draw_event);
             gen.closeModal();
          }
@@ -1196,14 +1199,7 @@ let tournaments = function() {
 
       function enableTournamentOptions() {
          let bool = state.edit;
-         container.organizer.element.disabled = !bool;
-         container.location.element.disabled = !bool;
-         container.judge.element.disabled = !bool;
-         container.display_id.element.disabled = !bool;
-         container.start_date.element.disabled = !bool;
-         container.end_date.element.disabled = !bool;
-         container.points_valid.element.disabled = !bool;
-
+         [ 'start_date', 'end_date', 'organization', 'organizers', 'location', 'judge' ].forEach(field=>container[field].element.disabled = !bool);
          container.push2cloud.element.style.display = bool ? 'inline' : 'none';
          container.localdownload.element.style.display = bool ? 'inline' : 'none';
       }
@@ -1536,10 +1532,25 @@ let tournaments = function() {
          }
          // attach action to display event_details when clicking each event
          util.addEventToClass('event', eventDetails, container.events.element);
+         util.addEventToClass('published_header', unpublishAllEvents, document, 'contextmenu');
          if (regen_drawstab) drawsTab();
+      }
 
-         // TODO: Why was it necessary to generate the matches tab?
-         // matchesTab();
+      function unpublishAllEvents() {
+         gen.okCancelMessage(lang.tr('draws.unpublishall'), unPublishAll, () => gen.closeModal());
+         escapeModal();
+
+         function unPublishAll() {
+            gen.escapeFx = undefined;
+            deleteTournamentEvents = { tuid: tournament.tuid };
+            coms.emitTmx({ deleteTournamentEvents })
+            gen.closeModal();
+            tournament.events.forEach(evt => {
+               evt.published = false;
+               evt.up_to_date = false;
+            });
+            eventList();
+         }
       }
 
       function newTournamentEvent() {
@@ -2054,46 +2065,21 @@ let tournaments = function() {
       }
 
       function configureLocationAttributes(l) {
+         let disabled = !state.edit
          let attributes = gen.displayLocationAttributes(container, l, state.edit);
 
-         attributes.abbreviation.element.addEventListener('keydown', catchTab, false);
-         attributes.name.element.addEventListener('keydown', catchTab, false);
-         attributes.address.element.addEventListener('keydown', catchTab, false);
-         attributes.courts.element.addEventListener('keydown', catchTab, false);
-         attributes.identifiers.element.addEventListener('keydown', catchTab, false);
-
-         attributes.abbreviation.element.addEventListener('keyup', (evt) => defineAttr('abbreviation', evt, { length: 3 }));
-         attributes.name.element.addEventListener('keyup', (evt) => defineAttr('name', evt, { length: 5 }));
-         attributes.address.element.addEventListener('keyup', (evt) => defineAttr('address', evt, { length: 5 }));
-         attributes.courts.element.addEventListener('keyup', (evt) => defineAttr('courts', evt, { number: true }));
-         attributes.identifiers.element.addEventListener('keyup', (evt) => defineAttr('identifiers', evt));
-         setTimeout(function() { attributes.abbreviation.element.focus(); }, 50);
-
-         attributes.abbreviation.element.value = l.abbreviation || '';
-         attributes.name.element.value = l.name || '';
-         attributes.address.element.value = l.address || '';
-         attributes.courts.element.value = l.courts || 0;
-         attributes.identifiers.element.value = l.identifiers || '';
-
-         let disabled = !state.edit
-         attributes.abbreviation.element.disabled = disabled;
-         attributes.name.element.disabled = disabled;
-         attributes.address.element.disabled = disabled;
-         attributes.courts.element.disabled = disabled;
-         attributes.identifiers.element.disabled = disabled;
-
-         attributes.abbreviation.element.style.border = disabled ? 'none' : '';
-         attributes.name.element.style.border = disabled ? 'none' : '';
-         attributes.address.element.style.border = disabled ? 'none' : '';
-         attributes.courts.element.style.border = disabled ? 'none' : '';
-         attributes.identifiers.element.style.border = disabled ? 'none' : '';
-
-         defineAttr('abbreviation', undefined, { length: 3 }, attributes.abbreviation.element);
-         defineAttr('name', undefined, { length: 5 }, attributes.name.element);
-         defineAttr('address', undefined, { length: 5 }, attributes.name.element);
-         defineAttr('courts', undefined, { number: true }, attributes.courts.element);
-
          let field_order = [ 'abbreviation', 'name', 'address', 'courts', 'identifiers' ];
+         let constraints = { 'abbreviation': { length: 3 }, 'name': { length: 5 }, 'address': { length: 5 }, 'courts': { number: true } };
+         field_order.forEach(field => {
+            attributes[field].element.addEventListener('keydown', catchTab, false);
+            attributes[field].element.value = l[field] || '';
+            attributes[field].element.disabled = disabled;
+            attributes[field].element.style.border = disabled ? 'none' : '';
+            attributes[field].element.addEventListener('keyup', (evt) => defineAttr(field, evt, constraints[field]));
+            defineAttr(field, undefined, constraints[field], attributes[field].element);
+         });
+
+         setTimeout(function() { attributes.abbreviation.element.focus(); }, 50);
 
          function nextFieldFocus(field, increment=1, delay=50) {
             let next_field = field_order.indexOf(field) + increment;
@@ -3994,7 +3980,7 @@ let tournaments = function() {
 
          let entryKey = (evt, cls, attribute) => {
             let value = evt.target.value;
-            let numeric = value && !isNaN(value) ? parseInt(value.toString().slice(-3)) : undefined;
+            let numeric = value && !isNaN(value) ? parseInt(value.toString().slice(-4)) : undefined;
             evt.target.value = numeric || '';
 
                let element = util.getParent(evt.target, 'player_click');
@@ -6216,7 +6202,7 @@ let tournaments = function() {
             if (tournament.tuid.length < 15) tournament.display_id = tournament.tuid;
          }
 
-         let field_order = [ 'start_date', 'end_date', 'organizer', 'location', 'display_id', 'judge' ];
+         let field_order = [ 'start_date', 'end_date', 'organization', 'organizers', 'location', 'judge' ];
 
          function nextFieldFocus(field, delay=50) {
             let next_field = field_order.indexOf(field) + 1;
@@ -6232,20 +6218,31 @@ let tournaments = function() {
             if (!evt || evt.which == 13 || evt.which == 9) nextFieldFocus(attr);
          }
 
-         container.organizer.element.addEventListener('keydown', catchTab, false);
+         ['organization', 'organizers', 'location', 'judge'].forEach(field => {
+            container[field].element.addEventListener('keydown', catchTab, false);
+            container[field].element.addEventListener('keyup', (evt) => defineAttr(field, evt));
+            container[field].element.value = tournament[field] || '';
+         });;
+
+         /*
+         container.organization.element.addEventListener('keydown', catchTab, false);
+         container.organizers.element.addEventListener('keydown', catchTab, false);
          container.location.element.addEventListener('keydown', catchTab, false);
          container.judge.element.addEventListener('keydown', catchTab, false);
-         container.display_id.element.addEventListener('keydown', catchTab, false);
+         // container.display_id.element.addEventListener('keydown', catchTab, false);
 
-         container.organizer.element.addEventListener('keyup', (evt) => defineAttr('organizer', evt));
+         container.organization.element.addEventListener('keyup', (evt) => defineAttr('organization', evt));
+         container.organizers.element.addEventListener('keyup', (evt) => defineAttr('organizers', evt));
          container.location.element.addEventListener('keyup', (evt) => defineAttr('location', evt));
          container.judge.element.addEventListener('keyup', (evt) => defineAttr('judge', evt));
-         container.display_id.element.addEventListener('keyup', (evt) => defineAttr('display_id', evt));
+         //container.display_id.element.addEventListener('keyup', (evt) => defineAttr('display_id', evt));
 
-         container.organizer.element.value = tournament.organizer || '';
+         container.organization.element.value = tournament.organization || '';
+         container.organizers.element.value = tournament.organizers || '';
          container.location.element.value = tournament.location || '';
          container.judge.element.value = tournament.judge || '';
-         container.display_id.element.value = tournament.display_id || '';
+         // container.display_id.element.value = tournament.display_id || '';
+         */
 
          let day_times = days.map(d=>new Date(d).getTime());
          let max_start = Math.min(...day_times);
@@ -6909,7 +6906,7 @@ let tournaments = function() {
       let trny = Object.assign({}, tournament_data);
       let { container } = gen.createNewTournament(title, trny);
 
-      let field_order = [ 'name', 'association', 'organizer', 'start', 'end', 'judge', 'draws', 'cancel', 'save' ];
+      let field_order = [ 'name', 'association', 'organization', 'start', 'end', 'judge', 'draws', 'cancel', 'save' ];
 
       let nextFieldFocus = (field) => {
          let next_field = field_order.indexOf(field) + 1;
@@ -7039,7 +7036,7 @@ let tournaments = function() {
 
       container.name.element.addEventListener('keydown', catchTab, false);
       container.association.element.addEventListener('keydown', catchTab, false);
-      container.organizer.element.addEventListener('keydown', catchTab, false);
+      container.organization.element.addEventListener('keydown', catchTab, false);
       container.judge.element.addEventListener('keydown', catchTab, false);
       container.draws.element.addEventListener('keydown', catchTab, false);
 
@@ -7048,7 +7045,7 @@ let tournaments = function() {
       container.end.element.addEventListener('keyup', (evt) => validateDate(evt, 'end'));
 
       container.association.element.addEventListener('keyup', (evt) => defineAttr('association', evt));
-      container.organizer.element.addEventListener('keyup', (evt) => defineAttr('organizer', evt));
+      container.organization.element.addEventListener('keyup', (evt) => defineAttr('organization', evt));
       container.judge.element.addEventListener('keyup', (evt) => defineAttr('judge', evt));
       container.draws.element.addEventListener('keyup', (evt) => defineAttr('draws', evt));
 
