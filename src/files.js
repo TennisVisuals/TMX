@@ -550,7 +550,7 @@
          if (info.draw_positions.length <= 24) {
             draw.options({names: { length_divisor: 13 }});
             draw.options({umpires: { offset: 45 }});
-            draw.options({detail_offsets: { base: 60, width: 65 }});
+            draw.options({detail_offsets: { base: 80, width: 65 }});
             draw.options({lines: { stroke_width: 4 }});
             draw.options({minPlayerHeight: 130});
             draw.options({detail_attr: { font_size: 36 }});
@@ -558,7 +558,7 @@
          } else if (info.draw_positions.length <= 32) {
             draw.options({names: { length_divisor: 12 }});
             draw.options({umpires: { offset: 45 }});
-            draw.options({detail_offsets: { base: 40, width: 65 }});
+            draw.options({detail_offsets: { base: 80, width: 60 }});
             draw.options({lines: { stroke_width: 4 }});
             draw.options({minPlayerHeight: 100 });
             draw.options({detail_attr: { font_size: 30 }});
@@ -566,7 +566,7 @@
          } else if (info.draw_positions.length <= 48) {
             draw.options({names: { length_divisor: 12 }});
             draw.options({umpires: { offset: 45 }});
-            draw.options({detail_offsets: { base: 30, width: 65 }});
+            draw.options({detail_offsets: { base: 80, width: 60 }});
             draw.options({lines: { stroke_width: 4 }});
             draw.options({minPlayerHeight: 70 });
             draw.options({detail_attr: { font_size: 30 }});
@@ -574,7 +574,7 @@
          } else if (info.draw_positions.length <= 64) {
             draw.options({names: { length_divisor: 12 }});
             draw.options({umpires: { offset: 45 }});
-            draw.options({detail_offsets: { base: 30, width: 65 }});
+            draw.options({detail_offsets: { base: 80, width: 60 }});
             draw.options({lines: { stroke_width: 4 }});
             draw.options({minPlayerHeight: 50 });
             draw.options({detail_attr: { font_size: 30 }});
@@ -587,14 +587,14 @@
          getLogo().then(showPDF);
 
          function showPDF(logo) {
-            exp.SVGasURI(element).then(image => drawSheet(tournament, [image], logo, selected_event, event), reject).then(cleanUp, cleanUp);;
+            exp.SVGasURI(element).then(image => drawSheet({ tournament, images: [image], logo, selected_event, event, info }), reject).then(cleanUp, cleanUp);;
          }
       });
    }
 
    function cleanUp() { d3.selectAll('#hidden').remove(); }
 
-   exp.rrDrawPDF = ({ tournament, data, options, selected_event, info }) => {
+   exp.rrDrawPDF = ({ tournament, data, options, selected_event, info, event }) => {
       return new Promise((resolve, reject) => {
 
          d3.selectAll('#hidden').remove();
@@ -628,15 +628,14 @@
 
          function showPDF(logo) {
             let bracket_svgs = Array.from(element.querySelectorAll('svg'));
-            Promise.all(bracket_svgs.map(exp.SVGasURI)).then(images => drawSheet(tournament, images, logo, selected_event), reject).then(cleanUp, cleanUp);
+            Promise.all(bracket_svgs.map(exp.SVGasURI)).then(images => drawSheet({ tournament, images, logo, selected_event, event, info }), reject).then(cleanUp, cleanUp);
          }
 
       });
    }
 
-   function drawSheetPageHeader(tournament, logo, type, selected_event) {
-
-      let evt = tournament.events[selected_event];
+   function drawSheetPageHeader(tournament, logo, type, selected_event, event, info) {
+      let evt = event || (tournament.events && tournament.events[selected_event]) || { name: 'Unknown' };
       let event_type = lang.tr('draws.maindraw');
       if (evt.draw_type == 'Q') event_type = lang.tr('draws.qualification');
       if (evt.draw_type == 'R') event_type = lang.tr('draws.roundrobin');
@@ -835,20 +834,80 @@
       return footer;
    }
 
-   function drawSheet(tournament={}, images, logo, selected_event, event) {
-      let image = images[0];
-      let player_representatives = event && event.player_representatives || []; 
+   function getRankedPlayers(evt, info) {
+      if (!evt.draw || !evt.draw.opponents) return noevent;
 
-      let page_header = drawSheetPageHeader(tournament, logo, 'draw_sheet', selected_event);
+      let blank = { text: ' ' };
+      let lda = '';
+      let a1 = new Array(6).fill(blank);
+      let c3 = new Array(6).fill(blank);
+      
+      let noevent = { s1: [], s2: [], c1: [], c2: [], smin: '', smax: '', omin: '', omax: '', a1, c3, lda };
+
+      let seeded_players = evt.draw.opponents.filter(o=>o[0].seed);
+      let seed_rankings = [].concat(...seeded_players.map(p=>p.map(m=>m.category_ranking)));
+      let smin = seed_rankings.length ? Math.min(...seed_rankings) : '';
+      let smax = seed_rankings.length ? Math.max(...seed_rankings) : '';
+
+      let players = [].concat(...evt.draw.opponents);
+      let alt_ll = players.filter(p=>['A', 'LL'].indexOf(p.entry) >= 0);
+      alt_ll.forEach((p, i) => { a1[i] = entryObject(p); c3[i] = { text: i + 1 }; });
+
+      // last direct acceptance
+      let da_players = players.filter(p=>['A', 'LL', 'WC'].indexOf(p.entry) < 0);
+      let da_player_rankings = [].concat(...da_players.map(p=>p.category_ranking)).sort((a, b) => a - b);
+      let dalen = da_player_rankings.length;
+      let damax = dalen && !isNaN(da_player_rankings[dalen - 1]) ? da_player_rankings[dalen - 1] : undefined;
+      let lda_player = !damax ? undefined : da_players.reduce((p, c) => c.category_ranking == damax ? c : p, undefined);
+      lda = (info && info.byes && info.byes.length) || !lda_player ? { text: lang.tr('draws.allindraw') } : rankingObject(lda_player);
+
+      let opponent_rankings = [].concat(...evt.draw.opponents.map(o=>o.map(m=>m.category_ranking))).sort((a, b) => a - b);
+      let olen = opponent_rankings.length;
+      let omin = olen && !isNaN(opponent_rankings[0]) ? opponent_rankings[0] : "nr";
+      let omax = olen && !isNaN(opponent_rankings[olen - 1]) ? opponent_rankings[olen - 1] : "nr";
+
+      if (evt.format == 'S') {
+         let seeded = seeded_players.map(p=>rankingObject(p[0]));
+         let s1 = seeded.slice(0, 8);
+         let s2 = seeded.slice(8, 16);
+         let c1 = s1.map((p, i) => ({ text: i+1 }));
+         let c2 = s2.map((p, i) => ({ text: i+9 }));
+         return { s1, s2, c1, c2, smin, smax, omin, omax, a1, c3, lda }
+      } else {
+         let s1 = seeded_players.map(p=>rankingObject(p[rp(p)[0]])).slice(0, 8);
+         let s2 = seeded_players.map(p=>rankingObject(p[rp(p)[1]])).slice(0, 8);
+         let c1 = s1.map((p, i) => ({ text: i+1 }));
+         let c2 = [];
+         return { s1, s2, c1, c2, smin, smax, omin, omax, a1, c3, lda }
+      }
+
+      function rp(players) { return (players[0].category_ranking < players[1].category_ranking) ? [0, 1] : [1, 0]; }
+      function rankingObject(p) { return { text: `${p.full_name} [${p.category_ranking}]` }; }
+      function entryObject(p) { return { text: `${p.full_name} [${p.entry}]` }; }
+   }
+
+   function drawSheet({ tournament={}, images, logo, selected_event, event, info }) {
+      let evt = event || (tournament.events && tournament.events[selected_eent]);
+      let image = images[0];
+      let player_representatives = evt && evt.player_representatives || []; 
+      let event_organizers = tournament && tournament.organizer ? [tournament.organizer] : []; 
+      let timestamp = localizeDate(new Date(), { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      let page_header = drawSheetPageHeader(tournament, logo, 'draw_sheet', selected_event, event);
+      let { s1, s2, c1, c2, smin, smax, omin, omax, a1, c3, lda } = getRankedPlayers(evt, info);
+
+      let date = new Date(tournament.start);
+      let year = date.getFullYear();
+      let month = date.getMonth();
+      let rank_list_date = util.formatDate(`${year}-${month+1}-01`);
 
       let footer = {
          margin: [ 10, 0, 10, 0 ],
          fontSize: 8,
 			style: 'tableExample',
 			table: {
-            widths: ['auto', '*', 'auto', 'auto'],
-				body: [ 
-               [ 
+            widths: [50, '*', 'auto', 'auto'],
+            body: [
+					[
                   { text: lang.tr('rl'), bold: true },
                   {
                      columns: [
@@ -862,40 +921,70 @@
                         { width: '*', text: lang.tr('draws.luckylosers'), bold: true },
                      ],
                   }, 
-                  { text: lang.tr('phrases.timestamp'), bold: true },
+                  { text: [ lang.tr('phrases.timestamp'), timestamp ], bold: true },
                ],
-               [
-                  { text: ' ', rowSpan: 3 },
-                  { text: ' ', rowSpan: 3 },
-                  { text: ' ', rowSpan: 2 },
-                  [
-                     { text: lang.tr('draws.lastdirectaccept'), bold: true },
-                     { text: ' ', },
-                  ],
-               ],
-               [
-                  { text: ' ' },
-                  { text: ' ' },
-                  { text: ' ' },
-                  [
-                     { text: lang.tr('draws.playerreps'), bold: true },
-                     { text: player_representatives[0] || ' ', },
-                     { text: player_representatives[1] || ' ', },
-                  ],
-               ],
-               [
-                  { text: ' ' },
-                  { text: ' ' },
-                  [
-                     { text: lang.tr('draws.organizers'), bold: true },
-                     { text: ' ', },
-                  ],
-                  [
-                     { text: lang.tr('phrases.judgesignature'), bold: true },
-                     { text: ' ', },
-                  ],
-               ],
-            ]
+					[
+						{
+                     fontSize: 6,
+							stack: [
+                        { text: lang.tr('dt') },
+                        { text: rank_list_date, bold: true, alignment: 'center' },
+                        { text: ' ' },
+                        { text: lang.tr('draws.seedrange'), bold: true },
+                        {
+                           columns: [
+                              { width: 40, stack: [ { text: `${lang.tr('draws.first')}:` }, { text: `${lang.tr('draws.last')}:` } ] },
+                              { width: 10, stack: [ { text: smin }, { text: smax } ] }
+                           ]
+                        },
+                        { text: ' ' },
+                        { text: lang.tr('draws.playerrange'), bold: true },
+                        {
+                           columns: [
+                              { width: 40, stack: [ { text: `${lang.tr('draws.first')}:` }, { text: `${lang.tr('draws.last')}:` } ] },
+                              { width: 10, stack: [ { text: omin }, { text: omax } ] }
+                           ]
+                        },
+							]
+						},
+						{
+                     columns: [
+                        { width: 12, stack: c1, },
+                        { width: '*', stack: s1, },
+                        { width: 12, stack: c2, },
+                        { width: '*', stack: s2, },
+                     ]
+						},
+                  {
+                     stack: [
+                        {
+                           columns: [
+                              { width: 12, stack: c3, },
+                              { width: '*', stack: a1, },
+                           ]
+                        },
+                        { text: ' ' },
+                        { text: lang.tr('draws.organizers'), bold: true, fontSize: 8 },
+                        { text: event_organizers[0] || ' ', },
+                        { text: event_organizers[1] || ' ', },
+                     ]
+                  },
+                  {
+                     stack: [
+                        { text: lang.tr('draws.lastdirectaccept'), bold: true, fontSize: 8 },
+                        lda,
+                        { text: ' ', },
+                        { text: lang.tr('draws.playerreps'), bold: true, fontSize: 8 },
+                        { text: player_representatives[0] || ' ', },
+                        { text: player_representatives[1] || ' ', },
+                        { text: ' ', },
+                        { text: lang.tr('phrases.judgesignature'), bold: true, fontSize: 8 },
+                        { text: ' ', },
+                        { text: ' ', },
+                     ],
+                  }
+					],
+				]
 			},
          layout: {
             defaultBorder: true,
@@ -909,8 +998,6 @@
          pageSize: 'A4',
          pageOrientation: 'portrait',
 
-         // TODO ...
-         // pageMargin for the footer needs to be calculated based on # players in cells
          pageMargins: [ 10, 20, 10, 120 ],
 
          footer: footer,
