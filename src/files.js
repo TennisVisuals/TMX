@@ -684,7 +684,7 @@
                ],
                [
                   { text: lang.tr('signin.tournament_date'), style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  { text: lang.tr('signin.organizer'), style: 'tableHeader', margin: [0, 0, 5, 0] },
+                  { text: lang.tr('signin.organization'), style: 'tableHeader', margin: [0, 0, 5, 0] },
                   { text: lang.tr('signin.place'), style: 'tableHeader', margin: [0, 0, 5, 0] },
                   { text: lang.tr('signin.id'), style: 'tableHeader', margin: [0, 0, 5, 0] },
                   { text: lang.tr('signin.rank'), style: 'tableHeader', margin: [0, 0, 5, 0] },
@@ -692,7 +692,7 @@
                ],
                [ 
                   { text: util.formatDate(new Date(tournament.start)), style: 'tableData' },
-                  { text: tournament.organizer || '', style: 'tableData' },
+                  { text: tournament.organization || '', style: 'tableData' },
                   { text: tournament.location || '', style: 'tableData' },
                   { text: tournament_id, style: 'tableData' },
                   { text: tournament.rank || '', style: 'tableData' },
@@ -774,7 +774,7 @@
                ],
                [
                   { text: lang.tr('signin.id'), style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  { text: lang.tr('signin.organizer'), style: 'tableHeader', margin: [0, 0, 5, 0] },
+                  { text: lang.tr('signin.organization'), style: 'tableHeader', margin: [0, 0, 5, 0] },
                   // { text: lang.tr('signin.place'), style: 'tableHeader', margin: [0, 0, 5, 0] },
                   {}, 
                   {}, 
@@ -783,7 +783,7 @@
                ],
                [ 
                   { text: tournament_id, style: 'tableData' },
-                  { text: tournament.organizer || '', style: 'tableData' },
+                  { text: tournament.organization || '', style: 'tableData' },
                   // { text: tournament.location || '', style: 'tableData' },
                   {},
                   {},
@@ -890,7 +890,7 @@
       let evt = event || (tournament.events && tournament.events[selected_eent]);
       let image = images[0];
       let player_representatives = evt && evt.player_representatives || []; 
-      let event_organizers = tournament && tournament.organizer ? [tournament.organizer] : []; 
+      let event_organizers = tournament && tournament.organizers ? [tournament.organizers] : []; 
       let timestamp = localizeDate(new Date(), { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       let page_header = drawSheetPageHeader(tournament, logo, 'draw_sheet', selected_event, event);
       let { s1, s2, c1, c2, smin, smax, omin, omax, a1, c3, lda } = getRankedPlayers(evt, info);
@@ -905,7 +905,7 @@
          fontSize: 8,
 			style: 'tableExample',
 			table: {
-            widths: [50, '*', 'auto', 'auto'],
+            widths: [50, '*', 115, 'auto'],
             body: [
 					[
                   { text: lang.tr('rl'), bold: true },
@@ -918,7 +918,7 @@
                   {
                      columns: [
                         { width: 10, text: '# ', bold: true },
-                        { width: '*', text: lang.tr('draws.luckylosers'), bold: true },
+                        { width: '*', text: lang.tr('draws.substitutes'), bold: true },
                      ],
                   }, 
                   { text: [ lang.tr('phrases.timestamp'), timestamp ], bold: true },
@@ -948,6 +948,7 @@
 							]
 						},
 						{
+                     fontSize: 6,
                      columns: [
                         { width: 12, stack: c1, },
                         { width: '*', stack: s1, },
@@ -1131,7 +1132,7 @@
 
                   [
                      { text: lang.tr('signin.tournament_date'), style: 'tableHeader' },
-                     { text: lang.tr('signin.organizer'), style: 'tableHeader' },
+                     { text: lang.tr('signin.organization'), style: 'tableHeader' },
                      { text: lang.tr('signin.place'), style: 'tableHeader' },
                      { text: '', style: 'tableHeader' },
                      { text: '', style: 'tableHeader' },
@@ -1139,7 +1140,7 @@
                   ],
                   [ 
                      date, 
-                     tournament.organizer || ' ', 
+                     tournament.organization || ' ', 
                      tournament.location || '',
                      '', 
                      '', 
