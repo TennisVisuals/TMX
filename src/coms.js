@@ -24,7 +24,10 @@ let coms = function() {
 
    function comsConnect() {  
       connected = true;
-      if (queue.length) queue.forEach(message => oi.socket.emit(message.header, message.data));
+      while (queue.length) {
+         let message = queue.pop();
+         oi.socket.emit(message.header, message.data);
+      }
    };
    function comsDisconnect() {  };
    function comsError(err) {  };
@@ -36,10 +39,6 @@ let coms = function() {
       if (data.directive) {
          if (data.directive == 'settings') {
             config.updateSettings(data.content).then(() => { location.reload(true); });
-         }
-         if (data.directive == 'authorize') {
-            let authorize = { content: data.content };
-            fx.emitTmx({ authorize });
          }
          if (data.directive == 'new version') {
             gen.homeIconState('update');
