@@ -196,15 +196,21 @@
          published: 'Published',
          publish: 'Publish',
          publishQ: 'Publish Draw?',
-         organizers: 'organizers',
+         organizers: 'Organizers',
          playerrep: 'Representative',
          playerreps: 'Representatives',
-         luckylosers: 'Lucky Losers (LL)/Replacements',
+         luckylosers: 'Lucky Losers (LL)/Alternates',
+         allindraw: 'all in draw',
          lastdirectaccept: 'Last Direct Acceptance',
          clear: 'Clear Draw',
          swap: 'Swap Position',
          alternate: 'Alternate',
          luckyloser: 'Lucky Loser',
+         first: 'First',
+         last: 'Last',
+         seedrange: 'Seeds',
+         playerrange: 'All Players',
+         unpublish: 'Unpublish Draw',
       },
 
       print: {
@@ -223,7 +229,7 @@
          addall: 'Add All',
          key: 'Authorize',
          noauth: 'Not Authorized',
-         fetch: 'Download'
+         fetch: 'Download',
       },
 
       ddlb: {
@@ -276,6 +282,7 @@
          send: 'Send',
          export: 'Export',
          pointsvalidfrom: 'Points Valid From',
+         linkcopied: 'Link Copied to Clipboard',
       },
 
       events: {
@@ -337,7 +344,7 @@
          place: 'Location',
          id: 'Tournament ID',
          rank: 'Tournament Rank',
-         judge: 'Head Judge',
+         judge: 'Head Umpire',
          doc_name: 'SIGN-IN SHEET',
          doc_subname: ' ',
          signature: 'Signature',
@@ -552,11 +559,17 @@
          playerrep: 'Predstavnik',
          playerreps: 'Predstavnici',
          luckylosers: 'Sretni gubitnici (LL)/Zamjenjuje',
+         allindraw: 'svi u ždrijebu',
          lastdirectaccept: 'Zadnji direktno primljen igrač',
          clear: 'Isprazni Ždrijeb',
          swap: 'Zamljeni posicije',
          alternate: 'Lista čekanja',
          luckyloser: 'Sretni gubitnikd',
+         first: 'Prvi',
+         last: 'Zadnji',
+         seedrange: 'Rang Nositelja',
+         playerrange: 'Rang Igraca',
+         unpublish: 'PoniĹĄti objavljivanje',
       },
 
       print: {
@@ -628,6 +641,7 @@
          send: 'Poslati',
          export: 'Izvoz',
          pointsvalidfrom: 'Bodovi vrijede od',
+         linkcopied: 'Veza kopirana u međuspremnik',
       },
 
       events: {

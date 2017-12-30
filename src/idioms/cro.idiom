@@ -148,11 +148,17 @@
          playerrep: 'Predstavnik',
          playerreps: 'Predstavnici',
          luckylosers: 'Sretni gubitnici (LL)/Zamjenjuje',
+         allindraw: 'svi u ždrijebu',
          lastdirectaccept: 'Zadnji direktno primljen igrač',
          clear: 'Isprazni Ždrijeb',
          swap: 'Zamljeni posicije',
          alternate: 'Lista čekanja',
          luckyloser: 'Sretni gubitnikd',
+         first: 'Prvi',
+         last: 'Zadnji',
+         seedrange: 'Rang Nositelja',
+         playerrange: 'Rang Igraca',
+         unpublish: 'PoniĹĄti objavljivanje',
       },
 
       print: {
@@ -224,6 +230,7 @@
          send: 'Poslati',
          export: 'Izvoz',
          pointsvalidfrom: 'Bodovi vrijede od',
+         linkcopied: 'Veza kopirana u međuspremnik',
       },
 
       events: {
