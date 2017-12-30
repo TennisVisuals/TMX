@@ -229,6 +229,7 @@
          addall: 'Add All',
          key: 'Authorize',
          noauth: 'Not Authorized',
+         auth: 'Authorized',
          fetch: 'Download',
       },
 
