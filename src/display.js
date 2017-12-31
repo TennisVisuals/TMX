@@ -888,6 +888,7 @@
          matches: gen.uuid(),
          rankings: gen.uuid(),
          rankchart: gen.uuid(),
+         rankingsdate: gen.uuid(),
          container: gen.uuid(),
       }
 
@@ -904,6 +905,10 @@
             </div>
             <div class='player_section'>
                <div id=${ids.rankchart}></div>
+            </div>
+            <div class='player_rankings'>
+               <h2>${lang.tr('rlp')}</h2>
+               <div class='flexcenter'><input id=${ids.rankingsdate} style='height: 1.5em; margin-left: 2em;' class='rankingsdate'></div>
             </div>
             <div class='player_section' id=${ids.rankings}></div>
             <div class='player_section' id=${ids.matches}> </div>
@@ -1433,10 +1438,7 @@
          container.rankings.element.innerHTML = `<h2 class="flexcenter">${lang.tr('phrases.norankingdata')}</h2>`;
          return;
       }
-      let html = `
-         <h2>${lang.tr('rlp')}</h2>
-         <div>${jsTabs.generate(tabdata)}</div>
-      `;
+      let html = ` <div>${jsTabs.generate(tabdata)}</div> `;
       container.rankings.element.innerHTML = html;
       jsTabs.load(container.rankings.element);
    }

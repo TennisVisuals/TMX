@@ -29,7 +29,7 @@ let player = function() {
    }
 
    fx.displayPlayerProfile = displayPlayerProfile;
-   function displayPlayerProfile(puid, ranking_date) {
+   function displayPlayerProfile(puid, ranking_date=new Date()) {
       return new Promise((resolve, reject) => {
          let container;
 
@@ -49,7 +49,26 @@ let player = function() {
                   if (fx.action && typeof fx.actions[fx.action] == 'function') return resolve(fx.actions[fx.action](container, player));
 
                   // otherwise default to displaying player points
-                  db.findPlayerPoints(puid).then(points => resolve(displayPoints(player, club, points, ranking_date)));
+                  db.findPlayerPoints(puid).then(preparePoints, err => console.log(err));
+
+                  function preparePoints(points) {
+                     var rankingDate = new Pikaday({
+                        field: container.rankingsdate.element,
+                        defaultDate: ranking_date,
+                        setDefaultDate: true,
+                        i18n: lang.obj('i18n'),
+                        onSelect: function() { 
+                           ranking_date = this.getDate();
+                           displayPoints(player, club, points, ranking_date);
+                        },
+                     });
+
+                     let ranking_time_series = player.rankings ? processTimeSeries(player.rankings, 'rankings') : undefined;
+                     gen.displayPlayerRankChart(container, ranking_time_series);
+                     db.findPlayerMatches(puid).then((matches) => displayMatches(matches), console.log);
+
+                     displayPoints(player, club, points, ranking_date);
+                  }
                });
             } else {
                console.log('player not found');
@@ -64,7 +83,9 @@ let player = function() {
 
             let tabdata = [];
             Object.keys(cpts).forEach(category => {
-               if (eligible_categories.indexOf(category) >= 0 && cpts[category].length) {
+
+               // if (eligible_categories.indexOf(category) >= 0 && cpts[category].length) {
+               if (util.isMember(eligible_categories, category) && cpts[category].length) {
                   let tab = category;
                   let content = gen.playerPoints(cpts[category], lang.tr('rlp') + tab);
                   tabdata.push({ tab, content });
@@ -83,14 +104,11 @@ let player = function() {
                tabdata.push({ tab: lang.tr('arp'), content });
             }
 
-            let ranking_time_series = player.rankings ? processTimeSeries(player.rankings, 'rankings') : undefined;
-            gen.displayPlayerRankChart(container, ranking_time_series);
             gen.tabbedPlayerRankings(tabdata, container);
 
             let dt = (evt) => tournaments.displayTournament({tuid: util.getParent(evt.target, 'point_click').getAttribute('tuid')});
             Array.from(container.rankings.element.querySelectorAll('.point_click')).forEach(elem => elem.addEventListener('click', dt));
 
-            db.findPlayerMatches(puid).then((matches) => displayMatches(matches), console.log);
          }
 
          function displayMatches(matches) {
