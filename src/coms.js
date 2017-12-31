@@ -239,9 +239,7 @@ let coms = function() {
          let result = JSON.parse(remote.responseText);
          let data = result.data ? result.data.split('').filter(f=>f.charCodeAt() > 13).join('') : undefined;
          let json_data = attemptJSONparse(data);
-         if (!json_data) console.log('request failed:', request);
-
-         callback({ json: json_data } || result); 
+         callback( json_data ? { json: json_data } : { result }); 
       }
       remote.send(request);
       return true;
@@ -258,7 +256,7 @@ let coms = function() {
       }
    }
 
-   fx.fetchJSON = (url) => {
+   function fetchJSON (url) {
       return new Promise((resolve, reject) => {
             let request_object = { url: url };
             let request = JSON.stringify(request_object);
@@ -267,10 +265,51 @@ let coms = function() {
                if (result.json) {
                   resolve(result.json);
                } else {
-                  return reject(result.err || 'Error');
+                  return reject(result);
                }
             }
             fx.ajax('/api/match/request', request, 'POST', responseHandler);
+      });
+   }
+
+   function fetchHTML(url) {
+      return new Promise((resolve, reject) => {
+         fetchJSON(url).then(success, failure);
+
+         function success() {}
+         function failure(result) {
+            if (!result.result.data) return reject(result);
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(result.result.data, "text/html");
+            resolve(doc);
+         }
+      });
+   }
+
+   function ctsRankings(url) {
+      return new Promise((resolve, reject) => {
+         fetchHTML(url || 'http://www.cztenis.cz/starsi-zactvo/zebricky').then(doc => {
+            var players = [];
+            var rows = Array.from(doc.querySelectorAll('.table-condensed tbody tr'));
+            rows.forEach(row => {
+               var cols = Array.from(row.querySelectorAll('td'));
+               let player = {
+                  "kz": cols[0].innerText,
+                  "rank": cols[1].innerText,
+                  "name": cols[2].innerText,
+                  "birth": cols[3].innerText.split('.').reverse().join('-'),
+                  "club": cols[4].innerText,
+                  "dvouhra": cols[5].innerText,
+                  "čtyřhry": cols[6].innerText,
+                  "points": cols[7].innerText,
+                  "BH": cols[8].innerText,
+                  "rCŽ": cols[9].innerText,
+               }
+               player.id = row.querySelector('a').href.split('/').reverse()[0];
+               players.push(player);
+            });
+            resolve(players);
+         }, err => console.log(err));
       });
    }
 
