@@ -29,8 +29,8 @@ let config = function() {
    function checkQueryString() {
       return new Promise((resolve, reject) => {
          if (queryString.settingsURL) {
-            if (queryString.settingsURL.indexOf('http') != 0) return resolve();
-            coms.fetchJSON(queryString.settingsURL).then(updateSettings, console.log).then(resolve, console.log);
+//            if (queryString.settingsURL.indexOf('http') != 0) return resolve();
+//            coms.fetchJSON(queryString.settingsURL).then(updateSettings, console.log).then(resolve, console.log);
 //         } else if (queryString.resetDB) {
 //            if (!queryString.resetDB.indexOf('true') == 0) return resolve();
 //            config.resetDB().then(resolve);
@@ -440,7 +440,7 @@ let config = function() {
          function pdfList(ev) {
             let category = ev.target.getAttribute('category');
             let gender = ev.target.getAttribute('gender');
-            rank.rankListPDF({ category, gender, list: rankings.categories[category][gender] });
+            rank.rankListPDF({ category, gender, list: rankings.categories[category][gender], week, year, date: selected_date });
          }
          function exportList(ev) {
             let category = ev.target.getAttribute('category');
@@ -1008,11 +1008,6 @@ let config = function() {
    fx.legacyCategory = (category, reverse) => {
       let ctgy = category;
       if (fx.env().org.abbr == 'HTS') {
-         /*
-         let legacy = reverse ?
-            { 'U10': '10', 'U12': '12', 'U14': '14', 'U16': '16', 'U18': '18', 'S': '20', } :
-            { '10': 'U10', '12': 'U12', '14': 'U14', '16': 'U16', '18': 'U18', '20': 'S', };
-         */
          let legacy = reverse ?  { '20': 'S', } : { 'S': '20', };
 
          if (legacy[ctgy]) ctgy = legacy[ctgy];

@@ -203,6 +203,7 @@
       return new Promise((resolve, reject) => {
          let rankings = {};
          Object.keys(categories).forEach(category => {
+
             Object.keys(categories[category]).forEach(gender => {
 
                let last_points;
@@ -210,18 +211,19 @@
                categories[category][gender].forEach((player, i) => {
 
                   let eligible_categories = rank.eligibleCategories({ birth_year: player.born, calc_date: ranking_date }).categories;
+                  let ranking_category = config.legacyCategory(category, true);
 
-                  let numeric_category = parseInt(category.match(/\d+/)[0]);
-                  if (eligible_categories.indexOf(numeric_category) >= 0 && player.points.total) {
+                  if (util.isMember(eligible_categories, ranking_category) && player.points.total) {
                      if (!rankings[player.puid]) rankings[player.puid] = {};
 
                      let ranking = (!last_points || +player.points.total < last_points) ? i + 1 : last_ranking;
                      last_ranking = ranking;
                      last_points = +player.points.total;
 
-                     // rankings[player.puid][category] = i + 1;
-                     rankings[player.puid][category] = ranking;
+                     rankings[player.puid][ranking_category] = ranking;
 
+                  } else {
+                     console.log(eligible_categories, category);
                   }
                });
 
@@ -321,10 +323,6 @@
    // params = {puid, ranking_points}
    function addPointsHistory(params) { return db.modify('players', 'puid', params.puid, modifyPlayerRankingPoints, params); }
 
-   // to delete all points and rankings records:
-   // db.db.players.toCollection().modify(player => delete player.points);
-   // db.db.players.toCollection().modify(player => delete player.rankings);
-
    // intended to be passed as a parameter into db.modify
    // 'item' in this context refers to 'tournament'
    function modifyTournamentRanking({ item, category, rankings }) {
@@ -402,7 +400,8 @@
                let doubles_up = doubles_events_up.length ? reduce(doubles_events_up) : 0;
 
                let total = point_events.length ? reduce(point_events) : 0;
-               if (categories.indexOf(category) >= 0 && total > 0) rpts[category] = { total, singles, doubles, singles_up, doubles_up, team };
+               // if (categories.indexOf(category) >= 0 && total > 0) rpts[category] = { total, singles, doubles, singles_up, doubles_up, team };
+               if (util.isMember(categories, category) && total > 0) rpts[category] = { total, singles, doubles, singles_up, doubles_up, team };
             });
 
             return {
@@ -415,16 +414,19 @@
    }
 
    rank.calculateRankingPoints = (player, points, ranking_date) => {
-      // TODO: tournament_type specification is HR specific.  Should be 'Team';
-      let team = (pts) => pts.filter(f=>f.tournament_type == 'MO');
-      let singles = (pts) => pts.filter(f=>f.format == 'singles' && f.tournament_type != 'MO');
-      let doubles = (pts) => pts.filter(f=>f.format != 'singles' && f.tournament_type != 'MO');
-      let expireDate = (date) => date - (365 * 24 * 60 * 60 * 1000);
 
+      // TODO: tournament_type specification is HR specific.  Should be 'Team';
+      function team(pts) { return pts.filter(f=>f.tournament_type == 'MO'); }
+      function singles(pts) { return pts.filter(f=>f.format == 'singles' && f.tournament_type != 'MO'); }
+      function doubles(pts) { return pts.filter(f=>f.format != 'singles' && f.tournament_type != 'MO'); }
+      function expireDate(date) { return date - (365 * 24 * 60 * 60 * 1000); }
+      function pDate(p) { return new Date(util.formatDate(p)).getTime(); }
+
+      ranking_date = pDate(ranking_date);
       let birth_year = player.birth ? new Date(player.birth).getFullYear() : undefined;
       let eligible_categories = rank.eligibleCategories({ birth_year, calc_date: ranking_date }).categories;
-      let pDate = (p) => new Date(p).getTime();
-      let valid = points.filter(p => pDate(p.date) > expireDate(ranking_date) && pDate(p.date) <= ranking_date);
+
+      let valid = points.filter(p => pDate(p.date) > expireDate(ranking_date) && pDate(p.date) <= pDate(ranking_date));
 
       // separate points into singles and doubles
       let sglDblTeam = (pts) => { return { singles: singles(pts), doubles: doubles(pts), team: team(pts) }};
@@ -510,13 +512,13 @@
       });
    }
 
-   rank.rankListPDF = ({ category, gender, list }) => {
+   rank.rankListPDF = ({ category, gender, list, week, year, date }) => {
       exp.getLogo().then(logo => getName({logo})).then(getClubs).then(obj => {
-         exportPDFRankList(category, gender, list, obj.clubs, obj.logo, obj.name);
+         exportPDFRankList({ category, gender, list, clubs: obj.clubs, logo: obj.logo, name: obj.name, week, year, date });
       });
    }
 
-   function exportPDFRankList(category, gender, list, clubs, logo, name) {
+   function exportPDFRankList({ category, gender, list, clubs, logo, name, week, year, date }) {
       let header = [ 
          { text: '#', style: 'tableHeader' }, 
          { text: lang.tr('ply'), style: 'tableHeader' }, 
@@ -580,7 +582,7 @@
          pageOrientation: 'landscape',
 
          content: [
-            { text: `${lang.tr('rl')} ${category} ${gender}`, style: 'centerText', },
+            { text: `${lang.tr('rl')} ${category} ${gender} ${year} week: ${week}`, style: 'centerText', },
             {
                alignment: 'center',
                columns: [
