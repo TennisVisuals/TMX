@@ -406,7 +406,8 @@
             // first exclude and players who are too old for the category
             let valid = action.result.filter(result => {
                let eligible_categories = rank.eligibleCategories({ birth_day: result.birth, calc_date: load.loaded.date }).categories;
-               return eligible_categories.indexOf(load.loaded.tournament.category) >= 0 
+               // return eligible_categories.indexOf(load.loaded.tournament.category) >= 0 
+               return util.isMember(eligible_categories, load.loaded.tournament.category);
             });
             if (valid.length == 1) {
                action.original = action.player;
