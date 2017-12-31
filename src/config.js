@@ -24,17 +24,9 @@ let config = function() {
      clearHistory();
    })();
 
-   // http://localhost:8065/devel/ranking/?settingsURL=http://hts.hr/pin/json/settings.json
-   // https://courthive.com/tmx/?settingsURL=http://hts.hr/pin/json/settings.json
    function checkQueryString() {
       return new Promise((resolve, reject) => {
-         if (queryString.settingsURL) {
-//            if (queryString.settingsURL.indexOf('http') != 0) return resolve();
-//            coms.fetchJSON(queryString.settingsURL).then(updateSettings, console.log).then(resolve, console.log);
-//         } else if (queryString.resetDB) {
-//            if (!queryString.resetDB.indexOf('true') == 0) return resolve();
-//            config.resetDB().then(resolve);
-         } else if (queryString.actionKey) {
+         if (queryString.actionKey) {
             coms.sendKey(queryString.actionKey);
             resolve();
          } else {
@@ -45,7 +37,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.6.3',
+      version: '0.9.7.0',
       version_check: undefined,
       org: {
          name: undefined,
