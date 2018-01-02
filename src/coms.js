@@ -177,17 +177,6 @@ let coms = function() {
       return match_message;
    }
 
-   fx.broadcastEvent = (ebo) => {
-      let eventCircular = CircularJSON.stringify(ebo);
-      fx.emitTmx({ eventCircular });
-   }
-
-   // todo: convert this to use emitTmx (to take advantage of queue
-   fx.deleteEvent = (deleteRequest) => {
-      if (!deleteRequest || !deleteRequest.euid) return;
-      fx.emitTmx({deleteRequest});
-   }
-
    fx.deleteMatch = (data) => {
       if (!data || !data.muid || !data.tuid) return;
       if (connected) {
