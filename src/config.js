@@ -37,7 +37,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.7.0',
+      version: '0.9.7.4',
       version_check: undefined,
       org: {
          name: undefined,
@@ -677,7 +677,7 @@ let config = function() {
       isStandalone: 'standalone' in window.navigator && window.navigator.standalone,
       isIDevice: (/iphone|ipod|ipad/i).test(window.navigator.userAgent),
       isWindows: (/indows/i).test(window.navigator.userAgent),
-      isMobile: (typeof window.orientation !== "undefined"),
+      isMobile: /Mobi/.test(navigator.userAgent),
       geoposition: {},
    }
 
