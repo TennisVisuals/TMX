@@ -379,6 +379,8 @@
          suspended: 'Suspended',
          raindelay: 'Rain Delay',
          clear: 'Clear',
+         publish: 'Publish Schedule',
+         unpublish: 'Unpublish Schedule',
       },
       
       refresh: {
@@ -752,6 +754,8 @@
          suspended: 'Suspenzija',
          raindelay: 'Odgoda zbog vremena',
          clear: 'Izbrišite',
+         publish: 'Objaviti raspored',
+         unpublish: 'PoniĹĄti raspored',
       },
 
       refresh: {

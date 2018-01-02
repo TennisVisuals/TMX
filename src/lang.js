@@ -379,6 +379,8 @@
          suspended: 'Suspended',
          raindelay: 'Rain Delay',
          clear: 'Clear',
+         publish: 'Publish Schedule',
+         unpublish: 'Unpublish Schedule',
       },
       
       refresh: {
