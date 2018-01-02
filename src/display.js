@@ -906,7 +906,7 @@
             <div class='player_section'>
                <div id=${ids.rankchart}></div>
             </div>
-            <div class='player_rankings'>
+            <div class='player_rankings' style='display: none'>
                <h2>${lang.tr('rlp')}</h2>
                <div class='flexcenter'><input id=${ids.rankingsdate} style='height: 1.5em; margin-left: 2em;' class='rankingsdate'></div>
             </div>
@@ -1128,6 +1128,7 @@
       let ids = {
          compressed_draw_formats: gen.uuid(),
          display_flags: gen.uuid(),
+         after_matches: gen.uuid(),
       };
       let ddlb = [];
       let html = `
@@ -1142,6 +1143,10 @@
                 <div class='tournament_attr'>
                     <label class='calabel'>Country Flags Displayed:</label>
                     <input type='checkbox' id="${ids.display_flags}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>Display After Matches:</label>
+                    <input type='checkbox' id="${ids.after_matches}">
                 </div>
              </div>
          </div>
@@ -3490,6 +3495,8 @@
       sr.height(200).options({ invert: true });
       sr.data(data);
       sr();
+
+      container.container.element.querySelector(".player_rankings").style.display = 'flex';
    }
 
    gen.playerSeason = (container, data, season_events) => {
