@@ -687,7 +687,7 @@
       });
    }
 
-   rank.getWeek = (date, dowOffset) => {
+   rank.getWeek = (date, dowOffset=2) => {
       date = new Date(+date);
       dowOffset = typeof(dowOffset) == 'int' ? dowOffset : 0;
       var newYear = new Date(date.getFullYear(),0,1);
