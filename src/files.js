@@ -266,7 +266,7 @@
       });
    }
 
-   exp.downloadRankLists = (ranklists) => ranklists.forEach(rankListCSV);
+   exp.downloadRankLists = (ranklists) => ranklists.forEach(exp.rankListCSV);
 
    exp.rankListCSV = (ranklist) => {
       let csv = json2csv(ranklist.list);
