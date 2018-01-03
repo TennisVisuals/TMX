@@ -594,8 +594,6 @@
    function identifyJSON(json) {
       let keys = Object.keys(Array.isArray(json) ? json[0] : json);
 
-      console.log(keys);
-
       if (keys.length && ['id', 'category', 'ranking', 'points'].filter(k=>keys.indexOf(k) >= 0).length == 4) return 'ranklistCSV';
       if (keys.length && ['website', 'courts'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'clubs';
       if (keys.length && ['born', 'right_to_play'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'playersCSV';
