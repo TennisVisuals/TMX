@@ -37,7 +37,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.7.7',
+      version: '0.9.7.8',
       version_check: undefined,
       org: {
          name: undefined,
@@ -762,9 +762,10 @@ let config = function() {
 
       document.getElementById('go_home').addEventListener('click', () => splash());
 
-      function closeModal() { gen.closeModal(); }
+      function closeModal() { gen.escapeFx = undefined; gen.closeModal(); }
       function refreshApp() { location.reload(true); }
       document.getElementById('go_home').addEventListener('contextmenu', () => {
+         gen.escapeModal();
          gen.homeContextMessage(refreshApp, closeModal, env.messages)
          env.messages = [];
          gen.homeIconState();
