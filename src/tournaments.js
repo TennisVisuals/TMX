@@ -591,7 +591,7 @@ let tournaments = function() {
 
             function setup() {
                cmenu(coords[0], coords[1]);
-               // this is not the same as escapeModal() !!!!
+               // this is not the same as gen.escapeModal() !!!!
                gen.escapeFx = () => { cmenu.cleanUp(); gen.escapeFx = undefined; };
             }
 
@@ -1626,7 +1626,7 @@ let tournaments = function() {
 
       function unpublishAllEvents() {
          gen.okCancelMessage(lang.tr('draws.unpublishall'), unPublishAll, () => gen.closeModal());
-         escapeModal();
+         gen.escapeModal();
 
          function unPublishAll() {
             gen.escapeFx = undefined;
@@ -3804,7 +3804,7 @@ let tournaments = function() {
                   let score_format = match.score_format || e.score_format || {};
                   if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
 
-                  escapeModal();
+                  gen.escapeModal();
                   scoreBoard.setMatchScore({
                      round,
                      container,
@@ -4305,7 +4305,7 @@ let tournaments = function() {
                let score_format = match.score_format || e.score_format || {};
                if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
 
-               escapeModal();
+               gen.escapeModal();
                scoreBoard.setMatchScore({
                   round,
                   container,
@@ -4730,18 +4730,16 @@ let tournaments = function() {
                // modify linked draw
                linked.approved = linked.approved.filter(a=>previous_winner.indexOf(a) < 0);
                linked.approved.push(current_winner.join('|'));
-               linked.draw.opponents = linked.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length < 0);
-               linked.draw.opponents.push(outcome.teams[outcome.winner]);
+               linked.draw.opponents = linked.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
+               let new_opponent = outcome.teams[outcome.winner].map(p => Object.assign({}, p, { seed: undefined, entry: 'Q' }));
+               linked.draw.opponents.push(new_opponent);
                linked_info.nodes.forEach(n => {
                   if (!n.height && util.intersection(n.data.team.map(t=>t.id), previous_winner).length) {
                      let draw_position = n.data.team[0].draw_position;
-                     let new_team = outcome.teams[outcome.winner].map(t => Object.assign({}, t, { draw_position, qualifier: true, entry: 'Q' }));
+                     let new_team = new_opponent.map(t => Object.assign({}, t, { draw_position, qualifier: true, entry: 'Q' }));
                      n.data.team = new_team;
                   }
                });
-
-               console.log('need to flag draw as changed?');
-               // linked.changed = true;
 
                logEventChange(displayed_draw_event, { fx: 'qualifier changed', d: { team: outcome.teams[outcome.winner].map(t=>t.id) } });
             }
@@ -4854,19 +4852,11 @@ let tournaments = function() {
          if (!elimination_event) return;
 
          elimination_event.approved.push(teamHash(team_copy));
-
          setDrawSize(elimination_event);
-         let info = elimination_event.draw ? dfx.drawInfo(elimination_event.draw) : undefined;
-
-         if (elimination_event.draw) {
-            let approved_opponents = approvedOpponents(elimination_event);
-            elimination_event.draw.opponents = approved_opponents;
-            elimination_event.draw.unseeded_teams = teamSort(approved_opponents.filter(f=>!f[0].seed));
-         }
 
          let position = null;
-
-         // remove qualifier position from main draw
+         // remove qualifier position from main draw and get position
+         let info = elimination_event.draw ? dfx.drawInfo(elimination_event.draw) : undefined;
          if (info && info.qualifiers && info.qualifiers.length) {
             // TODO: use randomPop() function?
             let qp = info.qualifiers.pop();
@@ -4882,6 +4872,14 @@ let tournaments = function() {
          if (elimination_event.draw && (elimination_event.active || !info.unassigned.length)) {
             dfx.assignPosition({ node: elimination_event.draw, position, team: team_copy });
             elimination_event.draw.unseeded_placements.push({ id: team_copy[0].id, position });
+         }
+
+         if (elimination_event.draw) {
+            let info = elimination_event.draw ? dfx.drawInfo(elimination_event.draw) : undefined;
+            let approved_opponents = approvedOpponents(elimination_event);
+            approved_opponents.forEach(team=>team.forEach(player=>player.draw_position = info.assigned_positions[player.id]));
+            elimination_event.draw.opponents = approved_opponents;
+            elimination_event.draw.unseeded_teams = teamSort(approved_opponents.filter(f=>!f[0].seed));
          }
       }
 
@@ -4963,6 +4961,7 @@ let tournaments = function() {
 
          rr_draw.data({})();
 
+         setDrawSize(e);
          let leave_it = e.changed && e.draw && e.draw_size == (e.approved.length + e.qualifiers);
          if (!e.draw || (e.changed && !leave_it)) {
             generateDraw(e);
@@ -5046,7 +5045,7 @@ let tournaments = function() {
                let score_format = d.match.score_format || evnt.score_format || {};
                if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
 
-               escapeModal();
+               gen.escapeModal();
                scoreBoard.setMatchScore({
                   teams,
                   container,
@@ -5169,7 +5168,7 @@ let tournaments = function() {
                let score_format = (d.data.match && d.data.match.score_format) || evnt.score_format || {};
                if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
 
-               escapeModal();
+               gen.escapeModal();
                scoreBoard.setMatchScore({
                   round,
                   container,
@@ -5225,7 +5224,7 @@ let tournaments = function() {
             if (info.unfilled_positions.length) {
                let pobj = gen.manualPlayerPosition({ container, position: d.row });
                rrPlacePlayer(placement, pobj, info);
-               escapeModal();
+               gen.escapeModal();
             }
          }
 
@@ -5349,7 +5348,7 @@ let tournaments = function() {
             }
 
             var pobj = gen.manualPlayerPosition({ container, position });
-            escapeModal();
+            gen.escapeModal();
 
             var entry_field = d3.select(pobj.entry_field.element);
             function removeEntryField() {
@@ -5770,7 +5769,7 @@ let tournaments = function() {
                      if (d.key == 'swap') {
                         let swap = gen.swapPlayerPosition({ container, position });
 
-                        escapeModal();
+                        gen.escapeModal();
                         function removeEntryField() {
                            d3.select(swap.entry_field.element).remove();
                            document.body.style.overflow = null;
@@ -5813,7 +5812,6 @@ let tournaments = function() {
                                        p1.opponent.forEach(player => {
                                           player.draw_position = new_position;
                                           if (remove_seeding) delete player.seed;
-                                          // player.seed = p2_seeding;
                                        });
                                     } else if (p1.bye) {
                                        p1.bye.data.bye = true;
@@ -5826,7 +5824,6 @@ let tournaments = function() {
                                        p2.opponent.forEach(player => {
                                           player.draw_position = position;
                                           if (remove_seeding) delete player.seed;
-                                          // player.seed = p1_seeding;
                                        });
                                     } else if (p2.bye) {
                                        p2.bye.data.bye = true;
@@ -6178,7 +6175,7 @@ let tournaments = function() {
          if (!match || !match.schedule || !match.schedule.court) return;
 
          let uobj = gen.selectUmpire({ container });
-         escapeModal();
+         gen.escapeModal();
 
          let entry_modal = d3.select(uobj.entry_modal.element);
          let removeEntryModal = () => {
@@ -7335,7 +7332,6 @@ let tournaments = function() {
       let date_localization = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
       return date.toLocaleDateString(lang.tr('datelocalization'), date_localization);
    }
-   function escapeModal() { setTimeout(function() { gen.escapeFx = () => { gen.closeModal(); gen.escapeFx = undefined; } }, 300); }
 
    return fx;
 
