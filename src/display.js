@@ -930,7 +930,7 @@
       let ddlb = [];
       let html = `
          <div style='min-height: 150px'>
-         <h2>Submit Key</h2>
+         <h2>${lang.tr('phrases.submitkey')}</h2>
          <input id='${ids.key}' value=''>
          </div>
       `;
@@ -958,7 +958,7 @@
       let html = `
          <div id='${ids.container}' class='flexcol' style='width: 100%;'>
             <div class='settings_info'>
-               <h2>Keys</h2>
+               <h2>${lang.tr('keys')}</h2>
                <div class='flexrow'>${cancel}</div>
             </div>
             <div>${tabs}</div>
@@ -1005,7 +1005,7 @@
       let html = `
          <div id='${ids.container}' class='flexcol' style='width: 100%;'>
             <div class='settings_info'>
-               <h2>Settings</h2>
+               <h2>${lang.tr('set')}</h2>
                <div class='flexrow'>${done}${cancel}</div>
             </div>
             <div>${jtabs}</div>
@@ -1137,15 +1137,15 @@
          <div class='flexcenter' style='width: 100%;'>
              <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
                 <div class='tournament_attr'>
-                    <label class='calabel'>Compressed Draw Formats:</label>
+                    <label class='calabel'>${lang.tr('settings.compresseddraws')}:</label>
                     <input type='checkbox' id="${ids.compressed_draw_formats}">
                 </div>
                 <div class='tournament_attr'>
-                    <label class='calabel'>Country Flags Displayed:</label>
+                    <label class='calabel'>${lang.tr('settings.countryflags')}:</label>
                     <input type='checkbox' id="${ids.display_flags}">
                 </div>
                 <div class='tournament_attr'>
-                    <label class='calabel'>Display After Matches:</label>
+                    <label class='calabel'>${lang.tr('settings.matchesbefore')}:</label>
                     <input type='checkbox' id="${ids.after_matches}">
                 </div>
              </div>
@@ -1168,11 +1168,11 @@
          <div class='flexcenter' style='width: 100%;'>
              <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
                 <div class='tournament_attr'>
-                    <label class='calabel'>Require confirmation:</label>
+                    <label class='calabel'>${lang.tr('settings.requireconfirm')}</label>
                     <input type='checkbox' id="${ids.require_confirmation}">
                 </div>
                 <div class='tournament_attr'>
-                    <label class='calabel'>Publish when scores entered:</label>
+                    <label class='calabel'>${lang.tr('settings.publishonscore')}</label>
                     <input type='checkbox' id="${ids.publish_on_score_entry}">
                 </div>
              </div>

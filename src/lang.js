@@ -153,6 +153,11 @@
          draws: 'Draws',
          data: 'Data',
          publishing: 'Publishing',
+         compresseddraws: 'Compressed Draw Formats',
+         countryflags: 'Country Flags Displayed',
+         requireconfirm: 'Require Confirmation',
+         publishonscore: 'Publish when score entered',
+         matchesbefore: 'Matches Before Count',
       },
 
       search: {
@@ -285,6 +290,7 @@
          export: 'Export',
          pointsvalidfrom: 'Points Valid From',
          linkcopied: 'Link Copied to Clipboard',
+         submitkey: 'Submit Key',
       },
 
       events: {

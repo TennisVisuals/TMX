@@ -4893,7 +4893,7 @@ let tournaments = function() {
             let draw_id = `rrDraw_${d.bracket}`;
             let selector = d3.select(`#${container.draws.id} #${draw_id} svg`).node();
             let coords = d3.mouse(selector);
-            let options = tied.map((p, i) => `Order: ${i+1}`);
+            let options = tied.map((p, i) => `${lang.tr('ord')}: ${i+1}`);
             let clickAction = (c, i) => {
                // first insure that no other player has the same sub_order
                bracket.players.filter(p=>p.order == player.order).forEach(p=>{ if (p.sub_order == i + 1) p.sub_order = 0 });

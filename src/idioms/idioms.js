@@ -153,6 +153,11 @@
          draws: 'Draws',
          data: 'Data',
          publishing: 'Publishing',
+         compresseddraws: 'Compressed Draw Formats',
+         countryflags: 'Country Flags Displayed',
+         requireconfirm: 'Require Confirmation',
+         publishonscore: 'Publish when score entered',
+         matchesbefore: 'Matches Before Count',
       },
 
       search: {
@@ -285,6 +290,7 @@
          export: 'Export',
          pointsvalidfrom: 'Points Valid From',
          linkcopied: 'Link Copied to Clipboard',
+         submitkey: 'Submit Key',
       },
 
       events: {
@@ -455,7 +461,7 @@
       unk:     'Nepoznato',
       dup:     'Dupliciraj',
       stt:     'Status',
-      ord:     'Redoslijed',
+      ord:     'Poredak',
       clb:     'Klub',
       cty:     'Grad',
       cnt:     'Država',
@@ -516,6 +522,11 @@
          draws: 'Ždrijebovi',
          data: 'Podaci',
          publishing: 'Objavljivanje',
+         compresseddraws: 'Prilagođeni format ždrijebova',
+         countryflags: 'Prikaz zastava država',
+         requireconfirm: 'Zatraži potvrdu',
+         publishonscore: 'Objava nakon upisa rezultata',
+         matchesbefore: 'Utakmice prije brojanja',
       },
 
       search: {
@@ -546,7 +557,7 @@
          changestatus: 'Promjena statusa',
          penalty: 'Dodjela kazne',
          umpire: 'Odabir suca',
-         matchumpire: 'Susret Sudac',
+         matchumpire: 'Sudac susreta',
          matchtime: 'Vrijeme susreta',
          timeheader: 'Opcije vremena susreta',
          maindraw: 'Glavni ždrijeb',
@@ -643,11 +654,12 @@
          downloadtemplate: 'Preuzmite Uvoz predloška',
          add2database: 'Dodaj igrača, turnire, ljestvice u bazu podataka',
          noconnection: 'Nema veze s poslužiteljem',
-         schedulepriority: 'Prioritet raspoređivanja utakmica',
+         schedulepriority: 'Prioritet raspoređivanja susreta',
          send: 'Poslati',
          export: 'Izvoz',
          pointsvalidfrom: 'Bodovi vrijede od',
          linkcopied: 'Veza kopirana u međuspremnik',
+         submitkey: 'Unos ključa',
       },
 
       events: {
@@ -739,7 +751,7 @@
       schedule: {
          allevents: 'Svi Događaji',
          allrounds: 'Sve Runde',
-         allcourts: 'Sve Igrališta',
+         allcourts: 'Sva Igrališta',
          autoschedule: 'Automatski Raspored',
          clearschedule: 'Isprazni Raspored',
          orderofplay: 'RASPORED IGRANJA',
