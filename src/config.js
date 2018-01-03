@@ -37,7 +37,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.7.4',
+      version: '0.9.7.5',
       version_check: undefined,
       org: {
          name: undefined,
@@ -873,7 +873,7 @@ let config = function() {
          if (gen.content == 'calendar') tournaments.displayCalendar();
       }
       let addNew = (trnys) => util.performTask(db.addTournament, trnys, false).then(done, done);
-      let notConfigured = () => { done(); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
+      let notConfigured = (err) => { done(); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       coms.fetchNewTournaments().then(addNew, notConfigured);
    }
 
@@ -882,7 +882,7 @@ let config = function() {
       let id = gen.busy.message(`<p>${lang.tr('refresh.clubs')}...</p>`, searchBox.updateSearch);
       let done = () => gen.busy.done(id);
       let addNew = (clubs) => util.performTask(db.addClub, clubs, false).then(done, done);
-      let notConfigured = () => { done(); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
+      let notConfigured = (err) => { done(); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       coms.fetchNewClubs().then(addNew, notConfigured);
    }
 
