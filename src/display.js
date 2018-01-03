@@ -3891,6 +3891,9 @@
       }
    }
 
+   gen.escapeModal = escapeModal;
+   function escapeModal() { setTimeout(function() { gen.escapeFx = () => { gen.closeModal(); gen.escapeFx = undefined; } }, 300); }
+
    function getRanks(tournament) {
       let tournament_date = tournament && (tournament.points_date || tournament.end);
       let calc_date = tournament_date ? new Date(tournament_date) : new Date();
