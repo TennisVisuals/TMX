@@ -160,8 +160,6 @@
             return { category, players: player_rankings, date: new Date().getTime() };
          });
 
-         console.log('check category rankings:', category_rankings);
-
          util.performTask(db.addCategoryRankings, category_rankings, false).then(done, done);
 
          function done(foo) { 
@@ -596,6 +594,8 @@
    function identifyJSON(json) {
       let keys = Object.keys(Array.isArray(json) ? json[0] : json);
 
+      console.log(keys);
+
       if (keys.length && ['id', 'category', 'ranking', 'points'].filter(k=>keys.indexOf(k) >= 0).length == 4) return 'ranklistCSV';
       if (keys.length && ['website', 'courts'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'clubs';
       if (keys.length && ['born', 'right_to_play'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'playersCSV';
@@ -673,12 +673,14 @@
          let players = extractPlayers(workbook);
          let tournaments = extractTournaments(workbook);
          let rankings = extractRankings(workbook);
+         let clubs = extractClubs(workbook);
 
          let addPlayers = () => new Promise((resolve, reject) => util.performTask(db.addPlayer, players, false).then(resolve, resolve));
          let addTournaments = () => new Promise((resolve, reject) => util.performTask(db.addTournament, tournaments, false).then(resolve, resolve));
+         let addClubs = () => new Promise((resolve, reject) => util.performTask(db.addClub, clubs, false).then(resolve, resolve));
          let addRankings = () => importRankings(rankings);
 
-         addPlayers().then(addTournaments).then(addRankings).then(()=>gen.busy.done(id));
+         addPlayers().then(addTournaments).then(addRankings).then(addClubs).then(()=>gen.busy.done(id));
       }
 
    }
@@ -694,6 +696,7 @@
          { attr: 'birth', header: 'Birthdate' }, 
          { attr: 'ioc', header: 'IOC' }, 
          { attr: 'puid', header: 'Unique Identifier' }, 
+         { attr: 'club', header: 'Club ID' }, 
       ];
       let players = extractWorkbookRows(workbook.Sheets.Players, headers);
       players.forEach(player => {
@@ -738,12 +741,21 @@
          { attr: 'club_code', header: 'Club Code' }, 
          { attr: 'club_name', header: 'Club Name' }, 
          { attr: 'sex', header: 'Gender' }, 
+         { attr: 'dbls', header: 'Dbls' }, 
       ]; 
       let rankings = extractWorkbookRows(workbook.Sheets.Rankings, headers);
-      // rankings.forEach(ranking => { if (ranking.category == 'S') ranking.category = 's'; });
       rankings.forEach(ranking => { ranking.category == config.legacyCategory(ranking.category); });
-      console.log('check ranking categories:', rankings);
       return rankings;
+   }
+
+   function extractClubs(workbook) {
+      if (workbook.SheetNames.indexOf('Clubs') < 0) return [];
+      let headers = [ 
+         { attr: 'id', header: 'Club ID' }, 
+         { attr: 'name', header: 'Name' }, 
+      ]; 
+      let clubs = extractWorkbookRows(workbook.Sheets.Clubs, headers);
+      return clubs;
    }
 
    function extractWorkbookRows(sheet, headers) {
@@ -756,6 +768,7 @@
       let getRow = (reference) => reference && /\d+/.test(reference) ? parseInt(/\d+/.exec(reference)[0]) : undefined;
       let findValueRefs = (search_text, sheet) => Object.keys(sheet).filter(ref => cellValue(sheet[ref]) == search_text);
       let columns = Object.assign({}, ...headers.map(obj => {
+         console.log(obj.header, sheet);
          let keys = findValueRefs(obj.header, sheet).filter(r=>getRow(r) == 1);
          let col = keys.length ? getCol(keys[0]) : undefined;
          if (col) return { [obj.attr]: col};
@@ -767,7 +780,7 @@
 
    function identifyWorkbook(workbook) {
       let sheets = workbook.SheetNames;
-      if (util.intersection(sheets, ['CourtHive', 'Players']).length == 2) return 'courthive_imports';
+      if (util.intersection(sheets, ['CourtHive', 'Players', 'Clubs']).length == 2) return 'courthive_imports';
       return 'tournament';
    }
 
