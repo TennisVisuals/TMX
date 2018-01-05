@@ -237,6 +237,7 @@
          noauth: 'Not Authorized',
          auth: 'Authorized',
          fetch: 'Download',
+         renewlist: 'Renew List',
       },
 
       ddlb: {
@@ -291,6 +292,7 @@
          pointsvalidfrom: 'Points Valid From',
          linkcopied: 'Link Copied to Clipboard',
          submitkey: 'Submit Key',
+         deletereplace: 'Delete / Replace',
       },
 
       events: {
@@ -304,10 +306,12 @@
          category: 'Category',
          rank: 'Rank',
          surface: 'Surface',
+         approveteam: 'Approve',
          approved: 'Approved',
          eligible: 'Eligible',
          ineligible: 'Ineligible',
          unavailable: 'Unavailable',
+         wildcard: 'Wildcard'
       },
 
       locations: {

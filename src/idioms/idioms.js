@@ -237,6 +237,7 @@
          noauth: 'Not Authorized',
          auth: 'Authorized',
          fetch: 'Download',
+         renewlist: 'Renew List',
       },
 
       ddlb: {
@@ -291,6 +292,7 @@
          pointsvalidfrom: 'Points Valid From',
          linkcopied: 'Link Copied to Clipboard',
          submitkey: 'Submit Key',
+         deletereplace: 'Delete / Replace',
       },
 
       events: {
@@ -304,10 +306,12 @@
          category: 'Category',
          rank: 'Rank',
          surface: 'Surface',
+         approveteam: 'Approve',
          approved: 'Approved',
          eligible: 'Eligible',
          ineligible: 'Ineligible',
          unavailable: 'Unavailable',
+         wildcard: 'Wildcard'
       },
 
       locations: {
@@ -605,7 +609,8 @@
          key: 'Ovlastiti',
          auth: 'Ovlastio',
          noauth: 'Nije ovlašten',
-         fetch: 'Preuzimanje'
+         fetch: 'Preuzimanje',
+         renewlist: 'Obnovi popis',
       },
 
       ddlb: {
@@ -660,6 +665,7 @@
          pointsvalidfrom: 'Bodovi vrijede od',
          linkcopied: 'Veza kopirana u međuspremnik',
          submitkey: 'Unos ključa',
+         deletereplace: 'izbrisati / zamijeniti',
       },
 
       events: {
@@ -673,10 +679,12 @@
          category: 'Kategorija',
          rank: 'Rang',
          surface: 'Podloga',
+         approveteam: 'Odobriti',
          approved: 'Odobreno',
          eligible: 'Ispunjava uvjete',
          ineligible: 'Ne ispunjava uvjete',
          unavailable: 'Nedostupno',
+         wildcard: 'Wildcard'
       },
 
       locations: {
