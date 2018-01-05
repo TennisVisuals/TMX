@@ -37,7 +37,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.7.8',
+      version: '0.9.8.10',
       version_check: undefined,
       org: {
          name: undefined,
@@ -68,6 +68,7 @@ let config = function() {
       draws: {
          tree_draw: {
             flags: { display: true },
+            schedule: { after: true },
          },
          rr_draw: {},
       },
@@ -267,6 +268,12 @@ let config = function() {
             container.display_flags.element.checked = util.string2boolean(env.draws.tree_draw.flags.display);
             function displayFlags(evt) {
                env.draws.tree_draw.flags.display = container.display_flags.element.checked;
+            }
+
+            container.after_matches.element.addEventListener('click', displayFlags);
+            container.after_matches.element.checked = util.string2boolean(env.draws.tree_draw.schedule.after);
+            function displayFlags(evt) {
+               env.draws.tree_draw.schedule.after = container.after_matches.element.checked;
             }
          }
 
@@ -598,7 +605,7 @@ let config = function() {
             let td = getKey('treeDraw');
             if (td) {
                util.boolAttrs(td.options);
-               env.draws.tree_draw = td.options;
+               env.draws.tree_draw = Object.assign(env.draws.tree_draw, td.options);
             }
 
             let draws = getKey('drawSettings');
@@ -772,6 +779,7 @@ let config = function() {
       });
 
       document.getElementById('refresh').addEventListener('click', () => updateAction());
+      document.getElementById('refresh').addEventListener('contextmenu', () => refreshAction());
 
       let checkVisible = () => {
          document.getElementById('searchextra').style.display = window.innerWidth > 500 ? 'flex' : 'none'; 
@@ -885,6 +893,17 @@ let config = function() {
       let addNew = (clubs) => util.performTask(db.addClub, clubs, false).then(done, done);
       let notConfigured = (err) => { done(); gen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       coms.fetchNewClubs().then(addNew, notConfigured);
+   }
+
+   function refreshAction() {
+      if (searchBox.category == 'players') {
+         let message = `${lang.tr('tournaments.renewlist')}<p><i style='color: red;'>(${lang.tr('phrases.deletereplace')})</i>`;
+         gen.okCancelMessage(message, renewList, () => gen.closeModal());
+
+         function renewList() {
+            db.db.players.toCollection().delete().then(updateAction, console.log('delete failed'));
+         }
+      }; 
    }
 
    function updateAction() { 
