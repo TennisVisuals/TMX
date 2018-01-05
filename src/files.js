@@ -775,7 +775,6 @@
                [
                   { text: lang.tr('signin.id'), style: 'tableHeader', margin: [0, 0, 5, 0] },
                   { text: lang.tr('signin.organization'), style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  // { text: lang.tr('signin.place'), style: 'tableHeader', margin: [0, 0, 5, 0] },
                   {}, 
                   {}, 
                   {},
@@ -805,15 +804,17 @@
       return schedule;
    }
 
-   function schedulePageFooter() {
+   function schedulePageFooter(tournament) {
       let timestamp = localizeDate(new Date(), { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+      let umpirenotes = tournament.schedule && tournament.schedule.umpirenotes;
 
       let footer = {
          margin: [ 10, 0, 10, 0 ],
          fontSize: 8,
 			style: 'tableExample',
 			table: {
-            widths: ['*', 'auto', 130],
+            widths: ['*', 80, 130],
 				body: [ 
                [
                   { text: lang.tr('phrases.oop_system') },
@@ -821,8 +822,8 @@
                   { text: lang.tr('phrases.judgesignature') },
                ],
                [
-                  { text: ' ', fontSize: 18, },
-                  [ { text: ' ' }, { text: timestamp }, ],
+                  { text: umpirenotes || ' ', fontSize: 9, },
+                  [ { text: timestamp }, { text: ' ' }, ],
                   { text: ' ' },
                ],
             ]
