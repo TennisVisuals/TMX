@@ -75,7 +75,8 @@
       let ordered_scheduled = [];
 
       let dates = scheduleAttributeValues(scheduled, 'day').sort();
-      let rounds = scheduleAttributeValues(scheduled, 'oop_round').sort((a, b) => parseInt(a) - parseInt(b));
+      // extra util.unique required here because of leagacy situation where rounds were both ints and strings
+      let rounds = util.unique(scheduleAttributeValues(scheduled, 'oop_round').map(r=>parseInt(r))).sort((a, b) => a - b);
       let courts = scheduleAttributeValues(scheduled, 'court').sort();
 
       dates.forEach(date => {
@@ -230,6 +231,7 @@
          gen.modal = 0;
       }
       if (!gen.modal) document.body.style.overflow  = null;
+      gen.escapeFx = undefined;
       searchBox.focus();
    }
 
@@ -1560,6 +1562,9 @@
       if (p.signed_in && (!player.registration(p) || !player.medical(p))) font_color = '#c93214';
       let style = `style='color: ${font_color}'`;
 
+      let ranking = p.category_ranking || '';
+      if (p.int && p.int > 0) ranking = `{${ranking}}`;
+
       let additional = !additional_attributes ? '' :
          additional_attributes.map(attr => `<div class='registered_attr flexcenter'>${p[attr.value] || ''}</div>`);
 
@@ -1569,7 +1574,7 @@
             <div class='registered_player flexjustifystart'>${p.full_name}</div>
             ${additional}
             <div class='registered_attr rankrow'>
-               <span class='flexcenter rankvalue'>${p.category_ranking || ''}</span>
+               <span class='flexcenter rankvalue'>${ranking}</span>
                <span class='flexjustifyend rankentry' style='display: none;'>
                   <input rankentry='${p.id}' order='${j}' class='manualrank' value='${p.category_ranking || ''}'>
                </span>
@@ -2675,7 +2680,11 @@
    }
 
    gen.drawBroadcastState = (elem, evt) => {
-      let publish_state = evt.up_to_date ? 'publisheduptodate' : evt.published && evt.up_to_date == false ? 'publishedoutofdate' : evt.published ? 'published' : 'unpublished';
+      let publish_state = !evt ? 'unpublished' 
+         : evt.up_to_date ? 'publisheduptodate'
+         : evt.published && evt.up_to_date == false ? 'publishedoutofdate'
+         : evt.published ? 'published'
+         : 'unpublished';
       elem.className = `${publish_state} action_icon`;
    }
 
@@ -2694,6 +2703,11 @@
       let rep_count = r ? r.filter(f=>f).length : 0;
       let player_reps_state = rep_count > 0 ? 'reps_complete' : 'reps_incomplete';
       elem.className = `${player_reps_state} action_icon`;
+   }
+
+   gen.scheduleDetailsState = (elem, schedule) => {
+      let detail_state = schedule && schedule.umpirenotes ? 'time_header' : 'time_header_inactive';
+      elem.className = `${detail_state} action_icon`;
    }
 
    gen.locationList = (container, locations, highlight_listitem) => {
@@ -3318,6 +3332,27 @@
       return idObj(ids);
    }
 
+   gen.drawPDFmodal = () => {
+      let ids = {
+         drawsheet: gen.uuid(),
+         signinsheet: gen.uuid(),
+      }
+      let html = `
+         <div class='flexccol'>
+            <div class='flexcol' style='width: 100%'>
+               <div class='flexcenter' style='margin: .5em;'><h2>${lang.tr('print.draw')}</h2></div>
+            </div>
+            <div class='config_actions'>
+               <div id='${ids.drawsheet}' class='btn btn-large config_submit'>${lang.tr('drw')}</div>
+               <div id='${ids.signinsheet}' class='btn btn-large config_submit'>LL ${lang.tr('print.signin')}</div>
+            </div>
+         </div>
+      `;
+      gen.showConfigModal(html);
+
+      return idObj(ids);
+   }
+
    gen.signInSheetFormat = () => {
       let ids = {
          singles: gen.uuid(),
@@ -3587,6 +3622,29 @@
 
       // other interesting examples: how to overlay circle/polygon
       // https://stackoverflow.com/questions/19087352/capture-coordinates-in-google-map-on-user-click
+   }
+
+   gen.scheduleDetails = () => {
+      let ids = {
+         cancel: gen.uuid(),
+         submit: gen.uuid(),
+         umpirenotes: gen.uuid(),
+      }
+      let html = `
+         <div class='flexccol' style='width: 100%'>
+            <h2>${lang.tr('phrases.oop_system')}</h2>
+            <div class='flexcol reps' style='width: 100%'>
+               <textarea id='${ids.umpirenotes}' class='umpire_notes' wrap='soft' maxlength='180'></textarea>
+            </div>
+            <div class='config_actions'>
+               <div id='${ids.cancel}' class='btn btn-large config_cancel'>${lang.tr('actions.cancel')}</div>
+               <div id='${ids.submit}' class='btn btn-large config_submit'>${lang.tr('sbt')}</div>
+            </div>
+         </div>
+      `;
+      gen.showConfigModal(html);
+
+      return idObj(ids);
    }
 
    gen.playerRepresentatives = () => {
