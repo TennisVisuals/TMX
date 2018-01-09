@@ -37,7 +37,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.8.10',
+      version: '0.9.8.13',
       version_check: undefined,
       org: {
          name: undefined,
@@ -270,9 +270,9 @@ let config = function() {
                env.draws.tree_draw.flags.display = container.display_flags.element.checked;
             }
 
-            container.after_matches.element.addEventListener('click', displayFlags);
+            container.after_matches.element.addEventListener('click', afterMatches);
             container.after_matches.element.checked = util.string2boolean(env.draws.tree_draw.schedule.after);
-            function displayFlags(evt) {
+            function afterMatches(evt) {
                env.draws.tree_draw.schedule.after = container.after_matches.element.checked;
             }
          }
