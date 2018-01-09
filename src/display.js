@@ -1481,7 +1481,10 @@
       }
       d3.select('#YT' + container.container.id).style('display', 'flex');
 
-      if (!players.length) return;
+      if (!players.length) {
+         if (container.players.element) container.players.element.style.display = 'none';
+         return;
+      }
 
       if (filters.indexOf('M') >= 0) players = players.filter(f=>f.sex != 'M');
       if (filters.indexOf('W') >= 0) players = players.filter(f=>f.sex != 'W');
