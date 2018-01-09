@@ -473,13 +473,11 @@ let tournaments = function() {
 
       gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
       container.localdownload.element.addEventListener('click', () => {
-         if (!tournament.saved_locally) {
-            exp.downloadCircularJSON(`${tournament.tuid}.circular.json`, tournament);
-            tournament.saved_locally = true;
-            gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
-            // can't call saveTournament() here!!
-            if (o.save) db.addTournament(tournament);
-         }
+         exp.downloadCircularJSON(`${tournament.tuid}.circular.json`, tournament);
+         tournament.saved_locally = true;
+         gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
+         // can't call saveTournament() here!!
+         if (o.save) db.addTournament(tournament);
       });
 
       container.publish_draw.element.addEventListener('contextmenu', () => {
@@ -6606,6 +6604,8 @@ let tournaments = function() {
 
          function renewList() {
             tournament.players = [];
+            playersTab();
+            saveTournament(tournament);
             updateRegisteredPlayers(remote_request, show_notice);
          }
       }
