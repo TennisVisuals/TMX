@@ -439,7 +439,15 @@ let tournaments = function() {
                days_matches,
                published: {
                   published: lang.tr('phrases.schedulepublished'),
-                  datestring: localizeDate(new Date(tournament.schedule.published)),
+                  datestring: localizeDate(new Date(tournament.schedule.published), {
+                     weekday: 'long',
+                     year: 'numeric',
+                     month: 'long',
+                     day: 'numeric',
+                     hour: '2-digit',
+                     hour12: false,
+                     minute: '2-digit'
+                  })
                },
                tournament: {
                   tuid: tournament.tuid,
@@ -7456,9 +7464,9 @@ let tournaments = function() {
       return (info.unassigned && !info.unassigned.length) || info.positions_filled;
    }
 
-   function localizeDate(date) {
-      let date_localization = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-      return date.toLocaleDateString(lang.tr('datelocalization'), date_localization);
+   function localizeDate(date, date_localization) {
+      let default_localization = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      return date.toLocaleDateString(lang.tr('datelocalization'), date_localization || default_localization);
    }
 
    return fx;
