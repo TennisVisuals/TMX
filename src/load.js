@@ -134,9 +134,31 @@
             let courts = club.courts ? club.courts.split(',') : [0, 0];
             club.courts = { clay: courts[0], hard: courts[1] };
          }
+         if (!club.courts) club.courts = {};
+         if (club.clay) {
+            club.courts.clay = club.clay;
+            delete club.clay;
+         }
+         if (club.hard) {
+            club.courts.hard = club.hard;
+            delete club.hard;
+         }
+         if (club.carpet) {
+            club.courts.carpet = club.carpet;
+            delete club.carpet;
+         }
+         if (club.lights) {
+            club.courts.lights = club.lights;
+            delete club.lights;
+         }
+         if (club.covered) {
+            club.courts.covered = club.covered;
+            delete club.covered;
+         }
+
          if (club.email) club.email = club.email.split(',');
          if (club.notes) delete club.notes;
-      });;
+      });
       util.performTask(db.addClub, clubs, false).then(() => gen.busy.done(id), () => gen.busy.done(id));
    }
 
@@ -577,6 +599,7 @@
          settings() { loadSettings(json); },
          points()  { loadPointEvents(json); },
          players()  { loadPlayerList(json); },
+         clubsCSV()  { importClubsCSV(json); },
          playersCSV()  { loadPlayerList(json); },
          ranklistCSV() { importRankings(json); },
          tournaments() { loadTournaments(json); },
@@ -598,6 +621,7 @@
       if (keys.length && ['website', 'courts'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'clubs';
       if (keys.length && ['born', 'right_to_play'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'playersCSV';
       if (keys.length && ['start', 'end', 'draws'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'tournamentsCSV';
+      if (keys.length && ['clay', 'hard', 'carpet'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'clubsCSV';
 
       if (keys.length && ['key', 'category'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'settings';
       if (keys.length && ['hash', 'alias'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'aliases';
