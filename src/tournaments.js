@@ -331,7 +331,7 @@ let tournaments = function() {
 
       util.addEventToClass(classes.schedule_matches, scheduleMatches);
       function scheduleMatches() {
-         let scheduling_height = '20em';
+         let scheduling_height = '40em';
          let schedule_grid = container.container.element.querySelector('.schedule_sheet');
          let scheduling_active = schedule_grid.style.maxHeight == scheduling_height;
 
@@ -1997,9 +1997,7 @@ let tournaments = function() {
 
                let total = players + qualifiers;
                let new_draw_size = total ? dfx.acceptedDrawSizes(total) : 0;
-               if (new_draw_size != e.draw_size) {
-                  console.log(e.draw_size, new_draw_size);
-               }
+               if (new_draw_size != e.draw_size) { console.log(e.draw_size, new_draw_size); }
                e.draw_size = new_draw_size;
                e.qualifiers = qualifiers;
                if (e.draw) e.draw.qualifiers = qualifiers;
@@ -3846,7 +3844,7 @@ let tournaments = function() {
                      scoreTreeDraw(e, existing_scores, outcome);
                   }
 
-                  match.winner = outcome.winner;
+                  match.winner_index = outcome.winner;
                   match.score = outcome.score;
                   if (outcome.score) match.status = '';
                   match.score_format = outcome.score_format;
@@ -4353,6 +4351,7 @@ let tournaments = function() {
          util.addEventToClass('player_click', player.playerClicked, container.matches.element);
 
          function enterMatchScore(e, match) {
+
             let existing_scores = match && match.match && match.match.score ? 
                scoreBoard.convertStringScore({
                   string_score: match.match.score,
@@ -4498,6 +4497,9 @@ let tournaments = function() {
                brackets: evt.draw.brackets,
                bracket_size: evt.draw.bracket_size,
             }
+            let draw_object = (evt.draw_type == 'R') ? rr_draw : tree_draw;
+            config.drawOptions({ draw: draw_object });
+            ebo.options = draw_object.options();
          }
 
          return ebo;
@@ -6047,7 +6049,7 @@ let tournaments = function() {
                      }
 
                      // must occur after team removed from linked draw approved
-                     e.qualified = e.qualified.filter(q=>util.intersection(q.map(m=>m.id), team_ids).length == 0);
+                     e.qualified = !e.qualified ? [] : e.qualified.filter(q=>util.intersection(q.map(m=>m.id), team_ids).length == 0);
                      setDrawSize(e);
 
                      // must occur after e.qualified is updated
@@ -6190,7 +6192,10 @@ let tournaments = function() {
                let byes = info.draw_positions.length - (player_count + info.byes.length);
                let bye_positions = info.byes.map(b=>b.data.dp);
                let structural_bye_positions = info.structural_byes.map(b=>b.data.dp);
-               let qualifiers = info.draw_positions.length - (draw.opponents.length + info.byes.length + info.qualifiers.length);
+
+               let linked_q = findEventByID(displayed_draw_event.links['Q']);
+               let qualifiers = linked_q ? linked_q.qualifiers - info.qualifiers.length : 0;
+
                let placements = draw.unseeded_placements.map(p=>p.id);
                var unplaced_teams = teamSort(draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0));
 
@@ -6209,6 +6214,7 @@ let tournaments = function() {
                   } else if (byes && byes_allowed && i == 0) {
                      assignPosition(position, undefined, true, false);
                   } else {
+                     let index = ((byes && byes_allowed) || qualifiers) ? i - 1 : i;
                      let team = unplaced_teams[(byes && byes_allowed) || qualifiers ? i - 1 : i];
                      assignPosition(position, team);
                      draw.unseeded_placements.push({ id: team[0].id, position });
