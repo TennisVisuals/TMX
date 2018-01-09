@@ -2202,8 +2202,8 @@
       let ids = { scorebox: gen.uuid(), }
       let empty = !Object.keys(match).length;
       let offgrid = empty && !court;
-      let complete = match.winner != undefined;
-      let inprogress = match.status == 'inprogress' || (match.score && match.winner == undefined);
+      let complete = match.winner_index != undefined;
+      let inprogress = match.status == 'inprogress' || (match.score && match.winner_index == undefined);
       let conflict = match.scheduling == 'conflict';
       let timepressure = match.scheduling == 'timepressure';
       let background = conflict ? '#F5A9A9' : timepressure ? 'lightyellow' : inprogress ? '#CEF6CE' : complete ? '#E0ECF8' : 'white';
