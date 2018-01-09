@@ -333,15 +333,21 @@
       let format = lang.tr(`formats.${match.format || ''}`);
       let category = match.event ? match.event.category : '';
       let time_detail = !match.schedule ? "" : `${match.schedule.time_prefix || ''} ${match.schedule.time || ''}`;
+      let score = match.score;
+      if (score && match.winner == 1) score = drawFx().reverseScore(score);
       let display = {
          time_detail,
-         round: `${match.gender || ''}${category} ${format} ${match.round_name || ''}`,
+         round: `${match.gender || ''} ${category} ${format} ${match.round_name || ''}`,
          oop: match.oop || '',
          player1: match.players ? teamName(match, match.team_players[0]) : '',
-         vs: match.players ? match.score ? 'def.' : 'vs.' : '',
+         bold1: match.winner != undefined && match.winner == 0 ? true : false,
+         color1: match.winner != undefined && match.winner == 0 ? 'green' : 'gray',
+         vs: match.players ? 'vs.' : '',
          player2: match.players ? teamName(match, match.team_players[1]) : '',
+         bold2: match.winner != undefined && match.winner == 1 ? true : false,
+         color2: match.winner != undefined && match.winner == 1 ? 'green' : 'gray',
          spacer: match.spacer || '',
-         scoreline: `${match.score || ''}`,
+         scoreline: `${score || ''}`,
          spacer: match.spacer || '',
       }
       let x = ' ';
@@ -352,9 +358,9 @@
                [ { text: display.time_detail || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
                [ { text: display.round || x, style: 'centeredItalic', margin: [0, 0, 0, 0] }, ],
                [ { text: display.oop || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
-               [ { text: display.player1 || x, style: 'teamName', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.player1 || x, style: 'teamName', margin: [0, 0, 0, 0], bold: display.bold1, color: display.color1 }, ],
                [ { text: display.vs || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
-               [ { text: display.player2 || x, style: 'teamName', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.player2 || x, style: 'teamName', margin: [0, 0, 0, 0], bold: display.bold2, color: display.color2 }, ],
                [ { text: display.spacer || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
                [ { text: display.scoreline || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
             ]
