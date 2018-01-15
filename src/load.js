@@ -790,7 +790,6 @@
       let getRow = (reference) => reference && /\d+/.test(reference) ? parseInt(/\d+/.exec(reference)[0]) : undefined;
       let findValueRefs = (search_text, sheet) => Object.keys(sheet).filter(ref => cellValue(sheet[ref]) == search_text);
       let columns = Object.assign({}, ...headers.map(obj => {
-         console.log(obj.header, sheet);
          let keys = findValueRefs(obj.header, sheet).filter(r=>getRow(r) == 1);
          let col = keys.length ? getCol(keys[0]) : undefined;
          if (col) return { [obj.attr]: col};
