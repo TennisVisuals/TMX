@@ -106,6 +106,8 @@
          requireconfirm: 'Zatraži potvrdu',
          publishonscore: 'Objava nakon upisa rezultata',
          matchesbefore: 'Utakmice prije brojanja',
+         automatedbyes: 'Automatsko postavljanje Bye',
+         courtdetail: 'Pojedinosti o terenu',
       },
 
       search: {
@@ -186,19 +188,21 @@
          noauth: 'Nije ovlašten',
          fetch: 'Preuzimanje',
          renewlist: 'Obnovi popis',
+         natlassoc: 'Nacionalna federacija',
+         tennisclub: 'Teniski klub',
       },
 
       ddlb: {
-         singles:  'Pojedinačni turniri - Rang:&nbsp;',
-         doubles:  'Turniri parova - Rang:&nbsp;',
-         category: 'Kategorija turnira:&nbsp;',
+         singles:  'Pojedinačni turniri - Rang:',
+         doubles:  'Turniri parova - Rang:',
+         category: 'Kategorija turnira:',
          draws:    'Odaberi kateogriju:',
       },
 
       phrases: {
          action: 'Igrači zahtjevaju neku akciju...',
          search: 'Upotrijebite gornje polje za pretraživanje kako biste pronašli igrača ili kliknite na igrača kako bi ga uredili',
-         assign: 'Dodijelite ovaj profil klikom na igrača u nastavku ili ...&nbsp',
+         assign: 'Dodijelite ovaj profil klikom na igrača u nastavku ili ...',
          accept: '&nbspall igrača',
          trnyz:  'Učitavanje turnira ...',
          badfile: 'Datoteka nije prepoznata',
@@ -241,6 +245,7 @@
          linkcopied: 'Veza kopirana u međuspremnik',
          submitkey: 'Unos ključa',
          deletereplace: 'izbrisati / zamijeniti',
+         weblink: 'Internet adresa',
       },
 
       events: {

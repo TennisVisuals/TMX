@@ -158,6 +158,8 @@
          requireconfirm: 'Require Confirmation',
          publishonscore: 'Publish when score entered',
          matchesbefore: 'Matches Before Count',
+         automatedbyes: 'Automatic Bye Placement',
+         courtdetail: 'Court Details',
       },
 
       search: {
@@ -229,6 +231,7 @@
       tournaments: {
          new: 'New Tournament',
          add: 'Add Tournament',
+         id: 'Tournament ID',
          edit: 'Edit',
          done: 'Finish',
          removeall: 'Remove All',
@@ -238,20 +241,22 @@
          auth: 'Authorized',
          fetch: 'Download',
          renewlist: 'Renew List',
+         natlassoc: 'National Association',
+         tennisclub: 'Tennis Club',
       },
 
       ddlb: {
-         singles:  'Singles Tournament Rank:&nbsp;',
-         doubles:  'Doubles Tournament Rank:&nbsp;',
-         category: 'Tournament Category:&nbsp;',
+         singles:  'Singles Tournament Rank:',
+         doubles:  'Doubles Tournament Rank:',
+         category: 'Tournament Category:',
          draws:    'Select Event:',
       },
 
       phrases: {
          action: 'Players requiring some action...',
          search: 'Use the search field above to find players, or click player to edit',
-         assign: 'Assign this profile by clicking a player below, or ...&nbsp',
-         accept: '&nbspall players',
+         assign: 'Assign this profile by clicking a player below, or ...',
+         accept: 'Accept all players',
          trnyz:  'Loading Tournaments ...',
          badfile: 'File Not Recognized',
          invalid: 'Invalid file type',
@@ -293,6 +298,7 @@
          linkcopied: 'Link Copied to Clipboard',
          submitkey: 'Submit Key',
          deletereplace: 'Delete / Replace',
+         weblink: 'Web Link',
       },
 
       events: {
@@ -398,7 +404,7 @@
          registered: 'Updating Registered Players...',
          players: 'Updating Players...',
          calendar: 'Updating Calendar...',
-         clubs: 'Updating Cllubs...',
+         clubs: 'Updating Clubs...',
       },
 
       penalties: {
