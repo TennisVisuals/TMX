@@ -237,6 +237,15 @@
       });
    }
 
+   exp.downloadRankings = () => {
+      db.findAllRankings().then(rankings => rankings.forEach(download));
+
+      function download(ranking) {
+         let data = Object.keys(ranking.players).map(k=>ranking.players[k]);
+         exp.downloadJSON(`rankings_${ranking.category}`, data);
+      }
+   }
+
    exp.downloadMatches = (category, group_size = 600) => {
       if (category && [12, 14, 16, 18, 20].indexOf(category) < 0) return;
       db.findAllMatches().then(matches => {
