@@ -212,7 +212,7 @@ let coms = function() {
 
    // AJAX REQUESTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-   fx.ajax = (url, request, type, callback) => {
+   function ajax(url, request, type, callback) {
       var type = type || "GET";
       if (['GET', 'POST'].indexOf(type) < 0) return false;
       if (typeof callback != 'function') return false;
@@ -257,7 +257,39 @@ let coms = function() {
                   return reject(result);
                }
             }
-            fx.ajax('/api/match/request', request, 'POST', responseHandler);
+            ajax('/api/match/request', request, 'POST', responseHandler);
+      });
+   }
+
+   fx.fetchTournament = fetchTournament;
+   function fetchTournament() {
+      db.findSetting('fetchTournament').then(s => {
+         if (s) {
+            let fetchFx = s.fx ? util.createFx(s.fx) : undefined;
+            if (!fetchFx || typeof fetchFx != 'function') return;
+
+            let obj = gen.entryModal('tournaments.id', false);
+            gen.escapeModal();
+            let entry_modal = d3.select(obj.entry_modal.element);
+            let removeEntryModal = () => {
+               entry_modal.remove();
+               document.body.style.overflow = null;
+               gen.escapeFx = undefined;
+            }
+
+            obj.search_field.element.addEventListener("keyup", function(e) { 
+               if (e.which == 13) {
+                  let id = obj.search_field.element.value;
+                  if (id) fetchFx(id, fetchHTML).then(()=>{}, ()=>{ console.log('invalid', id); });
+                  removeEntryModal();
+               }
+            });
+
+            entry_modal.on('click', removeEntryModal);
+
+         } else {
+            console.log('no fx');
+         }
       });
    }
 
@@ -336,7 +368,7 @@ let coms = function() {
                   return reject(result.err || 'Error');
                }
             }
-            fx.ajax('/api/match/request', request, 'POST', responseHandler);
+            ajax('/api/match/request', request, 'POST', responseHandler);
          }
       });
    }
@@ -369,7 +401,7 @@ let coms = function() {
                   return reject(result.err || 'Error');
                }
             }
-            fx.ajax('/api/match/request', request, 'POST', responseHandler);
+            ajax('/api/match/request', request, 'POST', responseHandler);
          }
       });
    }
@@ -399,7 +431,7 @@ let coms = function() {
                   return reject(result.err || 'Error');
                }
             }
-            fx.ajax('/api/match/request', request, 'POST', responseHandler);
+            ajax('/api/match/request', request, 'POST', responseHandler);
          }
 
          function normalizeTournaments(trnys) {
@@ -427,10 +459,13 @@ let coms = function() {
          }
 
          function fetchNew(plyrz, params) {
-
             // maximum player record determined by numeric ids; others excluded
             let max_id = Math.max(0, ...plyrz.map(p=>!isNaN(+p.id) ? +p.id : 0));
-            let request_object = { [params.type]: params.url + max_id };
+            let increment_url = params.increment == 'false' ? false : true;
+            let request_url = params.url;
+            if (increment_url) request_url += max_id;
+            // let request_object = { [params.type]: params.url + max_id };
+            let request_object = { [params.type]: request_url };
             let request = JSON.stringify(request_object);
             function responseHandler(result) {
                if (result.json) {
@@ -442,7 +477,7 @@ let coms = function() {
                   return reject(result.err || 'Error');
                }
             }
-            fx.ajax('/api/match/request', request, 'POST', responseHandler);
+            ajax('/api/match/request', request, 'POST', responseHandler);
          }
 
          function normalizePlayers(players) {
@@ -455,18 +490,17 @@ let coms = function() {
                player.birth = (birth_date != 'Invalid Date') ? birth_date.getTime() : undefined;
                let name = (player.first_name + player.last_name).trim();
                player.hash = util.nameHash(name);
-               player.foreign = player.foreign != 'N';
-               player.ioc = !player.ioc && !player.foreign ? 'CRO' : undefined;
-               player.represents_ioc = player.represents_ioc != 'N';
+               // player.foreign = player.foreign != 'N';
+               player.ioc = player.ioc || (!player.ioc && !player.foreign ? 'CRO' : undefined);
+               // player.represents_ioc = player.represents_ioc != 'N';
                player.residence_permit = player.residence_permit != 'N';
                player.last_name = util.normalizeName(player.last_name, false).trim();
                player.first_name = util.normalizeName(player.first_name, false).trim();
-               player.puid = `${player.foreign ? 'INO' : 'CRO'}-${player.cropin}`;
+               player.puid = player.puid || `${player.foreign ? 'INO' : 'CRO'}-${player.cropin}`;
             });
 
             resolve(players);
          }
-
       });
    }
 
@@ -546,7 +580,7 @@ let coms = function() {
                   return reject({ error: 'Error' });
                }
             }
-            fx.ajax('/api/match/request', request, 'POST', responseHandler);
+            ajax('/api/match/request', request, 'POST', responseHandler);
          }
       });
    }
@@ -623,7 +657,7 @@ let coms = function() {
                   return reject(result.err || 'Error');
                }
             }
-            fx.ajax('/api/match/request', request, 'POST', responseHandler);
+            ajax('/api/match/request', request, 'POST', responseHandler);
          }
 
          function updateLocal(dbplayers, players) {
@@ -640,7 +674,6 @@ let coms = function() {
                }
             });
             resolve(players);
-            // db.db.tournaments.where('tuid').equals(tuid).modify(tournament => tournament.registered = players).then(() => resolve(players), reject);
          }
       });
    }
