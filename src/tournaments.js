@@ -14,10 +14,6 @@ let tournaments = function() {
             max_bracket_size: 5,
          },
       },
-      override: {
-         auto_byes: false,
-         auto_qualifiers: false,
-      },
       sign_in: {
          rapid: true,
       },
@@ -149,7 +145,11 @@ let tournaments = function() {
       calendar_container.category.ddlb.selectionBackground();
       category = config.legacyCategory(category);
 
-      calendar_container.add.element.addEventListener('click', () => createNewTournament({ title: lang.tr('tournaments.new'), callback: saveNewTournament }));
+      calendar_container.add.element.addEventListener('click', () => {
+         createNewTournament({ title: lang.tr('tournaments.new'), callback: saveNewTournament })
+      });
+
+      calendar_container.add.element.addEventListener('contextmenu', coms.fetchTournament);
 
       function saveNewTournament(tournament) {
          if (!tournament || !Object.keys(tournament).length) return;
@@ -182,7 +182,18 @@ let tournaments = function() {
             gen.calendarRows(calendar_container.rows.element, tournaments);
 
             let dt = (evt) => displayTournament({tuid: util.getParent(evt.target, 'calendar_click').getAttribute('tuid')});
-            Array.from(calendar_container.container.element.querySelectorAll('.calendar_click')).forEach(elem => elem.addEventListener('click', dt));
+            let editTournament = (evt) => {
+               var tuid = util.getParent(evt.target, 'calendar_click').getAttribute('tuid');
+               db.findTournament(tuid).then(editIt, ()=>console.log('boo'));
+           
+               function editIt(tournament) {
+                  createNewTournament({ tournament_data: tournament, title: 'Edit Tournament', callback: saveNewTournament })
+               }
+            }
+            Array.from(calendar_container.container.element.querySelectorAll('.calendar_click')).forEach(elem => {
+               elem.addEventListener('click', dt);
+               elem.addEventListener('contextmenu', editTournament);
+            });
          }
 
       }
@@ -370,7 +381,7 @@ let tournaments = function() {
 
       util.addEventToClass(classes.publish_schedule, unPublishSchedule, undefined, 'contextmenu');
       function unPublishSchedule() {
-         if (!tournament.schedule || !tournament.schedule.published) return;
+         if (!state.edit || !tournament.schedule || !tournament.schedule.published) return;
          gen.okCancelMessage(lang.tr('schedule.unpublish'), unPublishOOP, () => gen.closeModal());
       }
 
@@ -463,6 +474,13 @@ let tournaments = function() {
          }
       }
 
+      container.pub_link.element.addEventListener('click', () => {
+         let message = `${location.host}/draws/?tuid=${tournament.tuid}`;
+         copyClick(message);
+         let ctext = lang.tr('phrases.linkcopied');
+         let msg = gen.okCancelMessage(ctext, () => gen.closeModal());
+      });
+
       gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
       container.push2cloud.element.addEventListener('click', () => {
          if (!tournament.published) {
@@ -495,8 +513,11 @@ let tournaments = function() {
          function unPublishDraw() {
             displayed_draw_event.published = false;
             displayed_draw_event.up_to_date = false;
+            saveTournament(tournament);
+
             gen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
             deleteEvent(tournament, displayed_draw_event);
+            enableTournamentOptions();
             gen.closeModal();
          }
       });
@@ -1226,35 +1247,31 @@ let tournaments = function() {
                }
             }
             let message = `${location.href}?actionKey=${key_uuid}`;
-            let btn = UUID.generate();
             let ctext = lang.tr('phrases.linkcopied');
 
             // TODO: server won't accept pushKey unless user uuuid in superuser cache on server
             coms.emitTmx({ pushKey });
             let msg = gen.okCancelMessage(ctext, () => gen.closeModal());
-            copyClick();
-
-            function copyClick() {
-
-               let c = document.createElement('input');
-               c.style.opacity = 0;
-               c.setAttribute('id', 'c2c');
-               c.setAttribute('type', 'text');
-               c.setAttribute('value', message);
-               let inp = document.body.appendChild(c);
-
-               let b = document.createElement('button');
-               b.style.display = 'none';
-               b.setAttribute('data-copytarget', '#c2c');
-               b.addEventListener('click', elementCopy, true);
-               let elem = document.body.appendChild(b);
-               elem.click();
-               elem.remove();
-
-               inp.remove();
-            }
-
+            copyClick(message);
          });
+      }
+
+      function copyClick(message) {
+         let c = document.createElement('input');
+         c.style.opacity = 0;
+         c.setAttribute('id', 'c2c');
+         c.setAttribute('type', 'text');
+         c.setAttribute('value', message);
+         let inp = document.body.appendChild(c);
+
+         let b = document.createElement('button');
+         b.style.display = 'none';
+         b.setAttribute('data-copytarget', '#c2c');
+         b.addEventListener('click', elementCopy, true);
+         let elem = document.body.appendChild(b);
+         elem.click();
+         elem.remove();
+         inp.remove();
       }
 
       function elementCopy(e) {
@@ -1309,6 +1326,8 @@ let tournaments = function() {
       function enableTournamentOptions() {
          let bool = state.edit;
          [ 'start_date', 'end_date', 'organization', 'organizers', 'location', 'judge' ].forEach(field=>container[field].element.disabled = !bool);
+         let publications = !tournament.events || !tournament.events.length ? false : tournament.events.reduce((p, c) => c.published || p, false);
+         container.pub_link.element.style.display = bool && publications ? 'inline' : 'none';
          container.push2cloud.element.style.display = bool ? 'inline' : 'none';
          container.localdownload.element.style.display = bool ? 'inline' : 'none';
       }
@@ -1679,6 +1698,7 @@ let tournaments = function() {
       }
 
       function unpublishAllEvents() {
+         if (!state.edit) return;
          gen.okCancelMessage(lang.tr('draws.unpublishall'), unPublishAll, () => gen.closeModal());
          gen.escapeModal();
 
@@ -1822,6 +1842,9 @@ let tournaments = function() {
 
                      // must occur *after* tournament events spliced
                      updateScheduleStatus({ euid: e.euid });
+
+                     // hide any options no longer applicable
+                     enableTournamentOptions();
 
                      if (!tournament.log) tournament.log = [];
                      tournament.log.push({
@@ -3653,7 +3676,7 @@ let tournaments = function() {
                      let pairs = [
                         { attr: 'time_prefix', value: '' },
                         { attr: 'time', value: '' },
-                        { attr: 'heading', value: 'Next Available' },
+                        { attr: 'heading', value: lang.tr('schedule.nextavailable') },
                      ];
                      modifyMatchSchedule(pairs);
                   } else if (choice.key == 'clear') {
@@ -4528,6 +4551,7 @@ let tournaments = function() {
          evt.up_to_date = complete.length ? true : undefined;
          evt.published = true;
          saveTournament(tournament);
+         enableTournamentOptions();
       }
 
       function matchStorageObject(tournament, e, match, source) {
@@ -4667,15 +4691,16 @@ let tournaments = function() {
       }
 
       function testLastSeedPosition(e) {
+         var settings = config.env().drawFx;
          // after all seeded positions have been placed, distribute byes
          if (!e && !tree_draw.nextSeedGroup()) {
             // context is working with a data structure
-            if (o.override.auto_byes) tree_draw.distributeByes();
-            if (o.override.auto_qualifiers) tree_draw.distributeQualifiers();
+            if (settings.auto_byes) tree_draw.distributeByes();
+            if (settings.auto_qualifiers) tree_draw.distributeQualifiers();
          } else if (e && !dfx.nextSeedGroup({ draw: e.draw })) {
             // context is interacting directly with draw
-            if (o.override.auto_byes) dfx.distributeByes({ draw: e.draw });
-            if (o.override.auto_qualifiers) dfx.distributeQualifiers({ draw: e.draw });
+            if (settings.auto_byes) dfx.distributeByes({ draw: e.draw });
+            if (settings.auto_qualifiers) dfx.distributeQualifiers({ draw: e.draw });
          }
       }
 
@@ -6200,7 +6225,7 @@ let tournaments = function() {
                let structural_bye_positions = info.structural_byes.map(b=>b.data.dp);
 
                let linked_q = findEventByID(displayed_draw_event.links['Q']);
-               let qualifiers = linked_q ? linked_q.qualifiers - info.qualifiers.length : 0;
+               let qualifiers = linked_q ? linked_q.qualifiers - (linked_q.qualified.length + info.qualifiers.length) : 0;
 
                let placements = draw.unseeded_placements.map(p=>p.id);
                var unplaced_teams = teamSort(draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0));
@@ -6291,7 +6316,7 @@ let tournaments = function() {
       function addUmpire(match, context) {
          if (!match || !match.schedule || !match.schedule.court) return;
 
-         let uobj = gen.selectUmpire({ container });
+         let uobj = gen.entryModal('draws.matchumpire', true);
          gen.escapeModal();
 
          let entry_modal = d3.select(uobj.entry_modal.element);
@@ -6302,23 +6327,23 @@ let tournaments = function() {
          }
 
          entry_modal.on('click', removeEntryModal);
-         uobj.umpire_search.element.value = match.umpire || '';
+         uobj.search_field.element.value = match.umpire || '';
 
          let selection_flag = false;
          let umpires = tournament.umpires || [];
          let list = umpires.map(umpire =>({ value: umpire, label: umpire }));
-         uobj.typeAhead = new Awesomplete(uobj.umpire_search.element, { list });
+         uobj.typeAhead = new Awesomplete(uobj.search_field.element, { list });
          let selectUmpire = (umpire) => {
             submitUmpire(umpire);
             removeEntryModal();
          }
-         uobj.umpire_search.element
+         uobj.search_field.element
             .addEventListener("awesomplete-selectcomplete", function(e) { selection_flag = true; selectUmpire(this.value); }, false);
-         uobj.umpire_search.element.addEventListener('keydown', catchTab , false);
-         uobj.umpire_search.element.addEventListener("keyup", function(e) { 
+         uobj.search_field.element.addEventListener('keydown', catchTab , false);
+         uobj.search_field.element.addEventListener("keyup", function(e) { 
             // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
             if (e.which == 13 && !selection_flag) {
-               let value = uobj.umpire_search.element.value;
+               let value = uobj.search_field.element.value;
                if (uobj.typeAhead.suggestions && uobj.typeAhead.suggestions.length && value.length) {
                   uobj.typeAhead.next();
                   uobj.typeAhead.select(0);
@@ -6332,7 +6357,7 @@ let tournaments = function() {
 
          // disable scrolling on background
          document.body.style.overflow  = 'hidden';
-         uobj.umpire_search.element.focus();
+         uobj.search_field.element.focus();
 
          function submitUmpire(umpire) {
             if (umpire) {
@@ -7158,13 +7183,15 @@ let tournaments = function() {
 
       container.category.ddlb = new dd.DropDown({ element: container.category.element, onChange: setCategory });
       container.category.ddlb.selectionBackground('yellow');
+      if (tournament_data.category) container.category.ddlb.setValue(tournament_data.category);
 
       let setRank = (value) => {
          if (!value) { setTimeout(function() { container.rank.ddlb.selectionBackground('yellow'); }, 200); }
          trny.rank = value;
       }
       container.rank.ddlb = new dd.DropDown({ element: container.rank.element, onChange: setRank });
-      container.rank.ddlb.selectionBackground('yellow');
+      // container.rank.ddlb.selectionBackground('yellow');
+      if (tournament_data.rank) container.rank.ddlb.setValue(tournament_data.rank);
 
       let defineAttr = (attr, evt, required, element) => {
          let valid = true;
@@ -7186,7 +7213,7 @@ let tournaments = function() {
       let saveTournament = () => { 
          let valid_start = !trny.start ? false : typeof trny.start == 'string' ? util.validDate(trny.start) : true;
          let valid_end   = !trny.end   ? false : typeof trny.end   == 'string' ? util.validDate(trny.end) : true;
-         if (!valid_start || !valid_end || !trny.name || !validRange() || !trny.category || !trny.rank) return;
+         if (!valid_start || !valid_end || !trny.name || !validRange() || !trny.category) return;
 
          if (typeof callback == 'function') callback(trny); 
          gen.closeModal();
