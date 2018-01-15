@@ -111,8 +111,9 @@ html {
    font-size: 1em;
 }
 
-.splash_screen {
-   margin-top: 3em;
+.splash_screen { margin-top: 2em; }
+.splash_org {
+   min-height: 1em;
 }
 
 .actions {
