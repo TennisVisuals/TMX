@@ -548,7 +548,7 @@
       gen.identify_container.active_player.element.style.display = 'flex';
       gen.identify_container.action_message.element.innerHTML = `
          <div class="flexrow">
-            <div>${lang.tr('phrases.assign')}</div>
+            <div>${lang.tr('phrases.assign')}&nbsp;</div>
             <button type="button" class='btn dismiss'>${lang.tr('dss')}</button>
          </div>
       `;
@@ -1129,7 +1129,9 @@
    gen.drawSettings = () => {
       let ids = {
          compressed_draw_formats: gen.uuid(),
+         auto_byes: gen.uuid(),
          display_flags: gen.uuid(),
+         court_detail: gen.uuid(),
          after_matches: gen.uuid(),
       };
       let ddlb = [];
@@ -1143,8 +1145,18 @@
                     <input type='checkbox' id="${ids.compressed_draw_formats}">
                 </div>
                 <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.automatedbyes')}:</label>
+                    <input type='checkbox' id="${ids.auto_byes}">
+                </div>
+             </div>
+             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+                <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.countryflags')}:</label>
                     <input type='checkbox' id="${ids.display_flags}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.courtdetail')}:</label>
+                    <input type='checkbox' id="${ids.court_detail}">
                 </div>
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.matchesbefore')}:</label>
@@ -1269,10 +1281,10 @@
                         <div id='${ids.rank}' class='flexjustifystart rankddlb'> </div>
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
-                        <input id='${ids.association}' value='${tournament.sid || ''}' placeholder="National Association">
+                        <input id='${ids.association}' value='${tournament.sid || ''}' placeholder="${lang.tr('tournaments.natlassoc')}">
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
-                        <input id='${ids.organization}' value='${tournament.organization || ''}' placeholder='Tennis Club'>
+                        <input id='${ids.organization}' value='${tournament.organization || ''}' placeholder="${lang.tr('tournaments.tennisclub')}">
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.start}' value='${start}' placeholder='YYYY-MM-DD'>
@@ -1387,37 +1399,38 @@
    }
 
    gen.playerInfo = (p, club) => {
-      let medical = player.medical(p);
-      let registration = player.registration(p);
+      var medical = player.medical(p);
+      var registration = player.registration(p);
 
-      let name = util.normalizeName([p.first_name, p.last_name].join(' '), false);
-      let clubdata = !club.name ? '' :
+      var name = util.normalizeName([p.first_name, p.last_name].join(' '), false);
+      var clubdata = !club.name ? '' :
          `<div class='flexrow'><div class='pdata_label'>${lang.tr('clb')}:</div><div class='pdata_value'>${club.name}</div></div>`;
-      let clubcode = !club.code ? '' :
+      var clubcode = !club.code ? '' :
          `<div class='flexrow'><div class='pdata_label'>${lang.tr('clb')}:</div><div class='pdata_value'>${club.code}</div></div>`;
-      let cropin = !p.cropin ? '' :
+      var cropin = !p.cropin ? '' :
          `<div class='flexrow'><div class='pdata_label'>CROPIN:</div><div class='pdata_value'>${p.cropin || ''}</div></div>`;
-      let birth = !p.birth ? '' :
+      var birth = !p.birth ? '' :
          `<div class='flexrow'><div class='pdata_label'>${lang.tr('bd')}:</div><div class='pdata_value'>${displayYear(p.birth)}</div></div>`;
-      let city = !p.city ? '' :
+      var city = !p.city ? '' :
          `<div class='flexrow'><div class='pdata_label'>${lang.tr('cty')}:</div><div class='pdata_value'>${p.city}</div></div>`;
-      let country = !p.ioc ? '' :
+      var country = !p.ioc ? '' :
          `<div class='flexrow'><div class='pdata_label'>${lang.tr('cnt')}:</div><div class='pdata_value'>${p.ioc}</div></div>`;
 
-      let expired_medical = medical != false ? '' :
+      var rtp = p.right_to_play_until ? displayFullDate(p.right_to_play_until) : '';
+      var expired_medical = medical != false || !rtp ? '' :
          `<div class='flexrow'>
             <div class='pdata_label'>${lang.tr('signin.medical')}:</div>
-            <div class='pdata_value' style='color: red'>${displayFullDate(p.right_to_play_until)}</div>
+            <div class='pdata_value' style='color: red'>${rtp}</div>
          </div>`;
 
 
-      let expired_registration = registration != false ? '' :
+      var expired_registration = registration != false ? '' :
          `<div class='flexrow'>
             <div class='pdata_label'>${lang.tr('signin.registration')}:</div>
             <div class='pdata_value' style='color: red'>${displayFullDate(p.registered_until)}</div>
          </div>`;
 
-      let html = `
+      var html = `
          <div class='player_data'>
             <h2 style='margin-left: 1em; margin-right: 1em;'>${name}</h2>
 
@@ -1697,9 +1710,9 @@
       if (elem) {
          elem.innerHTML = html;
 
-         dd.attachDropDown({ id: ids.sgl_rank, label: lang.tr('ddlb.singles'), options: getRanks(tournament) });
-         dd.attachDropDown({ id: ids.dbl_rank, label: lang.tr('ddlb.doubles'), options: getRanks(tournament) });
-         dd.attachDropDown({ id: ids.category, label: lang.tr('ddlb.category'), options: getCategories(tournament) });
+         dd.attachDropDown({ id: ids.sgl_rank, label: `${lang.tr('ddlb.singles')}&nbsp;`, options: getRanks(tournament) });
+         dd.attachDropDown({ id: ids.dbl_rank, label: `${lang.tr('ddlb.doubles')}&nbsp;`, options: getRanks(tournament) });
+         dd.attachDropDown({ id: ids.category, label: `${lang.tr('ddlb.category')}&nbsp;`, options: getCategories(tournament) });
 
          dd.attachDropDown({ id: ids.w_sgl_rank, options: getRanks(tournament) });
          dd.attachDropDown({ id: ids.w_dbl_rank, options: getRanks(tournament) });
@@ -1761,6 +1774,7 @@
          points_valid: gen.uuid(),
          push2cloud: gen.uuid(),
          push2cloud_state: gen.uuid(),
+         pub_link: gen.uuid(),
          localdownload: gen.uuid(),
          localdownload_state: gen.uuid(),
          authorize: gen.uuid(),
@@ -1787,8 +1801,8 @@
       let tournament_tab = `
          <div id='${ids.tournament}' class='flexcol flexcenter' style='min-height: 10em;'>
             <div class='tournament_options'>
-               <div class='options_left'>
-               </div>
+               <div class='options_left'> </div>
+               <div class='options_center'> </div>
                <div class='options_right'>
                   <div id='${ids.push2cloud}' class='${gen.info}' label='${lang.tr("phrases.send")}' style='display: none;'>
                      <div id='${ids.push2cloud_state}' class='push2cloud action_icon'></div>
@@ -2075,9 +2089,14 @@
          </div>
          `;
       let cloudfetch_button = !editable ? '' :
-         `<div id='${ids.cloudfetch}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.fetch")}' style='display: none'>
+         `<div id='${ids.cloudfetch}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.fetch")}' style='display: none;'>
             <img src='./icons/cloudfetch.png' class='club_link'>
          </div>
+         `;
+      let pubLink_button = !editable ? '' : 
+         `<div id='${ids.pub_link}' class='${gen.info}' label='${lang.tr("phrases.weblink")}' style='margin-left: .2em; display: none;'>
+            <img src='./icons/link.png' class='club_link'>
+          </div>
          `;
       let edit_button = !editable ? '' :
          `<div id='${ids.edit}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.edit")}'><img src='./icons/edit.png' class='club_link'></div>`;
@@ -2089,7 +2108,7 @@
          <div id='${ids.container}' class='tournament_container'>
             <div class='tournament_info'> 
                <div id='${ids.name}'><h2>${tournament.name}</h2></div>
-               <div class='flexrow'>${authorize_button}${cloudfetch_button}</div>
+               <div class='flexrow'>${authorize_button}${cloudfetch_button}${pubLink_button}</div>
                ${edit_button}${finish_button}
             </div>
             ${tabs}
@@ -2299,7 +2318,7 @@
       return html;
    }
 
-   gen.selectUmpire = ({ container }) => {
+   gen.entryModal = (label, mouse) => {
       let su_ids = {
          entry_modal: gen.uuid(),
       }
@@ -2309,24 +2328,27 @@
          .attr('class', 'modal')
          .attr('id', su_ids.entry_modal);
 
-      let coords = d3.mouse(document.body);
-      let { ids, html } = umpireEntryField();
+      let coords = mouse ? d3.mouse(document.body) : [window.innerWidth / 2, 200];
+      let { ids, html } = entryModalEntryField(label);
       let entry = floatingEntry().selector('#' + su_ids.entry_modal)
       entry(coords[0], coords[1] - window.scrollY, html);
 
       Object.assign(ids, su_ids);
       let id_obj = idObj(ids);
+
+      id_obj.search_field.element.focus();
+
       return id_obj;
    }
 
-   function umpireEntryField() {
+   function entryModalEntryField(label) {
       let ids = {
-         umpire_search: gen.uuid(),
+         search_field: gen.uuid(),
       }
       let html = `
          <div class="player-entry noselect">
-            <div class="player-position">${lang.tr('draws.matchumpire')}</div>
-            <div class="player-position"> <div class="player-search flexrow"><input id="${ids.umpire_search}"> </div> </div>
+            <div class="player-position">${lang.tr(label)}</div>
+            <div class="player-position"> <div class="player-search flexrow"><input id="${ids.search_field}"> </div> </div>
          </div>
       `;
       return { ids, html };
@@ -3222,33 +3244,33 @@
    }
 
    function calendarRow(tournament) {
-      if (tournament.category) {
-         let category = config.legacyCategory(tournament.category, true);
-         let background = new Date().getTime() > tournament.end ? 'calendar_past' : 'calendar_future';
-         let actual_rankings = '';
-         if (tournament.accepted) {
-            let rankDiff = (rank) => `<span class='${rank != tournament.rank ? "diff" : ""}'>${rank}</span>`;
-            actual_rankings = Object.keys(tournament.accepted).map(key => {
-               let singles = rankDiff(tournament.accepted[key].sgl_rank);
-               let doubles = rankDiff(tournament.accepted[key].dbl_rank);
-               return `<span style='white-space: nowrap'>${key}: [S-${singles}, D-${doubles}]</span>`;
-            }).join('<span>&nbsp;</span>');
-         }
-
-         return `
-            <div tuid='${tournament.tuid}' class='calendar_click calendar_row ${background}'>
-               <span class='dates' style='overflow: hidden'> ${displayDate(tournament.start)}&nbsp;/ ${displayDate(tournament.end)} </span>
-               <div class='name'>${tournament.name}</div>
-               <div class='category'>${category}</div>
-               <div class='rank'>${tournament.rank}</div>
-               <!-- <div class='actual'>${actual_rankings}</div> -->
-               <!-- <div class='draws'>${tournament.draws || ''}</div> -->
-            </div>`;
+      let category = config.legacyCategory(tournament.category, true);
+      let background = new Date().getTime() > tournament.end ? 'calendar_past' : 'calendar_future';
+      let actual_rankings = '';
+      if (tournament.accepted) {
+         let rankDiff = (rank) => `<span class='${rank != tournament.rank ? "diff" : ""}'>${rank}</span>`;
+         actual_rankings = Object.keys(tournament.accepted).map(key => {
+            let singles = rankDiff(tournament.accepted[key].sgl_rank);
+            let doubles = rankDiff(tournament.accepted[key].dbl_rank);
+            return `<span style='white-space: nowrap'>${key}: [S-${singles}, D-${doubles}]</span>`;
+         }).join('<span>&nbsp;</span>');
       }
+
+      return `
+         <div tuid='${tournament.tuid}' class='calendar_click calendar_row ${background}'>
+            <span class='dates' style='overflow: hidden'> ${displayDate(tournament.start)}&nbsp;/ ${displayDate(tournament.end)} </span>
+            <div class='name'>${tournament.name}</div>
+            <div class='category'>${category || ''}</div>
+            <div class='rank'>${tournament.rank || ''}</div>
+            <!-- <div class='actual'>${actual_rankings}</div> -->
+            <!-- <div class='draws'>${tournament.draws || ''}</div> -->
+         </div>
+      `;
    }
 
    gen.splashScreen = (components, settings_tabs) => {
       let ids = { 
+         org: gen.uuid(),
          clubs: gen.uuid(),
          players: gen.uuid(),
          settings: gen.uuid(),
@@ -3269,8 +3291,8 @@
 
       let html = `
          <div class='splash_screen'>
-            <div class='actions container'>${players}${tournaments}${clubs}${settings}${importexport}${keys}
-            </div>
+            <div class='splash_org flexcenter' id='${ids.org}'></div>
+            <div class='actions container'>${players}${tournaments}${clubs}${settings}${importexport}${keys}</div>
          </div>
       `;
 
