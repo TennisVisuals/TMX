@@ -291,6 +291,14 @@ let util = function() {
       }
    }
 
+   fx.createFx = (str) => {
+      var startBody = str.indexOf('{') + 1;
+      var endBody = str.lastIndexOf('}');
+      var startArgs = str.indexOf('(') + 1;
+      var endArgs = str.indexOf(')');
+      return new Function(str.substring(startArgs, endArgs), str.substring(startBody, endBody));
+   }
+
    return fx;
  
 }();
