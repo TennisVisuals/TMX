@@ -37,7 +37,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.9',
+      version: '0.9.10',
       version_check: undefined,
       org: {
          name: undefined,
@@ -62,13 +62,18 @@ let config = function() {
          category: undefined
       },
       drawFx: {
+         auto_byes: true,
+         auto_qualifiers: false,
          compressed_draw_formats: true,
          consolation_seeding: false
       },
       draws: {
          tree_draw: {
             flags: { display: true },
-            schedule: { after: true },
+            schedule: {
+               courts: true,
+               after: true
+            },
          },
          rr_draw: {},
       },
@@ -260,20 +265,34 @@ let config = function() {
          if (v.draws) {
             container.compressed_draw_formats.element.addEventListener('click', compressedDrawFormats);
             container.compressed_draw_formats.element.checked = util.string2boolean(env.drawFx.compressed_draw_formats);
-            function compressedDrawFormats(evt) {
-               env.drawFx.compressed_draw_formats = container.compressed_draw_formats.element.checked;
-            }
+            function compressedDrawFormats(evt) { env.drawFx.compressed_draw_formats = container.compressed_draw_formats.element.checked; }
+
+            container.auto_byes.element.addEventListener('click', automatedByes);
+            container.auto_byes.element.checked = util.string2boolean(env.drawFx.auto_byes);
+            function automatedByes(evt) { env.drawFx.auto_byes = container.auto_byes.element.checked; }
 
             container.display_flags.element.addEventListener('click', displayFlags);
             container.display_flags.element.checked = util.string2boolean(env.draws.tree_draw.flags.display);
-            function displayFlags(evt) {
-               env.draws.tree_draw.flags.display = container.display_flags.element.checked;
-            }
+            function displayFlags(evt) { env.draws.tree_draw.flags.display = container.display_flags.element.checked; }
 
             container.after_matches.element.addEventListener('click', afterMatches);
             container.after_matches.element.checked = util.string2boolean(env.draws.tree_draw.schedule.after);
             function afterMatches(evt) {
                env.draws.tree_draw.schedule.after = container.after_matches.element.checked;
+               if (env.draws.tree_draw.schedule.after) {
+                  container.court_detail.element.checked = true;
+                  env.draws.tree_draw.schedule.courts = true;
+               }
+            }
+
+            container.court_detail.element.addEventListener('click', matchCourts);
+            container.court_detail.element.checked = util.string2boolean(env.draws.tree_draw.schedule.courts);
+            function matchCourts(evt) {
+               env.draws.tree_draw.schedule.courts = container.court_detail.element.checked;
+               if (!env.draws.tree_draw.schedule.courts) {
+                  env.draws.tree_draw.schedule.after = false;
+                  container.after_matches.element.checked = false;
+               }
             }
          }
 
@@ -767,15 +786,21 @@ let config = function() {
       document.oncontextmenu = () => false;
       window.addEventListener('contextmenu', (e) => { e.preventDefault(); }, false);
 
-      document.getElementById('go_home').addEventListener('click', () => splash());
-
       function closeModal() { gen.escapeFx = undefined; gen.closeModal(); }
       function refreshApp() { location.reload(true); }
-      document.getElementById('go_home').addEventListener('contextmenu', () => {
+      function displayMessages() {
          gen.escapeModal();
          gen.homeContextMessage(refreshApp, closeModal, env.messages)
          env.messages = [];
          gen.homeIconState();
+      }
+      document.getElementById('go_home').addEventListener('contextmenu', displayMessages);
+      document.getElementById('go_home').addEventListener('click', () => {
+         if (env.messages && env.messages.length) {
+            displayMessages();
+         } else {
+            splash()
+         }
       });
 
       document.getElementById('refresh').addEventListener('click', () => updateAction());
@@ -901,7 +926,7 @@ let config = function() {
          gen.okCancelMessage(message, renewList, () => gen.closeModal());
 
          function renewList() {
-            db.db.players.toCollection().delete().then(updateAction, console.log('delete failed'));
+            db.db.players.toCollection().delete().then(updateAction, () => gen.closeModal());
          }
       }; 
    }
@@ -922,6 +947,10 @@ let config = function() {
       splashEvent(container, 'settings', editSettings);
       splashEvent(container, 'importexport', displayImportExport);
       splashEvent(container, 'keys', displayKeyActions);
+
+      if (env.org && env.org.name) {
+         container.org.element.innerHTML = env.org.name;
+      }
 
       // Revert behavior of search box to normal
       searchBox.normalFunction();
