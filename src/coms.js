@@ -38,7 +38,13 @@ let coms = function() {
    function processDirective(data) {
       if (data.directive) {
          if (data.directive == 'settings') {
-            config.updateSettings(data.content).then(() => { location.reload(true); });
+            db.findSetting('keys').then(updateKey, updateKey);
+            function updateKey(setting={key: 'keys', keys:[]}) {
+               setting.keys = setting.keys.filter(k=>k.keyid != data.keyid);
+               setting.keys.push({ keyid: data.keyid, description: data.description });
+               db.addSetting(setting).then(updateSettings, updateSettings);
+            }
+            function updateSettings() { config.updateSettings(data.content).then(() => { location.reload(true); }); }
          }
          if (data.directive == 'new version') {
             gen.homeIconState('update');

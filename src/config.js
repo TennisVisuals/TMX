@@ -37,7 +37,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.10',
+      version: '0.9.13',
       version_check: undefined,
       org: {
          name: undefined,
@@ -88,7 +88,7 @@ let config = function() {
       },
       publishing: {
          require_confirmation: true,
-         publish_on_score_entry: false,
+         publish_on_score_entry: true,
       },
       messages: []
    }
@@ -966,8 +966,8 @@ let config = function() {
    }
 
    function displayKeyActions() {
-      db.findSetting('superUser').then(setting => {
-         let actions = gen.keyActions(setting && setting.auth); 
+      db.findSetting('keys').then(setting => {
+         let actions = gen.keyActions(setting && setting.keys); 
          actions.container.key.element.addEventListener('keyup', keyStroke);
          function keyStroke(evt) {
             if (evt.which == 13) {
@@ -975,6 +975,13 @@ let config = function() {
                if (value) coms.sendKey(value);
                gen.closeModal();
             }
+         }
+         if (actions.container.select.element) {
+            actions.container.select.element.addEventListener('click', submitKey);
+         }
+         function submitKey(value) {
+            let selection = actions.container.keys.ddlb.getValue();
+            if (selection) coms.sendKey(selection);
          }
       });
    }
