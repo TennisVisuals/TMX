@@ -55,6 +55,11 @@
       'G': 'surface_grass',
    }
 
+   let inout_icons = {
+      'i': 'inout_indoors',
+      'o': 'inout_outdoors',
+   }
+
    gen.reset = () => {
       gen.modal = 0;
       gen.content = undefined;
@@ -929,27 +934,41 @@
       let ids = {
          key: gen.uuid(),
       };
-      let ddlb = [];
       let html = `
          <div style='min-height: 150px'>
          <h2>${lang.tr('phrases.submitkey')}</h2>
          <input id='${ids.key}' value=''>
          </div>
       `;
-      return { ids, html, ddlb }
+      return { ids, html }
    }
 
-   gen.keyActions = (auth) => {
+   gen.existingKeys = () => {
+      let ids = {
+         keys: gen.uuid(),
+         select: gen.uuid()
+      };
+      let html = `
+         <div style='min-height: 150px'>
+         <h2>${lang.tr('phrases.selectkey')}</h2>
+         <div class='flexcenter flexrow' style='width: 100%; margin-bottom: 1em;'> <div id='${ids.keys}'></div> </div>
+         <button id="${ids.select}" class="btn btn-medium edit-submit" alt="${lang.tr('sbt')}">${lang.tr('sbt')}</button> 
+         </div>
+      `;
+      return { ids, html }
+   }
+
+   gen.keyActions = (keys=[]) => {
       let ids = {
          container: gen.uuid(),
          cancel: gen.uuid(),
       }
 
-      // TODO: Auth currently not used...
       let submit = gen.submitKey();
+      let existing = gen.existingKeys();
 
-      let tabdata = [];
-      if (submit.html) tabdata.push({ tab: lang.tr('add'), content: submit.html });
+      let tabdata = [ { tab: lang.tr('add'), content: submit.html } ];
+      if (keys.length) tabdata.push({ tab: lang.tr('existing'), content: existing.html });
       let tabs = jsTabs.generate(tabdata);
 
       let cancel = `
@@ -966,19 +985,27 @@
             <div>${tabs}</div>
          </div>
       `;
+      
       gen.showModal(html, false);
 
-      if (submit) Object.assign(ids, submit.ids);
+      Object.assign(ids, submit.ids, existing.ids);
       let id_obj = idObj(ids);
 
       jsTabs.load(id_obj.container.element);
       if (id_obj.cancel.element) id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
 
+      if (keys.length) {
+         let options = keys.map(k=>({key: k.description, value: k.keyid}));
+         dd.attachDropDown({ id: ids.keys, options });
+         id_obj.keys.ddlb = new dd.DropDown({ element: id_obj.keys.element });
+         id_obj.keys.ddlb.selectionBackground();
+         id_obj.keys.ddlb.setValue(keys[0].keyid);
+      }
+
       return { container: id_obj };
    }
 
    gen.settings = (tabs) => {
-
       let ids = {
          save: gen.uuid(),
          tabs: gen.uuid(),
@@ -1245,6 +1272,7 @@
          category: gen.uuid(),
          rank: gen.uuid(),
          start: gen.uuid(),
+         inout: gen.uuid(),
          end: gen.uuid(),
          judge: gen.uuid(),
          draws: gen.uuid(),
@@ -1269,6 +1297,7 @@
                      <div class='tournamentattr'>${lang.tr('signin.organization')}:</div>
                      <div class='tournamentattr'>${lang.tr('start')}:</div>
                      <div class='tournamentattr'>${lang.tr('end')}:</div>
+                     <div class='tournamentattr'>${lang.tr('inout')}:</div>
                      <div class='tournamentattr'>${lang.tr('ref')}:</div>
                      <div class='tournamentattr'>${lang.tr('drz')}:</div>
                   </div>
@@ -1291,6 +1320,9 @@
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.end}' value='${end}' placeholder='YYYY-MM-DD'>
+                     </div>
+                     <div class='flexrow tournamentattrddlb'>
+                        <div id='${ids.inout}' class='flexjustifystart categoryddlb'> </div>
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.judge}' value='${tournament.judge || ''}'>
@@ -2775,11 +2807,12 @@
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.opponents")}'><div class='event_icon opponents_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("mts")}'><div class='event_icon matches_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("sch")}'><div class='event_icon time_header'></div></div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.created")}'><div class='event_icon complete_header'></div></div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("draws.published")}'><div class='event_icon published_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("cat")}'><div class='event_icon category_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.rank")}'><div class='event_icon rank_header'></div></div>
+            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("inout")}'><div class='event_icon inout_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.surface")}'><div class='event_icon surface_header'></div></div>
+            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.created")}'><div class='event_icon complete_header'></div></div>
+            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("draws.published")}'><div class='event_icon published_header'></div></div>
          </div>
       `;
       if (display) html += events.map((e, i) => eventRow(e, i, highlight_listitem)).join('');
@@ -2817,14 +2850,12 @@
             <div class='event_data'>${e.opponents}</div>
             <div class='event_data'>${e.total_matches || 0}</div>
             <div class='event_data'>${e.scheduled || 0}</div>
-
-            <!-- <div class='event_data'${background}>${e.draw_created ? 'Y' : 'N'}</div> -->
-            <div class='event_data flexcenter ${gen.info}' label='${created_label}'><div class='event_icon ${created_state}'></div></div>
-
-            <div class='event_data flexcenter ${gen.info}' label='${publish_label}'><div class='event_icon ${publish_state}'></div></div>
             <div class='event_data'>${e.category}</div>
             <div class='event_data'>${e.rank}</div>
+            <div class='event_data flexcenter'><div class='event_icon ${inout_icons[e.inout]}'></div></div>
             <div class='event_data flexcenter'><div class='event_icon ${surface_icons[e.surface[0]]}'></div></div>
+            <div class='event_data flexcenter ${gen.info}' label='${created_label}'><div class='event_icon ${created_state}'></div></div>
+            <div class='event_data flexcenter ${gen.info}' label='${publish_label}'><div class='event_icon ${publish_state}'></div></div>
          </div>
       `;
 
@@ -2881,7 +2912,7 @@
       return idObj(ids);
    }
 
-   gen.displayEventDetails = (tournament, container, e, genders, surfaces, formats, draw_types, edit) => {
+   gen.displayEventDetails = (tournament, container, e, genders, inout, surfaces, formats, draw_types, edit) => {
       let ids = {
          gender: gen.uuid(),
          category: gen.uuid(),
@@ -2889,6 +2920,7 @@
          format: gen.uuid(),
          scoring: gen.uuid(),
          surface: gen.uuid(),
+         inout: gen.uuid(),
          draw_type: gen.uuid(),
          approved_count: gen.uuid(),
          eligible_count: gen.uuid(),
@@ -2901,6 +2933,7 @@
                <div class='entry_label' style='text-align: right'>${lang.tr('fmt')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('scoring')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('events.surface')}</div>
+               <div class='entry_label' style='text-align: right'>${lang.tr('inout')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('dtp')}</div>
             </div>
             <div class='column'>
@@ -2915,6 +2948,7 @@
                   </div>
                </div>
                <div class='entry_field' id='${ids.surface}'></div>
+               <div class='entry_field' id='${ids.inout}'></div>
                <div class='entry_field' id='${ids.draw_type}'></div>
             </div>
       `;
@@ -2961,6 +2995,7 @@
       dd.attachDropDown({ id: ids.draw_type,  options: draw_types });
       dd.attachDropDown({ id: ids.rank,  options: getRanks(tournament) });
       dd.attachDropDown({ id: ids.surface,  options: surfaces });
+      dd.attachDropDown({ id: ids.inout,  options: inout });
       return idObj(ids);
    }
 
