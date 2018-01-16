@@ -258,14 +258,16 @@ let util = function() {
       return (new Date(minDate) <= new Date(maxDate));
    }
 
+   fx.dateUTC = (date) => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+
    fx.dateRange = (startDt, endDt) => {
        var error = ((isDate(endDt)) && (isDate(startDt)) && isValidDateRange(startDt, endDt)) ? false : true;
        var between = [];
        if (error) {
           console.log('error occured!!!... Please Enter Valid Dates');
        } else {
-           var currentDate = new Date(startDt),
-               end = new Date(endDt);
+           var currentDate = new Date(startDt);
+           var end = new Date(endDt);
            while (currentDate <= end) {
                between.push(new Date(currentDate));
                currentDate.setDate(currentDate.getDate() + 1);
