@@ -80,6 +80,10 @@
       keys:    'Ključevi',
       pos:     'Posicije',
       new:     'Novi',
+      inout:   'U/Van',
+      indoors: 'Unutra',
+      outdoors:'Vani',
+      existing: 'Postojanje',
 
       set: 'Postavke',
       version: 'Verzija',
@@ -244,6 +248,7 @@
          pointsvalidfrom: 'Bodovi vrijede od',
          linkcopied: 'Veza kopirana u međuspremnik',
          submitkey: 'Unos ključa',
+         selectkey: 'Odaberite ključa',
          deletereplace: 'izbrisati / zamijeniti',
          weblink: 'Internet adresa',
       },
