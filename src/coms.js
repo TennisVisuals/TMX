@@ -53,6 +53,10 @@ let coms = function() {
          if (data.directive == 'load data' && data.content) {
             load.loadJSON(data.content);
          }
+         if (data.directive == 'add idiom' && data.content) {
+            db.addIdiom(data.content);
+            console.log(data.content);
+         }
       }
    }
 
