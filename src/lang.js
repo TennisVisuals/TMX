@@ -132,6 +132,10 @@
       keys:    'Keys',
       pos:     'Position',
       new:     'New',
+      inout:   'In/Out',
+      indoors: 'Indoors',
+      outdoors:'Outdoors',
+      existing: 'Existing',
 
       set: 'Settings',
       version: 'Version',
@@ -297,6 +301,7 @@
          pointsvalidfrom: 'Points Valid From',
          linkcopied: 'Link Copied to Clipboard',
          submitkey: 'Submit Key',
+         selectkey: 'Select Key',
          deletereplace: 'Delete / Replace',
          weblink: 'Web Link',
       },
