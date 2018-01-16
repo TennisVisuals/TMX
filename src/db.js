@@ -17,6 +17,20 @@ let db = function() {
             rankings: "category",
             settings: "key",
          });
+         db.db.version(2).stores({ 
+            aliases: "&alias",
+            ignored: "[hash+ioc]",
+
+            clubs: "&id, &code",
+            calculations: "&hash, date, type",
+            matches: "&muid, *puids, format, date, tournament.category, tournament.tuid",
+            points: "[puid+tuid+format+round], puid, tuid, muid, date",
+            tournaments: "&tuid, name, start, end, category, cuid",
+            players: "&puid, hash, cuid, &id, [last_name+first_name], last_name, birthdate",
+            rankings: "category",
+            settings: "key",
+            idioms: "ioc",
+         });
          db.db.open().then(resolve, reject);
       });
    }
@@ -35,6 +49,7 @@ let db = function() {
    db.findAllCalculations = () => db.findAll('calculations');
    db.findAllRankings = () => db.findAll('rankings');
    db.findAllSettings = () => db.findAll('settings');
+   db.findAllIdioms = () => db.findAll('idioms');
 
    db.findAllMatches = () => db.findAll('matches');
    db.findAllPoints = () => db.findAll('points');
@@ -83,6 +98,7 @@ let db = function() {
 
    db.findUnique = (tbl, attr, val) => new Promise ((resolve, reject) => db.findWhere(tbl, attr, val).then(d => resolve(d && d.length ? d[0] : undefined), reject));
    db.findSetting = (key) => db.findUnique('settings', 'key', key);
+   db.findIdiom = (ioc) => db.findUnique('idioms', 'ioc', ioc);
    db.findPlayer = (puid) => db.findUnique('players', 'puid', puid);
    db.findPlayerById = (id) => db.findUnique('players', 'id', id);
    db.findClub = (cuid) => db.findUnique('clubs', 'id', cuid);
@@ -114,6 +130,7 @@ let db = function() {
    db.addPlayer = (player) => db.modifyOrAddUnique('players', 'puid', player.puid, player);
    db.addClub = (club) => db.modifyOrAddUnique('clubs', 'id', club.id, club);
    db.addSetting = (setting) => db.modifyOrAddUnique('settings', 'key', setting.key, setting);
+   db.addIdiom = (idiom) => db.modifyOrAddUnique('idioms', 'ioc', idiom.ioc, idiom);
    db.addTournament = (tournament) => db.modifyOrAddUnique('tournaments', 'tuid', tournament.tuid, tournament);
    db.addCalcDate = (calculation) => db.modifyOrAddUnique('calculations', 'hash', calculation.hash, calculation);
    db.addPointEvent = (point_event) => {
