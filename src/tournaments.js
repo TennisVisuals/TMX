@@ -90,7 +90,7 @@ let tournaments = function() {
       let category = config.env().calendar.category;
       let month_start = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
 
-      let start = config.env().calendar.start || new Date().getTime();
+      let start = config.env().calendar.start || util.dateUTC(new Date());
       let end = config.env().calendar.end || new Date(start).setMonth(new Date(start).getMonth()+1);
 
       let calendar_container = gen.calendarContainer();
@@ -791,29 +791,34 @@ let tournaments = function() {
          }
       }
 
-      let genders = [
-         {key: lang.tr('genders.mixed'), value: ''},
-         {key: lang.tr('genders.male'), value: 'M'},
-         {key: lang.tr('genders.female'), value: 'W'},
+      var genders = [
+         { key: lang.tr('genders.mixed'), value: ''},
+         { key: lang.tr('genders.male'), value: 'M'},
+         { key: lang.tr('genders.female'), value: 'W'},
       ];
       
-      let surfaces = [
-         {key: lang.tr('surfaces.clay'), value: 'C'},
-         {key: lang.tr('surfaces.hard'), value: 'H'},
-         {key: lang.tr('surfaces.grass'), value: 'G'},
-         {key: lang.tr('surfaces.carpet'), value: 'R'},
+      var inout = [
+         { key: '-', value: '' },
+         { key: lang.tr('indoors'), value: 'i' },
+         { key: lang.tr('outdoors'), value: 'o' }
+      ]
+      var surfaces = [
+         { key: lang.tr('surfaces.clay'), value: 'C'},
+         { key: lang.tr('surfaces.hard'), value: 'H'},
+         { key: lang.tr('surfaces.grass'), value: 'G'},
+         { key: lang.tr('surfaces.carpet'), value: 'R'},
       ];
       
-      let formats = [
-         {key: lang.tr('formats.singles'), value: 'S'},
-         {key: lang.tr('formats.doubles'), value: 'D'},
+      var formats = [
+         { key: lang.tr('formats.singles'), value: 'S'},
+         { key: lang.tr('formats.doubles'), value: 'D'},
       ];
       
-      let draw_types = [
-         {key: lang.tr('draws.elimination'), value: 'E'},
-         {key: lang.tr('draws.qualification'), value: 'Q'},
-         {key: lang.tr('draws.roundrobin'), value: 'R'},
-         {key: lang.tr('draws.consolation'), value: 'C'},
+      var draw_types = [
+         { key: lang.tr('draws.elimination'), value: 'E'},
+         { key: lang.tr('draws.qualification'), value: 'Q'},
+         { key: lang.tr('draws.roundrobin'), value: 'R'},
+         { key: lang.tr('draws.consolation'), value: 'C'},
       ];
 
       // if there are any matches, add match players first
@@ -1297,6 +1302,8 @@ let tournaments = function() {
          container.cloudfetch.element.style.display = 'none';
          authorizeTournaments();
 
+         container.points_valid.element.disabled = !state.edit;
+
          document.querySelector('.refresh_registrations').style.opacity = state.edit ? 1 : 0;
          document.querySelector('.' + classes.refresh_registrations).classList[state.edit ? 'add' : 'remove']('info');
 
@@ -1672,6 +1679,7 @@ let tournaments = function() {
                   gender: getKey(genders, e.gender),
                   format: getKey(formats, e.format),
                   total_matches: info.total_matches,
+                  inout: e.inout,
                   surface: e.surface,
                   draw_type: getKey(draw_types, e.draw_type),
                   opponents: e.approved.length + (e.draw_type == 'E' ? (e.qualifiers || 0) : 0),
@@ -2294,7 +2302,7 @@ let tournaments = function() {
          }
          eventName();
         
-         let details = gen.displayEventDetails(tournament, container, e, genders, surfaces, formats, draw_types, state.edit);
+         let details = gen.displayEventDetails(tournament, container, e, genders, inout, surfaces, formats, draw_types, state.edit);
 
          Object.assign(container, details);
 
@@ -2372,6 +2380,13 @@ let tournaments = function() {
          }
          details.surface.ddlb = new dd.DropDown({ element: details.surface.element, onChange: setSurface });
          details.surface.ddlb.setValue(e.surface || tournament.surface || 'C');
+
+         let setInOut = (value) => { 
+            e.inout = value; 
+            eventList(true);
+         }
+         details.inout.ddlb = new dd.DropDown({ element: details.inout.element, onChange: setInOut });
+         details.inout.ddlb.setValue(e.inout || tournament.inout || '');
 
          let setDrawType = (value) => { 
             if (e.draw_type != value) {
@@ -6444,7 +6459,6 @@ let tournaments = function() {
       }
 
       function tournamentOptions(days) {
-
          if (!tournament.display_id) {
             if (tournament.tuid.length < 15) tournament.display_id = tournament.tuid;
          }
@@ -6471,26 +6485,6 @@ let tournaments = function() {
             container[field].element.value = tournament[field] || '';
          });;
 
-         /*
-         container.organization.element.addEventListener('keydown', catchTab, false);
-         container.organizers.element.addEventListener('keydown', catchTab, false);
-         container.location.element.addEventListener('keydown', catchTab, false);
-         container.judge.element.addEventListener('keydown', catchTab, false);
-         // container.display_id.element.addEventListener('keydown', catchTab, false);
-
-         container.organization.element.addEventListener('keyup', (evt) => defineAttr('organization', evt));
-         container.organizers.element.addEventListener('keyup', (evt) => defineAttr('organizers', evt));
-         container.location.element.addEventListener('keyup', (evt) => defineAttr('location', evt));
-         container.judge.element.addEventListener('keyup', (evt) => defineAttr('judge', evt));
-         //container.display_id.element.addEventListener('keyup', (evt) => defineAttr('display_id', evt));
-
-         container.organization.element.value = tournament.organization || '';
-         container.organizers.element.value = tournament.organizers || '';
-         container.location.element.value = tournament.location || '';
-         container.judge.element.value = tournament.judge || '';
-         // container.display_id.element.value = tournament.display_id || '';
-         */
-
          let day_times = days.map(d=>new Date(d).getTime());
          let max_start = Math.min(...day_times);
          let min_end = Math.max(...day_times);
@@ -6499,7 +6493,7 @@ let tournaments = function() {
          let end = new Date(tournament.end);
 
          function updateStartDate() {
-            tournament.start = start.getTime();
+            tournament.start = util.dateUTC(start);
             startPicker.setStartRange(start);
             if (tournament.end < tournament.start) {
                tournament.end = tournament.start;
@@ -6510,7 +6504,7 @@ let tournaments = function() {
             saveTournament(tournament);
          };
          function updateEndDate() {
-            tournament.end = end.getTime();
+            tournament.end = util.dateUTC(end);
             startPicker.setEndRange(end);
             startPicker.setMaxDate(end);
             endPicker.setEndRange(end);
@@ -6540,6 +6534,7 @@ let tournaments = function() {
             i18n: lang.obj('i18n'),
             onSelect: function() {
                 let date = this.getDate();
+               let this_date = this.getDate();
                 // can't set end prior to latest scheduled match
                 if (util.sameDay(date, new Date(min_end)) || date.getTime() >= min_end) {
                    end = date;
@@ -7162,18 +7157,19 @@ let tournaments = function() {
    fx.createNewTournament = createNewTournament;
    function createNewTournament({ title, tournament_data, callback }) {
 
-      let trny = Object.assign({}, tournament_data);
-      let { container } = gen.createNewTournament(title, trny);
+      gen.escapeModal();
+      var trny = Object.assign({}, tournament_data);
+      var { container } = gen.createNewTournament(title, trny);
 
-      let field_order = [ 'name', 'association', 'organization', 'start', 'end', 'judge', 'draws', 'cancel', 'save' ];
+      var field_order = [ 'name', 'association', 'organization', 'start', 'end', 'judge', 'draws', 'cancel', 'save' ];
 
-      let nextFieldFocus = (field) => {
+      function nextFieldFocus(field) {
          let next_field = field_order.indexOf(field) + 1;
          if (next_field == field_order.length) next_field = 0;
          container[field_order[next_field]].element.focus(); 
       }
 
-      let setCategory = (value) => {
+      function setCategory(value) {
          if (!value) { setTimeout(function() { container.category.ddlb.selectionBackground('yellow'); }, 200); }
          trny.category = value;
       }
@@ -7183,15 +7179,21 @@ let tournaments = function() {
 
       container.category.ddlb = new dd.DropDown({ element: container.category.element, onChange: setCategory });
       container.category.ddlb.selectionBackground('yellow');
-      if (tournament_data.category) container.category.ddlb.setValue(tournament_data.category);
+      if (tournament_data && tournament_data.category) container.category.ddlb.setValue(tournament_data.category);
 
-      let setRank = (value) => {
+      function setRank(value) {
          if (!value) { setTimeout(function() { container.rank.ddlb.selectionBackground('yellow'); }, 200); }
          trny.rank = value;
       }
       container.rank.ddlb = new dd.DropDown({ element: container.rank.element, onChange: setRank });
       // container.rank.ddlb.selectionBackground('yellow');
-      if (tournament_data.rank) container.rank.ddlb.setValue(tournament_data.rank);
+      if (tournament_data && tournament_data.rank) container.rank.ddlb.setValue(tournament_data.rank);
+
+      var inout_options = [{key: '-', value: ''}, {key: lang.tr('indoors'), value: 'i'}, {key: lang.tr('outdoors'), value: 'o'}]
+      dd.attachDropDown({ id: container.inout.id, options: inout_options });
+
+      container.inout.ddlb = new dd.DropDown({ element: container.inout.element, onChange: (value) => { trny.inout = value } });
+      if (tournament_data && tournament_data.inout) container.inout.ddlb.setValue(tournament_data.inout);
 
       let defineAttr = (attr, evt, required, element) => {
          let valid = true;
@@ -7234,13 +7236,16 @@ let tournaments = function() {
          if (evt.which == 9) nextFieldFocus(evt.shiftKey ? 'phone' : 'cancel');
       }
 
-      let validRange = () => {
+      function validRange() {
          if (!trny.start || !trny.end) return true;
        
          let sdate = new Date(trny.start);
          let edate = new Date(trny.end);
          let days = Math.round((edate-sdate)/(1000*60*60*24));
-         return (days >= 0 && days < 15);
+         let valid = (days >= 0 && days < 15);
+         container.start.element.style.background = valid ? 'white' : 'yellow';
+         container.end.element.style.background = valid ? 'white' : 'yellow';
+         return valid;
       }
 
       let validateDate = (evt, attr, element) => {
@@ -7261,8 +7266,8 @@ let tournaments = function() {
 
       }
 
-      let start = new Date().getTime();
-      let end = null;
+      let start = trny.start || util.dateUTC(new Date());
+      let end = trny.end || null;
 
       var startPicker = new Pikaday({
          field: container.start.element,
@@ -7270,7 +7275,8 @@ let tournaments = function() {
          setDefaultDate: true,
          i18n: lang.obj('i18n'),
          onSelect: function() { 
-            start = this.getDate();
+            let this_date = this.getDate();
+            start = new Date(util.dateUTC(this_date));
             updateStartDate();
             validateDate(undefined, 'start', container.start.element);
             if (end < start) {
@@ -7279,12 +7285,15 @@ let tournaments = function() {
             }
          },
       });
+      startPicker.setStartRange(new Date(start));
+      if (end) startPicker.setEndRange(new Date(end));
 
       var endPicker = new Pikaday({
          field: container.end.element,
          i18n: lang.obj('i18n'),
          onSelect: function() {
-            end = this.getDate();
+            let this_date = this.getDate();
+            end = new Date(util.dateUTC(this_date));
             updateEndDate();
             updateCategoriesAndRankings();
             validateDate(undefined, 'end', container.end.element);
@@ -7294,6 +7303,9 @@ let tournaments = function() {
             }
          },
       });
+      endPicker.setStartRange(new Date(start));
+      endPicker.setMinDate(new Date(start));
+      if (end) endPicker.setEndRange(new Date(end));
 
       container.name.element.addEventListener('keydown', catchTab, false);
       container.association.element.addEventListener('keydown', catchTab, false);
