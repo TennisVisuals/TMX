@@ -520,6 +520,9 @@
 .category_header { background-image: url("../icons/category.png"); }
 .category_header_white { background-image: url("../icons/categorywhite.png"); }
 .published_header { background-image: url("../icons/publishblack.png"); }
+.inout_header { background-image: url("../icons/inout.png"); }
+.inout_indoors { background-image: url("../icons/indoors.png"); }
+.inout_outdoors { background-image: url("../icons/outdoors.png"); }
 .unpublished { background-image: url("../icons/publish_black.png"); }
 .reps_incomplete { background-image: url("../icons/reps_incomplete.png"); }
 .reps_complete { background-image: url("../icons/reps_complete.png"); }
