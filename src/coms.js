@@ -79,6 +79,8 @@ let coms = function() {
          oi.socket.on('tmx error', tmxError);
          oi.socket.on('tmx message', tmxMessage);
          oi.socket.on('tourny record', receiveTournament);
+         oi.socket.on('tmx trny evts', receiveEvents);
+         oi.socket.on('tmx_event', receiveEvent);
       }
    } 
 
@@ -90,8 +92,23 @@ let coms = function() {
    }
 
    function tmxMessage(msg) {
-      if (msg.title && msg.title.indexOf('noauth') >= 0) config.addMessage(msg);
-      if (msg.authorized && msg.tuid) config.authMessage(msg);
+      if (msg.authorized && msg.tuid) {
+         config.authMessage(msg);
+      } else {
+         config.addMessage(msg);
+      }
+   }
+
+   function receiveEvents(euids) { euids.forEach(euid => oi.socket.emit('tmx_event', euid)); }
+   function receiveEvent(e) {
+      let evt = attemptJSONparse(e);
+
+      console.log('receiving event:', evt);
+
+      /* TODO: published events should include all details to recreate if
+       * fetched independent of a tournament... score_format, scoring, links,
+       * automated, qualifiers, approved, wildcards
+       */
    }
 
    function receiveTournament(record) {
@@ -193,6 +210,15 @@ let coms = function() {
          oi.socket.emit('delete match', data);
       } else {
          queue.push({ header: 'delete match', data });
+      }
+   }
+
+   fx.requestTournamentEvents = (tuid) => {
+      if (connected) {
+         oi.socket.emit('tmx trny evts', { tuid, authorized: true });
+      } else {
+         let message = `Offline: must be connected to internet`;
+         let container = gen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
       }
    }
 
