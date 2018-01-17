@@ -345,7 +345,7 @@
 
       function formatMessage(msg) {
          let msguid = UUID.generate();
-         let color = msg.authorized ? '#D1FBA7' : '#FECAC3';
+         let color = msg.authorized ? '#D1FBA7' : '#FEF8A7';
          let pointer = msg.inDB ? 'cursor: pointer;' : '';
          let html = `
             <div id='${msguid}' style='margin: 1em; padding: 1px; background-color: ${color}; ${pointer}'>
@@ -2850,12 +2850,12 @@
          <div class='event event_row${highlight}' index='${i}'>
             <div class='event_name'>${e.name}</div>
             <div class='event_draw_type'>${e.draw_type}</div>
-            <div class='event_data'>${e.draw_size}</div>
-            <div class='event_data'>${e.opponents}</div>
-            <div class='event_data'>${e.total_matches || 0}</div>
-            <div class='event_data'>${e.scheduled || 0}</div>
-            <div class='event_data'>${e.category}</div>
-            <div class='event_data'>${e.rank}</div>
+            <div class='event_data flexcenter'>${e.draw_size}</div>
+            <div class='event_data flexcenter'>${e.opponents}</div>
+            <div class='event_data flexcenter'>${e.total_matches || 0}</div>
+            <div class='event_data flexcenter'>${e.scheduled || 0}</div>
+            <div class='event_data flexcenter'>${e.category}</div>
+            <div class='event_data flexcenter'>${e.rank}</div>
             <div class='event_data flexcenter'><div class='event_icon ${inout_icons[e.inout]}'></div></div>
             <div class='event_data flexcenter'><div class='event_icon ${surface_icons[e.surface[0]]}'></div></div>
             <div class='event_data flexcenter ${gen.info}' label='${created_label}'><div class='event_icon ${created_state}'></div></div>
