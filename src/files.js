@@ -334,8 +334,13 @@
          let full_name = `${util.normalizeName(p.first_name, false)} ${util.normalizeName(p.last_name, false).toUpperCase()}`; 
          return `${full_name}${club}`;
       } else {
-         return team.map(p => util.normalizeName(match.players[p].last_name).toUpperCase()).join('/');
+         return team.map(p => util.normalizeName(match.players[p].last_name, false).toUpperCase()).join('/');
       }
+   }
+
+   function playerColor(match, index) {
+      if (match.winner == undefined) return 'black';
+      return (match.winner == index) ? 'green' : 'gray';
    }
 
    function scheduleCell(match, lines=false) {
@@ -350,11 +355,11 @@
          oop: match.oop || '',
          player1: match.players ? teamName(match, match.team_players[0]) : '',
          bold1: match.winner != undefined && match.winner == 0 ? true : false,
-         color1: match.winner != undefined && match.winner == 0 ? 'green' : 'gray',
+         color1: playerColor(match, 0),
          vs: match.players ? 'vs.' : '',
          player2: match.players ? teamName(match, match.team_players[1]) : '',
          bold2: match.winner != undefined && match.winner == 1 ? true : false,
-         color2: match.winner != undefined && match.winner == 1 ? 'green' : 'gray',
+         color2: playerColor(match, 1),
          spacer: match.spacer || '',
          scoreline: `${score || ''}`,
          spacer: match.spacer || '',
@@ -650,15 +655,20 @@
    }
 
    function drawSheetPageHeader(tournament, logo, type, selected_event, event, info) {
-      let evt = event || (tournament.events && tournament.events[selected_event]) || { name: 'Unknown' };
-      let event_type = lang.tr('draws.maindraw');
+      var evt = event || (tournament.events && tournament.events[selected_event]) || { name: 'Unknown' };
+
+      var event_type = lang.tr('draws.maindraw');
       if (evt.draw_type == 'Q') event_type = lang.tr('draws.qualification');
       if (evt.draw_type == 'R') event_type = lang.tr('draws.roundrobin');
       if (evt.draw_type == 'C') event_type = lang.tr('draws.consolation');
 
-      let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
+      var tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
-      let draw_sheet = {
+      let organizers = tournament.organizers && tournament.organizers != tournament.name ? tournament.organizers : '';
+      var sponsor = tournament.sponsor || organizers ? ` - ${tournament.sponsor || organizers}` : '';
+      var tournament_name = `${tournament.name}${sponsor}`;
+
+      var draw_sheet = {
          fontSize: 10,
          table: {
             widths: ['*', '*', '*', '*', '*', 'auto'],
@@ -670,7 +680,7 @@
                         widths: ['*', '*', '*', '*', '*'],
                         body: [
                            [
-                              { text: tournament.name || ' ', colSpan: 5, style: 'docTitle', margin: [0, 0, 0, 0] },
+                              { text: tournament_name || ' ', colSpan: 5, style: 'docTitle', margin: [0, 0, 0, 0] },
                               {}, {}, {}, {},
                            ],
                            [
@@ -740,6 +750,10 @@
       let numeric_date = localizeDate(new Date(day), { year: 'numeric', month: 'numeric', day: 'numeric' });
       let start_date = localizeDate(new Date(tournament.start), { year: 'numeric', month: 'numeric', day: 'numeric' });
 
+      let organizers = tournament.organizers && tournament.organizers != tournament.name ? tournament.organizers : '';
+      var sponsor = tournament.sponsor || organizers ? ` - ${tournament.sponsor || organizers}` : '';
+      var tournament_name = `${tournament.name}${sponsor}`;
+
       let schedule = {
          margin: [ 20, 10, 20, 10 ],
          fontSize: 10,
@@ -752,7 +766,7 @@
                         widths: ['*', '*', '*', '*', '*'],
                         body: [
                            [
-                              { text: tournament.name || ' ', colSpan: 5, style: 'docTitle', margin: [0, 0, 0, 0] },
+                              { text: tournament_name || ' ', colSpan: 5, style: 'docTitle', margin: [0, 0, 0, 0] },
                               {}, {}, {}, {},
                            ],
                            [
@@ -1116,6 +1130,9 @@
       let date = util.formatDate(tournament.start);
       let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
+      var sponsor = tournament.sponsor ? ` - ${tournament.sponsor}` : '';
+      var tournament_name = `${tournament.name}${sponsor}`;
+
       let page_header = [
          { 
             border: [ false, false, false, false ],
@@ -1129,7 +1146,7 @@
                         table: {
                            widths: ['*'],
                            body: [
-                              [{ text: tournament.name || ' ', style: 'docTitle' }],
+                              [{ text: tournament_name || ' ', style: 'docTitle' }],
                               [{ text: event_name, style: 'subtitle' }],
                            ]
                         },
@@ -1203,12 +1220,12 @@
       ];
       let header_row = [ 
          { text: '#', style: 'centeredTableHeader' }, 
-         { text: lang.tr('fnm'), style: 'tableHeader' }, 
          { text: lang.tr('lnm'), style: 'tableHeader' }, 
+         { text: lang.tr('fnm'), style: 'tableHeader' }, 
          { text: lang.tr('clb'), style: 'centeredTableHeader' }, 
          { text: lang.tr('rnk'), style: 'centeredTableHeader' }, 
-         { text: lang.tr('fnm'), style: 'tableHeader' }, 
          { text: lang.tr('lnm'), style: 'tableHeader' }, 
+         { text: lang.tr('fnm'), style: 'tableHeader' }, 
          { text: lang.tr('clb'), style: 'centeredTableHeader' }, 
          { text: lang.tr('rnk'), style: 'centeredTableHeader' }, 
       ];
@@ -1305,6 +1322,9 @@
       let date = util.formatDate(tournament.start);
       let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
+      var sponsor = tournament.sponsor ? ` - ${tournament.sponsor}` : '';
+      var tournament_name = `${tournament.name}${sponsor}`;
+
       let page_header = [
          { 
             border: [ false, false, false, false ],
@@ -1318,7 +1338,7 @@
                         table: {
                            widths: ['*'],
                            body: [
-                              [{ text: tournament.name || ' ', style: 'docTitle' }],
+                              [{ text: tournament_name || ' ', style: 'docTitle' }],
                               [{ text: event_name, style: 'subtitle' }],
                            ]
                         },
@@ -1337,7 +1357,7 @@
 
                   [
                      { text: lang.tr('signin.tournament_date'), style: 'tableHeader' },
-                     { text: lang.tr('signin.organizer'), style: 'tableHeader' },
+                     { text: lang.tr('signin.organization'), style: 'tableHeader' },
                      { text: lang.tr('signin.place'), style: 'tableHeader' },
                      { text: '', style: 'tableHeader' },
                      { text: '', style: 'tableHeader' },
@@ -1345,7 +1365,7 @@
                   ],
                   [ 
                      date, 
-                     tournament.organizer || ' ', 
+                     tournament.organization || ' ', 
                      tournament.location || '',
                      '', 
                      '', 
@@ -1391,8 +1411,8 @@
       ];
       let header_row = [ 
          { text: '#', style: 'centeredTableHeader' }, 
-         { text: lang.tr('fnm'), style: 'tableHeader' }, 
          { text: lang.tr('lnm'), style: 'tableHeader' }, 
+         { text: lang.tr('fnm'), style: 'tableHeader' }, 
          { text: lang.tr('clb'), style: 'centeredTableHeader' }, 
          { text: lang.tr('rnk'), style: 'centeredTableHeader' }, 
          { text: lang.tr('stt'), style: 'centeredTableHeader' }, 
