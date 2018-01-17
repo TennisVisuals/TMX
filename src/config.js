@@ -37,7 +37,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.15',
+      version: '0.9.21',
       version_check: undefined,
       org: {
          name: undefined,
@@ -65,7 +65,8 @@ let config = function() {
          auto_byes: true,
          auto_qualifiers: false,
          compressed_draw_formats: true,
-         consolation_seeding: false
+         consolation_seeding: false,
+         seed_limits: [ [0, 0], [4, 2], [11, 4], [21, 8], [41, 16], [97, 32] ],
       },
       draws: {
          tree_draw: {
@@ -74,8 +75,17 @@ let config = function() {
                courts: true,
                after: true
             },
+            minimums: {
+               singles: 4,
+               doubles: 2
+            }
          },
-         rr_draw: {},
+         rr_draw: {
+            minimums: {
+               singles: 3,
+               doubles: 3
+            }
+         },
       },
       default_score_format: {
          final_set_supertiebreak: false,
@@ -111,12 +121,23 @@ let config = function() {
 
       function pushMessage(tournament) {
          if (tournament) {
+            tournamentExists(tournament);
+         } else if (msg.tournament) {
+            let tournament = CircularJSON.parse(msg.tournament);
+            db.addTournament(tournament).then(() => tournamentExists(tournament), noTournament);
+         } else {
+            noTournament();
+         }
+
+         function tournamentExists(tournament) {
             msg.inDB = true;
-            msg.tournament = `${tournament.name}`;
+            msg.notice = `${tournament.name}`;
             env.messages.push(msg);
             gen.homeIconState('authorized');
-         } else {
-            msg.tournament = "Not Found in Calendar";
+         }
+
+         function noTournament() {
+            msg.notice = "Not Found in Calendar";
             env.messages.push(msg);
             gen.homeIconState('notfound');
          }
