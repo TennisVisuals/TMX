@@ -37,7 +37,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.21',
+      version: '0.9.22',
       version_check: undefined,
       org: {
          name: undefined,
@@ -109,6 +109,7 @@ let config = function() {
    fx.setCalendar = (obj) => Object.keys(obj).forEach(key => { if (Object.keys(env.calendar).indexOf(key) >= 0) env.calendar[key] = obj[key]; });
    fx.setMap = (map) => env.map = map;
    fx.addMessage = (msg) => {
+      msg.notice = msg.notice || msg.tournament;
       let msgHash = (m) => Object.keys(m).map(key => m[key]).join('');
       let message_hash = msgHash(msg);
       let exists = env.messages.reduce((p, c) => msgHash(c) ==  message_hash ? true : p, false);
