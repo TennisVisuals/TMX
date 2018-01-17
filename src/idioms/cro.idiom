@@ -190,6 +190,7 @@
          key: 'Ovlastiti',
          auth: 'Ovlastio',
          noauth: 'Nije ovlašten',
+         unofficial: 'Neslužbena',
          fetch: 'Preuzimanje',
          renewlist: 'Obnovi popis',
          natlassoc: 'Nacionalna federacija',

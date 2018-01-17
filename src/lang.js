@@ -242,6 +242,7 @@
          addall: 'Add All',
          key: 'Authorize',
          noauth: 'Not Authorized',
+         unofficial: 'Unofficial',
          auth: 'Authorized',
          fetch: 'Download',
          renewlist: 'Renew List',
