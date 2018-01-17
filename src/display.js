@@ -349,7 +349,7 @@
          let pointer = msg.inDB ? 'cursor: pointer;' : '';
          let html = `
             <div id='${msguid}' style='margin: 1em; padding: 1px; background-color: ${color}; ${pointer}'>
-               ${lang.tr(msg.title)}: ${msg.tournament}
+               ${lang.tr(msg.title)}: ${msg.notice}
             </div>
          `;
          return { html, msguid }
@@ -1462,14 +1462,18 @@
             <div class='pdata_value' style='color: red'>${displayFullDate(p.registered_until)}</div>
          </div>`;
 
+      var detail_1 = !cropin && !clubdata && !clubcode ? '' : `
+         <div class='pdetail' style="height: 100%">
+            ${cropin} ${clubdata} ${clubcode}
+         </div>
+      `;
+
       var html = `
          <div class='player_data'>
             <h2 style='margin-left: 1em; margin-right: 1em;'>${name}</h2>
 
             <div class='player_details'>
-               <div class='pdetail' style="height: 100%">
-                  ${cropin} ${clubdata} ${clubcode}
-               </div>
+               ${detail_1}
                <div class='pdetail' style="height: 100%">
                   ${birth} ${expired_medical} ${expired_registration} ${city} ${country}
                </div>
@@ -2297,7 +2301,7 @@
 
       let first_team = complete && winner_index == 0 ? `<b>${teams[0]}</b>` : teams[0];
       let second_team = complete && winner_index == 1 ? `<b>${teams[1]}</b>` : teams[1];
-      let format = match.format ? util.normalizeName(match.format) : '';
+      let format = lang.tr(`formats.${match.format || ''}`);
 
       let score = match.score || '';
       if (score && winner_index) score = dfx.reverseScore(score);
@@ -2448,7 +2452,7 @@
          <div class="player-entry noselect">
             <div class="player-position">${lang.tr('drp')}: ${position || ''}</div>
             <div class="player-position"> <div class="player-index">${lang.tr('ord')}: <input id="${ids.player_index}"> </div> </div>
-            <div class="player-position"> <div class="player-search flexrow">${lang.tr('nm')}:&nbsp;<input id="${ids.player_search}"> </div> </div>
+            <div class="player-position"> <div class="player-search flexrow">${lang.tr('ply')}:&nbsp;<input id="${ids.player_search}"> </div> </div>
          </div>
       `;
       return { ids, html };
@@ -3137,7 +3141,8 @@
          let border_padding = team.players ? ' border_padding' : '';
          let team_click = team.players ? ' team_click' : '';
          let subrank = team.subrank ? `/${team.subrank}` : '';
-         let rank = team.rank < 2000 ? `(${team.rank}${subrank})` : '';
+         let dblsrank = team.players && team.combined_dbls_rank < 9999 ? `${team.combined_dbls_rank}/` : '';
+         let rank = team.rank < 9999 ? `(${dblsrank}${team.rank}${subrank})` : '';
          let combined_ranking = team.players && team.rank ? `<div class="border_padding"><i>${rank}</i></div>` : '';
          let team_seed = team.players && team.seed ? `<div class="border_padding"><b>[${team.seed}]</b></div>` : '';
          let wildcard = team.players && team.wildcard ? `<div class="border_padding"><b>[WC]</b></div>` : '';
@@ -3146,10 +3151,10 @@
          let duplicate = team.duplicates ? ` duplicates="${team.duplicates}"` : '';
          let style = !wildcard ? '' : `style='color: green'`;
 
-         // this is a stub for the future
+         // this is a stub for the future to drag/drop teams to approve
          let dragdrop = gen.dragdrop && team.players ? ` draggable="true" ondragstart="drag(event, this)"` : '';
 
-         let team_rank = team.rank < 2000 ? ` team_rank='${team.rank}'` : '';
+         let team_rank = team.rank < 9999 ? ` team_rank='${team.rank}'` : '';
          let team_id = team.players ? ` team_id='${team.players.map(p=>p.id).sort().join("|")}' ` : '';
          let html = `<div ${style} ${team_rank} ${team_id} ${duplicate} class='team_box${border}${team_click}'${background}>
                         <div class='flexcol${border_padding}'${dragdrop}>`;
