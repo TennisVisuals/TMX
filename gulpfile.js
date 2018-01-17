@@ -51,6 +51,7 @@ gulp.task('concat-lib', function() {
          '../components/minimized/vfs_fonts.js',
          '../components/minimized/socket.io.min.1.7.2.js',
          '../components/minimized/circular-json.min.js',
+         '../components/minimized/qrious.min.js',
 
          '../components/ugly/ladderChart.min.js',
          '../components/ugly/yearCal.min.js',
