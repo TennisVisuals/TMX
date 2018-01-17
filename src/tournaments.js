@@ -475,11 +475,42 @@ let tournaments = function() {
       }
 
       container.pub_link.element.addEventListener('click', () => {
-         let message = `${location.host}/draws/?tuid=${tournament.tuid}`;
-         copyClick(message);
-         let ctext = lang.tr('phrases.linkcopied');
+         let message = `https://${location.host}/draws/?tuid=${tournament.tuid}`;
+         let ctext = `
+            <canvas id='qr'></canvas>
+            <div class='flexcenter flexrow' style='width: 100%; margin-top: .5em; margin-bottom: .5em;'>
+               <div class='pdf action_icon' style='display: none'></div>
+               <a id='dl' download='tournamenturl'><div class='png action_icon'></div></a>
+               <div id='cb' class='clipboard action_icon'></div>
+            </div>
+            <div id='msg' style='display: none;'>${lang.tr('phrases.linkcopied')}</div>
+            `;
          let msg = gen.okCancelMessage(ctext, () => gen.closeModal());
+         genQUR(message);
+
+         document.getElementById('cb').addEventListener('click', function() {
+            copyClick(message);
+            document.getElementById('msg').style.display = 'inline'
+         });
+
+         document.getElementById('dl').addEventListener('click', function() {
+            downloadCanvas(this, 'qr', 'tournament_url.png');
+            function downloadCanvas(link, canvasId, filename) {
+                link.href = document.getElementById(canvasId).toDataURL();
+                link.download = filename;
+            }
+         }, false);
+
       });
+
+      function genQUR(message) {
+         var qr = new QRious({
+            element: document.getElementById('qr'),
+            level: 'H',
+            size: 200,
+            value: message
+         });
+      }
 
       gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
       container.push2cloud.element.addEventListener('click', () => {
@@ -1241,10 +1272,17 @@ let tournaments = function() {
             setEditState();
          });
          container.cloudfetch.element.addEventListener('click', () => { coms.requestTournament(tournament.tuid); });
+         container.authorize.element.addEventListener('contextmenu', () => {
+            gen.okCancelMessage('Revoke Authorization?', revokeAuthorization, () => gen.closeModal());
+            function revokeAuthorization() {
+               console.log('revoke authorization');
+            }
+         });
          container.authorize.element.addEventListener('click', () => {
             let key_uuid = UUID.generate();
             let pushKey = {
                key_uuid,
+               "tournament": CircularJSON.stringify(tournament),
                "content": {
                   "onetime": true,
                   "directive": "authorize",
@@ -1256,6 +1294,7 @@ let tournaments = function() {
 
             // TODO: server won't accept pushKey unless user uuuid in superuser cache on server
             coms.emitTmx({ pushKey });
+            gen.escapeModal();
             let msg = gen.okCancelMessage(ctext, () => gen.closeModal());
             copyClick(message);
          });
@@ -2723,8 +2762,9 @@ let tournaments = function() {
          let team_players = team.map(id=>idmap[id]).sort(lastNameSort);
          let team_hash = team_players.map(p=>p.id).sort().join('|');
          let subrank = (e.doubles_subrank && e.doubles_subrank[team_hash]) ? e.doubles_subrank[team_hash] : undefined;
-         let combined_rank = team_players.map(t=>t.category_ranking).reduce((a, b) => (+a || 1000) + (+b || 1000));
-         return { players: team_players, combined_rank, subrank }
+         let combined_rank = team_players.map(t=>t.category_ranking).reduce((a, b) => (+a || 9999) + (+b || 9999));
+         let combined_dbls_rank = team_players.map(t=>t.category_dbls).reduce((a, b) => (+a || 0) + (+b || 0));
+         return { players: team_players, combined_rank, combined_dbls_rank, subrank }
 
          function lastNameSort(a, b) {
             if (a.last_name < b.last_name) return -1;
@@ -2733,10 +2773,18 @@ let tournaments = function() {
          }
       }
 
-      function combinedRankSort(a, b) { 
+      function combinedRankSort(a, b, doubles_rankings) { 
+         var subrank_difference = (a.subrank || 1000) - (b.subrank || 1000);
+         var combined_singles_difference = (a.combined_rank || 9999) - (b.combined_rank || 9999);
+         var combined_doubles_difference = (b.combined_dbls_rank || 9999) - (a.combined_dbls_rank || 9999);
+         return combined_doubles_difference || combined_singles_difference || subrank_difference;
+
+         /*
          return (a.combined_rank == b.combined_rank) ?
             (a.subrank || 1000) - (b.subrank || 1000) :
             (a.combined_rank || 1000) - (b.combined_rank || 1000); 
+         */
+
       }
 
       // create object to find players by id; make a copy of player objects to avoid changing originals
@@ -2744,6 +2792,7 @@ let tournaments = function() {
 
       function approvedTeams(e) {
          let idmap = idMap(tournament.players);
+
          let approved = e.approved ? e.approved.map(t=>teamObj(e, t, idmap)).sort(combinedRankSort) : [];
          let seed_limit = dfx.seedLimit(approved.length);
          let seeding = rankedTeams(approved);
@@ -2763,8 +2812,10 @@ let tournaments = function() {
          function teamHash(team) { return team.sort().join('|'); }
          var not_promoted = e.teams.filter(team => approved_hash.indexOf(teamHash(team)) < 0 && e.wildcards.indexOf(teamHash(team)) < 0);
 
+         var dbls_rankings = tournament.players.reduce((p, c) => c.category_dbls || p, false);
          var teams = not_promoted.map(t=>teamObj(e, t, idmap)).sort(combinedRankSort);
          teams.forEach(team => team.rank = team.combined_rank);
+
          return teams;
       }
 
@@ -2811,16 +2862,21 @@ let tournaments = function() {
       }
 
       function generateDraw(e, delete_existing) {
-         let approved_opponents = approvedOpponents(e);
+         var approved_opponents = approvedOpponents(e);
 
          // delete any existing draw AFTER capturing any player data (entry information)
          if (displayed_draw_event && delete_existing) delete displayed_draw_event.draw;
-         if (!approved_opponents.length || approved_opponents.length < 2) return;
 
-         let seed_limit = dfx.seedLimit(approved_opponents.length);
+         var draw_type = e.draw_type == 'R' ? 'rr_draw' : 'tree_draw';
+         var minimums = config.env().draws[draw_type].minimums;
+         var minimum_opponents = e.format == 'S' ? minimums.singles : minimums.doubles;
+
+         if (!approved_opponents.length || approved_opponents.length < minimum_opponents) return;
+
+         var seed_limit = dfx.seedLimit(approved_opponents.length);
          if (e.draw_type == 'Q') seed_limit = (e.qualifiers * 2) || seed_limit;
 
-         let num_players = approved_opponents.length;
+         var num_players = approved_opponents.length;
 
          tree_draw.options({ max_round: undefined, seeds: { limit: seed_limit } });
          tree_draw.options({ draw: { feed_in: e.structure == 'feed' }});
