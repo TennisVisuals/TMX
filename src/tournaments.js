@@ -466,6 +466,11 @@ let tournaments = function() {
                   organization: tournament.organization,
                   start: tournament.start,
                   org: config.env().org,
+               },
+               lang: {
+                  singles: lang.tr('formats.singles'),
+                  doubles: lang.tr('formats.doubles'),
+                  or: lang.tr('or')
                }
             }
 
@@ -695,8 +700,11 @@ let tournaments = function() {
          let court_names = {};
          courts.forEach(ct => court_names[ctuuid(ct)] = ct.name);
 
-         let { completed_matches, pending_matches } = tournamentEventMatches({ tournament, source: true });
-         let all_matches = [].concat(...pending_matches, completed_matches);
+         let { completed_matches, pending_matches, upcoming_matches } = tournamentEventMatches({ tournament, source: true });
+         let pending_by_format = pending_matches.sort((a, b) => a.format == 'singles' ? 0 : 1);
+
+         let upcoming_by_format = upcoming_matches.sort((a, b) => a.format == 'singles' ? 0 : 1);
+         let all_matches = [].concat(...pending_by_format, ...upcoming_by_format, completed_matches);
 
          let scheduled_cells = all_matches
             .filter(m=>m.schedule && m.schedule.day == displayed_schedule_day)
@@ -751,12 +759,12 @@ let tournaments = function() {
             if (!round_filter && !order_priority) { filtered_unscheduled.sort((a, b) => priority.indexOf(b.round_name) - priority.indexOf(a.round_name)); }
 
             // create an array of unscheduled muids;
-            let unscheduled_muids = filtered_unscheduled.map(m=>m.muid);
+            var unscheduled_muids = filtered_unscheduled.map(m=>m.muid);
 
             // create ordered list of unscheduled matches for each event
             // based on round robin oop or tree draw positions
-            let euids = util.unique(filtered_unscheduled.map(m=>m.event.euid));
-            let ordered_muids = Object.assign({}, ...euids.map(id => {
+            var euids = util.unique(filtered_unscheduled.map(m=>m.event.euid));
+            var ordered_muids = Object.assign({}, ...euids.map(id => {
                let evnt = findEventByID(id);
                let match_order = null;
                if (evnt.draw_type == 'R') {
@@ -776,14 +784,22 @@ let tournaments = function() {
             }));
 
             // create an object indexed by muid of unscheduled matches
-            let muid_lookup = Object.assign({}, ...filtered_unscheduled.map(m=>({[m.muid]: m})));
+            var muid_lookup = Object.assign({}, ...filtered_unscheduled.map(m=>({[m.muid]: m})));
 
             // When prioritizing draw order w/o regard for round, exclude round_name
             // create a hash of unscheduled matches which have been sorted/grouped by round_name
-            let unscheduled_hash = filtered_unscheduled.map(m=>`${m.event.euid}|${!order_priority ? m.round_name : ''}`);
+            var unscheduled_hash = filtered_unscheduled.map(m=>`${m.event.euid}|${!order_priority ? m.round_name : ''}`);
 
-            let ordered_matches = [].concat(...util.unique(unscheduled_hash).map(match_group => {
+            var match_groups = util.unique(unscheduled_hash);
+            if (order_priority) { match_groups.sort((a, b)=> drawTypeSort(a) - drawTypeSort(b)); }
 
+            function drawTypeSort(match_group) {
+               let euid = match_group.split('|')[0];
+               let draw_type = findEventByID(euid).draw_type;
+               return ['R', 'Q'].indexOf(draw_type) >= 0 ? 0 : 1;
+            }
+
+            var ordered_matches = [].concat(...match_groups.map(match_group => {
                // find the start of each group, and the number of members
                let indices = util.indices(match_group, unscheduled_hash);
 
@@ -800,8 +816,15 @@ let tournaments = function() {
                return ordered_group;
             }));
 
+            var om_muids = ordered_matches.map(o=>o.muid);
+            var upcoming_unscheduled = unscheduled_muids.filter(m=>om_muids.indexOf(m) < 0);
+            var uu_matches = upcoming_unscheduled.map(muid => muid_lookup[muid]);
+            var to_be_scheduled = ordered_matches.concat(...uu_matches);
+
+            console.log('option to auto-schedule upcoming matches');
+
             // now assign oop cells to matches
-            ordered_matches.forEach(match => {
+            to_be_scheduled.forEach(match => {
                let available = available_cells.pop();
                if (available) {
                   let schedule = { 
@@ -1446,8 +1469,8 @@ let tournaments = function() {
       }
 
       function printSchedule() {
-         let { completed_matches, pending_matches } = tournamentEventMatches({ tournament, source: true });
-         let all_matches = [].concat(...pending_matches, completed_matches);
+         let { completed_matches, pending_matches, upcoming_matches } = tournamentEventMatches({ tournament, source: true });
+         let all_matches = completed_matches.concat(...pending_matches, ...upcoming_matches);
 
          let luids = tournament.locations.map(l=>l.luid);
          let luid = luids.length == 1 ? luids[0] : container.location_filter.ddlb.getValue();
@@ -1538,7 +1561,11 @@ let tournaments = function() {
          // assumes that tournament.players is already sorted by rank
          if (e.format == 'S') {
             if (!e.wildcards) e.wildcards = [];
-            e.approved = !tournament.players ? [] : tournament.players.filter(p=>e.approved.indexOf(p.id) >= 0 || e.wildcards.indexOf(p.id) >= 0).map(p=>p.id);
+            if (!e.luckylosers) e.luckylosers = [];
+            function isApproved(p) { return e.approved.indexOf(p.id) >= 0; }
+            function isWildcard(p) { return e.wildcards.indexOf(p.id) >= 0; }
+            function isLuckyLoser(p) { return e.luckylosers.indexOf(p.id) >= 0; }
+            e.approved = !tournament.players ? [] : tournament.players.filter(p=>isApproved(p) || isWildcard(p) || isLuckyLoser(p)).map(p=>p.id);
          }
       }
 
@@ -1607,6 +1634,7 @@ let tournaments = function() {
                e.approved = e.approved.filter(i=>i!=id);
                if (!e.wildcards) e.wildcards = [];
                e.wildcards = e.wildcards.filter(i=>i!=id);
+               e.luckylosers = e.luckylosers.filter(i=>i!=id);
             }
             saveTournament(tournament);
             e.regenerate = true;
@@ -1789,6 +1817,7 @@ let tournaments = function() {
             format: 'S',
             approved: [],
             wildcards: [],
+            luckylosers: [],
             draw_size: '',
             draw_type: 'E',
             euid: gen.uuid(),
@@ -2160,6 +2189,7 @@ let tournaments = function() {
          event_config.qualifiers.ddlb.setOptions(options);
          if (e.qualifiers > max_qualifiers) e.qualifiers = max_qualifiers;
          event_config.qualifiers.ddlb.setValue(e.qualifiers);
+         event_config.qualifiers.ddlb.selectionBackground(!e.qualifiers ? 'red' : 'white');
       }
 
       function configDrawType(e) {
@@ -2182,6 +2212,7 @@ let tournaments = function() {
             if (e.draw_type == 'R' && linked) determineRRqualifiers(e);
             saveTournament(tournament);
 
+            setTimeout(function() { event_config.qualifiers.ddlb.selectionBackground(!e.qualifiers ? 'red' : 'white'); }, 300);
             drawsTab();
          }
 
@@ -2191,6 +2222,7 @@ let tournaments = function() {
             event_config.qualifiers.ddlb = new dd.DropDown({ element: event_config.qualifiers.element, onChange: setQualifiers });
             event_config.qualifiers.ddlb.selectionBackground();
             event_config.qualifiers.ddlb.setValue(Math.min(e.qualifiers || 0, max_qualifiers) || 0);
+            event_config.qualifiers.ddlb.selectionBackground(!e.qualifiers ? 'red' : 'white');
 
             determineLinkedDraw(e, 'E', linkChanged);
          }
@@ -2237,6 +2269,7 @@ let tournaments = function() {
             event_config.qualifiers.ddlb.selectionBackground();
             event_config.qualifiers.ddlb.setValue(e.qualifiers || e.brackets);
             e.qualifiers = e.qualifiers || e.brackets;
+            event_config.qualifiers.ddlb.selectionBackground(!e.qualifiers ? 'red' : 'white');
 
             let setBracketSize = (value) => {
                e.bracket_size = +value;
@@ -2335,6 +2368,32 @@ let tournaments = function() {
          }
       }
 
+      function luckyLosersOption(evt,e) {
+         if (!e || !e.draw) return;
+         let competitors = [].concat(...e.draw.opponents.map(team=>team.map(p=>p.id)));
+         let linkedQ = findEventByID(e.links['Q']) || findEventByID(e.links['R']);
+         let linked_info = linkedQ ? dfx.drawInfo(linkedQ.draw) : undefined;
+
+         if (!linked_info) return;
+
+         // losers from linked draw excluding losers who have already been substituted
+         let losers = !linked_info ? [] : teamSort(linked_info.match_nodes
+            .filter(n=>n.data.match && n.data.match.loser)
+            .map(n=>n.data.match.loser))
+            .filter(l=>util.intersection(l.map(p=>p.id), competitors).length == 0);
+
+         let teams = optionNames(losers, true);
+         let clickAction = (d, i) => {
+            let loser = losers[i].map(player => Object.assign({}, player))[0];
+            if (!e.luckylosers) e.luckylosers = [];
+            e.luckylosers.push(loser.id);
+            modifyApproved.push(e, loser.id);
+            saveTournament(tournament);
+         }
+         let bod = d3.select('body').node();
+         gen.svgModal({ x: evt.clientX, y: evt.clientY, options: teams, callback: clickAction });
+      }
+
       function configureEventSelections(e) {
          let eventName = () => {
             e.name = `${getKey(genders, e.gender)} ${config.legacyCategory(e.category)} ${getKey(formats, e.format)}`;
@@ -2350,6 +2409,8 @@ let tournaments = function() {
          let addAll = () => modifyApproved.addAll(e);
          let removeAll = () => modifyApproved.removeAll(e);
          let promoteAll = () => promoteTeams(e);
+
+         container.eligible.element.addEventListener('contextmenu', evt=>luckyLosersOption(evt,e));
 
          util.addEventToClass('addall', addAll, container.detail_players.element);
          util.addEventToClass('removeall', removeAll, container.detail_players.element);
@@ -2738,7 +2799,8 @@ let tournaments = function() {
                let qualifier = qualifier_ids.indexOf(p.id) >= 0;
                let alternate = alternate_ids.indexOf(p.id) >= 0;
                let wildcard = e.wildcards && e.wildcards.indexOf(p.id) >= 0;
-               p.entry = qualifier ? 'Q' : alternate ? 'A' : wildcard ? 'WC' : p.entry;
+               let luckyloser = e.luckylosers && e.luckylosers.indexOf(p.id) >= 0;
+               p.entry = qualifier ? 'Q' : alternate ? 'A' : wildcard ? 'WC' : luckyloser ? 'LL' : p.entry;
 
                // TODO: implement qualifier in approvedTeams?
 
@@ -2783,13 +2845,6 @@ let tournaments = function() {
          var combined_singles_difference = (a.combined_rank || 9999) - (b.combined_rank || 9999);
          var combined_doubles_difference = (b.combined_dbls_rank || 9999) - (a.combined_dbls_rank || 9999);
          return combined_doubles_difference || combined_singles_difference || subrank_difference;
-
-         /*
-         return (a.combined_rank == b.combined_rank) ?
-            (a.subrank || 1000) - (b.subrank || 1000) :
-            (a.combined_rank || 1000) - (b.combined_rank || 1000); 
-         */
-
       }
 
       // create object to find players by id; make a copy of player objects to avoid changing originals
@@ -2797,6 +2852,8 @@ let tournaments = function() {
 
       function approvedTeams(e) {
          let idmap = idMap(tournament.players);
+         if (!e.wildcards) e.wildcards = [];
+         if (!e.luckylosers) e.luckylosers = [];
 
          let approved = e.approved ? e.approved.map(t=>teamObj(e, t, idmap)).sort(combinedRankSort) : [];
          let seed_limit = dfx.seedLimit(approved.length);
@@ -2805,6 +2862,8 @@ let tournaments = function() {
          approved.forEach(team => {
             team.wildcard = (e.wildcards.indexOf(team.players.map(p=>p.id).sort().join('|')) >= 0) ? true : undefined;
             if (team.wildcard) team.players[0].entry = 'WC';
+            team.luckyloser = (e.luckylosers.indexOf(team.players.map(p=>p.id).sort().join('|')) >= 0) ? true : undefined;
+            if (team.luckyloser) team.players[0].entry = 'LL';
          });
          return approved;
       }
@@ -2815,7 +2874,10 @@ let tournaments = function() {
 
          var approved_hash = e.approved.map(a=>a.sort().join('|'));
          function teamHash(team) { return team.sort().join('|'); }
-         var not_promoted = e.teams.filter(team => approved_hash.indexOf(teamHash(team)) < 0 && e.wildcards.indexOf(teamHash(team)) < 0);
+         function notApproved(team) { return approved_hash.indexOf(teamHash(team)) < 0; }
+         function notWC(team) { return !e.wildcards || e.wildcards.indexOf(teamHash(team)) < 0; }
+         function notLL(team) { return !e.luckylosers || e.luckylosers.indexOf(teamHash(team)) < 0; }
+         var not_promoted = e.teams.filter(team => notApproved(team) && notWC(team) && notLL(team));
 
          var dbls_rankings = tournament.players.reduce((p, c) => c.category_dbls || p, false);
          var teams = not_promoted.map(t=>teamObj(e, t, idmap)).sort(combinedRankSort);
@@ -3099,6 +3161,8 @@ let tournaments = function() {
                   p.full_name = `<div style='color: green'>${p.full_name}&nbsp;<span class='player_seed'>[Q]</span></div>`; 
                } else if (e.wildcards && e.wildcards.indexOf(p.id) >= 0) {
                   p.full_name = `<div style='color: green'>${p.full_name}&nbsp;<span class='player_seed'>[WC]</span></div>`; 
+               } else if (e.luckylosers && e.luckylosers.indexOf(p.id) >= 0) {
+                  p.full_name = `<div style='color: green'>${p.full_name}&nbsp;<span class='player_seed'>[LL]</span></div>`; 
                } else if (p.seed && p.seed < 2000) {
                   p.full_name = `${p.full_name}&nbsp;<span class='player_seed'>[${p.seed}]</span>`; 
                }
@@ -3166,6 +3230,7 @@ let tournaments = function() {
                   e.teams = e.teams.filter(team => util.intersection(team_id.split('|'), team).length == 0)
                }
                e.wildcards = e.wildcards.filter(team => util.intersection(team_id.split('|'), team).length == 0)
+               e.luckylosers = e.luckylosers.filter(team => util.intersection(team_id.split('|'), team).length == 0)
                approvedChanged(e, true);
                saveTournament(tournament);
             }
@@ -3217,7 +3282,6 @@ let tournaments = function() {
             function assignWildcard(team) {
                if (!e.wildcards) e.wildcards = [];
                e.wildcards.push(team_id);
-               console.log(team);
                modifyApproved.pushTeam(e, team.players);
             }
 
@@ -3274,6 +3338,7 @@ let tournaments = function() {
                if (e.qualifiers > max_qualifiers) e.qualifiers = max_qualifiers;
                event_config.qualifiers.ddlb.setOptions(options);
                event_config.qualifiers.ddlb.setValue(Math.min(e.qualifiers || 0, max_qualifiers) || 0);
+               event_config.qualifiers.ddlb.selectionBackground(!e.qualifiers ? 'red' : 'white');
             }
          }
          if (e.draw_type == 'R') {
@@ -3293,7 +3358,7 @@ let tournaments = function() {
       fx.scheduledMatches = scheduledMatches;
       function scheduledMatches() {
          let { completed_matches, pending_matches, upcoming_matches } = tournamentEventMatches({ tournament, source: true });
-         let all_matches = [].concat(...pending_matches, completed_matches);
+         let all_matches = completed_matches.concat(...pending_matches, ...upcoming_matches);
          let scheduled = all_matches.filter(m=>m.schedule && m.schedule.day);
          let days = util.unique(scheduled.map(m=>m.schedule.day));
          return { scheduled, days };
@@ -3358,7 +3423,7 @@ let tournaments = function() {
          let date_range = util.dateRange(tournament.start, tournament.end);
          let formatted_date_range = date_range.map(util.formatDate);
 
-         let all_matches = [].concat(...pending_matches, completed_matches);
+         let all_matches = completed_matches.concat(...pending_matches, ...upcoming_matches);
          let muid_key = Object.assign({}, ...all_matches.map(m=>({ [m.muid]: m })));
 
          // if displayed_schedule_day is null, set to today IF today is part of the tournament range
@@ -3426,6 +3491,9 @@ let tournaments = function() {
          }
 
          function filterDayMatches() {
+            ({ completed_matches, pending_matches, upcoming_matches } = tournamentEventMatches({ tournament, source: true }));
+            all_matches = completed_matches.concat(...pending_matches, ...upcoming_matches);
+            muid_key = Object.assign({}, ...all_matches.map(m=>({ [m.muid]: m })));
             day_matches = all_matches.filter(f=>f.schedule && f.schedule.day == displayed_schedule_day);
          }
 
@@ -3444,17 +3512,27 @@ let tournaments = function() {
          }
 
          function displayPending() {
+            let pending_by_format = matchSort(pending_matches).sort((a, b) => a.format == 'singles' ? 0 : 1);
+            let upcoming_by_format = matchSort(upcoming_matches).sort((a, b) => a.format == 'singles' ? 0 : 1);
+
+            let pending_upcoming = pending_by_format.concat(...upcoming_by_format);
+
             let euid = container.event_filter.ddlb.getValue();
-            let euid_filtered = !euid ? pending_matches : pending_matches.filter(m=>m.event.euid == euid);
+            let euid_filtered = !euid ? pending_upcoming : pending_upcoming.filter(m=>m.event.euid == euid);
             let round = container.round_filter.ddlb.getValue();
 
             let round_filtered = !round ? euid_filtered : euid_filtered.filter(m=>m.round_name == round);
 
             gen.scheduleTeams({ 
-               pending_matches: round_filtered,
+               pending_upcoming: round_filtered,
                element: container.unscheduled.element,
             });
             util.addEventToClass('dragUnscheduled', dragUnscheduled, container.unscheduled.element, 'dragstart');
+
+            function matchSort(matches) {
+               let rounds = ['RRF', 'RR3', 'RR2', 'RR1', 'RR', 'Q5', 'Q4', 'Q3', 'Q2', 'Q1', 'Q', 'R128', 'R64', 'R32', 'R24', 'R16', 'R12', 'QF', 'SF', 'F'];
+               return matches.sort((a, b) => rounds.indexOf(a.round) - rounds.indexOf(b.round));
+            }
          }
 
          function displayScheduleGrid() {
@@ -3943,17 +4021,18 @@ let tournaments = function() {
                   if (!outcome) return;
 
                   // this must happen first as 'e' is modified
-                  if (e.draw_type == 'R') {
-                     scoreRoundRobin(e, existing_scores, outcome);
-                  } else {
-                     scoreTreeDraw(e, existing_scores, outcome);
+                  let result = (e.draw_type == 'R') ? scoreRoundRobin(e, existing_scores, outcome) : scoreTreeDraw(e, existing_scores, outcome);
+
+                  if (result) {
+                     match.winner_index = outcome.winner;
+                     match.score = outcome.score;
+                     if (outcome.score) match.status = '';
+                     match.score_format = outcome.score_format;
                   }
 
-                  match.winner_index = outcome.winner;
-                  match.score = outcome.score;
-                  if (outcome.score) match.status = '';
-                  match.score_format = outcome.score_format;
+                  updateScheduleBox(match);
 
+                  /*
                   let sb = gen.scheduleBox({ match, editable: true});
                   target.innerHTML = sb.innerHTML;
                   gen.scaleTeams(target);
@@ -3969,31 +4048,36 @@ let tournaments = function() {
                         target.addEventListener('dragdrop', drop);
                      }, 500);
                   }
+                  */
 
-                  // now update pending matches to show new matches resulting from completion
-                  ({ completed_matches, pending_matches, upcoming_matches } = tournamentEventMatches({ tournament, source: true }));
+                  // now update matches to show new matches resulting from completion
+                  filterDayMatches();
+
+                  let dependent = match.dependent ? day_matches.reduce((p, c) => c.muid == match.dependent ? c : p, undefined) : undefined;
+                  updateScheduleBox(dependent);
+
                   displayPending();
-
-                  // and update all_matches and muid_key to keep other things working
-                  all_matches = [].concat(...pending_matches, completed_matches);
-                  muid_key = Object.assign({}, ...all_matches.map(m=>({ [m.muid]: m })));
                   filterSearchList();
                }
 
                if (match && match.teams) {
-                  let round = match.round_name || '';
-                  let score_format = match.score_format || e.score_format || {};
-                  if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
+                  if (match.teams.length != 2) {
+                     console.log('not two teams');
+                  } else {
+                     let round = match.round_name || '';
+                     let score_format = match.score_format || e.score_format || {};
+                     if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
 
-                  gen.escapeModal();
-                  scoreBoard.setMatchScore({
-                     round,
-                     container,
-                     score_format,
-                     existing_scores,
-                     teams: match.teams,
-                     callback: scoreSubmitted
-                  });
+                     gen.escapeModal();
+                     scoreBoard.setMatchScore({
+                        round,
+                        container,
+                        score_format,
+                        existing_scores,
+                        teams: match.teams,
+                        callback: scoreSubmitted
+                     });
+                  }
                }
             }
          }
@@ -4527,19 +4611,22 @@ let tournaments = function() {
 
       // Returns NEW objects; modifications don't change originals
       // if 'source' is true, then source object is included...
-      fx.tem = tournamentEventMatches;
       function tournamentEventMatches({ tournament, source }) {
-         if (!tournament.events) return { completed_matches: [], pending_matches: [], total_matches: 0 };
+         if (!tournament.events) return { completed_matches: [], pending_matches: [], upcoming_matches: [], total_matches: 0 };
 
-         let completed_matches = [];
-         let pending_matches = [];
-         let upcoming_matches = [];
-         tournament.events.forEach(e => {
+         var completed_matches = [];
+         var pending_matches = [];
+         var upcoming_matches = [];
+
+         function drawTypeSort(draw_type) { return ['R', 'Q'].indexOf(draw_type) >= 0 ? 0 : 1; }
+         var ordered_events = tournament.events.sort((a, b) => drawTypeSort(a.draw_type) - drawTypeSort(b.draw_type));
+
+         ordered_events.forEach(e => {
             let { complete, incomplete, upcoming } = eventMatchStorageObjects(tournament, e, source);
 
-            completed_matches = [].concat(...completed_matches, ...complete);
-            pending_matches = [].concat(...pending_matches, ...incomplete);
-            upcoming_matches = [].concat(...upcoming_matches, ...upcoming);
+            completed_matches = completed_matches.concat(...complete);
+            pending_matches = pending_matches.concat(...incomplete);
+            upcoming_matches = upcoming_matches.concat(...upcoming);
          });
 
          let total_matches = completed_matches.length + pending_matches.length;
@@ -4548,7 +4635,7 @@ let tournaments = function() {
       }
 
       function eventMatchStorageObjects(tournament, evt, source) {
-         if (!evt.draw) return { complete: [], incomplete: []};
+         if (!evt.draw) return { complete: [], incomplete: [], upcoming: [] };
 
          let matches = eventMatches(evt, tournament);
 
@@ -4667,6 +4754,12 @@ let tournaments = function() {
             teams: match.teams,
             team_players,
 
+            dependent: match.dependent,
+            dependencies: match.dependencies,
+
+            // potential opponents for upcoming matches
+            potentials: match.potentials,
+
             // TODO: clear up confusion here...
             round: match.round_name,
             round_name: match.round_name,
@@ -4694,9 +4787,6 @@ let tournaments = function() {
             winner: match.match.winner_index,
             winner_index: match.match.winner_index,
          }
-
-         // potential opponents for upcoming matches
-         if (match.potentials) obj.potentials = match.potentials;
 
          if (source) obj.source = match.match;
          return obj;
@@ -5205,6 +5295,7 @@ let tournaments = function() {
             logEventChange(displayed_draw_event, { fx: 'position assigned', d: { position, bye, qualifier, team: team_ids } });
          }
 
+         /*
          function optionNames(teams) {
             let lastName = (player) => player.last_name.toUpperCase();
             return teams.map(team => {
@@ -5218,6 +5309,7 @@ let tournaments = function() {
                
             });
          }
+         */
 
          function rrScoreEntry(d) {
             d3.event.preventDefault();
@@ -5421,7 +5513,7 @@ let tournaments = function() {
             logEventChange(displayed_draw_event, { fx: 'assign seed', d: { pos: position, team: team.map(p=>p.id) } });
 
             let { remaining, positions, teams } = getSeedTeams(seed_group);
-            if (remaining.length == 1) {
+            if (remaining.length == 1 && displayed_draw_event.draw_type != 'Q') {
                let index = seed_group.range.indexOf(remaining[0]);
                let team = draw.seeded_teams[seed_group.range[index]];
                assignSeedPosition(seed_group, team, positions[0]);
@@ -5624,6 +5716,7 @@ let tournaments = function() {
                   // TODO: this block of code is duplicated
                   let info = tree_draw.info();
                   if (info.unassigned.length == 1) {
+                     console.log('unassigned 2');
                      let unassigned_position = info.unassigned[0].data.dp;
                      let placements = draw.unseeded_placements.map(p=>p.id);
                      let ut = draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
@@ -6191,13 +6284,17 @@ let tournaments = function() {
                   delete d.data.match.winner;
                   delete d.data.match.players;
                   delete d.data.match.complete;
-                  delete d.data.match.schedule;
                   delete d.data.match.set_scores;
                   delete d.data.match.round_name;
                   delete d.data.match.winner_index;
-                  if (d.data.ancestor && d.data.ancestor.match) delete d.data.ancestor.match;
 
                   e.up_to_date = false;
+                  let completed_matches = eventMatches(e, tournament).filter(m=>m.match.winner);
+                  if (!completed_matches.length) {
+                     e.active = false;
+                     console.log('now reset recyle icon');
+                  }
+
                   if (config.env().publishing.publish_on_score_entry) {
                      e.up_to_date = true;
                      broadcastEvent(tournament, displayed_draw_event);
@@ -6328,6 +6425,7 @@ let tournaments = function() {
                   // TODO: this block of code is duplicated
                   let info = tree_draw.info();
                   if (info.unassigned.length == 1 && !info.byes.length) {
+                     console.log('unassigned 1');
                      let unassigned_position = info.unassigned[0].data.dp;
                      let placements = draw.unseeded_placements.map(p=>p.id);
                      let ut = draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
@@ -6369,6 +6467,7 @@ let tournaments = function() {
       }
 
       function updateScheduleBox(match) {
+         if (!match) return;
          let schedule_box = Array.from(document.querySelectorAll('.schedule_box'))
             .reduce((s, el) => {
                let el_muid = el.getAttribute('muid');
@@ -6378,10 +6477,12 @@ let tournaments = function() {
 
          let sb = gen.scheduleBox({ match, editable: true});
          if (schedule_box) {
+            let draggable = match.winner_index != undefined ? 'false' : 'true';
             schedule_box.innerHTML = sb.innerHTML;
             gen.scaleTeams(schedule_box);
             schedule_box.style.background = sb.background;
-            schedule_box.setAttribute('draggable', 'true');
+            schedule_box.setAttribute('draggable', draggable);
+            schedule_box.setAttribute('muid', match.muid);
             scheduleActions({ changed: true });
             saveTournament(tournament);
          }
@@ -6500,7 +6601,7 @@ let tournaments = function() {
 
                // regenerate points with new date
                if (tournament.events && tournament.events.length) {
-                  let { completed_matches, pending_matches } = tournamentEventMatches({ tournament });
+                  let { completed_matches } = tournamentEventMatches({ tournament });
                   tournamentPoints(tournament, completed_matches);
                } else {
                   calcPlayerPoints({ date: points_date, tournament, container, filters });
@@ -7434,24 +7535,22 @@ let tournaments = function() {
       // in case there are matches without...
       addMUIDs(e);
 
-      if (true) {
-         let court_names = {};
-         if (!tournament.locations) tournament.locations = [];
-         tournament.locations.map(l=>l.luid).forEach(luid => courtData(tournament, luid).forEach(ct => court_names[ctuuid(ct)] = ct.name));
+      let court_names = {};
+      if (!tournament.locations) tournament.locations = [];
+      tournament.locations.map(l=>l.luid).forEach(luid => courtData(tournament, luid).forEach(ct => court_names[ctuuid(ct)] = ct.name));
 
-         matches.forEach(match => {
-            let schedule = match.match.schedule;
-            if (schedule) {
-               schedule.court = court_names[ctuuid(schedule)];
-               if (schedule && schedule.oop_round && schedule.luid) {
-                  let court_matches = matches
-                     .filter(m => m.match.schedule && ctuuid(m.match.schedule) == ctuuid(schedule))
-                     .filter(m => m.match.schedule.oop_round < schedule.oop_round && m.match.winner == undefined);
-                  schedule.after = court_matches.length;
-               }
+      matches.forEach(match => {
+         let schedule = match.match && match.match.schedule;
+         if (schedule) {
+            schedule.court = court_names[ctuuid(schedule)];
+            if (schedule && schedule.oop_round && schedule.luid) {
+               let court_matches = matches
+                  .filter(m => m.match.schedule && ctuuid(m.match.schedule) == ctuuid(schedule))
+                  .filter(m => m.match.schedule.oop_round < schedule.oop_round && m.match.winner == undefined);
+               schedule.after = court_matches.length;
             }
-         });
-      }
+         }
+      });
 
       return matches;
    }
@@ -7563,6 +7662,21 @@ let tournaments = function() {
          updateStartDate();
          updateEndDate();
       }
+   }
+
+   function optionNames(teams, luckyloser=false) {
+      let lastName = (player) => player.last_name.toUpperCase();
+      return teams.map(team => {
+         let seed = team[0].seed && !luckyloser ? ` [${team[0].seed}]` : '';
+         let draw_order = seed ? '' : team[0].draw_order && !luckyloser ? ` (${team[0].draw_order})` : '';
+         let lucky = luckyloser ? ' [LL]' : '';
+         if (team.length == 1) {
+            let first_name = util.normalizeName(team[0].first_name, false);
+            return `${lastName(team[0])}, ${first_name}${seed}${draw_order}${lucky}`
+         }
+         return `${lastName(team[0])}/${lastName(team[1])}${seed}${lucky}`
+         
+      });
    }
 
    function internationalRanking(p) { return p.int > 0; }
