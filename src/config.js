@@ -37,7 +37,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.22',
+      version: '0.9.34',
       version_check: undefined,
       org: {
          name: undefined,
@@ -196,48 +196,57 @@ let config = function() {
 
    function clearHistory() { history.pushState('', document.title, window.location.pathname); }
 
-   fx.idiomSelector = () => {
+   var idiom = {
+      "key": "defaultIdiom",
+      "class": "userInterface",
+      "ioc": "gbr"
+   };
+
+   fx.changeIdiom = changeIdiom;
+   function changeIdiom(ioc) {
+      lang.set(ioc);
+      idiom.ioc = ioc;
+      db.addSetting(idiom);
+      fx.idiom_ddlb.setValue(ioc);
+      splash();
+   }
+
+   function idiomSelector() {
       return new Promise((resolve, reject) => {
-         var idiom = {
-            "key": "defaultIdiom",
-            "class": "userInterface",
-            "ioc": "gbr"
-         };
-
-         let options = lang.options().sort().map(value => { 
-            return { key: `<div class=''><img src="./assets/flags/${value.toUpperCase()}.png" class='idiom_flag'></div>`, value }
-         });
-         dd.attachDropDown({ id: 'idiomatic', options, style: 'background: black' });
-
-         let onChange = (ioc) => { 
-            lang.set(ioc);
-            idiom.ioc = ioc;
-            db.addSetting(idiom);
-            splash();
-         }
-         let idiom_ddlb = new dd.DropDown({ element: document.getElementById('idiomatic'), onChange });
-
-         idiom_ddlb.setStyle('selection_value', 'black');
-         idiom_ddlb.setStyle('selection_novalue', 'black');
-         idiom_ddlb.selectionBackground('black');
-         idiom_ddlb.setValue('gbr');
-
-         let setIdiom = (params) => {
+         function setIdiom(params) {
             // if there is no default setting, make it visible
             if (!params) {
                document.getElementById('idiomatic').style.opacity = 1;
                // save this as default so that flag is "subtle" for next visit
-               onChange('gbr');
+               changeIdiom('gbr');
             }
             let ioc = params ? params.ioc : 'gbr';
-            idiom_ddlb.setValue(ioc);
             idiom.ioc = ioc;
             lang.set(ioc);
+
+            let options = lang.options().sort().map(value => { 
+               return { key: `<div class=''><img src="./assets/flags/${value.toUpperCase()}.png" class='idiom_flag'></div>`, value }
+            });
+            dd.attachDropDown({ id: 'idiomatic', options, style: 'background: black' });
+
+            fx.idiom_ddlb = new dd.DropDown({ element: document.getElementById('idiomatic'), onChange: changeIdiom });
+            fx.idiom_ddlb.setStyle('selection_value', 'black');
+            fx.idiom_ddlb.setStyle('selection_novalue', 'black');
+            fx.idiom_ddlb.selectionBackground('black');
+            fx.idiom_ddlb.setValue(ioc);
+
             resolve();
          }
-         db.findSetting('defaultIdiom').then(setIdiom, (error) => console.log('error:', error));
+
+         db.findAllIdioms().then(prepareIdioms, (error) => console.log('error:', error));
+
+         function prepareIdioms(idioms) {
+            idioms.forEach(idiom => lang.idioms[idiom.ioc] = idiom.idiom);
+            db.findSetting('defaultIdiom').then(setIdiom, (error) => console.log('error:', error));
+         }
       });
    }
+
 
    fx.updateSettings = updateSettings;
    function updateSettings(settings) {
@@ -609,7 +618,7 @@ let config = function() {
       db.initDB().then(checkQueryString).then(envSettings).then(DBReady);
 
       function DBReady() {
-         config.idiomSelector().then(idiomsReady);
+         idiomSelector().then(idiomsReady);
          load.loadCache();
          if (env.auto_update.players) { updatePlayers(); }
 
@@ -623,6 +632,25 @@ let config = function() {
 
    // once the environment variables have been set notify dependents
    function settingsLoaded() { tournaments.settingsLoaded(); }
+
+   fx.receiveSettings = receiveSettings;
+   function receiveSettings(data) {
+      db.findSetting('keys').then(updateKey, updateKey);
+      function updateKey(setting={key: 'keys', keys:[]}) {
+         setting.keys = setting.keys.filter(k=>k.keyid != data.keyid);
+         setting.keys.push({ keyid: data.keyid, description: data.description });
+         db.addSetting(setting).then(update, update);
+      }
+      function update() {
+         updateSettings(data.content).then(() => {
+            envSettings().then(checkIdiom, error => console.log('error:', error));
+         });
+      }
+      function checkIdiom() {
+         gen.closeModal();
+         splash();
+      }
+   }
 
    function envSettings() {
       return new Promise((resolve, reject) => {
