@@ -444,6 +444,7 @@ let tournaments = function() {
             saveTournament(tournament);
             schedulePublishState();
 
+            // TODO: translation!
             let tournamentOOP = {
                title: 'Order of Play',
                umpirenotes: tournament.schedule.umpirenotes,
@@ -552,7 +553,7 @@ let tournaments = function() {
             saveTournament(tournament);
 
             gen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
-            deleteEvent(tournament, displayed_draw_event);
+            deletePublishedEvent(tournament, displayed_draw_event);
             enableTournamentOptions();
             gen.closeModal();
          }
@@ -1899,54 +1900,13 @@ let tournaments = function() {
 
                actions.select('.save').style('display', 'none');
                actions.select('.cancel').style('display', 'none');
-               actions.select('.del')
-                  .style('display', 'inline')
-                  .on('click', () => { 
-                     closeEventDetails();
-
-                     // filter out matches from deleted event
-                     tournament.matches = tournament.matches.filter(m=>m.event.euid != e.euid);
-
-                     // Delete any published events or matches
-                     deleteEvent(tournament, e);
-
-                     // delete any event matches in database
-                     db.deleteEventMatches(tournament.tuid, e.euid)
-                        .then(() => db.deleteEventPoints(tournament.tuid, e.euid), err => console.log('Error deleting matches:', err))
-                        .then(reGen, err => console.log('Error deleteing points:', err));
-
-                     tournament.events.splice(index, 1);
-                     removeReferences(e.euid);
-
-                     // must occur *after* tournament events spliced
-                     updateScheduleStatus({ euid: e.euid });
-
-                     // hide any options no longer applicable
-                     enableTournamentOptions();
-
-                     if (!tournament.log) tournament.log = [];
-                     tournament.log.push({
-                        deleted: { name: e.name, draw_type: e.draw_type, log: e.log },
-                        timestamp: new Date().getTime()
-                     });
-
-                     saveTournament(tournament);
-
-                     // need to regenerate to remove non-existent matches
-                     // TODO: this appears to be legacy and no longer applicable?
-                     function reGen() {
-                        let group_matches = groupMatches(tournament.matches);
-                        match_groups = group_matches.groups;
-                        group_draws = group_matches.group_draws;
-
-                        drawsTab();
-                        scheduleTab();
-                        eventsTab();
-                        matchesTab();
-                     }
-                  });
-               actions.select('.done')
-                  .style('display', 'inline')
+               actions.select('.del').style('display', 'inline')
+                  .on('click', () => {
+                     gen.escapeModal();
+                     let message = `${lang.tr('actions.delete_event')}: ${e.name}?`;
+                     gen.okCancelMessage(message, deleteTournamentEvent, () => gen.closeModal());
+               });
+               actions.select('.done').style('display', 'inline')
                   .on('click', () => {
                      closeEventDetails();
                      saveTournament(tournament);
@@ -1954,8 +1914,7 @@ let tournaments = function() {
             } else {
                actions.select('.del').style('display', 'none');
                actions.select('.done').style('display', 'none');
-               actions.select('.save')
-                  .style('display', 'inline')
+               actions.select('.save').style('display', 'inline')
                   .on('click', () => { 
                      if (!tournament.events) tournament.events = [];
                      displayed_event = e.euid;
@@ -1989,6 +1948,52 @@ let tournaments = function() {
             actions.select('.done')
                .style('display', 'inline')
                .on('click', closeEventDetails);
+         }
+
+         function deleteTournamentEvent() {
+            closeEventDetails();
+
+            // filter out matches from deleted event
+            tournament.matches = tournament.matches.filter(m=>m.event.euid != e.euid);
+
+            // Delete any published events or matches
+            deletePublishedEvent(tournament, e);
+
+            // delete any event matches in database
+            db.deleteEventMatches(tournament.tuid, e.euid)
+               .then(() => db.deleteEventPoints(tournament.tuid, e.euid), err => console.log('Error deleting matches:', err))
+               .then(reGen, err => console.log('Error deleteing points:', err));
+
+            tournament.events.splice(index, 1);
+            removeReferences(e.euid);
+
+            // must occur *after* tournament events spliced
+            updateScheduleStatus({ euid: e.euid });
+
+            // hide any options no longer applicable
+            enableTournamentOptions();
+
+            if (!tournament.log) tournament.log = [];
+            tournament.log.push({
+               deleted: { name: e.name, draw_type: e.draw_type, log: e.log },
+               timestamp: new Date().getTime()
+            });
+
+            saveTournament(tournament);
+
+            // need to regenerate to remove non-existent matches
+            // TODO: this appears to be legacy and no longer applicable?
+            function reGen() {
+               let group_matches = groupMatches(tournament.matches);
+               match_groups = group_matches.groups;
+               group_draws = group_matches.group_draws;
+
+               drawsTab();
+               scheduleTab();
+               eventsTab();
+               matchesTab();
+            }
+            gen.closeModal();
          }
 
          eventPlayers(e);
@@ -3850,7 +3855,10 @@ let tournaments = function() {
                      .forEach(match => {
                         let complete = match.winner != undefined;
                         if (!complete) {
-                           pairs.forEach(pair => match.schedule[pair.attr] = pair.value);
+                           pairs.forEach(pair => {
+                              match.schedule[pair.attr] = pair.value;
+                              if (match.source) match.source.schedule[pair.attr] = pair.value;
+                           });
                            if (display) updateScheduleBox(match);
                         }
                      });
@@ -3938,10 +3946,7 @@ let tournaments = function() {
                   }
                }
 
-               function setTime(value) {
-                  match.schedule.time = value;
-                  updateScheduleBox(match);
-               }
+               function setTime(value) { modifyMatchSchedule([{ attr: 'time', value }]); }
                function assessPenalty(penalty, penalty_index, penalty_value) {
                   let players = match.players.map(p=>p.full_name);
                   gen.svgModal({ x: ev.clientX, y: ev.clientY, options: players, callback: playerPenalty });
@@ -3994,12 +3999,14 @@ let tournaments = function() {
                      ];
                      modifyMatchSchedule(pairs);
                   }
-
-                  function modifyMatchSchedule(pairs, display=true) {
-                     pairs.forEach(pair => match.schedule[pair.attr] = pair.value);
-                     if (display) updateScheduleBox(match);
-                     saveTournament(tournament);
-                  }
+               }
+               function modifyMatchSchedule(pairs, display=true) {
+                  pairs.forEach(pair => {
+                     match.schedule[pair.attr] = pair.value
+                     if (match.source) match.source.schedule[pair.attr] = pair.value;
+                  });
+                  if (display) updateScheduleBox(match);
+                  saveTournament(tournament);
                }
             }
          }
@@ -4162,28 +4169,15 @@ let tournaments = function() {
 
          if (state.edit) {
             if (index != undefined) {
-
                actions.select('.save').style('display', 'none');
                actions.select('.cancel').style('display', 'none');
-               actions.select('.del')
-                  .style('display', 'inline')
+               actions.select('.del').style('display', 'inline')
                   .on('click', () => { 
-                     closeLocationDetails();
-                     tournament.locations.splice(index, 1);
-                     locationList();
-                     saveTournament(tournament);
-
-                     let { pending_matches } = tournamentEventMatches({ tournament, source: true });
-                     pending_matches.forEach(match => {
-                        if (match.schedule && match.schedule.luid == l.luid) {
-                           match.schedule = {};
-                           match.source.schedule = {};
-                        }
-                     });
-
+                     gen.escapeModal();
+                     let message = `${lang.tr('actions.delete_location')}: ${l.name}?`;
+                     gen.okCancelMessage(message, deleteLocation, () => gen.closeModal());
                   });
-               actions.select('.done')
-                  .style('display', 'inline')
+               actions.select('.done').style('display', 'inline')
                   .on('click', () => {
                      closeLocationDetails();
                      locationList();
@@ -4203,6 +4197,7 @@ let tournaments = function() {
                      displayLocation({ location: l, index: i });
 
                      locationList(l.luid);
+                     closeLocationDetails();
                      saveTournament(tournament);
                   });
                actions.select('.cancel')
@@ -4213,6 +4208,22 @@ let tournaments = function() {
             actions.select('.done')
                .style('display', 'inline')
                .on('click', closeLocationDetails);
+         }
+
+         function deleteLocation() {
+            closeLocationDetails();
+            tournament.locations.splice(index, 1);
+            locationList();
+            saveTournament(tournament);
+
+            let { pending_matches } = tournamentEventMatches({ tournament, source: true });
+            pending_matches.forEach(match => {
+               if (match.schedule && match.schedule.luid == l.luid) {
+                  match.schedule = {};
+                  match.source.schedule = {};
+               }
+            });
+            gen.closeModal();
          }
 
          // TODO: update scheduling tab?
@@ -4701,7 +4712,7 @@ let tournaments = function() {
          return ebo;
       }
 
-      function deleteEvent(tourny, evt) {
+      function deletePublishedEvent(tourny, evt) {
          let matches = !evt.draw ? [] : dfx.matches(evt.draw).map(m=>({ muid: m.match.muid, tuid: tourny.tuid }));; 
          let deleteRequest = { euid: evt.euid, tuid: tourny.tuid, matches };
          if (!deleteRequest || !deleteRequest.euid) return;
@@ -4874,6 +4885,8 @@ let tournaments = function() {
          e.qualified = [];
          let opponents = e.draw.opponents;
          let info = dfx.drawInfo(e.draw);
+
+         console.log('rr opponents:', opponents);
 
          let elimination_event = findEventByID(e.links['E']);
 
@@ -5206,6 +5219,16 @@ let tournaments = function() {
                // update one bracket without regenerating all brackets!
                rr_draw.updateBracket(d.bracket);
 
+               displayed_draw_event.up_to_date = false;
+               if (coms.broadcasting()) {
+                  if (config.env().publishing.publish_on_score_entry) {
+                     displayed_draw_event.up_to_date = true;
+                     broadcastEvent(tournament, displayed_draw_event);
+                  }
+               }
+
+               gen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
+
                saveTournament(tournament);
             }
             cMenu({ selector, coords, options, clickAction })
@@ -5369,6 +5392,8 @@ let tournaments = function() {
             let selector = d3.select(`#${container.draws.id} #${draw_id} svg`).node();
             let coords = d3.mouse(selector);
             let options = [lang.tr('draws.remove'), lang.tr('actions.cancel')];
+
+            console.log('RR Score Action');
 
             if (!complete && d.match && d.match.score) {
                let clickAction = (c, i) => {
@@ -6292,7 +6317,7 @@ let tournaments = function() {
                   let completed_matches = eventMatches(e, tournament).filter(m=>m.match.winner);
                   if (!completed_matches.length) {
                      e.active = false;
-                     console.log('now reset recyle icon');
+                     enableDrawActions();
                   }
 
                   if (config.env().publishing.publish_on_score_entry) {
