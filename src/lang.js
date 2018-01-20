@@ -51,6 +51,8 @@
    }
 
    idioms.gbr = {
+      dl:      'Download',
+      or:      'or',
       arp:     'All Ranking Points',
       act:     'Actual',
       rlp:     'Points - Ranking Lists',
@@ -248,6 +250,9 @@
          renewlist: 'Renew List',
          natlassoc: 'National Association',
          tennisclub: 'Tennis Club',
+         received: 'Received Tournament Record',
+         publishtime: 'Publish Time',
+         replacelocal: 'Replace Local Copy?',
       },
 
       ddlb: {
@@ -305,6 +310,7 @@
          selectkey: 'Select Key',
          deletereplace: 'Delete / Replace',
          weblink: 'Web Link',
+         nomatches: 'No Matches',
       },
 
       events: {
@@ -403,6 +409,7 @@
          clear: 'Clear',
          publish: 'Publish Schedule',
          unpublish: 'Unpublish Schedule',
+         timing: 'Timing',
       },
       
       refresh: {
