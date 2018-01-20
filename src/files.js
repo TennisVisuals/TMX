@@ -338,43 +338,45 @@
       }
    }
 
-   function playerColor(match, index) {
-      if (match.winner == undefined) return 'black';
-      return (match.winner == index) ? 'green' : 'gray';
-   }
-
    function scheduleCell(match, lines=false) {
-      let format = lang.tr(`formats.${match.format || ''}`);
-      let category = match.event ? match.event.category : '';
-      let time_detail = !match.schedule ? "" : `${match.schedule.time_prefix || ''} ${match.schedule.time || ''}`;
-      let score = match.score;
+      var format = lang.tr(`formats.${match.format || ''}`);
+      var category = match.event ? match.event.category : '';
+      var time_detail = !match.schedule ? "" : `${match.schedule.time_prefix || ''} ${match.schedule.time || ''}`;
+      var score = match.score;
       if (score && match.winner == 1) score = drawFx().reverseScore(score);
-      let display = {
+      var unknowns = [];
+
+      var first_team = match.team_players && match.team_players[0] ? teamName(match, match.team_players[0]) : unknownBlock(match, 0);
+      var second_team = match.team_players && match.team_players[1] ? teamName(match, match.team_players[1]) : unknownBlock(match, 1);
+
+      var display = {
          time_detail,
          round: `${match.gender || ''} ${category} ${format} ${match.round_name || ''}`,
          oop: match.oop || '',
-         player1: match.players ? teamName(match, match.team_players[0]) : '',
+         first_team,
          bold1: match.winner != undefined && match.winner == 0 ? true : false,
          color1: playerColor(match, 0),
+         italics1: playerItalics(0),
          vs: match.players ? 'vs.' : '',
-         player2: match.players ? teamName(match, match.team_players[1]) : '',
+         second_team,
          bold2: match.winner != undefined && match.winner == 1 ? true : false,
          color2: playerColor(match, 1),
+         italics2: playerItalics(1),
          spacer: match.spacer || '',
          scoreline: `${score || ''}`,
          spacer: match.spacer || '',
       }
-      let x = ' ';
-      let cell = {
+      var x = ' ';
+      var cell = {
          table: {
             widths: ['*'],
             body: [
                [ { text: display.time_detail || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
                [ { text: display.round || x, style: 'centeredItalic', margin: [0, 0, 0, 0] }, ],
                [ { text: display.oop || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
-               [ { text: display.player1 || x, style: 'teamName', margin: [0, 0, 0, 0], bold: display.bold1, color: display.color1 }, ],
+               [ { text: display.first_team || x, style: 'teamName', margin: [0, 0, 0, 0], bold: display.bold1, color: display.color1, italics: display.italics1 }, ],
                [ { text: display.vs || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
-               [ { text: display.player2 || x, style: 'teamName', margin: [0, 0, 0, 0], bold: display.bold2, color: display.color2 }, ],
+               [ { text: display.second_team || x, style: 'teamName', margin: [0, 0, 0, 0], bold: display.bold2, color: display.color2, italics: display.italics2 }, ],
                [ { text: display.spacer || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
                [ { text: display.scoreline || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
             ]
@@ -389,6 +391,24 @@
          }
       }; 
       return cell;
+
+      function playerItalics(pindex) { return (unknowns.indexOf(pindex) >= 0); }
+      function unknownBlock(match, pindex) {
+         if (!match.potentials) return '';
+         unknowns.push(pindex);
+         let index = match.potentials[pindex] ? pindex : 0;
+         let potentials = match.potentials[index];
+         return potentials.map(p=>p.map(potentialBlock).join('/')).join(` ${lang.tr('or')} `);
+
+         function potentialBlock(p) { return util.normalizeName(p.last_name, false).toUpperCase(); }
+      }
+
+      function playerColor(match, index) {
+         if (unknowns.indexOf(index) >= 0) return 'gray';
+         if (match.winner == undefined) return 'black';
+         return (match.winner == index) ? 'green' : 'gray';
+      }
+
    }
 
    function headerCell(court_name) {
