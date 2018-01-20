@@ -102,7 +102,7 @@
        getOptions() { 
           return Array.from(this.opts).map(o => {
              let e = o.querySelector('span:first-of-type');
-             return { key: e.innerText, value: e.getAttribute('value') }
+             return { key: e.innerHTML, value: e.getAttribute('value') }
           }); 
        },
        setValue(value) { 
