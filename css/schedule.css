@@ -229,3 +229,14 @@
    padding-left: 1em;
    width: 3em;
 }
+
+.potential_separator {
+   margin-left: .3em;
+   margin-right: .3em;
+}
+
+.potential {
+   color: gray;
+   font-style: italic;
+}
+
