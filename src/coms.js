@@ -38,13 +38,7 @@ let coms = function() {
    function processDirective(data) {
       if (data.directive) {
          if (data.directive == 'settings') {
-            db.findSetting('keys').then(updateKey, updateKey);
-            function updateKey(setting={key: 'keys', keys:[]}) {
-               setting.keys = setting.keys.filter(k=>k.keyid != data.keyid);
-               setting.keys.push({ keyid: data.keyid, description: data.description });
-               db.addSetting(setting).then(updateSettings, updateSettings);
-            }
-            function updateSettings() { config.updateSettings(data.content).then(() => { location.reload(true); }); }
+            config.receiveSettings(data);
          }
          if (data.directive == 'new version') {
             gen.homeIconState('update');
@@ -54,8 +48,9 @@ let coms = function() {
             load.loadJSON(data.content);
          }
          if (data.directive == 'add idiom' && data.content) {
+            lang.idioms[data.content.ioc] = data.content.idiom;
             db.addIdiom(data.content);
-            console.log(data.content);
+            config.changeIdiom(data.content.ioc);
          }
       }
    }
@@ -114,9 +109,9 @@ let coms = function() {
    function receiveTournament(record) {
       let published_tournament = CircularJSON.parse(record);
       let message = `
-         <p>Received Tournament Record</p>
-         <p>Publish Time:<br>${new Date(published_tournament.published).toGMTString()}</p>
-         <p>Replace Local Copy?</p>
+         <p>${lang.tr('tournaments.received')}</p>
+         <p>${lang.tr('tournaments.publishtime')}:<br>${new Date(published_tournament.published).toGMTString()}</p>
+         <p>${lang.tr('tournaments.replacelocal')}</p>
       `;
       let msg = gen.okCancelMessage(message, saveTournament, () => gen.closeModal());
       function saveTournament() {
@@ -126,9 +121,7 @@ let coms = function() {
       }
    }
 
-   fx.sendKey = (key) => {
-      fx.emitTmx({ key });
-   }
+   fx.sendKey = (key) => { fx.emitTmx({ key }); }
 
    fx.endBroadcast = () => { config.env().broadcast = false; }
 
