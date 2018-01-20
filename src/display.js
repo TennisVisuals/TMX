@@ -265,7 +265,7 @@
             <div class="flexcenter" style='margin-bottom: 2em;'>
                <button id='${ids.cancel}' class='btn btn-small dismiss'>${lang.tr('actions.cancel')}</button>
                <a href='./assets/CourtHiveImportTemplate.xlsx' download>
-                  <button id='${ids.download}' class='btn btn-small accept' style='margin-left: 1em;'>Download</button>
+                  <button id='${ids.download}' class='btn btn-small accept' style='margin-left: 1em;'>${lang.tr('dl')}</button>
                </a>
             </div>
          </div>
@@ -769,6 +769,26 @@
          return `<div puid='${p.puid}' class='player_click cell_player'>${left}${first_name} ${last_name}${seed}${right}</div>`;
       }
 
+      function potentialBlock(p, side) {
+         let player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
+         let ioc =`<img onerror="this.style.visibility='hidden'" width="15px" src="./assets/flags/${player_ioc}.png">`;
+         let assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? ioc : '';
+         let left = side == 'right' ? `${assoc} ` : '';
+         let right = side == 'left' ? ` ${assoc}` : '';
+         let last_name = util.normalizeName(p.last_name, false).toUpperCase();
+         let seed = p.seed ? ` [${p.seed}]` : '';
+         return `<div puid='${p.puid}' class='player_click cell_player potential'>${left}${last_name}${seed}${right}</div>`;
+      }
+
+      function unknownBlock(pindex, side) {
+         let index = match.potentials[pindex] ? pindex : 0;
+         let potentials = match.potentials[index];
+         let blocks = potentials.map(p=>stack(p.map(b=>potentialBlock(b, side)))).join(`<div class='potential_separator flexcenter'><span>${lang.tr('or')}</span></div>`);
+         return `<div class='potential_${side}'>${blocks}</div>`;
+
+         function stack(potential_team) { return `<div class='flexcol'>${potential_team.join('')}</div>`; }
+      }
+
       let player_position = puid ? match.outcome.winning_puids.indexOf(puid) >= 0 ? 'left' : 'right' : '';
       let pleft = puid && player_position == 'left' ? ' player' : '';
       let pright = puid && player_position == 'right' ? ' player' : '';
@@ -779,8 +799,11 @@
       let left_outcome = (!complete || puid) ? '' : match.winner_index == 0 ? ' winner' : ' loser';
       let right_outcome = (!complete || puid) ? '' : match.winner_index == 1 ? ' winner' : ' loser';
 
-      let left_team = match.team_players[left_position].map(p=>playerBlock(p, 'left')).join('');
-      let right_team = match.team_players[right_position].map(p=>playerBlock(p, 'right')).join('');
+      let lp = match.team_players[left_position];
+      let rp = match.team_players[right_position];
+
+      let left_team = lp ? lp.map(p=>playerBlock(p, 'left')).join('') : unknownBlock(0, 'left');
+      let right_team = rp ? rp.map(p=>playerBlock(p, 'right')).join('') : unknownBlock(1, 'right');
 
       let left_html = `<div class='team left_team${left_outcome}${pleft}'>${left_team}</div>`;
       let right_html = `<div class='team right_team${right_outcome}${pright}'>${right_team}</div>`;
@@ -1501,7 +1524,7 @@
 
    gen.tabbedPlayerMatches = (puid, singles, doubles, container) => {
       if (!singles.length && !doubles.length) {
-         container.matches.element.innerHTML = '<h2 class="flexcenter">No Matches</h2>';
+         container.matches.element.innerHTML = `<h2 class="flexcenter">${lang.tr('phrases.nomatches')}</h2>`;
          return;
       }
       let tabdata = [];
@@ -1998,7 +2021,7 @@
                   <div class='${classes.schedule_matches} ${gen.infoleft}' label='${lang.tr("phrases.schedulematches")}' style='display: none;'>
                      <div class='matches_header_inactive action_icon'></div>
                   </div>
-                  <div class='${classes.schedule_details} ${gen.info}' label='Timing' style='display: none; margin-left: 1em;'>
+                  <div class='${classes.schedule_details} ${gen.info}' label='${lang.tr("schedule.timing")}' style='display: none; margin-left: 1em;'>
                      <div class='time_header_inactive action_icon'></div>
                   </div>
                   <div class='${classes.print_schedule} ${gen.info}' label='${lang.tr("print.schedule")}'style='display: none;'>
@@ -2166,10 +2189,10 @@
       `;
    }
 
-   gen.scheduleTeams = ({ element, pending_matches }) => {
-      let scheduled = pending_matches.filter(m=>m.schedule && m.schedule.court);
-      let unscheduled = pending_matches.filter(m=>!m.schedule || !m.schedule.court);
-      let html = unscheduled.map((match, i) => unscheduledTeam(match, i+1 == pending_matches.length)).join('');
+   gen.scheduleTeams = ({ element, pending_upcoming }) => {
+      let scheduled = pending_upcoming.filter(m=>m.schedule && m.schedule.court);
+      let unscheduled = pending_upcoming.filter(m=>!m.schedule || !m.schedule.court);
+      let html = unscheduled.map((match, i) => unscheduledTeam(match, i+1 == pending_upcoming.length)).join('');
       element.innerHTML = html;
    }
 
@@ -2299,8 +2322,9 @@
       let teams = !match.team_players ? [] : match.team_players.map(teamName);
       let divider = 'vs.';
 
-      let first_team = complete && winner_index == 0 ? `<b>${teams[0]}</b>` : teams[0];
-      let second_team = complete && winner_index == 1 ? `<b>${teams[1]}</b>` : teams[1];
+      let first_team = complete && winner_index == 0 ? `<b>${teams[0]}</b>` : (teams[0] || unknownBlock(0));
+      let second_team = complete && winner_index == 1 ? `<b>${teams[1]}</b>` : (teams[1] || unknownBlock(1));
+
       let format = lang.tr(`formats.${match.format || ''}`);
 
       let score = match.score || '';
@@ -2323,7 +2347,7 @@
          </div>
          <div class='scheduled_teams'>
             <div class='scheduled_team' style='font-size: ${font_sizes[0]}'>${first_team || ''}</div>
-            <div class='divider'>${teams.length ? divider : ''}</div>
+            <div class='divider'>${first_team || second_team ? divider : ''}</div>
             <div class='scheduled_team' style='font-size: ${font_sizes[1]}'>${second_team || ''}</div>
             ${displayed_score}${umpire}
          </div>
@@ -2339,6 +2363,21 @@
          } else {
             return team.map(p=>match.players[p].last_name.toUpperCase()).join('/');
          }
+      }
+
+      function potentialBlock(p) {
+         let last_name = util.normalizeName(p.last_name, false).toUpperCase();
+         return `<div puid='${p.puid}' class='player_click cell_player potential'>${last_name}</div>`;
+      }
+
+      function unknownBlock(pindex) {
+         if (!match.potentials) return undefined;
+         let index = match.potentials[pindex] ? pindex : 0;
+         let potentials = match.potentials[index];
+         let blocks = potentials.map(p=>stack(p.map(potentialBlock))).join(`<div class='potential_separator flexcenter'><span>${lang.tr('or')}</span></div>`);
+         return `<div class='flexrow'>${blocks}</div>`;
+
+         function stack(potential_team) { return `<div class='flexcol'>${potential_team.join('')}</div>`; }
       }
    }
 
@@ -2918,6 +2957,7 @@
 
    gen.displayEventDetails = (tournament, container, e, genders, inout, surfaces, formats, draw_types, edit) => {
       let ids = {
+         eligible: gen.uuid(),
          gender: gen.uuid(),
          category: gen.uuid(),
          rank: gen.uuid(),
@@ -2978,7 +3018,7 @@
          <div grouping='team' class='team_players player_container' style='display: none'></div>
 
          <div class='flexrow divider eligible'>
-            <div>${lang.tr('events.eligible')} <span id='${ids.eligible_count}'></span></div>
+            <div id='${ids.eligible}'>${lang.tr('events.eligible')} <span id='${ids.eligible_count}'></span></div>
             ${addall}
          </div>
          <div grouping='eligible' class='eligible_players player_container'></div>
@@ -3141,7 +3181,7 @@
          let border_padding = team.players ? ' border_padding' : '';
          let team_click = team.players ? ' team_click' : '';
          let subrank = team.subrank ? `/${team.subrank}` : '';
-         let dblsrank = team.players && team.combined_dbls_rank < 9999 ? `${team.combined_dbls_rank}/` : '';
+         let dblsrank = team.players && team.combined_dbls_rank && team.combined_dbls_rank < 9999 ? `${team.combined_dbls_rank}/` : '';
          let rank = team.rank < 9999 ? `(${dblsrank}${team.rank}${subrank})` : '';
          let combined_ranking = team.players && team.rank ? `<div class="border_padding"><i>${rank}</i></div>` : '';
          let team_seed = team.players && team.seed ? `<div class="border_padding"><b>[${team.seed}]</b></div>` : '';
