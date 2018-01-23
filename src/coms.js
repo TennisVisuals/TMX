@@ -42,15 +42,18 @@ let coms = function() {
          }
          if (data.directive == 'new version') {
             gen.homeIconState('update');
-            fx.update = data.notice || 'New Version Available';
+            fx.update = data.notice || lang.tr('newversion');
          }
          if (data.directive == 'load data' && data.content) {
             load.loadJSON(data.content);
          }
          if (data.directive == 'add idiom' && data.content) {
             lang.idioms[data.content.ioc] = data.content.idiom;
-            db.addIdiom(data.content);
-            config.changeIdiom(data.content.ioc);
+            db.addIdiom(data.content).then(setIdiom, error => console.log('error:', error));
+            function setIdiom() {
+               config.idiomSelectorOptions(data.content.ioc);
+               config.changeIdiom(data.content.ioc);
+            }
          }
       }
    }
@@ -76,6 +79,7 @@ let coms = function() {
          oi.socket.on('tourny record', receiveTournament);
          oi.socket.on('tmx trny evts', receiveEvents);
          oi.socket.on('tmx_event', receiveEvent);
+         oi.socket.on('idioms available', receiveIdiomList);
       }
    } 
 
@@ -91,6 +95,28 @@ let coms = function() {
          config.authMessage(msg);
       } else {
          config.addMessage(msg);
+      }
+   }
+
+   function receiveIdiomList(data) {
+      config.available_idioms = Object.assign({}, ...data.map(attemptJSONparse).filter(f=>f).map(i=>({[i.ioc]: i})));
+
+      // set timeout to give first-time initialization a chance to load default language file
+      setTimeout(function() { db.findSetting('defaultIdiom').then(findIdiom, (error) => console.log('error:', error)); }, 2000);
+
+      function findIdiom(idiom) { db.findIdiom(idiom.ioc).then(checkIdiom, error=>console.log('error:', error)); }
+      function checkIdiom(idiom={ ioc: 'gbr', name: 'English' }) {
+         config.idiomSelectorOptions(idiom.ioc);
+         let a = config.available_idioms[idiom.ioc];
+         if (a && a.updated != idiom.updated) {
+            gen.escapeModal();
+            let message = `${lang.tr('phrases.updatedioc')}: ${idiom.name || idiom.ioc}?`;
+            gen.okCancelMessage(message, updateLanguageFile, () => gen.closeModal());
+         }
+         function updateLanguageFile() {
+            fx.sendKey(`${idiom.ioc}.idiom`);
+            gen.closeModal();
+         }
       }
    }
 
@@ -122,7 +148,6 @@ let coms = function() {
    }
 
    fx.sendKey = (key) => { fx.emitTmx({ key }); }
-
    fx.endBroadcast = () => { config.env().broadcast = false; }
 
    fx.broadcasting = () => {
