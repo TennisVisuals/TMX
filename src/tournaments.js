@@ -3402,7 +3402,6 @@ let tournaments = function() {
          function update() {
             if (!tournament.schedule) tournament.schedule = {};
             tournament.schedule.up_to_date = false;
-            saveTournament(tournament);
             schedulePublishState();
          }
       }
@@ -4065,6 +4064,16 @@ let tournaments = function() {
 
                   displayPending();
                   filterSearchList();
+
+                  if (result) {
+                     e.up_to_date = false;
+                     if (config.env().publishing.publish_on_score_entry) {
+                        e.up_to_date = true;
+                        broadcastEvent(tournament, e);
+
+                        if (tournament.schedule.published) publishSchedule();
+                     }
+                  }
                }
 
                if (match && match.teams) {
@@ -4879,44 +4888,145 @@ let tournaments = function() {
          }
       }
 
-      function determineRRqualifiers(e) {
-         if (!e.links || !e.links['E']) return;
-
-         e.qualified = [];
-         let opponents = e.draw.opponents;
-         let info = dfx.drawInfo(e.draw);
-
-         console.log('rr opponents:', opponents);
-
-         let elimination_event = findEventByID(e.links['E']);
-
-         // 1st qualifiers from each bracket
-         let qualified_teams = opponents.filter(o=> {
+      function firstQualifiers(evt) {
+         let opponents = evt.draw.opponents;
+         return opponents.filter(o=> {
             if (o[0].order == 1 && o[0].sub_order == undefined) return true;
             if (o[0].order == 1 && o[0].sub_order == 1) return true;
          });
-         // 2nd qualifiers from each bracket
-         let qualified_2nd = opponents
-            .filter(o=>o[0].order == 2 || (o[0].order == 1 && o[0].sub_order == 2))
+      }
+
+      function secondQualifiers(evt) {
+         let opponents = evt.draw.opponents;
+         return opponents.filter(o=>o[0].order == 2 || (o[0].order == 1 && o[0].sub_order == 2))
             .sort((a, b) => b.category_ranking - a.category_ranking);
+      }
 
-         console.log('rr qualifiers:', qualified_teams, qualified_2nd);
+      function allBracketsComplete(evt) {
+         return evt.draw.brackets.map(dfx.bracketComplete).reduce((a, b) => a && b);
+      }
 
-         let all_brackets_complete = e.draw.brackets.map(dfx.bracketComplete).reduce((a, b) => a && b);
+      function determineRRqualifiers(e) {
+         if (!e.links || !e.links['E']) return;
 
-         if (all_brackets_complete) {
+         // 1st qualifiers from each bracket
+         var qualified_teams = firstQualifiers(e);
+
+         if (allBracketsComplete(e)) {
+            let qualified_2nd = secondQualifiers(e);
             while (qualified_teams.length < e.qualifiers && qualified_2nd.length) qualified_teams.push(qualified_2nd.pop());
          }
 
+         e.qualified = [];
          qualified_teams.forEach(team => qualifyTeam(e, team));
+      }
+
+      function possibleToRemoveRRmatch(scoped_qualifiers, qlinkinfo) {
+         var active_in_linked = [];
+         if (scoped_qualifiers.length && qlinkinfo) {
+            let advanced_positions = qlinkinfo.match_nodes.filter(n=>n.data.match && n.data.match.players);
+            let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
+
+            active_in_linked = scoped_qualifiers
+               .map(qib => {
+                  let position_in_linked = [].concat(...qlinkinfo.nodes
+                     .filter(node => node.data.team && util.intersection(node.data.team.map(t=>t.id), qib.id).length)
+                     .map(node => node.data.dp));
+                  let active = util.intersection(active_player_positions, position_in_linked).length;
+                  return active ? qib : undefined;
+               })
+               .filter(f=>f);
+         }
+
+         return active_in_linked.length == 0;
+      }
+
+      function removeQualifiedRRplayers(evt, bracket) {
+         var qualified_ids = [].concat(...evt.qualified.map(team=>team.map(p=>p.id)));
+         var scope = bracket ? bracket.players : evt.opponents;
+         var scoped_qualifiers = scope.filter(p=>qualified_ids.indexOf(p.id)>=0);
+
+         if (allBracketsComplete(evt)) {
+            // add all 2nd qualifiers to scope
+            let qualified_2nd = [].concat(...secondQualifiers(evt));
+            qualified_2nd.forEach(q => { if (scoped_qualifiers.map(m=>m.id).indexOf(q.id) <= 0) scoped_qualifiers.push(q); });
+         }
+
+         // if any qualified players are in this bracket, remove them from qualified players
+         let qib_ids = scoped_qualifiers.map(p=>p.id);
+         evt.qualified = evt.qualified.filter(t=>util.intersection(t.map(p=>p.id), qib_ids).length == 0);
+
+         // 2) if any qualified players are in the linked event, remove them
+         let qlink = findEventByID(evt.links['E']);
+         let qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
+
+         let remove_match = possibleToRemoveRRmatch(scoped_qualifiers, qlinkinfo);
+         if (remove_match) scoped_qualifiers.forEach(qib=>removeQualifiedPlayer(evt, [qib.id], qlink, qlinkinfo));
+         return remove_match;
+      }
+
+      function removeQualifiedPlayer(e, team_ids, qlink, qlinkinfo) {
+         logEventChange(displayed_draw_event, { fx: 'qualified player removed', d: { team_ids } });
+
+         let player_in_linked = qlink ? util.intersection(qlink.approved, team_ids).length : false;
+
+         if (qlink && player_in_linked) {
+            // Remove player from linked draw
+            qlink.approved = qlink.approved.filter(a=>team_ids.indexOf(a) < 0);
+            qlink.up_to_date = false;
+
+            if (qlinkinfo) {
+               qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), team_ids).length == 0);
+               qlinkinfo.nodes.forEach(node => {
+                  if (!node.height && node.data.team && util.intersection(node.data.team.map(t=>t.id), team_ids).length) {
+                     node.data.qualifier = true;
+                     node.data.team = node.data.team.map(team => ({ bye: undefined, entry: 'Q', qualifier: true, draw_position: team.draw_position }) );
+                  }
+               });
+            }
+         }
+
+         // must occur after team removed from linked draw approved
+         e.qualified = !e.qualified ? [] : e.qualified.filter(q=>util.intersection(q.map(m=>m.id), team_ids).length == 0);
+         setDrawSize(e);
+
+         // must occur after e.qualified is updated
+         if (qlink && player_in_linked) {
+            approvedChanged(qlink);
+            setDrawSize(qlink);
+
+            qlink.up_to_date = false;
+
+            if (config.env().publishing.publish_on_score_entry) {
+               qlink.up_to_date = true;
+               broadcastEvent(tournament, qlink);
+            }
+         }
       }
 
       function scoreRoundRobin(e, existing_scores, outcome) {
          if (!outcome) return;
 
-         let puids = outcome.teams.map(t=>t[0].puid);
-         let findMatch = (e, n) => (util.intersection(n.match.puids, puids).length == 2) ? n : e;
-         let match_event = eventMatches(e, tournament).reduce(findMatch, undefined);
+         var qlink = e.draw_type == 'R' && findEventByID(e.links['E']);
+         var qlinkinfo = qlink && dfx.drawInfo(qlink.draw);
+         var puids = outcome.teams.map(t=>t[0].puid);
+         var findMatch = (e, n) => (util.intersection(n.match.puids, puids).length == 2) ? n : e;
+         var match_event = eventMatches(e, tournament).reduce(findMatch, undefined);
+         var previous_winner = match_event.match.winner ? match_event.match.winner.map(m=>m.id) : undefined;
+         var current_winner = outcome.winner != undefined ? outcome.teams[outcome.winner].map(m=>m.id) : undefined;
+         var qualifier_changed = !previous_winner ? undefined : util.intersection(previous_winner, current_winner).length == 0;
+
+         var draw_previously_complete = dfx.drawInfo(e.draw).complete;
+         var bracket = e.draw.brackets[match_event.match.bracket];
+         var bracket_complete = dfx.bracketComplete(bracket);
+         var outcome_change = qualifier_changed || (previous_winner && !current_winner);
+
+         if (qlink && bracket_complete && outcome_change) {
+            if (allBracketsComplete(e) && qlink.active) return gen.popUpMessage(lang.tr('phrases.cannotchangewinner'));
+
+            let remove_players = removeQualifiedRRplayers(displayed_draw_event, bracket);
+            if (!remove_players) return gen.popUpMessage(lang.tr('phrases.cannotchangewinner'));
+         }
 
          if (match_event) {
             let match = match_event.match;
@@ -4959,111 +5069,94 @@ let tournaments = function() {
             console.log('something went wrong', outcome);
          }
 
-         if (existing_scores) {
-            if (outcome.complete) {
-               console.log('check whether bracket previously finished with different qualifying order');
-            } else {
-               console.log('check whether bracket finished and placed winner in main draw');
-            }
-         }
-
-         let bracket = e.draw.brackets[match_event.match.bracket];
          dfx.tallyBracketResults({ bracket });
-
          if (outcome.complete && dfx.bracketComplete(bracket)) determineRRqualifiers(e);
 
          e.active = true;
          enableDrawActions();
          saveTournament(tournament);
-         return;
+         return true;
+      }
+
+      function winnerRemoved({ e, qlink, qlinkinfo, previous_winner }) {
+         console.log('winner removed');
+         qlink.approved = qlink.approved.filter(a=>previous_winner.indexOf(a) < 0);
+         if (qlinkinfo) {
+            qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
+            qlinkinfo.nodes.forEach(node => {
+               if (!node.height && node.data.team && util.intersection(node.data.team.map(t=>t.id), previous_winner).length) {
+                  node.data.qualifier = true;
+                  node.data.team = node.data.team.map(team => ({ bye: undefined, entry: 'Q', qualifier: true, draw_position: outcome.draw_position }) );
+               }
+            });
+         }
+
+         // must occur after team removed from linked draw approved
+         e.qualified = e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0);
+         setDrawSize(e);
+
+         // must occur after e.qualified is updated
+         approvedChanged(linked);
+         setDrawSize(linked);
+         linked.up_to_date = false;
+      }
+
+      function playerActiveInLinked(qlinkinfo, plyr) {
+         let advanced_positions = qlinkinfo.match_nodes.filter(n=>n.data.match && n.data.match.players);
+         let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
+         let position_in_linked = [].concat(...qlinkinfo.nodes
+            .filter(n => n.data.team && util.intersection(n.data.team.map(t=>t.id), plyr).length)
+            .map(n => n.data.dp));
+         return util.intersection(active_player_positions, position_in_linked).length;
+      }
+
+      function qualifierChanged({ e, outcome, qlink, qlinkinfo, previous_winner, current_winner }) {
+         // replace qualifier
+         e.qualified = e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0);
+         e.qualified.push(outcome.teams[outcome.winner])
+
+         // modify linked draw
+         qlink.approved = qlink.approved.filter(a=>previous_winner.indexOf(a) < 0);
+         qlink.approved.push(current_winner.join('|'));
+         qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
+         let new_opponent = outcome.teams[outcome.winner].map(p => Object.assign({}, p, { seed: undefined, entry: 'Q' }));
+         qlink.draw.opponents.push(new_opponent);
+         qlinkinfo.nodes.forEach(n => {
+            if (!n.height && util.intersection(n.data.team.map(t=>t.id), previous_winner).length) {
+               let draw_position = n.data.team[0].draw_position;
+               let new_team = new_opponent.map(t => Object.assign({}, t, { draw_position, qualifier: true, entry: 'Q' }));
+               n.data.team = new_team;
+            }
+         });
+
+         logEventChange(displayed_draw_event, { fx: 'qualifier changed', d: { team: outcome.teams[outcome.winner].map(t=>t.id) } });
       }
 
       function scoreTreeDraw(e, existing_scores, outcome) {
-         if (!outcome) return e;
+         if (!outcome) return;
 
-         let linked = findEventByID(e.links['E']);
+         let qlink = e.draw_type == 'Q' && findEventByID(e.links['E']);
+         let qlinkinfo = qlink && dfx.drawInfo(qlink.draw);
          let node = !existing_scores ? null : dfx.findMatchNodeByTeamPositions(e.draw, outcome.positions);
          let previous_winner = node && node.match && node.match.winner ? node.match.winner.map(m=>m.id) : undefined;
          let current_winner = outcome.winner != undefined ? outcome.teams[outcome.winner].map(m=>m.id) : undefined;
+         let active_in_linked = qlink && previous_winner && playerActiveInLinked(qlinkinfo, previous_winner);
+         let qualifier_changed = !previous_winner || !current_winner ? undefined : util.intersection(previous_winner, current_winner).length == 0;
 
-         if (previous_winner && !current_winner && linked && e.draw_type == 'Q') {
-            let info = dfx.drawInfo(e.draw);
-            let finalist_dp = info.final_round.map(m=>m.data.dp);
-            let qualifier_index = finalist_dp.indexOf(outcome.position);
-            let qualified = e.draw_type == 'Q' && qualifier_index >= 0;
-
-            let linked_info = linked.draw && dfx.drawInfo(linked.draw);
-            let advanced_positions = linked_info.match_nodes.filter(n=>n.data.match && n.data.match.players);
-            let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
-            let position_in_linked = [].concat(...linked_info.nodes
-               .filter(n => n.data.team && util.intersection(n.data.team.map(t=>t.id), previous_winner).length)
-               .map(n => n.data.dp));
-            let active_in_linked = util.intersection(active_player_positions, position_in_linked).length;
-            if (active_in_linked) return gen.popUpMessage(lang.tr('phrases.cannotchangewinner'));
-
-            linked.approved = linked.approved.filter(a=>previous_winner.indexOf(a) < 0);
-            if (linked_info) {
-               linked.draw.opponents = linked.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
-               linked_info.nodes.forEach(node => {
-                  if (!node.height && node.data.team && util.intersection(node.data.team.map(t=>t.id), previous_winner).length) {
-                     node.data.qualifier = true;
-                     node.data.team = node.data.team.map(team => ({ bye: undefined, entry: 'Q', qualifier: true, draw_position: outcome.draw_position }) );
-                  }
-               });
-            }
-
-            // must occur after team removed from linked draw approved
-            e.qualified = e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0);
-            setDrawSize(e);
-
-            // must occur after e.qualified is updated
-            approvedChanged(linked);
-            setDrawSize(linked);
-            linked.up_to_date = false;
-         }
-
-         if (current_winner && previous_winner && linked) {
-            let info = dfx.drawInfo(e.draw);
-            let finalist_dp = info.final_round.map(m=>m.data.dp);
-            let qualifier_index = finalist_dp.indexOf(outcome.position);
-            let qualified = e.draw_type == 'Q' && qualifier_index >= 0;
-            let qualifier_changed = !previous_winner ? undefined : util.intersection(previous_winner, current_winner).length == 0;
-
-            let linked_info = dfx.drawInfo(linked.draw);
-            let advanced_positions = linked_info.match_nodes.filter(n=>n.data.match && n.data.match.players);
-            let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
-            let position_in_linked = [].concat(...linked_info.nodes
-               .filter(n => n.data.team && util.intersection(n.data.team.map(t=>t.id), previous_winner).length)
-               .map(n => n.data.dp));
-            let active_in_linked = util.intersection(active_player_positions, position_in_linked).length;
-            if (qualifier_changed) {
-               if (active_in_linked) return gen.popUpMessage(lang.tr('phrases.cannotchangewinner'));
-               // replace qualifier
-               e.qualified = e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0);
-               e.qualified.push(outcome.teams[outcome.winner])
-
-               // modify linked draw
-               linked.approved = linked.approved.filter(a=>previous_winner.indexOf(a) < 0);
-               linked.approved.push(current_winner.join('|'));
-               linked.draw.opponents = linked.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
-               let new_opponent = outcome.teams[outcome.winner].map(p => Object.assign({}, p, { seed: undefined, entry: 'Q' }));
-               linked.draw.opponents.push(new_opponent);
-               linked_info.nodes.forEach(n => {
-                  if (!n.height && util.intersection(n.data.team.map(t=>t.id), previous_winner).length) {
-                     let draw_position = n.data.team[0].draw_position;
-                     let new_team = new_opponent.map(t => Object.assign({}, t, { draw_position, qualifier: true, entry: 'Q' }));
-                     n.data.team = new_team;
-                  }
-               });
-
-               logEventChange(displayed_draw_event, { fx: 'qualifier changed', d: { team: outcome.teams[outcome.winner].map(t=>t.id) } });
+         if (qlink) {
+            if (active_in_linked && (qualifier_changed || (previous_winner && !current_winner))) {
+               return gen.popUpMessage(lang.tr('phrases.cannotchangewinner'));
+            } else if (previous_winner && !current_winner) {
+               winnerRemoved({ e, qlink, qlinkinfo, previous_winner });
+            } else if (qualifier_changed) {
+               qualifierChanged({ e, outcome, qlink, qlinkinfo, previous_winner, current_winner });
             }
          }
 
          if (!existing_scores) {
+            // no existing scores so advance position
             dfx.advancePosition({ node: e.draw, position: outcome.position });
          } else {
-            // if updating existing scores, don't advance position
             let result = dfx.advanceToNode({
                node,
                score: outcome.score,
@@ -5081,9 +5174,7 @@ let tournaments = function() {
          let qualifier_index = finalist_dp.indexOf(outcome.position);
          let qualified = e.draw_type == 'Q' && qualifier_index >= 0;
 
-         if (e.draw_type == 'Q' && qualified) {
-            qualifyTeam(e, outcome.teams[outcome.winner], qualifier_index + 1);
-         }
+         if (e.draw_type == 'Q' && qualified) { qualifyTeam(e, outcome.teams[outcome.winner], qualifier_index + 1); }
 
          // modifyPositionScore removes winner/loser if match incomplete
          dfx.modifyPositionScore({ 
@@ -5144,7 +5235,7 @@ let tournaments = function() {
          e.active = true;
          enableDrawActions();
          saveTournament(tournament);
-         return e;
+         return true;
       }
 
       function qualifyTeam(e, team, qualifying_position) {
@@ -5158,13 +5249,16 @@ let tournaments = function() {
             delete player.seed
          });
 
-         let qual_hash = e.qualified.map(teamHash);
-         if (qual_hash.indexOf(teamHash(team_copy)) >= 0) return;
-
-         e.qualified.push(team_copy);
-
          let elimination_event = findEventByID(e.links['E']);
          if (!elimination_event) return;
+
+         // RR Events reset e.qualified each time
+         let qual_hash = e.qualified.map(teamHash);
+         if (qual_hash.indexOf(teamHash(team_copy)) >= 0) return;
+         e.qualified.push(team_copy);
+
+         let previously_qualified = elimination_event.approved.indexOf(teamHash(team_copy)) >= 0;
+         if (previously_qualified) return;
 
          elimination_event.approved.push(teamHash(team_copy));
          setDrawSize(elimination_event);
@@ -5182,7 +5276,7 @@ let tournaments = function() {
             delete qp.data.team;
          }
 
-         // if the draw is active or if there are no unassigned team
+         // if the draw is active or if there are no unassigned teams
          // then place the team in a qualifier position
          if (elimination_event.draw && (elimination_event.active || !info.unassigned.length)) {
             dfx.assignPosition({ node: elimination_event.draw, position, team: team_copy });
@@ -5383,50 +5477,69 @@ let tournaments = function() {
             }
          }
 
+         function pruneNodeMatch(match) {
+            delete match.date;
+            delete match.winner;
+            delete match.winner_index;
+            delete match.loser;
+            delete match.score;
+            delete match.set_scores;
+            delete match.teams;
+            delete match.complete;
+            delete match.round_name;
+            delete match.tournament;
+         }
+
+         function updateAfterDelete(evt) {
+            evt.up_to_date = false;
+            let completed_matches = eventMatches(e, tournament).filter(m=>m.match.winner);
+            if (!completed_matches.length) {
+               evt.active = false;
+               enableDrawActions();
+            }
+
+            if (config.env().publishing.publish_on_score_entry) {
+               evt.up_to_date = true;
+               broadcastEvent(tournament, evt);
+            }
+            gen.drawBroadcastState(container.publish_state.element, evt);
+            saveTournament(tournament);
+         }
+
          function rrScoreAction(d) {
-            let bracket = displayed_draw_event.draw.brackets[d.bracket];
-            let complete = dfx.bracketComplete(bracket);
+            var bracket = displayed_draw_event.draw.brackets[d.bracket];
+            var complete = dfx.bracketComplete(bracket);
 
             // must be a unique selector in case there are other SVGs
-            let draw_id = `rrDraw_${d.bracket}`;
-            let selector = d3.select(`#${container.draws.id} #${draw_id} svg`).node();
-            let coords = d3.mouse(selector);
-            let options = [lang.tr('draws.remove'), lang.tr('actions.cancel')];
+            var draw_id = `rrDraw_${d.bracket}`;
+            var selector = d3.select(`#${container.draws.id} #${draw_id} svg`).node();
+            var coords = d3.mouse(selector);
+            var options = [lang.tr('draws.remove'), lang.tr('actions.cancel')];
 
-            console.log('RR Score Action');
-
-            if (!complete && d.match && d.match.score) {
-               let clickAction = (c, i) => {
-                  if (i == 0) {
-                     logEventChange(displayed_draw_event, { fx: 'match removed', d: { teams: d.match.teams.map(team=>team.map(t=>t.id)) } });
-
-                     let deleted_match_muid = d.match.muid;
-                     if (deleted_match_muid) updateScheduleStatus({ muid: deleted_match_muid });
-
-                     delete d.match.date;
-                     delete d.match.winner;
-                     delete d.match.winner_index;
-                     delete d.match.loser;
-                     delete d.match.score;
-                     delete d.match.set_scores;
-                     delete d.match.teams;
-                     delete d.match.complete;
-                     delete d.match.round_name;
-                     delete d.match.tournament;
-
-                     // update one bracket without regenerating all brackets!
-                     rr_draw.updateBracket(d.bracket);
-
-                     displayed_draw_event.up_to_date = false;
-                     if (config.env().publishing.publish_on_score_entry) {
-                        displayed_draw_event.up_to_date = true;
-                        broadcastEvent(tournament, displayed_draw_event);
-                     }
-                     gen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
-                     saveTournament(tournament);
-                  }
-               }
+            if (d.match && d.match.score) {
+               function clickAction(c, i) { if (i == 0) removeOption(d); }
                cMenu({ selector, coords, options, clickAction })
+            }
+
+            function removeOption(d) {
+               let remove_players = removeQualifiedRRplayers(displayed_draw_event, bracket);
+               if (remove_players) {
+                  // update schedule to reflect match score removal
+                  if (d.match.muid) updateScheduleStatus({ muid: d.match.muid });
+
+                  // clean up match node
+                  pruneNodeMatch(d.match);
+                  updateAfterDelete(displayed_draw_event);
+
+                  // update one bracket without regenerating all brackets!
+                  rr_draw.updateBracket(d.bracket);
+                  matchesTab();
+               } else {
+                  let message = 'Cannot Delete: Qualified Player Active in Main Draw';
+                  gen.okCancelMessage(message, () => gen.closeModal());
+               }
+
+               logEventChange(displayed_draw_event, { fx: 'match score removed', d: { muid: d.match.muid } });
             }
          }
 
@@ -6022,6 +6135,24 @@ let tournaments = function() {
             if (opponent) return { opponent }
          }
 
+         function linkedLosers(linked_info) {
+            if (!linked_info) return [];
+            if (linked_info.draw_type == 'tree') {
+               return teamSort(linked_info.match_nodes.filter(n=>n.data.match && n.data.match.loser).map(n=>n.data.match.loser));
+            } else if (linked_info.draw_type == 'roundrobin') {
+               return [];
+               // LUCKY LOSERS FOR RR DRAWS... ONLY AFTER ALL BRACKETS COMPLETE?
+               /*
+               // THIS WAS THE WRONG FUNCTION...
+               let pexists = (p, c) => p.map(l=>l.map(z=>z.id).sort().join('|')).indexOf(c.map(y=>y.id).sort().join('|')) >= 0;
+               let addC = (p, c) => { p.push(c); return p; }
+               let losers = linked_info.matches.filter(m=>m.loser).map(m=>m.loser).reduce((p, c) => pexists(p, c) ? p : addC(p, c), []);
+               return teamSort(fosers);
+               */
+            }
+            return [];
+         }
+
          function assignedPlayerOptions({ selector, position, node, coords, info, draw, seed }) {
             let unfinished = info.unassigned.length; // this should be e.active ?
             if (seed && seed < 3 && unfinished) {
@@ -6067,10 +6198,7 @@ let tournaments = function() {
             let linked_info = linkedQ ? dfx.drawInfo(linkedQ.draw) : undefined;
 
             // losers from linked draw excluding losers who have already been substituted
-            let losers = !linked_info ? [] : teamSort(linked_info.match_nodes
-               .filter(n=>n.data.match && n.data.match.loser)
-               .map(n=>n.data.match.loser))
-               .filter(l=>util.intersection(l.map(p=>p.id), competitors).length == 0);
+            let losers = linkedLosers(linked_info).filter(l=>util.intersection(l.map(p=>p.id), competitors).length == 0);
 
             let finished_options = [];
             if (!displayed_draw_event.active && !position_active && swap_positions.length) finished_options.push({ option: lang.tr('draws.swap'), key: 'swap' });
@@ -6251,46 +6379,7 @@ let tournaments = function() {
                let clickAction = (c, i) => {
                   if (qualified) {
                      let team_ids = d.data.team.map(m=>m.id);
-                     let player_in_linked = linked ? util.intersection(linked.approved, team_ids).length : false;
-
-                     if (linked && player_in_linked) {
-
-                        // Remove player from linked draw
-                        linked.approved = linked.approved.filter(a=>team_ids.indexOf(a) < 0);
-
-                        linked.changed = true;
-
-                        if (linked_info) {
-                           linked.draw.opponents = linked.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), team_ids).length == 0);
-                           linked_info.nodes.forEach(node => {
-                              if (!node.height && node.data.team && util.intersection(node.data.team.map(t=>t.id), team_ids).length) {
-                                 node.data.qualifier = true;
-                                 node.data.team = node.data.team.map(team => ({ bye: undefined, entry: 'Q', qualifier: true, draw_position: team.draw_position }) );
-                              }
-                           });
-                        }
-                     }
-
-                     // must occur after team removed from linked draw approved
-                     e.qualified = !e.qualified ? [] : e.qualified.filter(q=>util.intersection(q.map(m=>m.id), team_ids).length == 0);
-                     setDrawSize(e);
-
-                     // must occur after e.qualified is updated
-                     if (linked && player_in_linked) {
-                        approvedChanged(linked);
-                        setDrawSize(linked);
-
-                        linked.changed = true;
-                        linked.up_to_date = false;
-
-                        // TODO: how to generate draw without affecting displayed...
-                        /*
-                        if (config.env().publishing.publish_on_score_entry) {
-                           linked.up_to_date = true;
-                           broadcastEvent(tournament, linked);
-                        }
-                        */
-                     }
+                     removeQualifiedPlayer(e, team_ids, linked, linked_info);
                   }
 
                   logEventChange(displayed_draw_event, { fx: 'match removed', d: { teams: d.data.match.teams.map(team=>team.map(t=>t.id)) } });
@@ -6301,6 +6390,8 @@ let tournaments = function() {
                   delete d.data.dp;
                   delete d.data.team;
                   delete d.data.round_name;
+
+                  /*
                   delete d.data.match.date;
                   delete d.data.match.teams;
                   delete d.data.match.score;
@@ -6312,20 +6403,16 @@ let tournaments = function() {
                   delete d.data.match.set_scores;
                   delete d.data.match.round_name;
                   delete d.data.match.winner_index;
+                  */
 
-                  e.up_to_date = false;
-                  let completed_matches = eventMatches(e, tournament).filter(m=>m.match.winner);
-                  if (!completed_matches.length) {
-                     e.active = false;
-                     enableDrawActions();
-                  }
+                  delete d.data.match.teams;
+                  delete d.data.match.entry;
+                  delete d.data.match.players;
 
-                  if (config.env().publishing.publish_on_score_entry) {
-                     e.up_to_date = true;
-                     broadcastEvent(tournament, displayed_draw_event);
-                  }
-                  gen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
-                  saveTournament(tournament);
+                  // prune attributes common to tree/RR
+                  pruneNodeMatch(d.data.match);
+                  updateAfterDelete(e);
+
                   tree_draw();
                   matchesTab();
                }
