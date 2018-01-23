@@ -232,6 +232,7 @@ let coms = function() {
    }
 
    fx.requestTournamentEvents = (tuid) => {
+      console.log('requesting tournament events');
       if (connected) {
          oi.socket.emit('tmx trny evts', { tuid, authorized: true });
       } else {
