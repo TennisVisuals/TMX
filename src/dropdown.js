@@ -71,6 +71,10 @@
       });
    }
 
+   function optionHTML(option, style) {
+      return `<li class='dd_option' title='${option.name || option.value}'><span value="${option.value}" style="${style}">${option.key}</span></li>`;
+   }
+
    DropDown.prototype = {
        initEvents() {
            let obj = this;
@@ -85,16 +89,12 @@
        getId() { return this.id; },
        lock() { this.locked = true },
        unlock() { this.locked = false },
-       setOptions(options) {
+       setOptions(options, style='') {
           if (!Array.isArray(options) || !options.length || !this.list) return;
           let list = this.list.querySelector('ul');
           if (!list) return;
-          let html = options.map((option, i) => `<li class='dd_option'><span value="${option.value}">${option.key}</span></li>`).join('');
-          list.innerHTML = html;
-
-          // TODO: perhaps this can be used to manipulate img data for DDLB?
+          list.innerHTML = options.map(option=>optionHTML(option, style)).join('');
           this.options = options; 
-
           this.opts = this.list.querySelectorAll('li');
           addOptClicks(this);
           return this;
@@ -128,9 +128,9 @@
    }
 
    let dropDownHTML = (label, options = [], selected, border=true, style) => {
-      if (!options.length) return '';
-      let selected_option = options[selected].key;
+      let selected_option = selected ? options[selected].key : '';
       let options_style = border ? "style='border: 1px solid #000;'" : "";
+      let options_html = options.map(option => optionHTML(option, style)).join('');
       let html = `
          <div class='label'>${label}</div>
          <div class='options' ${options_style}>
@@ -138,11 +138,8 @@
                <li class='dd_state'>
                   <span class='active'>${selected_option}</span>
                   <div>
-                     <ul>`;
-
-      options.forEach((option, i)=>html+=`<li class='dd_option'> <span value="${option.value}" style="${style}">${option.key}</span> </li> `);
-
-      html += `
+                     <ul>
+                     ${options_html}
                      </ul>
                   </div>
                </li>
