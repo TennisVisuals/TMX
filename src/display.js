@@ -775,7 +775,7 @@
          let assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? ioc : '';
          let left = side == 'right' ? `${assoc} ` : '';
          let right = side == 'left' ? ` ${assoc}` : '';
-         let last_name = util.normalizeName(p.last_name, false).toUpperCase();
+         let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? 'Qualifier' : '';
          let seed = p.seed ? ` [${p.seed}]` : '';
          return `<div puid='${p.puid}' class='player_click cell_player potential'>${left}${last_name}${seed}${right}</div>`;
       }
@@ -2366,7 +2366,7 @@
       }
 
       function potentialBlock(p) {
-         let last_name = util.normalizeName(p.last_name, false).toUpperCase();
+         let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? 'Qualifier' : '';
          return `<div puid='${p.puid}' class='player_click cell_player potential'>${last_name}</div>`;
       }
 
