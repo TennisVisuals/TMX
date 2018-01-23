@@ -5,6 +5,9 @@ let config = function() {
    // module container
    var fx = {};
 
+   // server sends list during version check
+   fx.available_idioms = [];
+
    // BEGIN queryString
    var queryString = {};
    (function () {
@@ -37,7 +40,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.34',
+      version: '0.9.35',
       version_check: undefined,
       org: {
          name: undefined,
@@ -201,19 +204,38 @@ let config = function() {
       "class": "userInterface",
       "ioc": "gbr"
    };
+   dd.attachDropDown({ id: 'idiomatic', });
+   fx.idiom_ddlb = new dd.DropDown({ element: document.getElementById('idiomatic'), onChange: changeIdiom });
+   fx.idiom_ddlb.setStyle('selection_value', 'black');
+   fx.idiom_ddlb.setStyle('selection_novalue', 'black');
+   fx.idiom_ddlb.selectionBackground('black');
 
    fx.changeIdiom = changeIdiom;
    function changeIdiom(ioc) {
-      lang.set(ioc);
-      idiom.ioc = ioc;
-      db.addSetting(idiom);
+      if (lang.set(ioc)) {
+         idiom.ioc = ioc;
+         db.addSetting(idiom);
+         fx.idiom_ddlb.setValue(ioc);
+         splash();
+      } else {
+         if (ioc && ioc.length == '3') coms.sendKey(`${ioc}.idiom`);
+      }
+   }
+
+   fx.idiomSelectorOptions = idiomSelectorOptions;
+   function idiomSelectorOptions(ioc) {
+      let idioms = Object.keys(fx.available_idioms);
+      if (!idioms.length) idioms = lang.options();
+      let options = idioms.sort().map(value => { 
+         return { key: `<div class=''><img src="./assets/flags/${value.toUpperCase()}.png" class='idiom_flag'></div>`, value }
+      });
+      fx.idiom_ddlb.setOptions(options, 'background: black')
       fx.idiom_ddlb.setValue(ioc);
-      splash();
    }
 
    function idiomSelector() {
       return new Promise((resolve, reject) => {
-         function setIdiom(params) {
+         function setupIdioms(params) {
             // if there is no default setting, make it visible
             if (!params) {
                document.getElementById('idiomatic').style.opacity = 1;
@@ -222,27 +244,17 @@ let config = function() {
             }
             let ioc = params ? params.ioc : 'gbr';
             idiom.ioc = ioc;
-            lang.set(ioc);
+            idiomSelectorOptions(idiom.ioc);
 
-            let options = lang.options().sort().map(value => { 
-               return { key: `<div class=''><img src="./assets/flags/${value.toUpperCase()}.png" class='idiom_flag'></div>`, value }
-            });
-            dd.attachDropDown({ id: 'idiomatic', options, style: 'background: black' });
-
-            fx.idiom_ddlb = new dd.DropDown({ element: document.getElementById('idiomatic'), onChange: changeIdiom });
-            fx.idiom_ddlb.setStyle('selection_value', 'black');
-            fx.idiom_ddlb.setStyle('selection_novalue', 'black');
-            fx.idiom_ddlb.selectionBackground('black');
-            fx.idiom_ddlb.setValue(ioc);
-
+            if (!lang.set(ioc)) coms.sendKey(`${ioc}.idiom`);
             resolve();
          }
 
-         db.findAllIdioms().then(prepareIdioms, (error) => console.log('error:', error));
+         db.findAllIdioms().then(prepareIdioms, error=>console.log('error:', error));
 
          function prepareIdioms(idioms) {
-            idioms.forEach(idiom => lang.idioms[idiom.ioc] = idiom.idiom);
-            db.findSetting('defaultIdiom').then(setIdiom, (error) => console.log('error:', error));
+            idioms.forEach(i => lang.idioms[i.ioc] = i.idiom);
+            db.findSetting('defaultIdiom').then(setupIdioms, (error) => console.log('error:', error));
          }
       });
    }
@@ -641,12 +653,10 @@ let config = function() {
          setting.keys.push({ keyid: data.keyid, description: data.description });
          db.addSetting(setting).then(update, update);
       }
-      function update() {
-         updateSettings(data.content).then(() => {
-            envSettings().then(checkIdiom, error => console.log('error:', error));
-         });
-      }
-      function checkIdiom() {
+      function update() { updateSettings(data.content).then(()=>envSettings().then(setIdiom, error => console.log('error:', error))); }
+      function setIdiom() { db.findSetting('defaultIdiom').then(checkIdiom, error=>console.log('error:', error)); }
+      function checkIdiom(idiom) {
+         if (lang.set() != idiom.ioc) changeIdiom(idiom.ioc);
          gen.closeModal();
          splash();
       }
@@ -846,7 +856,7 @@ let config = function() {
       }
       document.getElementById('go_home').addEventListener('contextmenu', displayMessages);
       document.getElementById('go_home').addEventListener('click', () => {
-         if (env.messages && env.messages.length) {
+         if (env.messages && env.messages.length && env.messages.filter(m=>m.title != 'tournaments.unofficial').length) {
             displayMessages();
          } else {
             splash()
@@ -867,25 +877,22 @@ let config = function() {
 
       if (env.map_provider == 'google') coms.loadGoogleMaps();
 
+      coms.emitTmx({
+         event: 'Connection',
+         notice: window.navigator.userAgent,
+         version: env.version
+      });
+
       // used to locate known tournaments in vicinity; auto-fill country
       if (env.geolocate && window.navigator.onLine) {
          window.navigator.geolocation.getCurrentPosition(pos => { 
             device.geoposition = pos;
-            // if (window.location.hostname == 'localhost') return;
             coms.emitTmx({ 
                event: 'Connection',
                notice: `lat/lng: ${pos.coords.latitude}, ${pos.coords.longitude}`,
                latitude: pos.coords.latitude,
                longitude: pos.coords.longitude,
-               version: env.version,
-               agent: window.navigator.userAgent,
             });
-         });
-      } else {
-         coms.emitTmx({
-            event: 'Connection',
-            notice: window.navigator.userAgent,
-            version: env.version
          });
       }
       env.version_check = new Date().getTime();
