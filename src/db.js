@@ -7,7 +7,6 @@ let db = function() {
          db.db.version(1).stores({ 
             aliases: "&alias",
             ignored: "[hash+ioc]",
-
             clubs: "&id, &code",
             calculations: "&hash, date, type",
             matches: "&muid, *puids, format, date, tournament.category, tournament.tuid",
@@ -20,7 +19,6 @@ let db = function() {
          db.db.version(2).stores({ 
             aliases: "&alias",
             ignored: "[hash+ioc]",
-
             clubs: "&id, &code",
             calculations: "&hash, date, type",
             matches: "&muid, *puids, format, date, tournament.category, tournament.tuid",
