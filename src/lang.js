@@ -9,12 +9,14 @@
    lang.idioms = idioms;
 
    lang.set = (new_idiom) => {
+      if (!new_idiom) return idiom;
       if (!idioms[new_idiom]) return;
 
       idiom = new_idiom;
       // TODO: update database setting
 
       if (idioms[idiom] && idioms[idiom].locale) d3.timeFormatDefaultLocale(idioms[idiom].locale);
+      return true;
    }
 
    lang.options = () => Object.keys(idioms);
@@ -129,6 +131,7 @@
       scoring: 'Scoring',
       time:    'Time',
       duration:'Duration',
+      qualifier: 'Qualifier',
       qualifiers: 'Qualifiers',
       none:    'None',
       keys:    'Keys',
@@ -141,6 +144,7 @@
 
       set: 'Settings',
       version: 'Version',
+      newversion: 'New Version Available',
       importexport: 'Import / Export',
 
       i18n: {
@@ -311,6 +315,7 @@
          deletereplace: 'Delete / Replace',
          weblink: 'Web Link',
          nomatches: 'No Matches',
+         updatedioc: 'Update Language File',
       },
 
       events: {
