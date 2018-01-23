@@ -518,21 +518,21 @@ let tournaments = function() {
          });
       }
 
+      function pushTournament2Cloud() {
+         tournament.published = new Date().getTime();
+         coms.emitTmx({
+            event: 'Push Tournament',
+            version: config.env().version,
+            tuid: tournament.tuid,
+            tournament: CircularJSON.stringify(tournament)
+         });
+         gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
+         // can't call saveTournament() here!!
+         if (o.save) db.addTournament(tournament);
+      }
+
       gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
-      container.push2cloud.element.addEventListener('click', () => {
-         if (!tournament.published) {
-            tournament.published = new Date().getTime();
-            coms.emitTmx({
-               event: 'Push Tournament',
-               version: config.env().version,
-               tuid: tournament.tuid,
-               tournament: CircularJSON.stringify(tournament)
-            });
-            gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
-            // can't call saveTournament() here!!
-            if (o.save) db.addTournament(tournament);
-         }
-      });
+      container.push2cloud.element.addEventListener('click', () => { if (!tournament.published) pushTournament2Cloud(); });
 
       gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
       container.localdownload.element.addEventListener('click', () => {
@@ -1298,9 +1298,12 @@ let tournaments = function() {
          container.cloudfetch.element.addEventListener('contextmenu', () => { coms.requestTournamentEvents(tournament.tuid); });
          container.cloudfetch.element.addEventListener('click', () => { coms.requestTournament(tournament.tuid); });
          container.authorize.element.addEventListener('contextmenu', () => {
+            gen.escapeModal();
             gen.okCancelMessage('Revoke Authorization?', revokeAuthorization, () => gen.closeModal());
             function revokeAuthorization() {
-               console.log('revoke authorization');
+               let revokeAuthorization = { tuid: tournament.tuid };
+               coms.emitTmx({ revokeAuthorization });
+               gen.closeModal();
             }
          });
          container.authorize.element.addEventListener('click', () => {
@@ -1429,6 +1432,7 @@ let tournaments = function() {
          if (created) {
             let qualifying = (displayed_draw_event && util.isMember(['Q', 'R'], displayed_draw_event.draw_type) && displayed_draw_event.draw);
             let lucky_losers = qualifying ? dfx.drawInfo(displayed_draw_event.draw).complete : undefined;
+            console.log('LL:', lucky_losers);
 
             let tree = Object.keys(tree_draw.data()).length;
             let rr = rr_draw && rr_draw.data().brackets && rr_draw.data().brackets.length;
@@ -1444,7 +1448,6 @@ let tournaments = function() {
                   gen.closeModal();
                });
                actions.signinsheet.element.addEventListener('click', () => {
-
                   let completed_matches = eventMatches(displayed_draw_event, tournament).filter(m=>m.match.winner);
                   let all_loser_ids = [].concat(...completed_matches.map(match => match.match.loser.map(team=>team.id)));
                   let losing_players = tournament.players.filter(p=>all_loser_ids.indexOf(p.id) >= 0);
@@ -4913,8 +4916,12 @@ let tournaments = function() {
          var qualified_teams = firstQualifiers(e);
 
          if (allBracketsComplete(e)) {
+            console.log('all brackets complete');
             let qualified_2nd = secondQualifiers(e);
             while (qualified_teams.length < e.qualifiers && qualified_2nd.length) qualified_teams.push(qualified_2nd.pop());
+
+            // since event is complete, send tournament to cloud
+            pushTournament2Cloud();
          }
 
          e.qualified = [];
@@ -5235,6 +5242,7 @@ let tournaments = function() {
          e.active = true;
          enableDrawActions();
          saveTournament(tournament);
+         if (dfx.drawInfo(e.draw).complete) pushTournament2Cloud();
          return true;
       }
 
@@ -5375,6 +5383,9 @@ let tournaments = function() {
             },
             'order': {
                'contextmenu': rrPlayerOrder,
+            },
+            'result': {
+               'click': RRplayerStats,
             }
          });
 
@@ -5399,6 +5410,12 @@ let tournaments = function() {
          return;
 
          // SUPPORTING FUNCTIONS...
+         function RRplayerStats(d) {
+            if (state.edit) {
+               let player = displayed_draw_event.draw.brackets[d.bracket].players.reduce((p, c) => c.draw_position == d.row ? c : p, undefined);
+               console.log(player.results);
+            }
+         }
 
          function assignPosition(position, team, bye, qualifier) {
             let linked = findEventByID(e.links['Q']) || findEventByID(e.links['R']);
@@ -5411,22 +5428,6 @@ let tournaments = function() {
             let team_ids = !team ? [] : team.map(t=>t.id);
             logEventChange(displayed_draw_event, { fx: 'position assigned', d: { position, bye, qualifier, team: team_ids } });
          }
-
-         /*
-         function optionNames(teams) {
-            let lastName = (player) => player.last_name.toUpperCase();
-            return teams.map(team => {
-               let seed = team[0].seed ? ` [${team[0].seed}]` : '';
-               let draw_order = seed ? '' : team[0].draw_order ? ` (${team[0].draw_order})` : '';
-               if (team.length == 1) {
-                  let first_name = util.normalizeName(team[0].first_name, false);
-                  return `${lastName(team[0])}, ${first_name}${seed}${draw_order}`
-               }
-               return `${lastName(team[0])}/${lastName(team[1])}${seed}`
-               
-            });
-         }
-         */
 
          function rrScoreEntry(d) {
             d3.event.preventDefault();
