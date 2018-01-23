@@ -2331,6 +2331,7 @@
       if (score && winner_index) score = dfx.reverseScore(score);
 
       let match_status = match.status ? `<div class='match_status'>${match.status}</div>` : '&nbsp;';
+      let category = match.event ? match.event.category : '';
       let displayed_score = score ? `<div class='match_score'>${score}</div>` : match_status;
       let status_message = (match.status && match.score && !match.umpire) ? match.status : '';
       let umpire = match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : status_message;
@@ -2341,7 +2342,7 @@
       let html = `
          <div class='header'>${header}</div> 
          <div class='catround'>
-            <div class='category'>${match.gender || ''} ${(match.tournament && match.tournament.category) || ''}</div>
+            <div class='category'>${match.gender || ''} ${category}</div>
             <div class='format'>${format}</div>
             <div class='round'>${match.round || ''}</div>
          </div>
