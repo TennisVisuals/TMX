@@ -86,13 +86,25 @@ let db = function() {
    db.deleteAllPlayerRankings = () => db.db.players.toCollection().modify(player => delete player.rankings);
    db.deleteAllPlayerPoints = () => db.db.players.toCollection().modify(player => delete player.points);
 
+   db.calcCleanup = () => {
+      return new Promise((resolve, reject) => {
+         console.log('deleteing rankings');
+         db.deleteAllPlayerRankings().then(deleteRankings, logError);
+         function deleteRankings() { console.log('deleting points'); db.deleteAllPlayerPoints().then(deleteCalcs, logError) }
+         function deleteCalcs() { console.log('deleting calcs'); db.db.calculations.toCollection().delete().then(() => console.log('complete'), logError); }
+         function logError(err) { console.log('error:', err); reject(); }
+      });
+   }
+
    // database cleanup
-   db.deleteAllTournamentMatches = () => db.db.tournaments.toCollection().modify(tournament => delete tournament.matches);
-   db.deleteAllTournamentPlayers = () => db.db.tournaments.toCollection().modify(tournament => delete tournament.players);
-   db.deleteAllTournamentEvents = () => db.db.tournaments.toCollection().modify(tournament => delete tournament.events);
+   db.deleteAllTournamentMatches = () => db.db.tournaments.toCollection().modify(tournament => delete tournament.matches).then(() => console.log('done'));
+   db.deleteAllTournamentPlayers = () => db.db.tournaments.toCollection().modify(tournament => delete tournament.players).then(() => console.log('done'));
+   db.deleteAllTournamentEvents = () => db.db.tournaments.toCollection().modify(tournament => delete tournament.events).then(() => console.log('done'));
+
+   db.deleteSetting = (key) => db.db.settings.where('key').equals(key).delete();
 
    // dangerous!
-   db.deleteAllTournamentAttr = (attr) => db.db.tournaments.toCollection().modify(tournament => delete tournament[attr]);
+   db.deleteAllTournamentAttr = (attr) => db.db.tournaments.toCollection().modify(tournament => delete tournament[attr]).then(() => console.log('done'));
 
    db.findUnique = (tbl, attr, val) => new Promise ((resolve, reject) => db.findWhere(tbl, attr, val).then(d => resolve(d && d.length ? d[0] : undefined), reject));
    db.findSetting = (key) => db.findUnique('settings', 'key', key);
@@ -107,10 +119,6 @@ let db = function() {
    db.addItem = (tbl, item) => new Promise ((resolve, reject) => db.db[tbl].add(item).then(resolve, reject).catch((err) => { alert('try again:', err); reject(err); }));
    db.addAlias = (alias) => db.addItem('aliases', alias);
    db.addIgnore = (ignore) => db.addItem('ignored', ignore);
-
-   // function replaced by version using modifyOrAddUnique
-   // db.addPlayer = (player) => db.addItem('players', player);
-   // db.addClub = (club) => db.addItem('clubs', club);
 
    db.modifyOrAddUnique = (tbl, attr, val, item) => new Promise ((resolve, reject) => {
       db.db[tbl].where(attr).equals(val)
@@ -127,7 +135,6 @@ let db = function() {
    db.addMatch = (match) => db.modifyOrAddUnique('matches', 'muid', match.muid, match);
    db.addPlayer = (player) => db.modifyOrAddUnique('players', 'puid', player.puid, player);
    db.addClub = (club) => db.modifyOrAddUnique('clubs', 'id', club.id, club);
-   db.addSetting = (setting) => db.modifyOrAddUnique('settings', 'key', setting.key, setting);
    db.addIdiom = (idiom) => db.modifyOrAddUnique('idioms', 'ioc', idiom.ioc, idiom);
    db.addTournament = (tournament) => db.modifyOrAddUnique('tournaments', 'tuid', tournament.tuid, tournament);
    db.addCalcDate = (calculation) => db.modifyOrAddUnique('calculations', 'hash', calculation.hash, calculation);
@@ -135,6 +142,13 @@ let db = function() {
       return db.modifyOrAddUnique('points', '[puid+tuid+format+round]', [point_event.puid, point_event.tuid, point_event.format, point_event.round], point_event);
    }
    db.addCategoryRankings = (rankings) => db.modifyOrAddUnique('rankings', 'category', rankings.category, rankings);
+
+   db.replaceOrAddUnique = (tbl, attr, val, item) => new Promise ((resolve, reject) => {
+      db.db[tbl].where(attr).equals(val).delete()
+         .then(() => { db.addItem(tbl, item).then(resolve, reject) }, (err) => { console.log(err); reject(err) });
+   });
+
+   db.addSetting = (setting) => db.replaceOrAddUnique('settings', 'key', setting.key, setting);
 
    db.modify = (tbl, attr, val, fx, params) => new Promise((resolve, reject) => {
       db.db[tbl].where(attr).equals(val)
