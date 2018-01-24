@@ -44,11 +44,10 @@ let coms = function() {
             gen.homeIconState('update');
             fx.update = data.notice || lang.tr('newversion');
          }
-         if (data.directive == 'load data' && data.content) {
-            load.loadJSON(data.content);
-         }
+         if (data.directive == 'load data' && data.content) { load.loadJSON(data.content); }
+         if (data.directive == 'reset db' && data.content) { config.resetDB(); }
          if (data.directive == 'add idiom' && data.content) {
-            lang.idioms[data.content.ioc] = data.content.idiom;
+            lang.define(data.content);
             db.addIdiom(data.content).then(setIdiom, error => console.log('error:', error));
             function setIdiom() {
                config.idiomSelectorOptions(data.content.ioc);
