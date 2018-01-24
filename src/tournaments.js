@@ -3428,17 +3428,16 @@ let tournaments = function() {
 
          // TODO: consider the possibility that tournament dates may not include all dates within a range
          let date_range = util.dateRange(tournament.start, tournament.end);
-         let formatted_date_range = date_range.map(util.formatDate);
+         let formatted_date_range = date_range.map(m => new Date(util.formatDate(m)).getTime());
 
          let all_matches = completed_matches.concat(...pending_matches, ...upcoming_matches);
          let muid_key = Object.assign({}, ...all_matches.map(m=>({ [m.muid]: m })));
 
-         // if displayed_schedule_day is null, set to today IF today is part of the tournament range
-         let today = util.formatDate(new Date());
-         if (!displayed_schedule_day && formatted_date_range.indexOf(today) >= 0) displayed_schedule_day = today; 
-         displayed_schedule_day = displayed_schedule_day || util.formatDate(tournament.start);
-
          let day_matches = all_matches;
+         let ms = new Date(util.formatDate(new Date())).getTime();
+         let closest_day = day_matches.map((d, i) => ({ i, ms: new Date(util.formatDate(d.date)).getTime() }))
+            .reduce((p, c) => Math.abs(ms - c.ms) < Math.abs(ms - p.ms) ? c : p, { i: 0, ms: 0 });
+         if (formatted_date_range.indexOf(closest_day.ms) >= 0) displayed_schedule_day = util.formatDate(new Date(closest_day.ms));
 
          // create a list of all matches which are unscheduled or can be moved
          let search_list = all_matches;
