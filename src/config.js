@@ -40,7 +40,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.36',
+      version: '0.9.42',
       version_check: undefined,
       org: {
          name: undefined,
@@ -199,11 +199,6 @@ let config = function() {
 
    function clearHistory() { history.pushState('', document.title, window.location.pathname); }
 
-   var idiom = {
-      "key": "defaultIdiom",
-      "class": "userInterface",
-      "ioc": "gbr"
-   };
    dd.attachDropDown({ id: 'idiomatic', });
    fx.idiom_ddlb = new dd.DropDown({ element: document.getElementById('idiomatic'), onChange: changeIdiom });
    fx.idiom_ddlb.setStyle('selection_value', 'black');
@@ -213,8 +208,6 @@ let config = function() {
    fx.changeIdiom = changeIdiom;
    function changeIdiom(ioc) {
       if (lang.set(ioc)) {
-         idiom.ioc = ioc;
-         db.addSetting(idiom);
          fx.idiom_ddlb.setValue(ioc);
          splash();
       } else {
@@ -226,8 +219,10 @@ let config = function() {
    function idiomSelectorOptions(ioc) {
       let idioms = Object.keys(fx.available_idioms);
       if (!idioms.length) idioms = lang.options();
-      let options = idioms.sort().map(value => { 
-         return { key: `<div class=''><img src="./assets/flags/${value.toUpperCase()}.png" class='idiom_flag'></div>`, value }
+      let options = idioms.sort().map(value => {
+         let ioc_value = value.length == 3 ? value : 'gbr';
+         let img_src = `./assets/flags/${ioc_value.toUpperCase()}.png`;
+         return { key: `<div class=''><img src="${img_src}" class='idiom_flag'></div>`, value }
       });
       fx.idiom_ddlb.setOptions(options, 'background: black')
       fx.idiom_ddlb.setValue(ioc);
@@ -236,24 +231,25 @@ let config = function() {
    function idiomSelector() {
       return new Promise((resolve, reject) => {
          function setupIdioms(params) {
+            let ioc = params ? params.ioc : 'gbr';
+            idiomSelectorOptions(ioc);
+
             // if there is no default setting, make it visible
             if (!params) {
                document.getElementById('idiomatic').style.opacity = 1;
                // save this as default so that flag is "subtle" for next visit
                changeIdiom('gbr');
+            } else if (!lang.set(ioc)) {
+               coms.sendKey(`${ioc}.idiom`);
             }
-            let ioc = params ? params.ioc : 'gbr';
-            idiom.ioc = ioc;
-            idiomSelectorOptions(idiom.ioc);
 
-            if (!lang.set(ioc)) coms.sendKey(`${ioc}.idiom`);
             resolve();
          }
 
          db.findAllIdioms().then(prepareIdioms, error=>console.log('error:', error));
 
          function prepareIdioms(idioms) {
-            idioms.forEach(i => lang.idioms[i.ioc] = i.idiom);
+            idioms.forEach(lang.define);
             db.findSetting('defaultIdiom').then(setupIdioms, (error) => console.log('error:', error));
          }
       });
@@ -427,6 +423,8 @@ let config = function() {
    function configurePointCalc() {
       let date = new Date();
       let container = gen.pointCalcConfig();
+
+      gen.escapeModal();
       container.submit.element.addEventListener('click', () => callPointCalc(container));
       container.cancel.element.addEventListener('click', () => gen.closeModal());
 
@@ -451,6 +449,8 @@ let config = function() {
    function configureRankCalc() {
       let date = new Date();
       let container = gen.rankListConfig();
+
+      gen.escapeModal();
       container.submit.element.addEventListener('click', () => callRankCalc(container));
       container.cancel.element.addEventListener('click', () => gen.closeModal());
 
@@ -474,7 +474,11 @@ let config = function() {
       let week = rank.getWeek(selected_date.getTime()); 
       let year = selected_date.getFullYear();
 
-      let dpp = (evt) => player.displayPlayerProfile(util.getParent(evt.target, 'player_rank').getAttribute('puid')).then(()=>{}, ()=>{});
+      let dpp = (evt) => {
+         let elem = util.getParent(evt.target, 'player_rank');
+         let puid = elem.getAttribute('puid');
+         player.displayPlayerProfile({ puid }).then(()=>{}, ()=>{});
+      }
 
       gen.showProcessing('Calculating Current Rank List ...');
       rank.calculateRankLists(week, year).then(categories => { 
@@ -528,14 +532,11 @@ let config = function() {
       searchBox.default_category = 'players';
       searchBox.setSearchCategory();
 
-      /*
-      // Disabling metaClick for rollout to Judges
       searchBox.metaClick = {
          tournaments() { tournaments.displayCalendar(); },
-         players() { displayPlayers(); },
-         clubs() { displayClubs(); },
+         // players() { displayPlayers(); },
+         // clubs() { displayClubs(); },
       }
-      */
 
       searchBox.searchType = {};
       searchBox.searchType.players = function(puid) {
@@ -543,7 +544,7 @@ let config = function() {
          if (gen.content == 'identify') {
             player.playerAssignment();
          } else {
-            player.displayPlayerProfile(puid).then(()=>{}, ()=>{});
+            player.displayPlayerProfile({ puid }).then(()=>{}, ()=>{});
          }
       };
       if (o.components.tournament_search) searchBox.searchType.tournaments = function(tuid) {
