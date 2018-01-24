@@ -3,6 +3,8 @@
    // requires db{}, util{}, exp{}
    var rank = {};
 
+   rank.point_issues = [];
+
    function fullName(player) { return `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; }
    function calcPoints(match, points_table, category, event_rank) {
       category = config.legacyCategory(category || (match.event && match.event.category));
@@ -160,36 +162,7 @@
 
          db.findAllPlayers().then(players => {
             let categories = {};
-            players.forEach(player => {
-               let born = player.birth ? new Date(player.birth).getFullYear() : undefined;
-               if (player.points && player.points[year] && player.points[year][week]) {
-                  let category_points = player.points[year][week];
-                  Object.keys(category_points).forEach(category => {
-                     if (!categories[category]) categories[category] = { M: [], W: [] };
-                     if (player.sex) {
-                        let details = { 
-                           born,
-                           id: player.id,
-                           ioc: player.ioc,
-                           puid: player.puid, 
-                           club: player.club,
-                           category: rank.eligibleCategories({ birth_year: born, calc_year: year }).base_category,
-                           points: player.points[year][week][category],
-                           name: `${player.last_name}, ${player.first_name}`,
-                        };
-                        if (player.rankings && player.rankings[year]) {
-                           let priorweeks = Object.keys(player.rankings[year]).filter(f => f < week);
-                           if (priorweeks.length) {
-                              let priorweek = Math.max(...priorweeks);
-                              let priorrank = player.rankings[year][priorweek][category];
-                              if (priorrank) details.priorrank = priorrank;
-                           }
-                        }
-                        categories[category][player.sex].push(details); 
-                     }
-                  });
-               }
-            });
+            players.forEach(player => { categories = processPlayer(player, week, year, categories); });
             Object.keys(categories).forEach(category => {
                if (categories[category].M) categories[category].M.sort((a, b) => b.points.total - a.points.total);
                if (categories[category].W) categories[category].W.sort((a, b) => b.points.total - a.points.total);
@@ -197,6 +170,39 @@
             resolve(categories);
          });
       });
+   }
+
+   rank.processPlayer = processPlayer;
+   function processPlayer(player, week, year, categories={}) {
+      let born = player.birth ? new Date(player.birth).getFullYear() : undefined;
+      if (player.points && player.points[year] && player.points[year][week]) {
+         let category_points = player.points[year][week];
+         Object.keys(category_points).forEach(category => {
+            if (!categories[category]) categories[category] = { M: [], W: [] };
+            if (player.sex) {
+               let details = { 
+                  born,
+                  id: player.id,
+                  ioc: player.ioc,
+                  puid: player.puid, 
+                  club: player.club,
+                  category: rank.eligibleCategories({ birth_year: born, calc_year: year }).base_category,
+                  points: player.points[year][week][category],
+                  name: `${player.last_name}, ${player.first_name}`,
+               };
+               if (player.rankings && player.rankings[year]) {
+                  let priorweeks = Object.keys(player.rankings[year]).filter(f => f < week);
+                  if (priorweeks.length) {
+                     let priorweek = Math.max(...priorweeks);
+                     let priorrank = player.rankings[year][priorweek][category];
+                     if (priorrank) details.priorrank = priorrank;
+                  }
+               }
+               categories[category][player.sex].push(details); 
+            }
+         });
+      }
+      return categories;
    }
 
    rank.addRankHistories = (categories, ranking_date) => {
@@ -246,6 +252,7 @@
    // calculates total points in each category for all weeks from start_date until end_date
    // point totals represent all points for the year preceding each ranking week
    rank.calcAllPlayerPoints = (start_date, end_date = new Date().getTime()) => {
+      rank.point_issues = [];
       return new Promise((resolve, reject) => {
          let subtractWeek = (date) => { let now = new Date(date); return now.setDate(now.getDate() - 7); }
          let addWeek = (date) => { let now = new Date(date); return now.setDate(now.getDate() + 7); }
@@ -253,7 +260,7 @@
          if (!start_date) start_date = subtractWeek(end_date);
 
          let dates = [].concat(...d3.timeWeeks(start_date, end_date), start_date, end_date).map(date => new Date(date).getTime());
-         let addCalcs = () => addCalcDates(dates, 'points').then(resolve, reject);
+         let addCalcs = () => addCalcDates(dates, 'points').then(finish, reject);
 
          // only calculate for players with point events in the year prior to the start date
          let start_date_year = new Date(start_date).getFullYear();
@@ -266,8 +273,16 @@
             if (data.length) {
                performTask(rank.calculatePlayerRankingPoints, data, false).then(addCalcs, reject);
             } else {
-               resolve();
+               finish();
             }
+         }
+
+         function finish() {
+            if (rank.point_issues.length) {
+               alert("Point Issues");
+               console.log(rank.point_issues);
+            }
+            resolve();
          }
       });
    }
@@ -373,48 +388,56 @@
                date = addWeek(date);
             }
 
-            let ranking_points = date_array.map(date => calcDate(player, points, date)).filter(week => Object.keys(week.categories).length);
+            dev.points = points;
+            dev.date_array = date_array;
+
+            let ranking_points = date_array.map(date => rank.calcPlayerDate(player, points, date)).filter(week => Object.keys(week.categories).length);
 
             addPointsHistory({puid, ranking_points}).then(resolve(ranking_points), reject);
          }
 
-         function calcDate(player, points, ranking_date) {
-            let cpts = rank.calculateRankingPoints(player, points, ranking_date);
-
-            let rpts = {};
-            let born = player.birth ? new Date(player.birth).getFullYear() : undefined;
-            let { categories, base_category } = rank.eligibleCategories({ birth_year: born, calc_date: ranking_date });
-            Object.keys(cpts).map(category => {
-               let point_events = cpts[category];
-               let reduce = (point_events) => point_events.map(p => +p.points).reduce((a, b) => a + b, 0);
-               let team_events = point_events.filter(e=>e.tournament_type == 'MO');
-               let singles_events = point_events.filter(e=>e.format == 'singles' && e.tournament_type != 'MO');
-               let singles_events_up = singles_events.filter(e=>e.category > category);
-               let doubles_events = point_events.filter(e=>e.format == 'doubles' && e.tournament_type != 'MO');
-               let doubles_events_up = doubles_events.filter(e=>e.category > category);
-
-               let team = team_events.length ? reduce(team_events) : 0;
-               let singles = singles_events.length ? reduce(singles_events) : 0;
-               let singles_up = singles_events_up.length ? reduce(singles_events_up) : 0;
-               let doubles = doubles_events.length ? reduce(doubles_events) : 0;
-               let doubles_up = doubles_events_up.length ? reduce(doubles_events_up) : 0;
-
-               let total = point_events.length ? reduce(point_events) : 0;
-               // if (categories.indexOf(category) >= 0 && total > 0) rpts[category] = { total, singles, doubles, singles_up, doubles_up, team };
-               if (util.isMember(categories, category) && total > 0) rpts[category] = { total, singles, doubles, singles_up, doubles_up, team };
-            });
-
-            return {
-               week: rank.getWeek(ranking_date),
-               year: new Date(ranking_date).getFullYear(),
-               categories: rpts,
-            }
-         }
       });
    }
 
-   rank.calculateRankingPoints = (player, points, ranking_date) => {
+   rank.calcPlayerDate = (player, points, ranking_date) => {
+      let cpts = rank.calculateRankingPoints(player, points, ranking_date);
 
+      let rpts = {};
+      let born = player.birth ? new Date(player.birth).getFullYear() : undefined;
+      let { categories, base_category } = rank.eligibleCategories({ birth_year: born, calc_date: ranking_date });
+
+      Object.keys(cpts).map(ctgy => {
+         let category = config.legacyCategory(ctgy, true);
+         let point_events = cpts[category] || [];
+
+         point_events.forEach(pe => { if (isNaN(pe.points)) rank.point_issues.push(pe); });
+
+         let reduce = (point_events) => point_events.map(p => +p.points).reduce((a, b) => a + b, 0);
+         let team_events = point_events.filter(e=>e.tournament_type == 'MO');
+         let singles_events = point_events.filter(e=>e.format == 'singles' && e.tournament_type != 'MO');
+         let singles_events_up = singles_events.filter(e=>e.category > category);
+         let doubles_events = point_events.filter(e=>e.format == 'doubles' && e.tournament_type != 'MO');
+         let doubles_events_up = doubles_events.filter(e=>e.category > category);
+
+         let team = team_events.length ? reduce(team_events) : 0;
+         let singles = singles_events.length ? reduce(singles_events) : 0;
+         let singles_up = singles_events_up.length ? reduce(singles_events_up) : 0;
+         let doubles = doubles_events.length ? reduce(doubles_events) : 0;
+         let doubles_up = doubles_events_up.length ? reduce(doubles_events_up) : 0;
+
+         let total = point_events.length ? reduce(point_events) : 0;
+         // if (categories.indexOf(category) >= 0 && total > 0) rpts[category] = { total, singles, doubles, singles_up, doubles_up, team };
+         if (util.isMember(categories, category) && total > 0) rpts[category] = { total, singles, doubles, singles_up, doubles_up, team };
+      });
+
+      return {
+         week: rank.getWeek(ranking_date),
+         year: new Date(ranking_date).getFullYear(),
+         categories: rpts,
+      }
+   }
+
+   rank.calculateRankingPoints = (player, points, ranking_date) => {
       // TODO: tournament_type specification is HR specific.  Should be 'Team';
       function team(pts) { return pts.filter(f=>f.tournament_type == 'MO'); }
       function singles(pts) { return pts.filter(f=>f.format == 'singles' && f.tournament_type != 'MO'); }
@@ -435,13 +458,14 @@
       let bigPoints = (pts) => pts.sort((a, b) => (b.points || 0) - a.points);
 
       // filter points by category then organize by format and sort point values
-      let categoryFilter = (pts, category) => sglDblTeam(bigPoints(pts.filter(f=>f.category == category))); 
+      let categoryFilter = (pts, category) => sglDblTeam(bigPoints(pts.filter(f=>f.category == config.legacyCategory(category)))); 
 
       // create an object given keys, and array of points, and a function
       let oMap = (keys, arr, fx) => Object.assign(...keys.map(k => ({ [k]: fx(arr, k) })));
 
       let cpts = {};
-      let categories = util.unique([].concat(...valid.map(v=>v.category), ...eligible_categories));
+      let categories = util.uunique([].concat(...valid.map(v=>v.category), ...eligible_categories))
+         .map(c=>config.legacyCategory(c, true));
 
       let points_table = config.pointsTable({calc_date: ranking_date});
 
@@ -451,6 +475,7 @@
 
          Object.keys(ranking_points).forEach(category => {
             let cpoints = [].concat(...ranking_points[category].singles, ...ranking_points[category].doubles, ...ranking_points[category].team);
+            // let category = config.legacyCategory(ctgy, true);
             cpts[category] = cpoints;
          });
 
