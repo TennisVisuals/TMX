@@ -1,29 +1,34 @@
 !function() {
 
    let lang = {};
-
-   let idiom = 'gbr';
    let idioms = {};
+   let selected_ioc = 'gbr';
 
-   // Temporary until there is a better build process
-   lang.idioms = idioms;
+   lang.define = ({ ioc, idiom }) => { idioms[ioc] = idiom; }
 
-   lang.set = (new_idiom) => {
-      if (!new_idiom) return idiom;
-      if (!idioms[new_idiom]) return;
-
-      idiom = new_idiom;
-      // TODO: update database setting
-
-      if (idioms[idiom] && idioms[idiom].locale) d3.timeFormatDefaultLocale(idioms[idiom].locale);
+   lang.set = (new_ioc) => {
+      if (!new_ioc) return selected_ioc;
+      if (!idioms[new_ioc]) return;
+      updateDefault(new_ioc);
+      if (idioms[new_ioc] && idioms[new_ioc].locale) d3.timeFormatDefaultLocale(idioms[new_ioc].locale);
       return true;
+   }
+
+   function updateDefault(ioc='gbr') {
+      selected_ioc = ioc;
+      var idiom = {
+         "key": "defaultIdiom",
+         "class": "userInterface",
+         "ioc": ioc
+      };
+      db.addSetting(idiom);
    }
 
    lang.options = () => Object.keys(idioms);
 
    function translate(what) {
       if (!what) return '';
-      let obj = idioms[idiom];
+      let obj = idioms[selected_ioc];
       let children = what.split('.');
       while (children.length) {
          let child = children.shift();
@@ -36,7 +41,7 @@
    lang.tr = (what) => {
       if (!what) return '';
       if (translate(what)) return translate(what);
-      let obj = idioms.gbr;
+      let obj = idioms.default;
       let children = what.split('.');
       while (children.length) {
          let child = children.shift();
@@ -47,12 +52,12 @@
 
    lang.obj = (what) => {
       if (!what) return "";
-      if (idioms[idiom] && idioms[idiom][what]) return idioms[idiom][what];
-      if (idioms.gbr[what]) return idioms.gbr[what];
+      if (idioms[selected_ioc] && idioms[selected_ioc][what]) return idioms[selected_ioc][what];
+      if (idioms.default[what]) return idioms.default[what];
       return {};
    }
 
-   idioms.gbr = {
+   idioms.default = {
       dl:      'Download',
       or:      'or',
       arp:     'All Ranking Points',
@@ -316,6 +321,8 @@
          weblink: 'Web Link',
          nomatches: 'No Matches',
          updatedioc: 'Update Language File',
+         revokeauth: 'Revoke Authorization?',
+         clearalldays: 'Clear All Days?',
       },
 
       events: {
