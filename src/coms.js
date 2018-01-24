@@ -61,7 +61,7 @@ let coms = function() {
    fx.versionNotice = (version) => {
       db.findSetting('superUser').then(setting => {
          if (setting && setting.auth && util.string2boolean(setting.auth.versioning)) {
-            coms.emitTmx({ updateVersion: { version, notice: `Version ${version} available` } })
+            coms.emitTmx({ updateVersion: { version, notice: `Version ${version} available` } });
          }
       });
    }
