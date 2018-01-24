@@ -29,9 +29,9 @@ let player = function() {
    }
 
    fx.displayPlayerProfile = displayPlayerProfile;
-   function displayPlayerProfile(puid, ranking_date=new Date()) {
+   function displayPlayerProfile({ puid, ranking_date=new Date(), fallback }) {
       return new Promise((resolve, reject) => {
-         let container;
+         var container;
 
          db.findPlayer(puid).then(player => {
             searchBox.active.player = player;
@@ -71,6 +71,12 @@ let player = function() {
                   }
                });
             } else {
+               if (fallback && fx.action && typeof fx.actions[fx.action] == 'function') {
+                  container = gen.playerProfile(fx.displayFx);
+                  container.info.element.innerHTML = gen.playerInfo(fallback, {});
+                  return resolve(fx.actions[fx.action](container, fallback));
+               }
+               if (fallback && fx.override) { return resolve(fx.override(fallback)); }
                console.log('player not found');
                reject({ error: 'Player Not Found' });
             }
@@ -149,7 +155,7 @@ let player = function() {
       let puid = elem.getAttribute('puid');
       let puid2 = elem.getAttribute('puid2');
       if (!puid2) {
-         player.displayPlayerProfile(util.getParent(evt.target, 'player_click').getAttribute('puid')).then(()=>{}, ()=>{});
+         player.displayPlayerProfile({ puid }).then(()=>{}, ()=>{});
       } else {
          // TODO: for doubles clicking on an id can invoke function which fetches
          // all player matches for one of the team puids, then filter by the other puid
@@ -312,8 +318,8 @@ let player = function() {
       return data;
    }
 
-   fx.registration = (player) => player.registered_until ? new Date(player.registered_until) > new Date() : true;
-   fx.medical = (player) => player.right_to_play_until ? new Date(player.right_to_play_until) > new Date() : true;
+   fx.registration = (player) => player && player.registered_until ? new Date(player.registered_until) > new Date() : true;
+   fx.medical = (player) => player && player.right_to_play_until ? new Date(player.right_to_play_until) > new Date() : true;
 
    fx.createNewPlayer = createNewPlayer;
    function createNewPlayer({player_data={}, category, callback, date=new Date()} = {}) {
