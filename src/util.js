@@ -172,6 +172,7 @@ let util = function() {
    // Miscellaneous Functions
    fx.isMember = (list, m) => list.reduce((p, c) => c == m || p, false);
    fx.unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
+   fx.uunique = (arr) => Object.keys(Object.assign({}, ...arr.map(a=>({[a]:true}))));
    fx.subSort = (arr, i, n, sortFx) => [].concat(...arr.slice(0, i), ...arr.slice(i, i + n).sort(sortFx), ...arr.slice(i + n, arr.length));
    fx.inPlaceSubSort = (arr, i, n, sortFx) => {
       let newarray = [].concat(...arr.slice(0, i), ...arr.slice(i, i + n).sort(sortFx), ...arr.slice(i + n, arr.length));
