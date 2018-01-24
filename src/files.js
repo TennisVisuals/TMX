@@ -220,10 +220,10 @@
       })
    }
 
-   exp.downloadTournamentWithEvents = () => {
+   exp.downloadTournamentsWithEvents = () => {
       db.findAll('tournaments').then(arr => {
          arr.filter(a=>a.events && a.events.length)
-            .forEach(tournament => exp.downloadJSON(`tournament-${tournament.tuid}.json`, tournament));
+            .forEach(tournament => exp.downloadCircularJSON(`tournament-${tournament.tuid}.json`, tournament));
       })
    }
 
