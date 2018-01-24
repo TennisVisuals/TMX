@@ -278,6 +278,7 @@
    exp.downloadRankLists = (ranklists) => ranklists.forEach(exp.rankListCSV);
 
    exp.rankListCSV = (ranklist) => {
+      ranklist.list.forEach(player => player.points = player.points.total);
       let csv = json2csv(ranklist.list);
       exp.downloadText(`${ranklist.year}-Week${ranklist.week}-${ranklist.category}-${ranklist.gender}.csv`, csv);
    }
