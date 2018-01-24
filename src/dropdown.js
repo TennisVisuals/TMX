@@ -128,7 +128,7 @@
    }
 
    let dropDownHTML = (label, options = [], selected, border=true, style) => {
-      let selected_option = selected ? options[selected].key : '';
+      let selected_option = selected != undefined && options[selected] ? options[selected].key : '';
       let options_style = border ? "style='border: 1px solid #000;'" : "";
       let options_html = options.map(option => optionHTML(option, style)).join('');
       let html = `
