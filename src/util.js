@@ -170,6 +170,7 @@ let util = function() {
    }
 
    // Miscellaneous Functions
+   fx.numeric = (value) => value && !isNaN(value) ? parseInt(value.toString().slice(-4)) : undefined;
    fx.isMember = (list, m) => list.reduce((p, c) => c == m || p, false);
    fx.unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
    fx.uunique = (arr) => Object.keys(Object.assign({}, ...arr.map(a=>({[a]:true}))));
