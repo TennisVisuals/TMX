@@ -1584,6 +1584,7 @@
 
          let m = arr.filter(f=>f.sex == 'M');
          let w = arr.filter(f=>f.sex == 'W');
+         let u = arr.filter(f=>f.sex == undefined);
 
          html += `<div class='signin-section'>${lang.tr(notice)}</div>`;
          html += tpHeader(additional_attributes);
@@ -1591,6 +1592,8 @@
          m.forEach((p, i) => rowHTML(p, i, 'M'));
          if (m.length) html += `<div class='signin-row'></div>`;
          w.forEach((p, i) => rowHTML(p, i, 'W'));
+         if (m.length || w.length) html += `<div class='signin-row'></div>`;
+         u.forEach((p, i) => rowHTML(p, i, 'W'));
       }
 
       if (!edit) genSection('signin.registered', not_withdrawn);
@@ -1660,7 +1663,7 @@
             <div class='registered_attr flexcenter'>${birthyear}</div>
             <div class='registered_attr flexcenter'>${p.club_code || ''}</div>
             <div class='registered_attr flexcenter'>${ioc}</div>
-            <div class='registered_attr flexcenter'>${p.sex || ''}</div>
+            <div class='registered_attr flexcenter'>${p.sex || 'X'}</div>
          </div>`;
       return html;
    }
