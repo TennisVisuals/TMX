@@ -57,6 +57,7 @@ let player = function() {
                         defaultDate: ranking_date,
                         setDefaultDate: true,
                         i18n: lang.obj('i18n'),
+                        firstDay: config.env().calendar.first_day,
                         onSelect: function() { 
                            ranking_date = this.getDate();
                            displayPoints(player, club, points, ranking_date);
@@ -89,8 +90,6 @@ let player = function() {
 
             let tabdata = [];
             Object.keys(cpts).forEach(category => {
-
-               // if (eligible_categories.indexOf(category) >= 0 && cpts[category].length) {
                if (util.isMember(eligible_categories, category) && cpts[category].length) {
                   let tab = category;
                   let content = gen.playerPoints(cpts[category], lang.tr('rlp') + tab);
@@ -354,6 +353,7 @@ let player = function() {
          defaultDate: start_date,
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
+         firstDay: config.env().calendar.first_day,
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
       let field_order = [ 'last_name', 'first_name', 'birth', 'ioc', 'city', 'club', 'phone', 'email', 'cancel', 'save' ];
@@ -383,7 +383,8 @@ let player = function() {
          }
          player_container.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
          player_container.ioc.element.addEventListener('keydown', catchTab , false);
-         player_container.ioc.element.addEventListener("keydown", function(evt) { 
+         player_container.ioc.element.addEventListener('keyup', catchTab , false);
+         player_container.ioc.element.addEventListener("keyup", function(evt) { 
             // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
             if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
                if (player_container.ioc.typeAhead.suggestions && player_container.ioc.typeAhead.suggestions.length) {
@@ -413,14 +414,15 @@ let player = function() {
          }
          player_container.club.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
          player_container.club.element.addEventListener('keydown', catchTab , false);
-         player_container.club.element.addEventListener("keydown", function(evt) { 
+         player_container.club.element.addEventListener('keyup', catchTab , false);
+         player_container.club.element.addEventListener("keyup", function(evt) { 
             // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
             if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
                if (player_container.club.typeAhead.suggestions && player_container.club.typeAhead.suggestions.length) {
                   player_container.club.typeAhead.next();
                   player_container.club.typeAhead.select(0);
                } else {
-                  player_container.club.element.value = '';
+                  player.club_name = player_container.club.element.value;
                }
                nextFieldFocus(evt.shiftKey ? 'ioc' : 'club');
             }
@@ -431,14 +433,14 @@ let player = function() {
       let defineAttr = (attr, evt, required, elem) => {
          player[attr] = elem ? elem.value : evt? evt.target.value : undefined;
          if (required) player_container[attr].element.style.background = player[attr] ? 'white' : 'yellow';
-         if ((!evt || evt.which == 13) && (!required || (required && player[attr]))) return nextFieldFocus(attr);
-
+         if ((!evt || evt.which == 13 || evt.which == 9) && (!required || (required && player[attr]))) return nextFieldFocus(attr);
       }
 
       let saveNewPlayer = () => { 
          let valid_date = util.validDate(player.birth, daterange);
          if (!valid_date || !player.first_name || !player.last_name || !player.ioc) return;
-            player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
+         player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
+         if (!player.club && player_container.club.element.value) player.club_name = player_container.club.element.value;
 
          if (typeof callback == 'function') callback(player); 
          gen.closeModal();
@@ -471,6 +473,8 @@ let player = function() {
       player_container.last_name.element.addEventListener('keydown', (evt) => { if (evt.shiftKey && evt.which == 9) nextFieldFocus('email'); });
       player_container.last_name.element.addEventListener('keyup', (evt) => defineAttr('last_name', evt, true));
       player_container.first_name.element.addEventListener('keyup', (evt) => defineAttr('first_name', evt, true));
+      player_container.city.element.addEventListener('keydown', catchTab);
+      player_container.city.element.addEventListener('keyup', (evt) => defineAttr('city', evt));
       player_container.birth.element.addEventListener('keyup', birthKeyUp);
       player_container.phone.element.addEventListener('keyup', (evt) => defineAttr('phone', evt));
       player_container.email.element.addEventListener('keyup', (evt) => defineAttr('email', evt));
