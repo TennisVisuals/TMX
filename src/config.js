@@ -1,4 +1,5 @@
 var dev = {};
+dev.save = () => { if (dev.tournament) db.addTournament(dev.tournament); }
 
 let config = function() {
 
@@ -40,7 +41,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.42',
+      version: '0.9.45',
       version_check: undefined,
       org: {
          name: undefined,
@@ -103,6 +104,9 @@ let config = function() {
          require_confirmation: true,
          publish_on_score_entry: true,
       },
+      calendar: {
+         first_day: 0,
+      },
       messages: []
    }
 
@@ -163,6 +167,7 @@ let config = function() {
       },
       settings_tabs: {
          org: true,
+         general: true,
          data: false,
          draws: true,
          publishing: true,
@@ -222,7 +227,7 @@ let config = function() {
       let options = idioms.sort().map(value => {
          let ioc_value = value.length == 3 ? value : 'gbr';
          let img_src = `./assets/flags/${ioc_value.toUpperCase()}.png`;
-         return { key: `<div class=''><img src="${img_src}" class='idiom_flag'></div>`, value }
+         return { key: `<div class=''><img src="${img_src}" class='idiom_flag'></div>`, value, title: value }
       });
       fx.idiom_ddlb.setOptions(options, 'background: black')
       fx.idiom_ddlb.setValue(ioc);
@@ -246,11 +251,11 @@ let config = function() {
             resolve();
          }
 
-         db.findAllIdioms().then(prepareIdioms, error=>console.log('error:', error));
+         db.findAllIdioms().then(prepareIdioms, util.logError);
 
          function prepareIdioms(idioms) {
             idioms.forEach(lang.define);
-            db.findSetting('defaultIdiom').then(setupIdioms, (error) => console.log('error:', error));
+            db.findSetting('defaultIdiom').then(setupIdioms, util.logError);
          }
       });
    }
@@ -274,6 +279,7 @@ let config = function() {
 
          let v = o.settings_tabs;
          let tabs = {
+            general: v.general ? gen.generalSettings() : undefined,
             org: v.org ? gen.orgSettings() : undefined,
             categories: v.categories ? gen.categorySettings() : undefined,
             points: v.points ? gen.pointsSettings() : undefined,
@@ -357,6 +363,12 @@ let config = function() {
             }
          }
 
+         if (v.general) {
+            container.first_day.element.addEventListener('click', firstDay);
+            container.first_day.element.checked = env.calendar.first_day;
+            function firstDay(evt) { env.calendar.first_day = container.first_day.element.checked ? 1 : 0; }
+         }
+
          function revertSettings() {
             envSettings();
             gen.closeModal();
@@ -380,6 +392,7 @@ let config = function() {
             settings.push({ key: 'publishingSettings', settings: env.publishing });
             settings.push({ key: 'drawSettings', settings: env.draws });
             settings.push({ key: 'drawFx', settings: env.drawFx });
+            settings.push({ key: 'envSettings', settings: { calendar: { first_day: env.calendar.first_day }} });
 
             if (v.org) {
                settings.push(getImage('orgLogo', 'org_logo_display'));
@@ -654,8 +667,8 @@ let config = function() {
          setting.keys.push({ keyid: data.keyid, description: data.description });
          db.addSetting(setting).then(update, update);
       }
-      function update() { updateSettings(data.content).then(()=>envSettings().then(setIdiom, error => console.log('error:', error))); }
-      function setIdiom() { db.findSetting('defaultIdiom').then(checkIdiom, error=>console.log('error:', error)); }
+      function update() { updateSettings(data.content).then(()=>envSettings().then(setIdiom, util.logError), util.logError); }
+      function setIdiom() { db.findSetting('defaultIdiom').then(checkIdiom, util.logError); }
       function checkIdiom(idiom) {
          if (lang.set() != idiom.ioc) changeIdiom(idiom.ioc);
          gen.closeModal();
@@ -686,6 +699,12 @@ let config = function() {
             if (td) {
                util.boolAttrs(td.options);
                env.draws.tree_draw = Object.assign(env.draws.tree_draw, td.options);
+            }
+
+            let misc = getKey('envSettings');
+            if (misc && misc.settings) {
+               util.boolAttrs(misc.settings);
+               util.keyWalk(misc.settings, env);
             }
 
             let draws = getKey('drawSettings');
