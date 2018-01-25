@@ -103,6 +103,9 @@
 .calendar_header div {
    height: 2em;
 }
+.tournament_received {
+   font-weight: bold;
+}
 .calendar_past {
    color: gray;
    font-style: italic;
