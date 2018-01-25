@@ -739,6 +739,33 @@
 .registered_count { width: 10%; }
 .registered_player { width: 50%; }
 .registered_attr { width: 20%; }
+.registered_club {
+   width: 20%;
+   overflow: hidden;
+   white-space:nowrap;
+   text-overflow: ellipsis;
+   text-align: left;
+   /*
+   background: -webkit-linear-gradient(left,#00 70%, #fff);
+   -webkit-background-clip: text;
+   -webkit-text-fill-color: transparent;
+   */
+}
+.registered_club_m {
+   background: -webkit-linear-gradient(left,#00368c 70%, #fff);
+   -webkit-background-clip: text;
+   -webkit-text-fill-color: transparent;
+}
+.registered_club_w {
+   background: -webkit-linear-gradient(left,#840076 70%, #fff);
+   -webkit-background-clip: text;
+   -webkit-text-fill-color: transparent;
+}
+.registered_club_u {
+   background: -webkit-linear-gradient(left,#000 70%, #fff);
+   -webkit-background-clip: text;
+   -webkit-text-fill-color: transparent;
+}
 
 .signin-row { 
    width: 100%; 
