@@ -175,6 +175,7 @@
          matchesbefore: 'Matches Before Count',
          automatedbyes: 'Automatic Bye Placement',
          courtdetail: 'Court Details',
+         firstday: 'Week Starts Monday',
       },
 
       search: {
@@ -189,6 +190,7 @@
       formats: {
          singles: 'Singles',
          doubles: 'Doubles',
+         team: 'Team',
       },
 
       draws: {
