@@ -72,7 +72,7 @@
    }
 
    function optionHTML(option, style) {
-      return `<li class='dd_option' title='${option.name || option.value}'><span value="${option.value}" style="${style}">${option.key}</span></li>`;
+      return `<li class='dd_option' title='${option.title || ''}'><span value="${option.value}" style="${style}">${option.key}</span></li>`;
    }
 
    DropDown.prototype = {
