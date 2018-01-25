@@ -113,6 +113,7 @@ let tournaments = function() {
          i18n: lang.obj('i18n'),
          defaultDate: new Date(start),
          setDefaultDate: true,
+         firstDay: config.env().calendar.first_day,
          onSelect: function() {
             start = this.getDate().getTime();
             updateStartDate();
@@ -126,6 +127,7 @@ let tournaments = function() {
          minDate: new Date(start),
          defaultDate: new Date(end),
          setDefaultDate: true,
+         firstDay: config.env().calendar.first_day,
          onSelect: function() {
             end = this.getDate().getTime();
             updateEndDate();
@@ -985,20 +987,13 @@ let tournaments = function() {
             function addRanking(rank_list) {
                if (!rank_list || !rank_list.rankings || !rank_list.rankings.players) return addPlayer();
                let player_rankings = rank_list.rankings.players;
-
                if (player_rankings[new_player.id]) {
                   let category_ranking = player_rankings[new_player.id];
                   if (category_ranking) {
-
-                     let category = config.legacyCategory(tournament.category);
+                     let category = config.legacyCategory(tournament.category, true);
                      new_player.rankings[category] = +category_ranking.ranking;
-
-                     // TODO: standard way to support 'MR' rankings for other countries...
-                     if (category_ranking.MR > 0) {
-                        console.log('CATEGORY BOMB');
-                        if (!new_player.MR) new_player.MR = {};
-                        new_player.MR[category] = category_ranking.MR;
-                     }
+                     new_player.category_ranking = +category_ranking.ranking;
+                     new_player.int = category_ranking.int;
                   }
                }
                addPlayer();
@@ -1986,8 +1981,8 @@ let tournaments = function() {
 
             // delete any event matches in database
             db.deleteEventMatches(tournament.tuid, e.euid)
-               .then(() => db.deleteEventPoints(tournament.tuid, e.euid), err => console.log('Error deleting matches:', err))
-               .then(reGen, err => console.log('Error deleteing points:', err));
+               .then(() => db.deleteEventPoints(tournament.tuid, e.euid), util.logError)
+               .then(reGen, util.logError);
 
             tournament.events.splice(index, 1);
             removeReferences(e.euid);
@@ -2620,7 +2615,7 @@ let tournaments = function() {
             category = config.legacyCategory(category);
             players.forEach(player => {
                if (player.modified_ranking) {
-                  player.category_ranking = player.modified_ranking;
+                  player.category_ranking = +player.modified_ranking;
                } else if (player.rankings && player.rankings[category]) {
                   player.category_ranking = +player.rankings[category];
                } else if (player.rank) {
@@ -2806,13 +2801,13 @@ let tournaments = function() {
          let seed_limit = dfx.seedLimit(approved_players.length);
 
          // Round Robins must have at least one seed per bracket
-         if (e.draw_type == 'R') seed_limit = Math.max(seed_limit, e.brackets * 2);
-
-         // Qualifying Draws must have at least one seed per section
-         // TODO: This should really be two 
+         if (e.draw_type == 'R') { seed_limit = Math.max(seed_limit, e.brackets * 2); }
          if (e.draw_type == 'Q') seed_limit = (e.qualifiers * 2) || Math.max(seed_limit, e.qualifiers);
 
          // if (e.draw_type == 'C' && !config.env().drawFx.consolation_seeding) seed_limit = 0;
+
+         let ranked_players = approved_players.filter(a=>a.category_ranking).length;
+         if (ranked_players < seed_limit) seed_limit = ranked_players;
 
          let linkedQ = findEventByID(e.links['Q']) || findEventByID(e.links['R']);
          let qualifier_ids = linkedQ && linkedQ.qualified ? linkedQ.qualified.map(teamHash) : [];
@@ -2837,7 +2832,7 @@ let tournaments = function() {
                p.draw_order = i + 1;
                p.seed = (seeding && i < seed_limit) ? i + 1 : undefined;
 
-               p.rank = p.category_ranking;
+               p.rank = p.modified_ranking || p.category_ranking;
                p.last_name = p.last_name.toUpperCase();
                p.first_name = util.normalizeName(p.first_name, false);
                return p;
@@ -3442,9 +3437,6 @@ let tournaments = function() {
       // separated this function from scheduleTab() because uglify caused errors
       function displaySchedule() {
          var { completed_matches, pending_matches, upcoming_matches } = tournamentEventMatches({ tournament, source: true });
-         console.log(completed_matches);
-         console.log(pending_matches);
-         console.log(upcoming_matches);
 
          let img = new Image();
          img.src = "./icons/dragmatch.png";
@@ -3481,7 +3473,11 @@ let tournaments = function() {
          container.schedule_day.ddlb.selectionBackground();
          container.schedule_day.ddlb.setValue(displayed_schedule_day);
 
-         let event_filters = [].concat({ key: lang.tr('schedule.allevents'), value: '' }, ...tournament.events.map(evt => ({ key: evt.name, value: evt.euid })));
+         function eventOption(evt) {
+            let type = evt.draw_type == 'E' ? '' : evt.draw_type == 'C' ? ` ${lang.tr('draws.consolation')}` : evt.draw_type == 'R' ? ' RR' : ' Q';
+            return { key: `${evt.name}${type}`, value: evt.euid }
+         }
+         let event_filters = [].concat({ key: lang.tr('schedule.allevents'), value: '' }, ...tournament.events.map(eventOption));
          dd.attachDropDown({ 
             id: container.event_filter.id, 
             options: event_filters,
@@ -4298,7 +4294,7 @@ let tournaments = function() {
          // TODO: temporary; HTS only has one category per tournament...
          // in the future there will need to be a variable to keep track of
 
-         let category = config.legacyCategory(tournament.category);
+         let category = config.legacyCategory(tournament.category, true);
          let tournament_date = tournament && (tournament.points_date || tournament.end);
          let calc_date = tournament_date ? new Date(tournament_date) : new Date();
          let categories = config.orgCategories({ calc_date }).map(r => ({ key: r, value: r }));
@@ -4399,40 +4395,52 @@ let tournaments = function() {
 
          let entryKey = (evt, cls, attribute) => {
             let value = evt.target.value;
-            // let numeric = value && !isNaN(value) ? parseInt(value.toString().slice(-4)) : undefined;
-            // evt.target.value = numeric || '';
-            evt.target.value = util.numeric(value) || '';
+            function validValue(value) { return /^\{\d*\}*$/.test(value) ? value : util.numeric(value); }
+            evt.target.value = validValue(value) || '';
 
-               let element = util.getParent(evt.target, 'player_click');
-               let puid = element.getAttribute('puid');
-               let changed_player = playerByPUID(puid);
+            let element = util.getParent(evt.target, 'player_click');
+            let puid = element.getAttribute('puid');
+            let changed_player = playerByPUID(puid);
 
-               if (changed_player) {
-                  let changeable = true;
-                  if (players_approved().indexOf(changed_player.id) >= 0) {
-                     let message = `<div>${lang.tr('phrases.cannotchangerank')}<p>${lang.tr('phrases.approvedplayer')}</div>`;
-                     gen.popUpMessage(message);
-                     changeable = false;
-                  }
-                  // TODO: in the future will need to modify rank for categories if there are multiple categories in one tournament
-                  if (attribute == 'rank') { 
-                     if (changeable) {
+            let changed_value = evt.target.value != validValue(changed_player.category_ranking) && evt.target.value != validValue(changed_player.modified_ranking);
+
+            if (changed_player) {
+               let changeable = players_approved().indexOf(changed_player.id) >= 0 ? false : true;
+               if (!changeable && changed_value) {
+                  let message = `<div>${lang.tr('phrases.cannotchangerank')}<p>${lang.tr('phrases.approvedplayer')}</div>`;
+                  gen.escapeModal();
+                  gen.popUpMessage(message);
+               }
+               // TODO: in the future will need to modify rank for categories if there are multiple categories in one tournament
+               if (attribute == 'rank') { 
+                  if (changeable) {
+                     if (value.indexOf('{') == 0) {
+                        if (/^\{\d+\}$/.test(value)) {
+                           let v = util.numeric((/^\{(\d+)\}$/.exec(value) || [])[1]);
+                           changed_player.modified_ranking = v;
+                           changed_player.int = v;
+                        } else if (/^\{\}$/.test(value)) {
+                           delete changed_player.modified_ranking;
+                           delete changed_player.int;
+                        }
+                     } else {
                         changed_player.modified_ranking = isNaN(value) || value == 0 ? undefined : +value; 
                         changed_player.category_ranking = isNaN(value) || value == 0 ? undefined : +value; 
                         checkDuplicateRankings(display_order);
-                     } else {
-                        evt.target.value = changed_player.modified_ranking || changed_player.category_ranking;
                      }
                   } else {
-                     if (changeable) {
-                        changed_player.subrank = isNaN(value) ? undefined : +value;
-                     } else {
-                        evt.target.value = changed_player.subrank || '';
-                     }
+                     evt.target.value = validValue(changed_player.modified_ranking || changed_player.category_ranking) || '';
+                  }
+               } else {
+                  if (changeable) {
+                     changed_player.subrank = isNaN(value) ? undefined : +value;
+                  } else {
+                     evt.target.value = changed_player.subrank || '';
                   }
                }
+            }
 
-            if (evt.which == 13 || evt.which == 9) {
+            if (!gen.disable_keypress && (evt.which == 13 || evt.which == 9)) {
                // now move the cursor to the next player's ranking
                let order = evt.target.getAttribute('order');
                let entry_fields = Array.from(container.players.element.querySelectorAll(cls));
@@ -5750,9 +5758,6 @@ let tournaments = function() {
                   function invalidEntry() { pobj.player_index.element.value = ''; }
                }
 
-               // let value = pobj.player_index.element.value.match(/-?\d+\.?\d*/);
-               // let numeric = value && !isNaN(value[0]) ? parseInt(value[0].toString().slice(-2)) : undefined;
-               // pobj.player_index.element.value = numeric || '';
                pobj.player_index.element.value = util.numeric(value) || '';
             }
          }
@@ -5882,8 +5887,6 @@ let tournaments = function() {
                   return;
                }
 
-               // let numeric = value && !isNaN(value[0]) ? parseInt(value[0].toString().slice(-2)) : undefined;
-               // pobj.player_index.element.value = numeric || '';
                pobj.player_index.element.value = util.numeric(value) || '';
             }
          }
@@ -6242,7 +6245,6 @@ let tournaments = function() {
 
                         function playerIndex(evt) {
                            let value = swap.new_position.element.value.match(/-?\d+\.?\d*/);
-                           // let numeric = value && !isNaN(value[0]) ? parseInt(value[0].toString().slice(-2)) : undefined;
                            let numeric = util.numeric(value);
                            let valid = swap_positions.indexOf(numeric) >= 0;
                            swap.new_position.element.value = numeric || '';
@@ -6709,6 +6711,7 @@ let tournaments = function() {
             i18n: lang.obj('i18n'),
             defaultDate: points_date,
             setDefaultDate: true,
+            firstDay: config.env().calendar.first_day,
             onSelect: function() {
                points_date = this.getDate();
                tournament.points_date = points_date.getTime();
@@ -6790,6 +6793,7 @@ let tournaments = function() {
             defaultDate: start,
             setDefaultDate: true,
             i18n: lang.obj('i18n'),
+            firstDay: config.env().calendar.first_day,
             onSelect: function() {
                 let date = this.getDate();
                 // can't set start after to earliest scheduled match
@@ -6807,6 +6811,7 @@ let tournaments = function() {
             defaultDate: end,
             setDefaultDate: true,
             i18n: lang.obj('i18n'),
+            firstDay: config.env().calendar.first_day,
             onSelect: function() {
                 let date = this.getDate();
                let this_date = this.getDate();
@@ -7548,6 +7553,7 @@ let tournaments = function() {
          defaultDate: start,
          setDefaultDate: true,
          i18n: lang.obj('i18n'),
+         firstDay: config.env().calendar.first_day,
          onSelect: function() { 
             let this_date = this.getDate();
             start = new Date(util.dateUTC(this_date));
@@ -7565,6 +7571,7 @@ let tournaments = function() {
       var endPicker = new Pikaday({
          field: container.end.element,
          i18n: lang.obj('i18n'),
+         firstDay: config.env().calendar.first_day,
          onSelect: function() {
             let this_date = this.getDate();
             end = new Date(util.dateUTC(this_date));
@@ -7754,6 +7761,7 @@ let tournaments = function() {
             i18n: lang.obj('i18n'),
             defaultDate: start,
             setDefaultDate: true,
+            firstDay: config.env().calendar.first_day,
             onSelect: function() {
                start = this.getDate();
                updateStartDate();
@@ -7766,6 +7774,7 @@ let tournaments = function() {
             i18n: lang.obj('i18n'),
             defaultDate: end,
             setDefaultDate: true,
+            firstDay: config.env().calendar.first_day,
             onSelect: function() {
                end = this.getDate();
                updateEndDate();
@@ -7804,7 +7813,7 @@ let tournaments = function() {
       let default_localization = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
       return date.toLocaleDateString(lang.tr('datelocalization'), date_localization || default_localization);
    }
-
+   
    return fx;
 
 }();
