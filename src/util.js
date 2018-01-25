@@ -109,7 +109,7 @@ let util = function() {
           if (oKeys.indexOf(vKeys[k]) >= 0) {
               var oo = optionsObject[vKeys[k]];
               var vo = valuesObject[vKeys[k]];
-              if (typeof oo == 'object' && typeof vo !== 'function' && oo.constructor !== Array) {
+              if (oo && typeof oo == 'object' && typeof vo !== 'function' && oo.constructor !== Array) {
                   keyWalk(valuesObject[vKeys[k]], optionsObject[vKeys[k]]);
               } else {
                   optionsObject[vKeys[k]] = valuesObject[vKeys[k]];
@@ -129,6 +129,7 @@ let util = function() {
         } else {
             if (oo === 'true') optionsObject[oKeys[k]] = true;
             if (oo === 'false') optionsObject[oKeys[k]] = false;
+            if (!isNaN(oo)) optionsObject[oKeys[k]] = parseInt(oo);
         }
       }
    }
@@ -170,7 +171,7 @@ let util = function() {
    }
 
    // Miscellaneous Functions
-   fx.numeric = (value) => value && !isNaN(value) ? parseInt(value.toString().slice(-4)) : undefined;
+   fx.numeric = (value) => value && !isNaN(value) ? parseInt(value.toString().trim()) : 0;
    fx.isMember = (list, m) => list.reduce((p, c) => c == m || p, false);
    fx.unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
    fx.uunique = (arr) => Object.keys(Object.assign({}, ...arr.map(a=>({[a]:true}))));
@@ -302,6 +303,8 @@ let util = function() {
       var endArgs = str.indexOf(')');
       return new Function(str.substring(startArgs, endArgs), str.substring(startBody, endBody));
    }
+
+   fx.logError = (err) => console.log(err);
 
    return fx;
  
