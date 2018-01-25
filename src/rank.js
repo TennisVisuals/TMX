@@ -412,7 +412,7 @@
 
          point_events.forEach(pe => { if (isNaN(pe.points)) rank.point_issues.push(pe); });
 
-         let reduce = (point_events) => point_events.map(p => +p.points).reduce((a, b) => a + b, 0);
+         let reduce = (point_events) => point_events.map(p => util.numeric(p.points)).reduce((a, b) => a + b, 0);
          let team_events = point_events.filter(e=>e.tournament_type == 'MO');
          let singles_events = point_events.filter(e=>e.format == 'singles' && e.tournament_type != 'MO');
          let singles_events_up = singles_events.filter(e=>e.category > category);
@@ -426,7 +426,6 @@
          let doubles_up = doubles_events_up.length ? reduce(doubles_events_up) : 0;
 
          let total = point_events.length ? reduce(point_events) : 0;
-         // if (categories.indexOf(category) >= 0 && total > 0) rpts[category] = { total, singles, doubles, singles_up, doubles_up, team };
          if (util.isMember(categories, category) && total > 0) rpts[category] = { total, singles, doubles, singles_up, doubles_up, team };
       });
 
@@ -807,9 +806,7 @@
             }
          }
 
-         function handleError(err) { 
-            delayNext(); 
-         }
+         function handleError(err) { delayNext(); }
          function delayNext(result) { 
             if (bulkResults && result) results.push(result);
             nextItem();
