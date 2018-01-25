@@ -138,12 +138,13 @@ let coms = function() {
          <p>${lang.tr('tournaments.publishtime')}:<br>${new Date(published_tournament.published).toGMTString()}</p>
          <p>${lang.tr('tournaments.replacelocal')}</p>
       `;
-      let msg = gen.okCancelMessage(message, saveTournament, () => gen.closeModal());
-      function saveTournament() {
-         db.addTournament(published_tournament);
-         tournaments.displayTournament({tuid: published_tournament.tuid});
+      let msg = gen.okCancelMessage(message, saveReceivedTournament, () => gen.closeModal());
+      function saveReceivedTournament() {
          gen.closeModal();
+         published_tournament.received = new Date().getTime();
+         db.addTournament(published_tournament).then(displayTournament, util.logError);
       }
+      function displayTournament() { tournaments.displayTournament({tuid: published_tournament.tuid}); }
    }
 
    fx.sendKey = (key) => { fx.emitTmx({ key }); }
@@ -299,7 +300,7 @@ let coms = function() {
       }
    }
 
-   function fetchJSON (url) {
+   function fetchJSON(url) {
       return new Promise((resolve, reject) => {
             let request_object = { url: url };
             let request = JSON.stringify(request_object);
