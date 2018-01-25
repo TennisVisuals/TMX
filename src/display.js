@@ -46,6 +46,17 @@
       // capture key up/left/down/right events and pass to subscribed function
       if (evt.key.indexOf('Arrow') == 0 && typeof gen.arrowFx == 'function') gen.arrowFx(evt.key); 
       if (evt.key.indexOf('Escape') == 0 && typeof gen.escapeFx == 'function') gen.escapeFx(); 
+      if ((evt.keyCode == 13 || evt.keyCode == 9) && gen.disable_keypress) {
+         evt.preventDefault();
+         evt.stopPropagation();
+      }
+   });
+
+   document.addEventListener('keyup', evt => { 
+      if ((evt.keyCode == 13 || evt.keyCode == 9) && gen.disable_keypress) {
+         evt.preventDefault();
+         evt.stopPropagation();
+      }
    });
 
    let surface_icons = {
@@ -237,6 +248,7 @@
       }
       if (!gen.modal) document.body.style.overflow  = null;
       gen.escapeFx = undefined;
+      gen.disable_keypress = false;
       searchBox.focus();
    }
 
@@ -369,8 +381,10 @@
       `;
       document.getElementById('processingtext').innerHTML = html;
       let id_obj = idObj(ids);
+      gen.disable_keypress = true;
       id_obj.ok.element.addEventListener('click', dismissPopUp);
       function dismissPopUp() { 
+         gen.disable_keypress = false;
          document.body.style.overflow  = null;
          document.getElementById('processing').style.display = "none";
          if (typeof callback == 'function') callback();
@@ -628,8 +642,6 @@
    }
 
    gen.playerPoints = (point_events, title, expire_date) => {
-
-      // TODO: date picker to regenerate tabs to show point total for specific dates...
       let html = `
          <div class='section_row flexrow section_header'>
             <div class='ptrny'><b>${lang.tr('trn')}</b></div>
@@ -670,7 +682,7 @@
             <div class='pround'>${round}</div>
             <div class='pdate'>${formatted_date}</div>
             <div class='pformat'>${lang.tr(format)}</div>
-            <div class='pcat'>${points.category}</div>
+            <div class='pcat'>${config.legacyCategory(points.category, true)}</div>
             <div class='prank'>${points.rank}</div>
             <div class='points'>${points.points}</div>
          </div>`;
@@ -1038,6 +1050,7 @@
 
       let tabdata = [];
       if (tabs.org && tabs.org.html) tabdata.push({ tab: lang.tr('settings.organization'), content: tabs.org.html });
+      if (tabs.general && tabs.general.html) tabdata.push({ tab: lang.tr('settings.general'), content: tabs.general.html });
       if (tabs.categories && tabs.categories.html) tabdata.push({ tab: lang.tr('settings.categories'), content: tabs.categories.html });
       if (tabs.points && tabs.points.html) tabdata.push({ tab: lang.tr('settings.points'), content: tabs.points.html });
       if (tabs.draws && tabs.draws.html) tabdata.push({ tab: lang.tr('settings.draws'), content: tabs.draws.html });
@@ -1211,6 +1224,28 @@
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.matchesbefore')}:</label>
                     <input type='checkbox' id="${ids.after_matches}">
+                </div>
+             </div>
+         </div>
+
+         </div>
+      `;
+      return { ids, html, ddlb }
+   }
+
+   gen.generalSettings = () => {
+      let ids = {
+         first_day: gen.uuid(),
+      };
+      let ddlb = [];
+      let html = `
+         <div style='min-height: 150px'>
+         <h2>&nbsp;</h2>
+         <div class='flexcenter' style='width: 100%;'>
+             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.firstday')}</label>
+                    <input type='checkbox' id="${ids.first_day}">
                 </div>
              </div>
          </div>
@@ -1592,8 +1627,8 @@
          m.forEach((p, i) => rowHTML(p, i, 'M'));
          if (m.length) html += `<div class='signin-row'></div>`;
          w.forEach((p, i) => rowHTML(p, i, 'W'));
-         if (m.length || w.length) html += `<div class='signin-row'></div>`;
-         u.forEach((p, i) => rowHTML(p, i, 'W'));
+         if (w.length) html += `<div class='signin-row'></div>`;
+         u.forEach((p, i) => rowHTML(p, i, ''));
       }
 
       if (!edit) genSection('signin.registered', not_withdrawn);
@@ -1640,12 +1675,15 @@
       if (p.signed_in && (!player.registration(p) || !player.medical(p))) font_color = '#c93214';
       let style = `style='color: ${font_color}'`;
 
-      let ranking = p.category_ranking || '';
+      let ranking = util.numeric(p.category_ranking) || '';
       if (p.int && p.int > 0) ranking = `{${ranking}}`;
 
       let additional = !additional_attributes ? '' :
          additional_attributes.map(attr => `<div class='registered_attr flexcenter'>${p[attr.value] || ''}</div>`);
 
+      let club = p.club_code || p.club_name || '';
+      let club_gradient = `registered_club_${!gender ? 'u' : gender == 'W' ? 'w' : 'm'}`;
+      let club_class = p.club_code || !club ? 'registered_attr flexcenter' : `registered_club ${club_gradient}`;
       let html = `
          <div puid='${p.puid}' index='${i}' class='player_click signin-row flexrow detail' ${style}>
             <div class='registered_count flexjustifystart'>${i || ''}</div>
@@ -1654,14 +1692,14 @@
             <div class='registered_attr rankrow'>
                <span class='flexcenter rankvalue'>${ranking}</span>
                <span class='flexjustifyend rankentry' style='display: none;'>
-                  <input rankentry='${p.id}' order='${j}' class='manualrank' value='${p.category_ranking || ''}'>
+                  <input rankentry='${p.id}' order='${j}' class='manualrank' value='${ranking}'>
                </span>
                <span class='flexjustifyend ranksub' style='display: none;'>
                   <input rankentry='${p.id}' puid='${p.puid}' order='${j}' class='subrank' value='${p.subrank || ''}' style='opacity: 0;'>
                </span>
             </div>
             <div class='registered_attr flexcenter'>${birthyear}</div>
-            <div class='registered_attr flexcenter'>${p.club_code || ''}</div>
+            <div class='${club_class}'>${club}</div>
             <div class='registered_attr flexcenter'>${ioc}</div>
             <div class='registered_attr flexcenter'>${p.sex || 'X'}</div>
          </div>`;
@@ -3330,6 +3368,7 @@
    function calendarRow(tournament) {
       let category = config.legacyCategory(tournament.category, true);
       let background = new Date().getTime() > tournament.end ? 'calendar_past' : 'calendar_future';
+      let received = tournament.received ? 'tournament_received' : '';
       let actual_rankings = '';
       if (tournament.accepted) {
          let rankDiff = (rank) => `<span class='${rank != tournament.rank ? "diff" : ""}'>${rank}</span>`;
@@ -3341,7 +3380,7 @@
       }
 
       return `
-         <div tuid='${tournament.tuid}' class='calendar_click calendar_row ${background}'>
+         <div tuid='${tournament.tuid}' class='calendar_click calendar_row ${background} ${received}'>
             <span class='dates' style='overflow: hidden'> ${displayDate(tournament.start)}&nbsp;/ ${displayDate(tournament.end)} </span>
             <div class='name'>${tournament.name}</div>
             <div class='category'>${category || ''}</div>
