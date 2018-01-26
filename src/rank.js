@@ -7,7 +7,7 @@
 
    function fullName(player) { return `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; }
    function calcPoints(match, points_table, category, event_rank) {
-      category = config.legacyCategory(category || (match.event && match.event.category));
+      category = config.legacyCategory(category || (match.event && match.event.category), true);
       event_rank = event_rank || (match.event && match.event.rank);
 
       // TODO: deal with legacy situation...
