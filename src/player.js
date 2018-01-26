@@ -76,7 +76,7 @@ let player = function() {
                   return resolve(fx.actions[fx.action](container, fallback));
                }
                if (fallback && fx.override) { return resolve(fx.override(fallback)); }
-               console.log('player not found');
+               console.log('player not found. PUID:', puid);
                reject({ error: 'Player Not Found' });
             }
          });
@@ -222,9 +222,6 @@ let player = function() {
 
    // cleanPlayer removes all calculated Points and calculated Rankings
    fx.cleanPlayer = (player) => Object.assign({}, ...Object.keys(player).filter(key => ['points', 'rankings'].indexOf(key) < 0).map(key => { return { [key]: player[key] }}));
-
-   // to clean players in all matches:
-   // db.db.matches.toCollection().modify(match => match.players = match.players.map(player => cleanPlayer(player))
 
    fx.replacePlayer = (match, old_player, new_player) => {
       match.puids = match.puids.map(puid => (puid != old_player.puid) ? puid : new_player.puid);
