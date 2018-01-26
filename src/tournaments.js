@@ -210,7 +210,7 @@ let tournaments = function() {
          if (!tournament) return;
          if (gen.inExisting(['identify', 'tournament'])) load.reset();
 
-         tournament.matches = matches;
+         if (!tournament.events || !tournament.events.length) tournament.matches = matches;
 
          let rankings = {
             sgl_rank: tournament.rank,
@@ -299,8 +299,6 @@ let tournaments = function() {
 
       // TODO: remove this when finished
       dev.tournament = tournament;
-      dev.container = container;
-      dev.classes = classes;
 
       // create and initialize draw objects
       let rr_draw = rrDraw();
@@ -1146,14 +1144,11 @@ let tournaments = function() {
          }
 
          current_tab = reference || tab_number;
-
-         // no longer necessary?
-         // saveTournament(tournament);
       }
 
       // boolean whether there are existing matches
       function tMatches() {
-         if (tournament.matches && tournament.matches.length) return true;
+         if (tournament.matches && tournament.matches.length) return tournament.matches.length;
          if (!tournament.events) return false;
 
          let { total_matches } = tournamentEventMatches({ tournament });
@@ -1265,8 +1260,6 @@ let tournaments = function() {
 
       function editAction() {
          if (!container.edit.element || !container.finish.element) return;
-         // container.edit.element.style.opacity = group_draws.length ? 0 : 1;
-         // if (group_draws.length) return;
          
          container.edit.element.addEventListener('click', () => {
             if (!state.edit) {
@@ -1971,7 +1964,7 @@ let tournaments = function() {
             closeEventDetails();
 
             // filter out matches from deleted event
-            tournament.matches = tournament.matches.filter(m=>m.event.euid != e.euid);
+            if (tournament.matches) tournament.matches = tournament.matches.filter(m=>m.event && m.event.euid != e.euid);
 
             // Delete any published events or matches
             deletePublishedEvent(tournament, e);
@@ -1980,6 +1973,13 @@ let tournaments = function() {
             db.deleteEventMatches(tournament.tuid, e.euid)
                .then(() => db.deleteEventPoints(tournament.tuid, e.euid), util.logError)
                .then(reGen, util.logError);
+
+            function reGen() {
+               drawsTab();
+               scheduleTab();
+               eventsTab();
+               matchesTab();
+            }
 
             tournament.events.splice(index, 1);
             removeReferences(e.euid);
@@ -1997,19 +1997,6 @@ let tournaments = function() {
             });
 
             saveTournament(tournament);
-
-            // need to regenerate to remove non-existent matches
-            // TODO: this appears to be legacy and no longer applicable?
-            function reGen() {
-               let group_matches = groupMatches(tournament.matches);
-               match_groups = group_matches.groups;
-               group_draws = group_matches.group_draws;
-
-               drawsTab();
-               scheduleTab();
-               eventsTab();
-               matchesTab();
-            }
             gen.closeModal();
          }
 
@@ -4531,23 +4518,33 @@ let tournaments = function() {
       }
 
       function tournamentPoints(tournament, matches) {
-         let tournament_date = tournament && (tournament.points_date || tournament.end);
-         let points_date = tournament_date ? new Date(tournament_date) : new Date();
+         var tournament_date = tournament && (tournament.points_date || tournament.end);
+         var points_date = tournament_date ? new Date(tournament_date) : new Date();
 
          pointsTabVisible(container, tournament, matches && matches.length);
          if (!matches || !matches.length) return;
-         // remove any calculated points or rankings
-         matches.forEach(match => match.players.forEach(p => p=player.cleanPlayer(p)));
 
-         let points_table = config.pointsTable({ calc_date: points_date });
+         checkAllPlayerPUIDs(tournament.players).then(proceed, util.logError);
 
-         let match_data = { matches, points_table, points_date };
-         let points = rank.calcMatchesPoints(match_data);
+         function proceed() {
+            var puid_fix = Object.assign({}, ...tournament.players.map(p=>({[p.id]: p.puid})));
 
-         // TODO: maybe not save until tournament is downloaded from cloud?
-         // saveMatchesAndPoints({ tournament, matches, points });
+            // remove any calculated points or rankings
+            matches.forEach(match => match.players.forEach(scrubPlayer));
 
-         displayTournamentPoints(container, tournament, points, filters);
+            var points_table = config.pointsTable({ calc_date: points_date });
+
+            var match_data = { matches, points_table, points_date };
+            var points = rank.calcMatchesPoints(match_data);
+
+            saveMatchesAndPoints({ tournament, matches, points });
+            displayTournamentPoints(container, tournament, points, filters);
+
+            function scrubPlayer(p) {
+               p.puid = puid_fix[p.id];
+               return player.cleanPlayer(p);
+            }
+         }
       }
 
       function drawCreated(e) {
@@ -4564,7 +4561,7 @@ let tournaments = function() {
 
       function showSchedule() {
          let no_events = !tournament.events || !tournament.events.length;
-         let only_matches = group_draws.length && no_events;
+         let only_matches = group_draws && group_draws.length && no_events;
          let visible = !tournamentCourts() || only_matches || no_events ? false : true;
          tabVisible(container, 'ST', visible);
          return visible;
@@ -4586,6 +4583,7 @@ let tournaments = function() {
          pointsTab(tournament, container, filters);
 
          let { completed_matches, pending_matches, upcoming_matches } = tournamentEventMatches({ tournament });
+
          if (!completed_matches.length && tournament.matches && tournament.matches.length) {
             // if matches array part of tournament object, matches have been imported
             tournament.matches.forEach(match => match.outcome = player.matchOutcome(match));
@@ -6704,7 +6702,7 @@ let tournaments = function() {
 
       function tournamentTab() {
          let { days } = scheduledMatches();
-         if (tournament.matches.length && (!tournament.events || !tournament.events.length)) {
+         if ((tournament.matches && tournament.matches.length) && (!tournament.events || !tournament.events.length)) {
             legacyTournamentOptions();
          } else {
             tournamentOptions(days);
@@ -6842,7 +6840,7 @@ let tournaments = function() {
       function drawsTab() {
          let existing_draws = false;
          let event_draws = tournament.events && tournament.events.length && tournament.events.map(e => e.draw).length;
-         if (group_draws.length || event_draws) existing_draws = true;
+         if ((group_draws && group_draws.length) || event_draws) existing_draws = true;
          tabVisible(container, 'DT', existing_draws);
          if (!existing_draws) return;
 
@@ -6940,6 +6938,7 @@ let tournaments = function() {
          if (o.save) db.addTournament(tournament);
          tournament.saved_locally = false;
          tournament.published = false;
+         delete tournament.matches;
          gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
          gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
       }
@@ -7046,7 +7045,6 @@ let tournaments = function() {
    }
 
    function saveMatchesAndPoints({ tournament, matches, points, gender, finishFx }) {
-
       db.deleteTournamentPoints(tournament.tuid, gender).then(saveAll, (err) => console.log(err));
 
       function saveAll() {
@@ -7061,14 +7059,32 @@ let tournaments = function() {
 
          // if anyone earned points, save matches, point_events then display
          if (total_points) {
-            let addPointEvents = (point_events) => util.performTask(db.addPointEvent, point_events, false);
-            let valid_points = all_points.filter(p => p.points != undefined && p.puid);
+            Promise.all(all_points.map(checkPlayerPUID)).then(addAllPoints, util.logError);
 
-            addPointEvents(valid_points).then(() => addMatches(matches)).then(finish);
+            function addAllPoints(ap) {
+               let addPointEvents = (point_events) => util.performTask(db.addPointEvent, point_events, false);
+               let valid_points = all_points.filter(p => p.points != undefined && p.puid);
+               addPointEvents(valid_points).then(() => addMatches(matches)).then(finish);
+            }
+
          } else {
             addMatches(matches).then(finish);
          }
       }
+   }
+
+   function checkAllPlayerPUIDs(players) {
+      return new Promise((resolve, reject) => Promise.all(players.map(checkPlayerPUID)).then(resolve, util.logError));
+   }
+
+   function checkPlayerPUID(plyr) {
+      return new Promise((resolve, reject) => {
+         db.findPlayerById(plyr.id).then(checkPlayer, ()=>resolve(plyr));
+         function checkPlayer(p) {
+            if (p) plyr.puid = p.puid;
+            resolve(plyr);
+         }
+      });
    }
 
    function pointsTabVisible(container, tournament, visible=true) {
@@ -7314,6 +7330,7 @@ let tournaments = function() {
 
    function groupMatches(matches) {
       let groups = {}
+      if (!matches) return groups;
 
       groups.ms = matches.filter(match => match.format == 'singles' && match.gender == 'M' && match.consolation == false);
       groups.msq = groups.ms.filter(match => match.round.indexOf('Q') == 0 && match.round.indexOf('QF') != 0);
@@ -7378,6 +7395,7 @@ let tournaments = function() {
 
    // takes a list of matches creates a list of players and events they played/are playing
    function matchPlayers(matches) {
+      if (!matches) return [];
       addMatchDraw(matches);
 
       let players = [].concat(...matches.map(match => {
