@@ -63,7 +63,8 @@ let config = function() {
       calendar: {
          start: undefined,
          end: undefined,
-         category: undefined
+         category: undefined,
+         first_day: 0
       },
       drawFx: {
          auto_byes: true,
@@ -103,9 +104,6 @@ let config = function() {
       publishing: {
          require_confirmation: true,
          publish_on_score_entry: true,
-      },
-      calendar: {
-         first_day: 0,
       },
       messages: []
    }
@@ -222,15 +220,19 @@ let config = function() {
 
    fx.idiomSelectorOptions = idiomSelectorOptions;
    function idiomSelectorOptions(ioc) {
-      let idioms = Object.keys(fx.available_idioms);
-      if (!idioms.length) idioms = lang.options();
-      let options = idioms.sort().map(value => {
-         let ioc_value = value.length == 3 ? value : 'gbr';
-         let img_src = `./assets/flags/${ioc_value.toUpperCase()}.png`;
-         return { key: `<div class=''><img src="${img_src}" class='idiom_flag'></div>`, value, title: value }
+      d3.json('./assets/ioc_codes.json', data => {
+         let ioc_idioms = Object.assign({}, ...data.map(d => ({ [d.ioc]: d.name })));
+
+         let idioms = Object.keys(fx.available_idioms);
+         if (!idioms.length) idioms = lang.options();
+         let options = idioms.sort().map(value => {
+            let ioc_value = value.length == 3 ? value : 'gbr';
+            let img_src = `./assets/flags/${ioc_value.toUpperCase()}.png`;
+            return { key: `<div class=''><img src="${img_src}" class='idiom_flag'></div>`, value, title: ioc_idioms[value.toUpperCase()] }
+         });
+         fx.idiom_ddlb.setOptions(options, 'background: black')
+         fx.idiom_ddlb.setValue(ioc);
       });
-      fx.idiom_ddlb.setOptions(options, 'background: black')
-      fx.idiom_ddlb.setValue(ioc);
    }
 
    function idiomSelector() {
