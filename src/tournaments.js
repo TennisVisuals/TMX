@@ -1448,7 +1448,6 @@ let tournaments = function() {
          if (created) {
             let qualifying = (displayed_draw_event && util.isMember(['Q', 'R'], displayed_draw_event.draw_type) && displayed_draw_event.draw);
             let lucky_losers = qualifying ? dfx.drawInfo(displayed_draw_event.draw).complete : undefined;
-            console.log('LL:', lucky_losers);
 
             let tree = Object.keys(tree_draw.data()).length;
             let rr = rr_draw && rr_draw.data().brackets && rr_draw.data().brackets.length;
@@ -2419,7 +2418,7 @@ let tournaments = function() {
 
       function configureEventSelections(e) {
          let eventName = () => {
-            e.name = `${getKey(genders, e.gender)} ${config.legacyCategory(e.category)} ${getKey(formats, e.format)}`;
+            e.name = `${getKey(genders, e.gender)} ${config.legacyCategory(e.category, true)} ${getKey(formats, e.format)}`;
             gen.setEventName(container, e);
             eventList(true);
          }
@@ -3005,13 +3004,20 @@ let tournaments = function() {
             e.draw.opponents = approved_opponents;
             e.draw.unseeded_teams = teamSort(e.draw.opponents.filter(f=>!f[0].seed));
 
+            // place first seed for each qualifying section
             let count = Math.max(2, e.qualifiers);
-
             dfx.placeSeedGroups({ draw: e.draw, count });
 
             if (e.automated) {
-               dfx.placeSeedGroups({ draw: e.draw });
-               dfx.distributeByes({ draw: e.draw });
+               if (e.draw.max_round && e.draw.max_round == 1) {
+                  // if pre-round, distribute byes FIRST, because all ranked players are seeded
+                  dfx.distributeByes({ draw: e.draw, bye_order: false });
+                  dfx.placeSeedGroups({ draw: e.draw });
+               } else {
+                  dfx.placeSeedGroups({ draw: e.draw });
+                  dfx.distributeByes({ draw: e.draw, bye_order: false });
+               }
+               dfx.distributeByes({ draw: e.draw, bye_order: false });
                dfx.placeUnseededTeams({ draw: e.draw });
                dfx.advanceTeamsWithByes({ draw: e.draw });
                if (e.draw_type == 'Q') checkForQualifiedTeams(e);
@@ -3936,6 +3942,7 @@ let tournaments = function() {
                      gen.svgModal({ x: ev.clientX, y: ev.clientY, options: headings, callback: timeHeading });
                   } else if (choice.key == 'changestatus') {
                      let statuses = [
+                        lang.tr('schedule.called'),
                         lang.tr('schedule.oncourt'),
                         lang.tr('schedule.warmingup'),
                         lang.tr('schedule.suspended'),
@@ -3948,8 +3955,8 @@ let tournaments = function() {
                      return;
                   } else if (choice.key == 'penalty') {
                      let statuses = [
-                        { label: lang.tr('penalties.fail2signout'), value: 'fail2signout' },
                         { label: lang.tr('penalties.illegalcoaching'), value: 'illegalcoaching' },
+                        { label: lang.tr('penalties.unsporting'), value: 'unsporting' },
                         { label: lang.tr('penalties.ballabuse'), value: 'ballabuse' },
                         { label: lang.tr('penalties.racquetabuse'), value: 'racquetabuse' },
                         { label: lang.tr('penalties.equipmentabuse'), value: 'equipmentabuse' },
@@ -3958,6 +3965,7 @@ let tournaments = function() {
                         { label: lang.tr('penalties.foullanguage'), value: 'foullanguage' },
                         { label: lang.tr('penalties.timeviolation'), value: 'timeviolation' },
                         { label: lang.tr('penalties.latearrival'), value: 'latearrival' },
+                        { label: lang.tr('penalties.fail2signout'), value: 'fail2signout' },
                      ];
                      gen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: assessPenalty });
                   } else if (choice.key == 'remove') {
@@ -7222,25 +7230,6 @@ let tournaments = function() {
       searchBox.active = {};
       gen.clearActivePlayer();
       searchBox.focus();
-   }
-
-   // TODO: What is this?  Still needed?
-   fx.pts = pts;
-   function pts() {
-      console.log('boo... this is still used');
-      return new Promise( (resolve, reject) => {
-         db.db.tournaments.toArray(process);
-
-         function process(tournaments) {
-            let data = tournaments.map(tournament => { return { tournament }});
-            util.performTask(calcTournamentPoints, data, true).then(finish, reject);
-         }
-
-         function finish(results) {
-            console.log('finished', results.length, 'tournaments');
-         }
-
-      });
    }
 
    function calcTournamentPoints({ tournament }) {
