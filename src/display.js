@@ -768,23 +768,27 @@
    }
    
    function formatTeams(match, which, puid) {
+      let flags = config.env().draws.tree_draw.flags.display;
+
       function playerBlock(pindex, side) {
          let p = match.players[pindex];
          let player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
-         let ioc =`<img onerror="this.style.visibility='hidden'" width="15px" src="./assets/flags/${player_ioc}.png">`;
-         let assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? ioc : '';
+         let ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
+         let flag =  !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="./assets/flags/${player_ioc}.png">`;
+         let assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
          let left = side == 'right' ? `${assoc} ` : '';
          let right = side == 'left' ? ` ${assoc}` : '';
          let first_name = util.normalizeName(p.first_name, false);
-         let last_name = util.normalizeName(p.last_name, false).toUpperCase();
+         let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : '';
          let seed = p.seed ? ` [${p.seed}]` : '';
          return `<div puid='${p.puid}' class='player_click cell_player'>${left}${first_name} ${last_name}${seed}${right}</div>`;
       }
 
       function potentialBlock(p, side) {
          let player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
-         let ioc =`<img onerror="this.style.visibility='hidden'" width="15px" src="./assets/flags/${player_ioc}.png">`;
-         let assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? ioc : '';
+         let ioc = player_ioc ? `{${player_ioc.toUpperCase()}}` : '';
+         let flag = !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="./assets/flags/${player_ioc}.png">`;
+         let assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
          let left = side == 'right' ? `${assoc} ` : '';
          let right = side == 'left' ? ` ${assoc}` : '';
          let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? 'Qualifier' : '';
@@ -2400,7 +2404,7 @@
          if (team.length == 1) {
             let p = match.players[team[0]];
             let club = p.club_code ? ` (${p.club_code})` : '';
-            let ioc = p.ioc ? ` (${p.ioc})` : '';
+            let ioc = p.ioc ? ` (<u>${p.ioc}</u>)` : '';
             return `${p.full_name}${club || ioc}`;
          } else {
             return team.map(p=>match.players[p].last_name.toUpperCase()).join('/');
