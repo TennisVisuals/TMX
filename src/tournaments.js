@@ -171,7 +171,6 @@ let tournaments = function() {
          db.findTournamentsBetween(start, end).then(displayTournyCal, console.log);
 
          function displayTournyCal(tournaments) {
-
             let categories = util.unique(tournaments.map(t => t.category)).sort();
             let options = [{ key: '-', value: '' }].concat(...categories.map(c => ({ key: c, value: c })));
             options.forEach(o => o.key = config.legacyCategory(o.key, true));
@@ -188,8 +187,8 @@ let tournaments = function() {
                var tuid = util.getParent(evt.target, 'calendar_click').getAttribute('tuid');
                db.findTournament(tuid).then(editIt, ()=>console.log('boo'));
            
-               function editIt(tournament) {
-                  createNewTournament({ tournament_data: tournament, title: 'Edit Tournament', callback: saveTournament })
+               function editIt(tournament_data) {
+                  createNewTournament({ tournament_data, title: 'Edit Tournament', callback: saveNewTournament })
                }
             }
             Array.from(calendar_container.container.element.querySelectorAll('.calendar_click')).forEach(elem => {
@@ -197,7 +196,6 @@ let tournaments = function() {
                elem.addEventListener('contextmenu', editTournament);
             });
          }
-
       }
    }
 
@@ -7465,7 +7463,6 @@ let tournaments = function() {
          trny.rank = value;
       }
       container.rank.ddlb = new dd.DropDown({ element: container.rank.element, onChange: setRank });
-      // container.rank.ddlb.selectionBackground('yellow');
       if (tournament_data && tournament_data.rank) container.rank.ddlb.setValue(tournament_data.rank);
 
       var inout_options = [{key: '-', value: ''}, {key: lang.tr('indoors'), value: 'i'}, {key: lang.tr('outdoors'), value: 'o'}]
@@ -7542,7 +7539,6 @@ let tournaments = function() {
 
          container.start.element.style.background = util.validDate(container.start.element.value) ? 'white' : 'yellow';
          container.end.element.style.background = util.validDate(container.end.element.value) ? 'white' : 'yellow';
-
       }
 
       let start = trny.start || util.dateUTC(new Date());
