@@ -41,7 +41,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.45',
+      version: '0.9.48',
       version_check: undefined,
       org: {
          name: undefined,
@@ -189,8 +189,6 @@ let config = function() {
          }
       }
    }
-
-   // fx.o = () => JSON.parse(JSON.stringify(o));
 
    // This probably needs to be implemented differently...
    fx.settings = {
