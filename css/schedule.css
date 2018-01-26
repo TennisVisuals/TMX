@@ -214,11 +214,11 @@
 }
 
 .unscheduled_match .left_team { 
-   width: 20em;
+   width: 30em;
    text-align: right; 
 }
 .unscheduled_match .right_team { 
-   width: 20em; 
+   width: 30em; 
    text-align: left; 
 }
 .unscheduled_match .event_name {
