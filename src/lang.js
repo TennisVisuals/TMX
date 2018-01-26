@@ -416,6 +416,7 @@
          afterrest: 'After Rest',
          tba: 'TBA',
          nextavailable: 'Next Available',
+         called: 'Called',
          oncourt: 'On Court',
          warmingup: 'Warming Up',
          suspended: 'Suspended',
@@ -445,6 +446,7 @@
          foullanguage: 'Foul Language',
          timeviolation: 'Time Violation',
          latearrival: 'Late Arrival',
+         unsporting: 'Unsporting Behavior',
       },
 
       // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toLocaleDateString
