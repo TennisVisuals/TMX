@@ -22,9 +22,7 @@ let player = function() {
    fx.playerAssignment = () => {
       db.findPlayer(searchBox.active.player.puid).then(player => {
          searchBox.active.player = player;
-         db.findClub(player.club + '').then(club => {
-            tournaments.setActivePlayer(player, club || {});
-         });
+         db.findClub(player.club + '').then(club => { tournaments.setActivePlayer(player, club || {}); });
       });
    }
 
