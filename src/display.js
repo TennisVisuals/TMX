@@ -1368,7 +1368,7 @@
                         <div id='${ids.rank}' class='flexjustifystart rankddlb'> </div>
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
-                        <input id='${ids.association}' value='${tournament.sid || ''}' placeholder="${lang.tr('tournaments.natlassoc')}">
+                        <input id='${ids.association}' value='${tournament.association || ''}' placeholder="${lang.tr('tournaments.natlassoc')}">
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.organization}' value='${tournament.organization || ''}' placeholder="${lang.tr('tournaments.tennisclub')}">
