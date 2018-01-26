@@ -46,6 +46,7 @@ let coms = function() {
          }
          if (data.directive == 'load data' && data.content) { load.loadJSON(data.content); }
          if (data.directive == 'reset db' && data.content) { config.resetDB(); }
+         if (data.directive == 'clear settings' && data.content) { db.db.settings.toCollection().delete(); }
          if (data.directive == 'add idiom' && data.content) {
             lang.define(data.content);
             db.addIdiom(data.content).then(setIdiom, error => console.log('error:', error));
