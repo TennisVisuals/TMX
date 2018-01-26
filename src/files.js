@@ -582,14 +582,22 @@
 
          draw.options({edit_fields: { display: false }, flags: { display: false }});
          if (info.draw_positions.length > 16) draw.options({invert_first: true});
-         if (info.doubles) draw.options({ names: { seed_number: false }});
 
          draw.options({players: { offset_left: 8, offset_singles: -10, offset_doubles: -60, offset_score: 10 }});
          draw.options({names:  { max_font_size: 40, min_font_size: 40 }});
          draw.options({scores: { max_font_size: 40, min_font_size: 40 }});
 
-         if (info.draw_positions.length <= 24) {
-            draw.options({names: { length_divisor: 13 }});
+         if (info.draw_positions.length <= 16) {
+            draw.options({names: { length_divisor: 10 }});
+            draw.options({names:  { max_font_size: 50, min_font_size: 50 }});
+            draw.options({umpires: { offset: 45 }});
+            draw.options({detail_offsets: { base: 80, width: 65 }});
+            draw.options({lines: { stroke_width: 4 }});
+            draw.options({minPlayerHeight: 130});
+            draw.options({detail_attr: { font_size: 40 }});
+            draw.options({detail_attr: { seeding_font_size: 54 }});
+         } else if (info.draw_positions.length <= 24) {
+            draw.options({names: { length_divisor: 12 }});
             draw.options({umpires: { offset: 45 }});
             draw.options({detail_offsets: { base: 80, width: 65 }});
             draw.options({lines: { stroke_width: 4 }});
@@ -685,8 +693,9 @@
 
       var tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
-      let organizers = tournament.organizers && tournament.organizers != tournament.name ? tournament.organizers : '';
-      var sponsor = tournament.sponsor || organizers ? ` - ${tournament.sponsor || organizers}` : '';
+      // let organizers = tournament.organizers && tournament.organizers != tournament.name ? tournament.organizers : '';
+      // var sponsor = tournament.sponsor || organizers ? ` - ${tournament.sponsor || organizers}` : '';
+      var sponsor = tournament.sponsor ? ` - ${tournament.sponsor}` : '';
       var tournament_name = `${tournament.name}${sponsor}`;
 
       var draw_sheet = {
