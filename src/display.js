@@ -1044,7 +1044,7 @@
       return { container: id_obj };
    }
 
-   gen.settings = (tabs) => {
+   gen.tabbedModal = ({ tabs, tabdata, title, save }) => {
       let ids = {
          save: gen.uuid(),
          tabs: gen.uuid(),
@@ -1052,102 +1052,42 @@
          container: gen.uuid(),
       }
 
-      let tabdata = [];
-      if (tabs.org && tabs.org.html) tabdata.push({ tab: lang.tr('settings.organization'), content: tabs.org.html });
-      if (tabs.general && tabs.general.html) tabdata.push({ tab: lang.tr('settings.general'), content: tabs.general.html });
-      if (tabs.categories && tabs.categories.html) tabdata.push({ tab: lang.tr('settings.categories'), content: tabs.categories.html });
-      if (tabs.points && tabs.points.html) tabdata.push({ tab: lang.tr('settings.points'), content: tabs.points.html });
-      if (tabs.draws && tabs.draws.html) tabdata.push({ tab: lang.tr('settings.draws'), content: tabs.draws.html });
-      if (tabs.publishing && tabs.publishing.html) tabdata.push({ tab: lang.tr('settings.publishing'), content: tabs.publishing.html });
-      if (tabs.data && tabs.data.html) tabdata.push({ tab: lang.tr('settings.data'), content: tabs.data.html });
       let jtabs = jsTabs.generate(tabdata);
 
       let cancel = `
          <div id='${ids.cancel}' class='link' style='margin-left: 1em;'>
             <img src='./icons/xmark.png' class='club_link'>
          </div>`;
-      let done = `
+      let done = save ? `
          <div id='${ids.save}' class='link ${gen.info}' label='${lang.tr("apt")}' style='margin-left: 1em;'>
             <img src='./icons/finished.png' class='club_link'>
-         </div>`;
+         </div>` : '';
 
       let html = `
          <div id='${ids.container}' class='flexcol' style='width: 100%;'>
             <div class='settings_info'>
-               <h2>${lang.tr('set')}</h2>
+               <h2>${title}</h2>
                <div class='flexrow'>${done}${cancel}</div>
             </div>
             <div>${jtabs}</div>
          </div>
       `;
+
+      gen.escapeModal();
       gen.showModal(html, false);
 
       Object.assign(ids, ...Object.keys(tabs).filter(t=>tabs[t]).map(t=>tabs[t].ids));
       let id_obj = idObj(ids);
-
       jsTabs.load(id_obj.container.element);
-      let org_logo = document.getElementById('org_logo');
-      if (org_logo) {
-         org_logo.addEventListener('change', evt => handleFileUpload(evt, 'orgLogo', 'org_logo_display'));
-         db.findSetting('orgLogo').then(url => displayImage('getLogo', url, 'org_logo_display'), console.log);
-      }
-
-      let org_name = document.getElementById('org_name');
-      if (org_name) {
-         org_name.addEventListener('change', evt => handleFileUpload(evt, 'orgName', 'org_name_display'));
-         db.findSetting('orgName').then(url => displayImage('getName', url, 'org_name_display'), console.log);
-      }
 
       return { container: id_obj };
    }
 
-   function displayImage(fx, image_url, display_id) {
+   gen.displayImage = (fx, image_url, display_id) => {
       exp[fx]().then(display);
 
       function display(image) {
          document.getElementById(display_id).innerHTML = "<img width='200px' src='" + image + "' />";
-      }
-   }
-
-   function handleFileUpload(evt, settings_key, div_id) {
-      if (!evt.target.files || !evt.target.files.length) return;
-
-      renderImage(evt.target.files[0]);
-
-      function renderImage(file) {
-         let size = file.size;
-         if (size > 50000) {
-
-         }
-         let reader = new FileReader();
-         reader.onload = function(event) {
-            let url = event.target.result;
-            if (file.type.indexOf('image') != 0) {
-               gen.popUpMessage('Must be an image file!');
-               return;
-            }
-            imageDimensions(url).then(dimensions => analyzeImage(url, dimensions, size), console.log);
-        }
-        reader.readAsDataURL(file);
-      }
-
-      function analyzeImage(url, dimensions, size) {
-         let wh_ratio = dimensions.width / dimensions.height;
-         if (wh_ratio < 2.8 || wh_ratio > 3.5) {
-            gen.popUpMessage(`<div>Ratio: ${wh_ratio}</div><div>Width / Height Ratio must be between 3 and 3.5</div>`);
-            return;
-         }
-         document.getElementById(div_id).innerHTML = "<img width='200px' src='" + url + "' />";
-      }
-
-      function imageDimensions(url){   
-         return new Promise((resolve, reject) => {
-            let img = new Image();
-            img.addEventListener("load", function() {
-               resolve({ width: this.naturalWidth, height: this.naturalHeight });
-            });
-            img.src = url;
-         });
       }
    }
 
@@ -1325,6 +1265,30 @@
 
       return { ids, html, ddlb };
    }
+
+   gen.playersExport = () => {
+      let ids = {
+      };
+      let ddlb = [];
+
+      let html = `
+         <div style='min-height: 150px'>
+         <h2>&nbsp;</h2>
+         <div class='flexcenter' style='width: 100%;'>
+             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+                <div class='tournament_attr'>
+                    <label class='calabel'>Not Implemented</label>
+                </div>
+             </div>
+         </div>
+
+         </div>
+      `;
+      return { ids, html, ddlb }
+   }
+
+   gen.pointsExport = gen.playersExport;
+   gen.matchesExport = gen.playersExport;
 
    gen.createNewTournament = (title, tournament = {}) => {
       let ids = {
@@ -4126,6 +4090,63 @@
          {key: `${lang.tr("genders.female")}`, value: 'W'},
       ];
 
+   }
+
+   gen.dateRange = ({ start, start_element, startFx, end, end_element, endFx }) => {
+      if (!start_element || !end_element) return;
+
+      start = util.dateUTC(start || new Date());
+      end = util.dateUTC(end || new Date());
+
+      var startPicker = new Pikaday({
+         field: start_element,
+         defaultDate: start,
+         setDefaultDate: true,
+         i18n: lang.obj('i18n'),
+         firstDay: config.env().calendar.first_day,
+         onSelect: function() { 
+            let this_date = this.getDate();
+            start = new Date(util.dateUTC(this_date));
+            updateStartDate();
+            if (end < start) {
+               endPicker.gotoYear(start.getFullYear());
+               endPicker.gotoMonth(start.getMonth());
+            }
+         },
+      });
+      startPicker.setStartRange(new Date(start));
+      if (end) startPicker.setEndRange(new Date(end));
+
+      var endPicker = new Pikaday({
+         field: end_element,
+         i18n: lang.obj('i18n'),
+         firstDay: config.env().calendar.first_day,
+         onSelect: function() {
+            let this_date = this.getDate();
+            end = new Date(util.dateUTC(this_date));
+            updateEndDate();
+            if (end < start) {
+               startPicker.gotoYear(end.getFullYear());
+               startPicker.gotoMonth(end.getMonth());
+            }
+         },
+      });
+      endPicker.setStartRange(new Date(start));
+      endPicker.setMinDate(new Date(start));
+      if (end) endPicker.setEndRange(new Date(end));
+
+      function updateStartDate() {
+         startPicker.setStartRange(new Date(start));
+         endPicker.setStartRange(new Date(start));
+         endPicker.setMinDate(new Date(start));
+         if (startFx && typeof startFx == 'function') startFx(start);
+      };
+      function updateEndDate() {
+         startPicker.setEndRange(new Date(end));
+         startPicker.setMaxDate(new Date(end));
+         endPicker.setEndRange(new Date(end));
+         if (endFx && typeof endFx == 'function') endFx(end);
+      };
    }
 
    if (typeof define === "function" && define.amd) define(gen); else if (typeof module === "object" && module.exports) module.exports = gen;
