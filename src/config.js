@@ -41,7 +41,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.48',
+      version: '0.9.49',
       version_check: undefined,
       org: {
          name: undefined,
@@ -288,7 +288,28 @@ let config = function() {
             data: v.data ? gen.externalRequestSettings(external_request_settings) : undefined
          }
 
-         let { container } = gen.settings(tabs);
+         let tabdata = [];
+         if (tabs.org && tabs.org.html) tabdata.push({ tab: lang.tr('settings.organization'), content: tabs.org.html });
+         if (tabs.general && tabs.general.html) tabdata.push({ tab: lang.tr('settings.general'), content: tabs.general.html });
+         if (tabs.categories && tabs.categories.html) tabdata.push({ tab: lang.tr('settings.categories'), content: tabs.categories.html });
+         if (tabs.points && tabs.points.html) tabdata.push({ tab: lang.tr('settings.points'), content: tabs.points.html });
+         if (tabs.draws && tabs.draws.html) tabdata.push({ tab: lang.tr('settings.draws'), content: tabs.draws.html });
+         if (tabs.publishing && tabs.publishing.html) tabdata.push({ tab: lang.tr('settings.publishing'), content: tabs.publishing.html });
+         if (tabs.data && tabs.data.html) tabdata.push({ tab: lang.tr('settings.data'), content: tabs.data.html });
+
+         let { container } = gen.tabbedModal({ tabs, tabdata, title: lang.tr('set') });
+
+         let org_logo = document.getElementById('org_logo');
+         if (org_logo) {
+            org_logo.addEventListener('change', evt => exp.handleFileUpload(evt, 'orgLogo', 'org_logo_display'));
+            db.findSetting('orgLogo').then(url => gen.displayImage('getLogo', url, 'org_logo_display'), console.log);
+         }
+
+         let org_name = document.getElementById('org_name');
+         if (org_name) {
+            org_name.addEventListener('change', evt => exp.handleFileUpload(evt, 'orgName', 'org_name_display'));
+            db.findSetting('orgName').then(url => gen.displayImage('getName', url, 'org_name_display'), console.log);
+         }
 
          if (tabs.data && tabs.data.ddlb) {
             let external_file_options = [
@@ -1064,11 +1085,55 @@ let config = function() {
    }
 
    function displayImportExport() {
-      let downloadDialogue = () => gen.popUpMessage('Download Database Tables<p><i>Not Implemented</i>');
       let actions = gen.importExport(); 
-      actions.download.element.addEventListener('click', downloadDialogue);
+      actions.download.element.addEventListener('click', exportData);
       actions.template.element.addEventListener('click', gen.downloadTemplate);
       load.initDragAndDrop(load.reset);
+   }
+
+   function exportData() {
+      let tabs = {
+         players: gen.playersExport(),
+         points: gen.pointsExport(),
+         matches: gen.matchesExport(),
+      }
+
+      let tabdata = [];
+      if (tabs.players && tabs.players.html) tabdata.push({ tab: lang.tr('pyr'), content: tabs.players.html });
+      if (tabs.points && tabs.points.html) tabdata.push({ tab: lang.tr('pts'), content: tabs.points.html });
+      if (tabs.matches && tabs.matches.html) tabdata.push({ tab: lang.tr('mts'), content: tabs.matches.html });
+
+      let { container } = gen.tabbedModal({ tabs, tabdata, title: lang.tr('phrases.exportdata'), save: false });
+
+      /*
+      gen.dateRange({
+         start,
+         start_element: container.py_start.element,
+         startFx,
+         end,
+         end_element: container.py_end.element,
+         endFx
+         });
+      gen.dateRange({
+         start,
+         start_element: container.pt_start.element,
+         startFx,
+         end,
+         end_element: container.pt_end.element,
+         endFx
+      });
+      gen.dateRange({
+         start,
+         start_element: container.mt_start.element,
+         startFx,
+         end,
+         end_element: container.mt_end.element,
+         endFx
+      });
+      */
+
+      if (container.cancel.element) container.cancel.element.addEventListener('click', () => gen.closeModal());
+
    }
 
    function displayPlayers() {
