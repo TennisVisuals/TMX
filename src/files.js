@@ -1683,6 +1683,48 @@
       }
    }
 
+   exp.handleFileUpload = (evt, settings_key, div_id) => {
+      if (!evt.target.files || !evt.target.files.length) return;
+
+      renderImage(evt.target.files[0]);
+
+      function renderImage(file) {
+         let size = file.size;
+         if (size > 50000) {
+
+         }
+         let reader = new FileReader();
+         reader.onload = function(event) {
+            let url = event.target.result;
+            if (file.type.indexOf('image') != 0) {
+               gen.popUpMessage('Must be an image file!');
+               return;
+            }
+            imageDimensions(url).then(dimensions => analyzeImage(url, dimensions, size), console.log);
+        }
+        reader.readAsDataURL(file);
+      }
+
+      function analyzeImage(url, dimensions, size) {
+         let wh_ratio = dimensions.width / dimensions.height;
+         if (wh_ratio < 2.8 || wh_ratio > 3.5) {
+            gen.popUpMessage(`<div>Ratio: ${wh_ratio}</div><div>Width / Height Ratio must be between 3 and 3.5</div>`);
+            return;
+         }
+         document.getElementById(div_id).innerHTML = "<img width='200px' src='" + url + "' />";
+      }
+
+      function imageDimensions(url){   
+         return new Promise((resolve, reject) => {
+            let img = new Image();
+            img.addEventListener("load", function() {
+               resolve({ width: this.naturalWidth, height: this.naturalHeight });
+            });
+            img.src = url;
+         });
+      }
+   }
+
    if (typeof define === "function" && define.amd) define(exp); else if (typeof module === "object" && module.exports) module.exports = exp;
    this.exp = exp;
  
