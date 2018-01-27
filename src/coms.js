@@ -123,13 +123,7 @@ let coms = function() {
    function receiveEvents(euids) { euids.forEach(euid => oi.socket.emit('tmx_event', euid)); }
    function receiveEvent(e) {
       let evt = attemptJSONparse(e);
-
       console.log('receiving event:', evt);
-
-      /* TODO: published events should include all details to recreate if
-       * fetched independent of a tournament... score_format, scoring, links,
-       * automated, qualifiers, approved, wildcards
-       */
    }
 
    function receiveTournament(record) {
