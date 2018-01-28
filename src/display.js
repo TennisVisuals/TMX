@@ -3500,6 +3500,27 @@
       return idObj(ids);
    }
 
+   gen.twoChoices = ({ text, option1, option2 }) => {
+      let ids = {
+         option1: gen.uuid(),
+         option2: gen.uuid(),
+      }
+      let html = `
+         <div class='flexccol'>
+            <div class='flexcol' style='width: 100%'>
+               <div class='flexcenter' style='margin: .5em;'><h2>${text}</h2></div>
+            </div>
+            <div class='config_actions'>
+               <div id='${ids.option1}' class='btn btn-large config_submit'>${option1}</div>
+               <div id='${ids.option2}' class='btn btn-large config_submit'>${option2}</div>
+            </div>
+         </div>
+      `;
+      gen.showConfigModal(html);
+
+      return idObj(ids);
+   }
+
    gen.autoScheduleConfig = () => {
       let ids = {
          order: gen.uuid(),
