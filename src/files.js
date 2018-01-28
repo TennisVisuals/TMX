@@ -90,7 +90,6 @@
 
    exp.json2csv = json2csv;
    function json2csv(records, separator = ',') {
-      // let delimiter = (item, key) => (key != 'spol') ? `"${item}"` : item;
       let delimiter = (item, key) => `"${item}"`;
 
       if (!records.length) return false;
@@ -107,14 +106,14 @@
    }
 
    exp.matchRecord = (match) => {
-      let winners = match.teams[match.winner];
-      let losers = match.teams[1 - match.winner];
+      let winners = match.team_players[match.winner];
+      let losers = match.team_players[1 - match.winner];
       let players = match.players;
       let dbls = winners.length > 1;
       let category = match.tournament.category || ''; 
       if (+category == 20) category = 'Senior';
       let genders = match.players.map(p => p.sex).filter(f=>f).filter((item, i, s) => s.lastIndexOf(item) == i);
-      let player_gender = !genders.length ? '' : genders.length > 1 ? 'Mixed' : genders[0] == 'M' ? 'M' : 'F';
+      let player_gender = () => !genders.length ? '' : genders.length > 1 ? 'Mixed' : genders[0] == 'M' ? 'M' : 'F';
       let draw_gender = !genders.length ? '' : genders.length > 1 ? 'Mixed' : genders[0] == 'M' ? 'Male' : 'Female';
       let qualifying = match.round.indexOf('Q') == 0 && match.round.indexOf('QF') < 0;
       let draw_type = match.consolation ? 'Consolation' : qualifying ? 'Qualifying' : 'Main';
@@ -176,13 +175,14 @@
          "Tournament Location Type": '',
          "Tournament Surface": '',
          "Tournament Event Type": 'Tournament',
-         "Tournament Event Category": category != 'Seniors' ? 'Juniors' : category,
+         "Tournament Event Category": category == 'Seniors' || category == 'S' ? 'Seniors' : 'Juniors',
          "Tournament Import Source": 'Croatian Tennis Association',
          "Tournament Sanction Body": 'Croatian Tennis Association',
       }
    }
    exp.matchRecords = (match_array) => match_array.map(m => exp.matchRecord(m));
 
+   // buik function
    exp.downloadUTR = ({matches, category, year, month, group_size = 700, profile = 'HTS'} = {}) => {
       if (!category || !year) return false;
       let filtered_matches = matches
@@ -200,7 +200,7 @@
          cursor += group_size;
       }
    }
- 
+
    /************************* Database Table Export **************************/
    let tableJSON = (table) => db.findAll(table).then(arr => { exp.downloadJSON(`${table}.json`, arr) }); 
 
