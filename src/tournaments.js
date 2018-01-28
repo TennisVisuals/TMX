@@ -554,12 +554,25 @@ let tournaments = function() {
          if (container.export_points.element.firstChild.classList.contains('download')) {
             db.findTournamentPoints(tournament.tuid).then(exportPoints, util.logError);
          }
+         let profile = config.env().org.abbr || 'Unknown';
          function exportPoints(points) {
             // TODO: check whether there is a configuration setting for organization
-            if (config.env().org.abbr == 'HTS') {
-               hts.downloadHTSformattedPoints({points});
-            } else {
+            let config_option = (config.env().org.abbr == 'HTS') ? true : false;
+
+            if (!config_option) {
                exp.downloadJSON(`${tournament.tuid}-points.json`, points);
+            } else {
+               let text = `${lang.tr('phrases.export')}: ${lang.tr('pts')}`;
+               let choices = gen.twoChoices({ text, option1: 'JSON', option2: 'HTS' });
+               gen.escapeModal();
+               choices.option1.element.addEventListener('click', () => {
+                  exp.downloadJSON(`${profile}-${tournament.tuid}-points.json`, points);
+                  gen.closeModal();
+               });
+               choices.option2.element.addEventListener('click', () => {
+                  hts.downloadHTSformattedPoints({points});
+                  gen.closeModal();
+               });
             }
          }
       });
@@ -568,9 +581,24 @@ let tournaments = function() {
          if (container.export_matches.element.firstChild.classList.contains('download')) {
             db.findTournamentMatches(tournament.tuid).then(exportMatches, util.logError);
          }
+         let profile = config.env().org.abbr || 'Unknown';
          function exportMatches(matches) {
-            // TODO: prompt for UTR or JSON
-            exp.downloadJSON(`${tournament.tuid}-matches.json`, matches);
+            let text = `${lang.tr('phrases.export')}: ${lang.tr('mts')}`;
+            let choices = gen.twoChoices({ text, option1: 'JSON', option2: 'UTR' });
+            gen.escapeModal();
+            choices.option1.element.addEventListener('click', () => {
+               exp.downloadJSON(`${profile}-${tournament.tuid}-matches.json`, matches);
+               gen.closeModal();
+            });
+            choices.option2.element.addEventListener('click', () => {
+               downloadUTRmatches(tournament, matches);
+               gen.closeModal();
+            });
+         }
+         function downloadUTRmatches(tournament, matches) {
+            let match_records = exp.matchRecords(matches);
+            let csv = exp.json2csv(match_records);
+            exp.downloadText(`UTR-${profile}-${tournament.tuid}-U${tournament.category}.csv`, csv);
          }
       });
 
@@ -4027,7 +4055,21 @@ let tournaments = function() {
                      let puid = match.players[index].puid;
                      let tournament_player = tournament.players.reduce((p, s) => s.puid == puid ? s : p);
                      if (!tournament_player.penalties) tournament_player.penalties = [];
-                     tournament_player.penalties.push({ penalty, index: penalty_index, value: penalty_value });
+                     gen.escapeModal();
+                     let penalty_code = `penalties.${penalty.value}`;
+                     let message = `${lang.tr('draws.penalty')}: ${lang.tr(penalty_code)}?<br>${tournament_player.full_name}`;
+                     gen.okCancelMessage(message, savePenalty, () => gen.closeModal());
+                     function savePenalty() {
+                        let penalty_event = {
+                           penalty,
+                           muid: match.muid,
+                           tuid: tournament.tuid,
+                           time: new Date().getTime()
+                        }
+                        tournament_player.penalties.push(penalty_event);
+                        saveTournament(tournament);
+                        gen.closeModal();
+                     }
                   }
                }
                function matchStatus(value, index) {
