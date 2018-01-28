@@ -20,8 +20,6 @@
                let kategorija_igraca = eligible_categories.base_category;
                let plasman = convertRound(point.round) || point.placement;
 
-               // if (!plasman) console.log(point);
-
                return {
                   plasman,
                   si_do: format,
@@ -91,11 +89,8 @@
    hts.downloadHTSformattedPoints = ({ points=[], group_size = 1000 }) => {
       return new Promise( (resolve, reject) => {
 
-         if (points.length) {
-            formatPoints(points);
-         } else {
-            db.db.points.toArray(formatPoints);
-         }
+         if (!points.length) return reject();
+         formatPoints(points);
 
          function formatPoints(points) {
             // filter out points that don't have HTS tuid or where p.id is non-numeric
