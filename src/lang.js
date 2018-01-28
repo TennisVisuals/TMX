@@ -58,6 +58,7 @@
    }
 
    idioms.default = {
+      replace: 'Replace',
       dl:      'Download',
       or:      'or',
       arp:     'All Ranking Points',
