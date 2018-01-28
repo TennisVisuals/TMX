@@ -2,7 +2,7 @@ let coms = function() {
 
    let fx = {
       update: undefined,
-      messages: [],
+      received_events: [],
    };
 
    let oi = {
@@ -121,19 +121,80 @@ let coms = function() {
    }
 
    function receiveEvents(euids) { euids.forEach(euid => oi.socket.emit('tmx_event', euid)); }
+
+   var receive_modal = false;
+
    function receiveEvent(e) {
       let evt = attemptJSONparse(e);
-      console.log('receiving event:', evt);
+      let existing = fx.received_events.map(r=>r.event.euid);
+      if (evt && existing.indexOf(evt.event.euid) < 0) fx.received_events.push(evt);
+      if (!receive_modal && fx.received_events.length) mergeReceivedEvent();
+   }
+
+   function mergeReceivedEvent() {
+      receive_modal = true;
+
+      let revt = fx.received_events.pop();
+      db.findTournament(revt.tournament.tuid).then(found, util.logError);
+
+      var draw_types = {
+         'E': lang.tr('draws.elimination'),
+         'Q': lang.tr('draws.qualification'),
+         'R': lang.tr('draws.roundrobin'),
+         'C': lang.tr('draws.consolation'),
+      };
+
+      function found(trny) {
+         gen.escapeModal(() => receive_modal = false);
+
+         let euids = trny.events.map(e=>e.euid);
+         let exists = euids.indexOf(revt.event.euid) >= 0;
+
+         let message = `
+            <h2>Received Event</h2>
+            ${revt.event.name} ${draw_types[revt.event.draw_type]}
+            <p>
+               <b>${lang.tr('tournaments.publishtime')}:</b>
+               <br>${isNaN(revt.event.published) ? '' : new Date(revt.event.published).toGMTString()}
+            </p>
+         `;
+
+         let action = exists ? lang.tr('replace') : lang.tr('add');
+         let msg = gen.actionMessage({ message, actionFx, action, cancelAction: finish });
+
+         function actionFx() {
+            revt.event.draw = revt.draw;
+            if (exists) {
+               trny.events = trny.events.map(evt => (evt.euid == revt.event.euid) ? revt.event : evt);
+            } else {
+               trny.events.push(revt.event);
+            }
+            db.addTournament(trny);
+            finish();
+         }
+
+         function finish() {
+            receive_modal = false;
+            if (fx.received_events.length) {
+               mergeReceivedEvent();
+            } else {
+               gen.closeModal();
+               tournaments.displayTournament({ tuid: revt.tournament.tuid });
+            }
+         }
+      }
    }
 
    function receiveTournament(record) {
       let published_tournament = CircularJSON.parse(record);
       let message = `
-         <p>${lang.tr('tournaments.received')}</p>
-         <p>${lang.tr('tournaments.publishtime')}:<br>${new Date(published_tournament.published).toGMTString()}</p>
-         <p>${lang.tr('tournaments.replacelocal')}</p>
+         <h2>${lang.tr('tournaments.received')}</h2>
+         ${published_tournament.name}
+         <p><b>${lang.tr('tournaments.publishtime')}:</b><br>${new Date(published_tournament.published).toGMTString()}</p>
+         <p><b>${lang.tr('tournaments.replacelocal')}</b></p>
       `;
-      let msg = gen.okCancelMessage(message, saveReceivedTournament, () => gen.closeModal());
+      let cancelAction = () => gen.closeModal();
+      let msg = gen.actionMessage({ message, actionFx: saveReceivedTournament, action: lang.tr('replace'), cancelAction });
       function saveReceivedTournament() {
          gen.closeModal();
          published_tournament.received = new Date().getTime();
@@ -227,7 +288,6 @@ let coms = function() {
    }
 
    fx.requestTournamentEvents = (tuid) => {
-      console.log('requesting tournament events');
       if (connected) {
          oi.socket.emit('tmx trny evts', { tuid, authorized: true });
       } else {
@@ -287,7 +347,7 @@ let coms = function() {
    function attemptJSONparse(data) {
       if (!data) return undefined;
       try {
-         return JSON.parse(data);
+         return CircularJSON.parse(data);
       }
 
       catch(e) {
