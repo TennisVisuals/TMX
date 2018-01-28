@@ -269,7 +269,7 @@
          let cursor = 0;
          let category_points = category ? points.filter(p => p.category == category) : points;
          while (cursor < category_points.length) {
-            exp.downloadJSON(`U${category || '12-S'}-points.json`, category_points.slice(cursor, cursor + group_size));
+            exp.downloadJSON(`${category || '12-S'}-points.json`, category_points.slice(cursor, cursor + group_size));
             cursor += group_size;
          }
       });
