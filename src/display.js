@@ -296,6 +296,11 @@
    }
 
    gen.okCancelMessage = (text, okAction, cancelAction) => {
+      let message = `<h2>${text}</h2>`;
+      gen.actionMessage({ message, actionFx: okAction, action: lang.tr('actions.ok'), cancelAction });
+   }
+
+   gen.actionMessage = ({ message, actionFx, action, cancelAction }) => {
       if (searchBox.element) searchBox.element.blur();
       let ids = { 
          ok: gen.uuid(), 
@@ -305,17 +310,18 @@
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
       let html = `
-         <h2 style='margin: 1em;'>${text}</h2>
+         <div style='margin: 1em'>${message}</div>
          <div class="flexcenter" style='margin-bottom: 2em;'>
             <button id='${ids.cancel}' class='btn btn-medium dismiss' style='display: none'>${lang.tr('actions.cancel')}</button>
-            <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${lang.tr('actions.ok')}</button>
+            <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${action}</button>
          </div>
       `;
       document.getElementById('processingtext').innerHTML = html;
       id_obj = idObj(ids);
-      id_obj.ok.element.addEventListener('click', okAction);
+      id_obj.ok.element.addEventListener('click', actionFx);
       id_obj.cancel.element.addEventListener('click', cancelAction);
       if (typeof cancelAction == 'function') id_obj.cancel.element.style.display = 'inline';
+      gen.modal += 1;
       return id_obj;
    }
 
@@ -399,6 +405,7 @@
       modal.style.display = "flex";
       let content = modal.querySelector('.modalcontent');
       content.style.overflow = overflow;
+      gen.modal += 1;
    }
 
    gen.showModal = (html, close = true) => {
@@ -1044,7 +1051,7 @@
       return { container: id_obj };
    }
 
-   gen.tabbedModal = ({ tabs, tabdata, title, save }) => {
+   gen.tabbedModal = ({ tabs, tabdata, title, save=true }) => {
       let ids = {
          save: gen.uuid(),
          tabs: gen.uuid(),
@@ -1845,6 +1852,8 @@
          pub_link: gen.uuid(),
          localdownload: gen.uuid(),
          localdownload_state: gen.uuid(),
+         export_points: gen.uuid(),
+         export_matches: gen.uuid(),
          authorize: gen.uuid(),
          cloudfetch: gen.uuid(),
       }
@@ -1938,7 +1947,7 @@
                   <div class='${classes.filter_m}'><div class='filter_m action_icon filter_m_selected'></div></div>
                   <div class='${classes.filter_w}'><div class='filter_w action_icon filter_w_selected'></div></div>
                   <div class=''><div class='action_icon'></div></div>
-                  <div class=''><div class='action_icon'></div></div>
+                  <div id='${ids.export_points}'><div class='action_icon'></div></div>
                   <div class=''><div class='action_icon'></div></div>
                </div>
             </div>
@@ -2071,7 +2080,7 @@
                <div class='${classes.filter_m}'><div class='filter_m action_icon filter_m_selected'></div></div>
                <div class='${classes.filter_w}'><div class='filter_w action_icon filter_w_selected'></div></div>
                <div class=''><div class='action_icon'></div></div>
-               <div class=''><div class='action_icon'></div></div>
+               <div id='${ids.export_matches}'><div class='action_icon'></div></div>
                <div class=''><div class='action_icon'></div></div>
             </div>
             <div id='${ids.matches}' class='tournament_match flexcol flexcenter'> </div>
@@ -2145,6 +2154,7 @@
 
       ];
       let tabs = jsTabs.generate(tabdata);
+      let tab_refs = Object.assign({}, ...tabdata.map((t, i)=>({[t.ref]: i})));
 
       let editable = new Date().getTime() < tournament.end;
 
@@ -2190,7 +2200,7 @@
 
       let class_obj = classObj(classes);
 
-      return { container: id_obj, classes: class_obj, displayTab, display_context };
+      return { container: id_obj, classes: class_obj, displayTab, display_context, tab_refs };
    }
 
    gen.showLocations = ({ element, locations }) => {
@@ -4066,7 +4076,15 @@
    }
 
    gen.escapeModal = escapeModal;
-   function escapeModal() { setTimeout(function() { gen.escapeFx = () => { gen.closeModal(); gen.escapeFx = undefined; } }, 300); }
+   function escapeModal(callback) {
+      setTimeout(function() {
+         gen.escapeFx = () => {
+            gen.closeModal();
+            gen.escapeFx = undefined;
+            if (typeof callback == 'function') callback();
+         }
+      }, 300);
+   }
 
    function getRanks(tournament) {
       let tournament_date = tournament && (tournament.points_date || tournament.end);
