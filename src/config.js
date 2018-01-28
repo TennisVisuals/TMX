@@ -41,7 +41,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.49',
+      version: '0.9.55',
       version_check: undefined,
       org: {
          name: undefined,
