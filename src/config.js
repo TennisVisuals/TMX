@@ -41,7 +41,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.56',
+      version: '0.9.59',
       version_check: undefined,
       org: {
          name: undefined,
@@ -105,7 +105,9 @@ let config = function() {
          require_confirmation: true,
          publish_on_score_entry: true,
       },
-      messages: []
+      messages: [],
+      storage: undefined,
+      notifications: undefined,
    }
 
    // don't want accessor to be able to modify original
@@ -786,20 +788,6 @@ let config = function() {
       if (env.draws[type]) draw.options(env.draws[type]);
    }
 
-   fx.resetDB = () => {
-      return new Promise((resolve, reject) => {
-         let reload = () => window.location.replace(window.location.pathname);
-         let okAction = () => db.resetDB(reload);
-         let cancelAction = () => {
-            clearHistory(); 
-            gen.closeModal(); 
-            resolve();
-         }
-         let message = `<div style='margin: 1em;'><h2>WARNING:</h2><p>Database will be reset</div>`;
-         let container = gen.okCancelMessage(message, okAction, cancelAction);
-      });
-   }
-
    var device = {
       isStandalone: 'standalone' in window.navigator && window.navigator.standalone,
       isIDevice: (/iphone|ipod|ipad/i).test(window.navigator.userAgent),
@@ -870,7 +858,48 @@ let config = function() {
 
    fx.validPointsTable = (table) => { return typeof table == 'object' && Object.keys(table).length; }
 
+   function handleUnhandled() {
+      window.onunhandledrejection = (event) => {
+        event.preventDefault();
+        let reason = event.reason;
+        console.warn('Unhandled promise rejection:', (reason && (reason.stack || reason)));
+      };
+   }
+
+   function persistStorage() {
+      if (navigator.storage && navigator.storage.persist) {
+         navigator.storage.persist().then(persistent => {
+            env.storage = persistent ? true : 'user agent control'
+            coms.emitTmx({ 
+               event: 'Persistence',
+               notice: `Persistence: ${persistent}`,
+               persistent
+            });
+            if (persistent && persistent != true ) {
+               fx.addMessage({ title: 'warn', notice: 'Data Persistence Not Guaranteed', warning: true });
+            }
+         });
+      } else {
+         env.messages.push({ title: 'warn', notice: 'Data Persistence Not Supported', warning: true });
+         gen.homeIconState('warning');
+         coms.emitTmx({ 
+            event: 'Persistence',
+            notice: `Persistence Not Supported`,
+            persistent: false
+         });
+      }
+   }
+
+   function enableNotifications() {
+      Notification.requestPermission(granted => {
+         env.notifications = granted;
+      });
+   }
+
    fx.init = () => {
+      persistStorage();
+      // enableNotifications();
+
       gen.initModals();
       config.search();
 
@@ -886,6 +915,8 @@ let config = function() {
       // to disable context menu on the page
       document.oncontextmenu = () => false;
       window.addEventListener('contextmenu', (e) => { e.preventDefault(); }, false);
+
+      handleUnhandled();
 
       function closeModal() { gen.escapeFx = undefined; gen.closeModal(); }
       function refreshApp() { location.reload(true); }
