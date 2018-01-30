@@ -45,7 +45,7 @@ let coms = function() {
             fx.update = data.notice || lang.tr('newversion');
          }
          if (data.directive == 'load data' && data.content) { load.loadJSON(data.content); }
-         if (data.directive == 'reset db' && data.content) { config.resetDB(); }
+         if (data.directive == 'reset db' && data.content) { resetDB(); }
          if (data.directive == 'clear settings' && data.content) { db.db.settings.toCollection().delete(); }
          if (data.directive == 'add idiom' && data.content) {
             lang.define(data.content);
@@ -56,6 +56,20 @@ let coms = function() {
             }
          }
       }
+   }
+
+   function resetDB() {
+      return new Promise((resolve, reject) => {
+         let reload = () => window.location.replace(window.location.pathname);
+         let okAction = () => db.resetDB(reload);
+         let cancelAction = () => {
+            clearHistory(); 
+            gen.closeModal(); 
+            resolve();
+         }
+         let message = `<div style='margin: 1em;'><h2>${lang.tr('warn')}:</h2><p>${lang.tr('phrases.reset')}</div>`;
+         let container = gen.okCancelMessage(message, okAction, cancelAction);
+      });
    }
 
    fx.versionNotice = (version) => {
