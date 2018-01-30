@@ -58,6 +58,8 @@
    }
 
    idioms.default = {
+      warn:    'WARNING',
+      ptz:     'Penalties',
       replace: 'Replace',
       dl:      'Download',
       or:      'or',
@@ -275,6 +277,7 @@
       },
 
       phrases: {
+         reset: 'Database will be reset',
          action: 'Players requiring some action...',
          search: 'Use the search field above to find players, or click player to edit',
          assign: 'Assign this profile by clicking a player below, or ...',
