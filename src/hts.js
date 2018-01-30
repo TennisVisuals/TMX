@@ -86,7 +86,7 @@
       });
    }
 
-   hts.downloadHTSformattedPoints = ({ points=[], group_size = 1000 }) => {
+   hts.downloadHTSformattedPoints = ({ tuid, points=[], group_size = 1000 }) => {
       return new Promise( (resolve, reject) => {
 
          if (!points.length) return reject();
@@ -103,7 +103,8 @@
             let cursor = 0;
             while (cursor < points.length) {
                let csv = exp.json2csv(points.slice(cursor, cursor + group_size)) + '\n';
-               exp.downloadText('hts_format_points.csv', csv);
+               let tuid_string = tuid ? `_${tuid}` : '';
+               exp.downloadText(`hts_format_points${tuid_string}.csv`, csv);
                cursor += group_size;
             }
          }
