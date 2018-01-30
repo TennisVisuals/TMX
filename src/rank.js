@@ -372,10 +372,7 @@
          db.findPlayer(puid).then(player => db.findPlayerPoints(puid).then(points => calcRankingPoints(player, points)));
 
          function calcRankingPoints(player, points) {
-            if (!player) {
-               console.log('no match for PUID:', puid);
-               return reject();
-            }
+            if (!player) { return reject(); }
             let start_year = new Date(start_date).getFullYear();
             let start_week = rank.getWeek(new Date(start_date));
             let end_year = new Date(end_date).getFullYear();
@@ -388,14 +385,9 @@
                date = addWeek(date);
             }
 
-            dev.points = points;
-            dev.date_array = date_array;
-
             let ranking_points = date_array.map(date => rank.calcPlayerDate(player, points, date)).filter(week => Object.keys(week.categories).length);
-
             addPointsHistory({puid, ranking_points}).then(resolve(ranking_points), reject);
          }
-
       });
    }
 
@@ -802,11 +794,14 @@
             if (!params) {
                nextItem();
             } else {
-               fx(params).then(delayNext, handleError);
+               fx(params).then(delayNext, err => handleError(err, params));
             }
          }
 
-         function handleError(err) { delayNext(); }
+         function handleError(err, params) { 
+            console.log('params:', params);
+            delayNext();
+         }
          function delayNext(result) { 
             if (bulkResults && result) results.push(result);
             nextItem();
