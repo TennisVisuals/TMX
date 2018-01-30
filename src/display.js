@@ -363,7 +363,7 @@
 
       function formatMessage(msg) {
          let msguid = UUID.generate();
-         let color = msg.authorized ? '#D1FBA7' : '#FEF8A7';
+         let color = msg.warning ? '#EF8C7E' : msg.authorized ? '#D1FBA7' : '#FEF8A7';
          let pointer = msg.inDB ? 'cursor: pointer;' : '';
          let html = `
             <div id='${msguid}' style='margin: 1em; padding: 1px; background-color: ${color}; ${pointer}'>
@@ -1556,6 +1556,51 @@
       return 'Big TODO!';
    }
 
+   gen.playerPenalties = (p, saveFx) => {
+      let ids = {
+         penalties: gen.uuid(),
+         ok: gen.uuid(),
+      }
+
+      gen.escapeModal();
+      let penalties = p.penalties.map((pe, i) => {
+         let event_info = `${pe.round || ''}`;
+         if (pe.event) event_info += ` ${pe.event || ''}`;
+         if (event_info) event_info = `${event_info}:&nbsp;`;
+         let phtml = `
+            <div class='flexrow'>
+               <div class='flexcenter'>${event_info}<span style='color: red;'>${pe.penalty.label}</span></div>
+               <div penalty_index='${i}' class='player_penalty action_icon_small trash'></div>
+            </div>
+         `;
+         return phtml;
+      }).join('');
+      let html = `
+         <div id='${ids.penalties}' class='flexcol' style='margin-left: 1em; margin-right: 1em; margin-bottom: 1em;'>
+            <div class='settings_info'>
+               <h2>${lang.tr('ptz')}: ${p.first_name} ${p.last_name}</h2>
+            </div>
+            <div>
+               <div class='flexcol'>${penalties}</div>
+            </div>
+            <div class="flexcenter" style='margin: 1em;'>
+               <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${lang.tr('actions.ok')}</button>
+            </div>
+         </div>
+         `;
+      gen.showConfigModal(html);
+      id_obj = idObj(ids);
+      id_obj.ok.element.addEventListener('click', () => gen.closeModal());
+      util.addEventToClass('player_penalty', removePenalty, id_obj.penalties.element);
+      function removePenalty(evt) {
+         let element = util.getParent(evt.target, 'player_penalty');
+         let penalty_index = element.getAttribute('penalty_index');
+         p.penalties.splice(penalty_index, 1);
+         if (typeof saveFx == 'function') saveFx();
+         if (p.penalties.length) { gen.playerPenalties(p, saveFx); } else { gen.closeModal(); }
+      }
+   }
+
    gen.displayTournamentPlayers = ({ container, players, filters=[], edit }) => {
       if (!players) {
          container.players.element.innerHTML = '';
@@ -1648,7 +1693,9 @@
 
       let font_color = !gender ? 'black' : gender == 'W' ? '#840076' : '#00368c'; 
       if (p.signed_in && (!player.registration(p) || !player.medical(p))) font_color = '#c93214';
-      let style = `style='color: ${font_color}'`;
+      let penalty_icon = p.penalties && p.penalties.length ? `&nbsp;<div class='penalty_icon'></div>` : '';
+      let font_weight = penalty_icon ? 'bold' : 'normal';
+      let style = `style='color: ${font_color}; font-weight: ${font_weight}'`;
 
       let ranking = util.numeric(p.category_ranking) || '';
       if (p.int && p.int > 0) ranking = `{${ranking}}`;
@@ -1662,7 +1709,7 @@
       let html = `
          <div puid='${p.puid}' index='${i}' class='player_click signin-row flexrow detail' ${style}>
             <div class='registered_count flexjustifystart'>${i || ''}</div>
-            <div class='registered_player flexjustifystart'>${p.full_name}</div>
+            <div class='registered_player flexjustifystart'>${p.full_name}${penalty_icon}</div>
             ${additional}
             <div class='registered_attr rankrow'>
                <span class='flexcenter rankvalue'>${ranking}</span>
@@ -1856,6 +1903,7 @@
          export_matches: gen.uuid(),
          authorize: gen.uuid(),
          cloudfetch: gen.uuid(),
+         penalty_report: gen.uuid(),
       }
 
       let classes = {
@@ -1878,8 +1926,13 @@
       let tournament_tab = `
          <div id='${ids.tournament}' class='flexcol flexcenter' style='min-height: 10em;'>
             <div class='tournament_options'>
-               <div class='options_left'> </div>
-               <div class='options_center'> </div>
+               <div class='options_left'>
+                  <div id='${ids.penalty_report}' class='${gen.info}' label='${lang.tr("ptz")}' style='display: none'>
+                     <div class='penalty action_icon'></div>
+                  </div>
+               </div>
+               <div class='options_center'>
+               </div>
                <div class='options_right'>
                   <div id='${ids.push2cloud}' class='${gen.info}' label='${lang.tr("phrases.send")}' style='display: none;'>
                      <div id='${ids.push2cloud_state}' class='push2cloud action_icon'></div>
@@ -2156,28 +2209,28 @@
       let tabs = jsTabs.generate(tabdata);
       let tab_refs = Object.assign({}, ...tabdata.map((t, i)=>({[t.ref]: i})));
 
-      let editable = new Date().getTime() < tournament.end;
+      let editable = !tournament.association || !config.env().org.abbr ? true : tournament.association == config.env().org.abbr;
 
-      // TODO: change how this is handled
-      editable = true;
-
-      let authorize_button = !editable ? '' :
-         `<div id='${ids.authorize}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.key")}' style='display: none'>
+      let authorize_button = `
+         <div id='${ids.authorize}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.key")}' style='display: none'>
             <img src='./icons/keys.png' class='club_link'>
          </div>
-         `;
-      let cloudfetch_button = !editable ? '' :
-         `<div id='${ids.cloudfetch}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.fetch")}' style='display: none;'>
+      `;
+      let cloudfetch_button = `
+         <div id='${ids.cloudfetch}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.fetch")}' style='display: none;'>
             <img src='./icons/cloudfetch.png' class='club_link'>
          </div>
-         `;
-      let pubLink_button = !editable ? '' : 
-         `<div id='${ids.pub_link}' class='${gen.info}' label='${lang.tr("phrases.weblink")}' style='margin-left: .2em; display: none;'>
+      `;
+      let pubLink_button = `
+         <div id='${ids.pub_link}' class='${gen.info}' label='${lang.tr("phrases.weblink")}' style='margin-left: .2em; display: none;'>
             <img src='./icons/link.png' class='club_link'>
           </div>
-         `;
+      `;
       let edit_button = !editable ? '' :
-         `<div id='${ids.edit}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.edit")}'><img src='./icons/edit.png' class='club_link'></div>`;
+         `<div id='${ids.edit}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.edit")}'>
+         <img src='./icons/edit.png' class='club_link'>
+         </div>
+         `;
       let finish_button = !editable ? '' :
          `<div id='${ids.finish}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.done")}' style='display: none'>
             <img src='./icons/finished.png' class='club_link'>
@@ -2795,7 +2848,7 @@
       if (value == 'update') class_name += '_update';
       if (value == 'messages') class_name += '_messages';
       if (value == 'authorized') class_name += '_authorized';
-      if (value == 'notfound') class_name += '_notfound';
+      if (value == 'notfound' || value == 'warning') class_name += '_notfound';
       document.getElementById('homeicon').className = class_name;
    }
 
