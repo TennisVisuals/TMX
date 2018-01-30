@@ -237,8 +237,37 @@
       });
    }
 
-   exp.downloadRankings = () => {
-      db.findAllRankings().then(rankings => rankings.forEach(download));
+   exp.downloadRankings = (rankings) => {
+      if (!rankings) {
+         db.findAllRankings().then(rankings => rankings.forEach(download));
+      } else {
+         db.findAllClubs().then(processCategories, util.logError);
+
+         function processCategories(clubs) {
+            var clubsobj = Object.assign({}, ...clubs.map(c=>({[c.id]: c})));
+            var cats = rankings.categories;
+            Object.keys(cats).forEach(category => {
+               let players = [].concat(...convert(cats[category].M, 'M'), ...convert(cats[category].W, 'W'));
+               let ranking = {
+                  category,
+                  date: rank.getDateByWeek(rankings.week, rankings.year).getTime(),
+                  players: Object.assign({}, ...players)
+               }
+               download(ranking);
+            });;
+            function convert(list, gender) {
+               return list.map((m, i) => {
+                  m.ranking = i + 1;
+                  m.sex = gender;
+                  m.club_code = clubsobj[m.club] && clubsobj[m.club].code;
+                  m.club_name = clubsobj[m.club] && clubsobj[m.club].name;
+                  m.points = m.points && m.points.total || m.points;
+                  // add club code and club name
+                  return { [m.id]: m }
+               })
+            }
+         }
+      }
 
       function download(ranking) {
          let data = Object.keys(ranking.players).map(k=>ranking.players[k]);
