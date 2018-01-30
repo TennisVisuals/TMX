@@ -41,7 +41,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.59',
+      version: '0.9.60.0',
       version_check: undefined,
       org: {
          name: undefined,
@@ -225,11 +225,14 @@ let config = function() {
 
          let idioms = Object.keys(fx.available_idioms);
          if (!idioms.length) idioms = lang.options();
-         let options = idioms.sort().map(value => {
-            let ioc_value = value.length == 3 ? value : 'gbr';
-            let img_src = `./assets/flags/${ioc_value.toUpperCase()}.png`;
-            return { key: `<div class=''><img src="${img_src}" class='idiom_flag'></div>`, value, title: ioc_idioms[value.toUpperCase()] }
-         });
+         let options = idioms
+            .sort()
+            .map(value => {
+               let ioc_value = value.length == 3 ? value : 'gbr';
+               let img_src = `./assets/flags/${ioc_value.toUpperCase()}.png`;
+               return { key: `<div class=''><img src="${img_src}" class='idiom_flag'></div>`, value, title: ioc_idioms[value.toUpperCase()] }
+            })
+            .filter(f=>f.title);
          fx.idiom_ddlb.setOptions(options, 'background: black')
          fx.idiom_ddlb.setValue(ioc);
       });
@@ -526,7 +529,9 @@ let config = function() {
             let container = gen.rankLists(categories, week, year);
 
             util.addEventToClass('print', pdfList, container.container.element)
-            util.addEventToClass('icon_spreadsheet', exportList, container.container.element)
+            util.addEventToClass('category_csv', exportCategorySpreadsheet, container.container.element)
+            util.addEventToClass('spreadsheet', exportCategoriesSpreadsheet, container.container.element)
+            util.addEventToClass('icon_json', exportJSON, container.container.element)
 
             Array.from(container.container.element.querySelectorAll('.player_rank')).forEach(elem => elem.addEventListener('click', dpp));
 
@@ -543,7 +548,10 @@ let config = function() {
             let gender = ev.target.getAttribute('gender');
             rank.rankListPDF({ category, gender, list: rankings.categories[category][gender], week, year, date: selected_date });
          }
-         function exportList(ev) {
+         function exportCategoriesSpreadsheet(ev) {
+            console.log('export spreadsheeet containing all categories');
+         }
+         function exportCategorySpreadsheet(ev) {
             let category = ev.target.getAttribute('category');
             let gender = ev.target.getAttribute('gender');
             let ranklist = {
@@ -555,6 +563,7 @@ let config = function() {
             };
             exp.rankListCSV(ranklist);
          }
+         function exportJSON() { exp.downloadRankings(rankings); }
       });
 
    }
