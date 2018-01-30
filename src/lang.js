@@ -58,6 +58,7 @@
    }
 
    idioms.default = {
+      week:    'Week',
       warn:    'WARNING',
       ptz:     'Penalties',
       replace: 'Replace',
@@ -277,6 +278,7 @@
       },
 
       phrases: {
+         ranklists: 'Rank Lists for',
          reset: 'Database will be reset',
          action: 'Players requiring some action...',
          search: 'Use the search field above to find players, or click player to edit',
