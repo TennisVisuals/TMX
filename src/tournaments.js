@@ -219,9 +219,9 @@ let tournaments = function() {
    }
 
    function getTournamentOptions(tournament) {
-      let category = config.legacyCategory(tournament.category);
+      var category = config.legacyCategory(tournament.category);
 
-      let opts = tournament.rank_opts || { category, sgl_rank: tournament.rank, dbl_rank: tournament.rank };
+      var opts = tournament.rank_opts || { category, sgl_rank: tournament.rank, dbl_rank: tournament.rank };
 
       if (tournament.accepted) {
          if (tournament.accepted.M) {
@@ -297,6 +297,7 @@ let tournaments = function() {
       // TODO: remove this when finished
       dev.tournament = tournament;
       dev.container = container;
+      dev.dbmatches = dbmatches;
 
       // create and initialize draw objects
       let rr_draw = rrDraw();
@@ -319,6 +320,11 @@ let tournaments = function() {
       rr_draw.options({ min_width: 300 });
       // end draw object creation/initialization
 
+      function deleteMatch(muid) {
+         dbmatches = dbmatches.filter(m=>m.muid != muid);
+         db.deleteMatch(muid);
+      }
+
       editAction();
       tree_draw.selector(container.draws.element);
 
@@ -335,7 +341,6 @@ let tournaments = function() {
       util.addEventToClass(classes.print_draw, () => console.log('context menu print'), document, 'contextmenu');
 
       util.addEventToClass(classes.print_schedule, printSchedule);
-
       util.addEventToClass(classes.schedule_matches, scheduleMatches);
       function scheduleMatches() {
          let scheduling_height = '40em';
@@ -487,6 +492,11 @@ let tournaments = function() {
          }
       }
 
+      container.penalty_report.element.addEventListener('click', () => {
+         let penalties = playerPenalties();
+         console.log(penalties);
+      });
+
       container.pub_link.element.addEventListener('click', () => {
          let message = `https://${location.host}/draws/?tuid=${tournament.tuid}`;
          let ctext = `
@@ -534,7 +544,7 @@ let tournaments = function() {
             tournament: CircularJSON.stringify(tournament)
          });
          gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
-         // can't call saveTournament() here!!
+         // can't call saveTournament() here because saveTournament sets publish state
          if (o.save) db.addTournament(tournament);
       }
 
@@ -546,7 +556,7 @@ let tournaments = function() {
          exp.downloadCircularJSON(`${tournament.tuid}.circular.json`, tournament);
          tournament.saved_locally = true;
          gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
-         // can't call saveTournament() here!!
+         // can't call saveTournament() here because saveTournament sets save state
          if (o.save) db.addTournament(tournament);
       });
 
@@ -1189,7 +1199,7 @@ let tournaments = function() {
          // matchesTab() checks for new matches and updates pointsTab();
          if (reference == 'matches') matchesTab();
          if (reference == 'points') matchesTab();
-
+         if (reference == 'tournament') penaltyReportIcon();
          if (reference == 'schedule') scheduleTab();
 
          if (reference == 'events') {
@@ -1437,6 +1447,7 @@ let tournaments = function() {
 
          signInSheet();
          scheduleActions();
+         penaltyReportIcon();
          enableDrawActions();
          enableTournamentOptions();
 
@@ -2937,7 +2948,7 @@ let tournaments = function() {
          let teams = e.teams || [];
          let eligible = eligiblePlayers(e) || [];
          if (teams.length || eligible.length) {
-            let pids = [].concat(...e.teams, ...eligible.map(p=>p.id));
+            let pids = [].concat(...(e.teams || []), ...eligible.map(p=>p.id));
             let possible = players.filter(p=>pids.indexOf(p.id)>=0);
             let int_order = possible.map(o=>o.int).filter(i=>parseInt(i || 0)).sort();
             pids.forEach(a=>{ if (parseInt(idmap[a].int || 0)) idmap[a].int_order = 0 - 1 - int_order.indexOf(idmap[a].int); });
@@ -4057,17 +4068,23 @@ let tournaments = function() {
                      if (!tournament_player.penalties) tournament_player.penalties = [];
                      gen.escapeModal();
                      let penalty_code = `penalties.${penalty.value}`;
-                     let message = `${lang.tr('draws.penalty')}: ${lang.tr(penalty_code)}?<br>${tournament_player.full_name}`;
+                     let message = `
+                        ${lang.tr('draws.penalty')}: ${lang.tr(penalty_code)}
+                        <p style='color: red'>${tournament_player.first_name} ${tournament_player.last_name}</p>
+                     `;
                      gen.okCancelMessage(message, savePenalty, () => gen.closeModal());
                      function savePenalty() {
                         let penalty_event = {
                            penalty,
                            muid: match.muid,
+                           round: match.round_name,
+                           event: match.event.name,
                            tuid: tournament.tuid,
                            time: new Date().getTime()
                         }
                         tournament_player.penalties.push(penalty_event);
                         saveTournament(tournament);
+                        playersTab();
                         gen.closeModal();
                      }
                   }
@@ -4386,7 +4403,7 @@ let tournaments = function() {
          // TODO: ability to sort by either name or rank
 
          // TODO: temporary; HTS only has one category per tournament...
-         // in the future there will need to be a variable to keep track of
+         // in the future there will need to be a variable to keep track of category
 
          let category = config.legacyCategory(tournament.category, true);
          let tournament_date = tournament && (tournament.points_date || tournament.end);
@@ -4425,37 +4442,38 @@ let tournaments = function() {
             let puid = element.getAttribute('puid');
             let clicked_player = tournament.players.reduce((p, c) => { if (c.puid == puid) p = c; return p; }, undefined);
 
-            let withdrawn = !clicked_player ? false : clicked_player.withdrawn == 'Y' || clicked_player.withdrawn == true;
             let medical = player.medical(clicked_player);
             let registration = player.registration(clicked_player);
+            let approved = players_approved().indexOf(clicked_player.id) >= 0; 
+            let penalties = clicked_player.penalties && clicked_player.penalties.length;
+            let withdrawn = !clicked_player ? false : clicked_player.withdrawn == 'Y' || clicked_player.withdrawn == true;
 
             // rapid mode allows sign-in with single click
             if (state.edit && o.sign_in.rapid && !withdrawn && registration) {
                if (clicked_player) {
                   if (clicked_player.signed_in) {
-                     // disallow sign-out of a player who is approved for any event
-                     if (players_approved().indexOf(clicked_player.id) >= 0) {
-                        let message = `<div>${lang.tr('phrases.cannotsignout')}<p>${lang.tr('phrases.approvedplayer')}</div>`;
-                        gen.popUpMessage(message);
-                        return;
+                     if (approved) {
+                        if (penalties) { return gen.playerPenalties(clicked_player, saveFx); } else { return cannotSignOut(); }
+                        function saveFx() { saveTournament(tournament); playersTab(); }
                      }
-
                      // must confirm sign-out
-                     player.displayPlayerProfile({ puid }).then(()=>{}, ()=>displayIrregular(clicked_player));
-                     return;
+                     return player.displayPlayerProfile({ puid }).then(()=>{}, ()=>displayIrregular(clicked_player));
                   } else {
                      if (medical) {
                         clicked_player.signed_in = true;
                         saveTournament(tournament);
                      } else {
-                        player.displayPlayerProfile({ puid }).then(() => {}, (result) => displayIrregular(clicked_player));
+                        player.displayPlayerProfile({ puid }).then(()=>{}, ()=>displayIrregular(clicked_player));
                      }
                   }
                }
                finish();
             } else {
-               player.displayPlayerProfile({ puid, fallback: clicked_player }).then(() => {}, (result) => displayIrregular(clicked_player));
+               player.displayPlayerProfile({ puid, fallback: clicked_player }).then(()=>{}, ()=>displayIrregular(clicked_player));
             }
+
+            // disallow sign-out of a player who is approved for any event
+            function cannotSignOut() { gen.popUpMessage(`<div>${lang.tr('phrases.cannotsignout')}<p>${lang.tr('phrases.approvedplayer')}</div>`); }
 
             function displayIrregular(player, result) {
                if (state.edit) {
@@ -5051,8 +5069,6 @@ let tournaments = function() {
       }
 
       function determineRRqualifiers(e) {
-         if (!e.links || !e.links['E']) return;
-
          // 1st qualifiers from each bracket
          var qualified_teams = firstQualifiers(e);
 
@@ -5090,7 +5106,7 @@ let tournaments = function() {
       }
 
       function removeQualifiedRRplayers(evt, bracket) {
-         var qualified_ids = [].concat(...evt.qualified.map(team=>team.map(p=>p.id)));
+         var qualified_ids = evt.qualified ? [].concat(...evt.qualified.map(team=>team.map(p=>p.id))) : [];
          var scope = bracket ? bracket.players : evt.opponents;
          var scoped_qualifiers = scope.filter(p=>qualified_ids.indexOf(p.id)>=0);
 
@@ -5102,7 +5118,7 @@ let tournaments = function() {
 
          // if any qualified players are in this bracket, remove them from qualified players
          let qib_ids = scoped_qualifiers.map(p=>p.id);
-         evt.qualified = evt.qualified.filter(t=>util.intersection(t.map(p=>p.id), qib_ids).length == 0);
+         evt.qualified = evt.qualified ? evt.qualified.filter(t=>util.intersection(t.map(p=>p.id), qib_ids).length == 0) : [];
 
          // 2) if any qualified players are in the linked event, remove them
          let qlink = findEventByID(evt.links['E']);
@@ -5277,7 +5293,7 @@ let tournaments = function() {
          if (!outcome) return;
 
          let qlink = e.draw_type == 'Q' && findEventByID(e.links['E']);
-         let qlinkinfo = qlink && dfx.drawInfo(qlink.draw);
+         let qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
          let node = !existing_scores ? null : dfx.findMatchNodeByTeamPositions(e.draw, outcome.positions);
          let previous_winner = node && node.match && node.match.winner ? node.match.winner.map(m=>m.id) : undefined;
          let current_winner = outcome.winner != undefined ? outcome.teams[outcome.winner].map(m=>m.id) : undefined;
@@ -5377,7 +5393,6 @@ let tournaments = function() {
       }
 
       function qualifyTeam(e, team, qualifying_position) {
-         if (!e.links || !e.links['E'] || !team) return;
          if (!e.qualified) e.qualified = [];
 
          let team_copy = team.map(player => Object.assign({}, player));
@@ -5387,13 +5402,13 @@ let tournaments = function() {
             delete player.seed
          });
 
-         let elimination_event = findEventByID(e.links['E']);
-         if (!elimination_event) return;
-
          // RR Events reset e.qualified each time
          let qual_hash = e.qualified.map(teamHash);
          if (qual_hash.indexOf(teamHash(team_copy)) >= 0) return;
          e.qualified.push(team_copy);
+
+         let elimination_event = findEventByID(e.links['E']);
+         if (!elimination_event) return;
 
          let previously_qualified = elimination_event.approved.indexOf(teamHash(team_copy)) >= 0;
          if (previously_qualified) return;
@@ -5650,6 +5665,7 @@ let tournaments = function() {
 
                   // clean up match node
                   pruneNodeMatch(d.match);
+                  deleteMatch(d.match.muid);
                   updateAfterDelete(displayed_draw_event);
 
                   // update one bracket without regenerating all brackets!
@@ -6508,27 +6524,13 @@ let tournaments = function() {
                   delete d.data.dp;
                   delete d.data.team;
                   delete d.data.round_name;
-
-                  /*
-                  delete d.data.match.date;
-                  delete d.data.match.teams;
-                  delete d.data.match.score;
-                  delete d.data.match.entry;
-                  delete d.data.match.loser;
-                  delete d.data.match.winner;
-                  delete d.data.match.players;
-                  delete d.data.match.complete;
-                  delete d.data.match.set_scores;
-                  delete d.data.match.round_name;
-                  delete d.data.match.winner_index;
-                  */
-
                   delete d.data.match.teams;
                   delete d.data.match.entry;
                   delete d.data.match.players;
 
                   // prune attributes common to tree/RR
                   pruneNodeMatch(d.data.match);
+                  deleteMatch(d.data.match.muid);
                   updateAfterDelete(e);
 
                   tree_draw();
@@ -6809,6 +6811,11 @@ let tournaments = function() {
          enableDrawActions();
       }
 
+      function penaltyReportIcon() {
+         let visible = state.edit && playerPenalties().length ? true : false;
+         container.penalty_report.element.style.display = visible ? 'inline' : 'none';
+      }
+
       function tournamentTab() {
          let { days } = scheduledMatches();
          if ((dbmatches && dbmatches.length) && (!tournament.events || !tournament.events.length)) {
@@ -6840,7 +6847,12 @@ let tournaments = function() {
             },
          });
          pointsDatePicker.setMinDate(tournament.start);
+         penaltyReportIcon();
+      }
 
+      function playerPenalties() {
+         if (!tournament.players || !tournament.players.length) return [];
+         return [].concat(...tournament.players.map(p=>p.penalties)).filter(f=>f);
       }
 
       function legacyTournamentOptions() {
@@ -7361,11 +7373,11 @@ let tournaments = function() {
       return new Promise( (resolve, reject) => {
          db.db.matches.where('tournament.tuid').equals(tournament.tuid).toArray(calcPoints); 
 
-         let tournament_date = tournament && (tournament.points_date || tournament.end);
-         let points_date = tournament_date ? new Date(tournament_date) : new Date();
-         let points_table = pointsTable({ calc_date: points_date });
+         var tournament_date = tournament && (tournament.points_date || tournament.end);
+         var points_date = tournament_date ? new Date(tournament_date) : new Date();
+         var points_table = pointsTable({ calc_date: points_date });
 
-         let rankings = {
+         var rankings = {
             category: undefined,
             sgl_rank: undefined,
             dbl_rank: undefined,
@@ -7386,19 +7398,19 @@ let tournaments = function() {
             }
          }
 
-         let addPointEvents = (point_events) => util.performTask(db.addPointEvent, point_events, false);
+         var addPointEvents = (point_events) => util.performTask(db.addPointEvent, point_events, false);
 
          function calcPoints(matches) {
             console.log('rankings category:', rankings.category);
 
-            let match_data = { matches, category: rankings.category, rankings, date: points_date, points_table };
-            let points = rank.bulkPlayerPoints(match_data);
+            var match_data = { matches, category: rankings.category, rankings, date: points_date, points_table };
+            var points = rank.bulkPlayerPoints(match_data);
 
-            let singles_points = Object.keys(points.singles).map(player => points.singles[player]);
-            let doubles_points = Object.keys(points.doubles).map(player => points.doubles[player]);
-            let all_points = [].concat(...singles_points, ...doubles_points);
+            var singles_points = Object.keys(points.singles).map(player => points.singles[player]);
+            var doubles_points = Object.keys(points.doubles).map(player => points.doubles[player]);
+            var all_points = [].concat(...singles_points, ...doubles_points);
 
-            let valid_points = all_points.filter(p => p.points != undefined && p.puid);
+            var valid_points = all_points.filter(p => p.points != undefined && p.puid);
             addPointEvents(valid_points).then(resolve({tournament, point_events: valid_points.length}), reject);
          }
       });
@@ -7406,7 +7418,7 @@ let tournaments = function() {
 
    // used exclusively when draws are generated from existing matches
    function generateDrawBrackets(matches) {
-      let brackets = dfx.findBrackets(matches);
+      var brackets = dfx.findBrackets(matches);
 
       brackets.forEach(bracket => {
          let draw_positions = bracket.players.map(p => p.draw_position);
