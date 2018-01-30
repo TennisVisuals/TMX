@@ -73,6 +73,15 @@
 .push2cloud_outofdate { background-image: url("../icons/ul_yellow.png"); }
 .download_updated { background-image: url("../icons/dl_green.png"); }
 .push2cloud_updated { background-image: url("../icons/ul_green.png"); }
+.trash { background-image: url("../icons/trash.png"); }
+.penalty { background-image: url("../icons/penalty.png"); }
+.penalty_icon {
+   background-image: url("../icons/penalty.png");
+   width: 1em;
+   height: 0;
+   padding-bottom: 1em;
+   background-size: 100%;
+} 
 
 .automation_icon {
    width: 4em;
@@ -736,11 +745,12 @@
 .detail_header .del { background: #F5A9A9; }
 
 .registered_players { font-size: 14px; }
-.registered_count { width: 10%; }
-.registered_player { width: 50%; }
-.registered_attr { width: 20%; }
+.registered_count { width: 5%; }
+.registered_penalty { width: 2%; }
+.registered_player { width: 40%; }
+.registered_attr { width: 10%; }
 .registered_club {
-   width: 20%;
+   width: 10%;
    overflow: hidden;
    white-space:nowrap;
    text-overflow: ellipsis;
