@@ -63,6 +63,11 @@ let db = function() {
 
    db.pointsAfter = (date) => new Promise ((resolve, reject) => db.db.points.where('date').aboveOrEqual(date).toArray(resolve, reject).catch(reject));
 
+   db.deleteMatch = (muid) => {
+      return new Promise((resolve, reject) => db.db.matches.where('muid').equals(muid).delete().then(() => db.deleteMatchPoints(muid), reject));
+   }
+   db.deleteMatchPoints = (muid) => db.db.points.where('muid').equals(muid).delete();
+
    db.deleteEventMatches = (tuid, euid) => new Promise ((resolve, reject) => db.db.matches.where('tournament.tuid').equals(tuid).modify((match, ref) => {
       if (euid && match.event && euid == match.event.euid) return delete ref.value;
    }).then(resolve, reject));
