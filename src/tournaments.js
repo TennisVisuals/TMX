@@ -580,7 +580,7 @@ let tournaments = function() {
                   gen.closeModal();
                });
                choices.option2.element.addEventListener('click', () => {
-                  hts.downloadHTSformattedPoints({points});
+                  hts.downloadHTSformattedPoints({points, tuid: tournament.tuid});
                   gen.closeModal();
                });
             }
