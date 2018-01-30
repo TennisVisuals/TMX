@@ -3641,7 +3641,11 @@
       }
       let rank_info = `
          <div class='flexrow flexcenter'>
-            <div class='rank_info flexcenter'>Rank Lists for ${year} week ${week}</div>
+            <div style='height: 100%'><div class='icon30'></div></div>
+            <div style='height: 100%'><div class='icon30'></div></div>
+            <div class='rank_info flexcenter'>${lang.tr('phrases.ranklists')} ${year} ${lang.tr('week')} ${week}</div>
+            <div style='height: 100%'><div class='spreadsheet icon_spreadsheet icon30'></div></div>
+            <div style='height: 100%'><div class='icon_json icon30'></div></div>
          </div>
       `;
       let tabdata = tabRankLists(categories, week, year);
@@ -3678,8 +3682,8 @@
       let html = `
          <div id='GC${category}${gender}' class='rank_column_heading flexrow flexcenter'>
             ${lang.tr(gender == 'M' ? 'genders.male' : gender == 'W' ? 'genders.female' : 'genders.mixed')}
-            <div class='print action_icon_small ${gen.infoleft}' label='${lang.tr("print.ranklist")}' category='${category}' gender='${gender}'></div>
-            <div class='icon_spreadsheet action_icon_small' category='${category}' gender='${gender}'></div>
+            <div><div class='print action_icon_small ${gen.infoleft}' label='${lang.tr("print.ranklist")}' category='${category}' gender='${gender}'></div></div>
+            <div><div class='category_csv icon_csv action_icon_small ${gen.info}' label='CSV' category='${category}' gender='${gender}'></div></div>
          </div>
       `;
       html += `

@@ -82,6 +82,20 @@ html {
    margin-right: .3em;
    background-size: 100%;
 }
+.icon20 {
+   width: 2em;
+   height: 0;
+   padding-bottom: 1.8em;
+   background-size: 100%;
+   margin-bottom: 2em;
+}
+.icon30 {
+   width: 3em;
+   height: 0;
+   padding-bottom: 2.8em;
+   background-size: 100%;
+   margin-bottom: 2em;
+}
 .splash_tournament { background-image: url("../icons/cupblack.png"); }
 .splash_keys { background-image: url("../icons/keys.png"); }
 .splash_players { background-image: url("../icons/players.png"); }
@@ -89,6 +103,8 @@ html {
 .splash_upload { background-image: url("../icons/upload.png"); }
 .splash_download { background-image: url("../icons/download.png"); }
 .icon_spreadsheet { background-image: url("../icons/spreadsheet.png"); }
+.icon_csv { background-image: url("../icons/csv.png"); }
+.icon_json { background-image: url("../icons/json.png"); }
 .splash_importexport { background-image: url("../icons/import_export.png"); }
 .splash_settings { background-image: url("../icons/settings.png"); }
 
