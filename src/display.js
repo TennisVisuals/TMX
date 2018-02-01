@@ -2431,7 +2431,7 @@
          if (team.length == 1) {
             let p = match.players[team[0]];
             let club = p.club_code ? ` (${p.club_code})` : '';
-            let ioc = p.ioc ? ` (<u>${p.ioc}</u>)` : '';
+            let ioc = p.ioc ? ` {${p.ioc}}` : '';
             return `${p.full_name}${club || ioc}`;
          } else {
             return team.map(p=>match.players[p].last_name.toUpperCase()).join('/');
