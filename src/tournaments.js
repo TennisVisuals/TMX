@@ -2219,9 +2219,7 @@ let tournaments = function() {
       }
 
       let roundRobinDrawBracketOptions = (e) => {
-
          let opponents = e.approved.length;
-
          let lower_range = o.draws.brackets.min_bracket_size;
          let upper_range = o.draws.brackets.max_bracket_size;
          e.bracket_size = e.bracket_size || lower_range;
@@ -2278,7 +2276,6 @@ let tournaments = function() {
 
       function configDrawType(e) {
          let linkChanged = () => eventPlayers(e);
-
          let setQualifiers = (value) => {
             e.qualifiers = +value;
 
@@ -2566,7 +2563,9 @@ let tournaments = function() {
             saveTournament(tournament);
          }
          details.surface.ddlb = new dd.DropDown({ element: details.surface.element, onChange: setSurface });
-         details.surface.ddlb.setValue(e.surface || tournament.surface || 'C');
+         // preset handles situation where surface is a full name rather than a single character
+         let preset = e.surface || tournament.surface || 'C';
+         details.surface.ddlb.setValue(preset.toUpperCase()[0]);
 
          let setInOut = (value) => { 
             e.inout = value; 
@@ -4715,6 +4714,7 @@ let tournaments = function() {
 
          // attach function to display player profile when clicked
          util.addEventToClass('player_click', player.playerClicked, container.matches.element);
+         util.addEventToClass('player_click', playerInMatchContext, container.matches.element, 'contextmenu');
 
          function enterMatchScore(e, match) {
 
@@ -4771,19 +4771,30 @@ let tournaments = function() {
          util.addEventToClass('cell_singles', matchClicked, container.matches.element);
          util.addEventToClass('cell_doubles', matchClicked, container.matches.element);
 
-         function matchContext(evt) {
-            let muid = evt.target.getAttribute('muid');
-            let euid = evt.target.getAttribute('euid');
+         function playerInMatchContext(evt) {
+            let puid = evt.target.getAttribute('puid');
+            let row = util.getParent(evt.target, 'matchrow');
+            let muid = row.getAttribute('muid');
+            let euid = row.getAttribute('euid');
+            matchContext(evt, muid, euid, puid);
+         }
+
+         function matchContext(evt, muid, euid, puid) {
+            if (!state.edit) return;
+            muid = muid || evt.target.getAttribute('muid');
+            euid = euid || evt.target.getAttribute('euid');
             if (!muid || !euid) return;
             let e = findEventByID(euid);
             let match = eventMatches(e, tournament).reduce((p, c) => p = (c.match.muid == muid) ? c : p, undefined);
             if (state.edit && match.match.winner == undefined) {
-               gen.popUpMessage('context menu');
+               if (puid) {
+                  // if clicked on the player go directly to assigning any penalties to that player
+               }
+               gen.popUpMessage('matches context menu');
             }
          }
          util.addEventToClass('cell_singles', matchContext, container.matches.element, 'contextmenu');
          util.addEventToClass('cell_doubles', matchContext, container.matches.element, 'contextmenu');
-
       }
 
       // Returns NEW objects; modifications don't change originals
@@ -4856,7 +4867,6 @@ let tournaments = function() {
                format: evt.format,
                active: evt.active,
                scoring: evt.scoring,
-               surface: evt.surface,
                surface: evt.surface,
                approved: evt.approved,
                category: evt.category,
