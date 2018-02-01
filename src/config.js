@@ -41,7 +41,7 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.60.0',
+      version: '0.9.60.1.1',
       version_check: undefined,
       org: {
          name: undefined,
@@ -569,7 +569,6 @@ let config = function() {
    }
 
    fx.search = () => {
-
       searchBox.element_id = 'searchinput';
       searchBox.meta_element_id = 'searchmeta';
       searchBox.count_element_id = 'searchcount';
@@ -881,11 +880,14 @@ let config = function() {
             env.storage = persistent ? true : 'user agent control'
             coms.emitTmx({ 
                event: 'Persistence',
-               notice: `Persistence: ${persistent}`,
+               notice: `Persistence: ${env.storage}`,
                persistent
             });
-            if (persistent && persistent != true ) {
-               fx.addMessage({ title: 'warn', notice: 'Data Persistence Not Guaranteed', warning: true });
+            if (persistent && env.storage != true ) {
+               fx.addMessage({
+                  title: 'warn',
+                  notice: 'Data Persistence Not Guaranteed; save locally or publish to server before closing your browser. Or try Firefox Quantum.', warning: true
+               });
             }
          });
       } else {
