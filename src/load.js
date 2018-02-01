@@ -713,7 +713,9 @@
          { attr: 'id', header: 'ID' }, 
          { attr: 'last_name', header: 'Last Name' }, 
          { attr: 'first_name', header: 'First Name' }, 
+         { attr: 'full_name', header: 'Full Name' }, 
          { attr: 'city', header: 'City' }, 
+         { attr: 'region', header: 'Region' }, 
          { attr: 'sex', header: 'Gender' }, 
          { attr: 'birth', header: 'Birthdate' }, 
          { attr: 'ioc', header: 'IOC' }, 
@@ -724,8 +726,8 @@
       players.forEach(player => {
          player.puid = player.puid || UUID.new();
          player.id = player.id || player.puid;
-         player.birth = new Date(player.birth).getTime();
-         player.ioc = (player.ioc.match(/\D+/g) || [])[0];
+         player.birth = player.birth.indexOf('-') < 0 ? parseFloat(player.birth) : new Date(player.birth).getTime();
+         player.ioc = player.ioc ? (player.ioc.match(/\D+/g) || [])[0] : '';
       });
       return players;
    }
