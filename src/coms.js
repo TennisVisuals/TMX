@@ -754,7 +754,6 @@ let coms = function() {
             let request = JSON.stringify(request_object);
 
             function responseHandler(result) {
-               console.log('fetch result:', result);
                if (result.json) {
                   let players = result.json.filter(p=>p.last_name);
                   players.forEach(player => {
