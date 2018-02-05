@@ -59,6 +59,14 @@
       }
    });
 
+   document.addEventListener('mouseover', evt => {
+      if (evt.target.classList.contains('ctxclk')) evt.target.classList.add('context_click');
+   });
+
+   document.addEventListener('mouseout', evt => {
+      if (evt.target.classList.contains('ctxclk')) evt.target.classList.remove('context_click');
+   });
+
    let surface_icons = {
       'C': 'surface_clay',
       'R': 'surface_carpet',
@@ -788,7 +796,7 @@
          let first_name = util.normalizeName(p.first_name, false);
          let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : '';
          let seed = p.seed ? ` [${p.seed}]` : '';
-         return `<div puid='${p.puid}' class='player_click cell_player'>${left}${first_name} ${last_name}${seed}${right}</div>`;
+         return `<div puid='${p.puid}' class='ctxclk player_click cell_player'>${left}${first_name} ${last_name}${seed}${right}</div>`;
       }
 
       function potentialBlock(p, side) {
@@ -800,7 +808,7 @@
          let right = side == 'left' ? ` ${assoc}` : '';
          let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? 'Qualifier' : '';
          let seed = p.seed ? ` [${p.seed}]` : '';
-         return `<div puid='${p.puid}' class='player_click cell_player potential'>${left}${last_name}${seed}${right}</div>`;
+         return `<div puid='${p.puid}' class='ctxclk player_click cell_player potential'>${left}${last_name}${seed}${right}</div>`;
       }
 
       function unknownBlock(pindex, side) {
@@ -886,7 +894,7 @@
       let round = { header: round_icon, cell: 'flexcenter flexjustifystart padright', column: 'round', fx: (m) => m.round_name || m.round || '' };
       let tournament = { header: '', cell: 'flexcenter flexjustifystart padright trim15', column: 'tournament', fx: tournamentData };
       let time = { header: time_icon || '${lang.tr("time")}', cell: 'flexcenter padaround', column: 'time', fx: matchTime };
-      let players = { header: `${lang.tr('pyr')} [${lang.tr('rnk').toLowerCase()}]`, cell: 'matchrow', column: 'teamcolumn', fx: formatTeams };
+      let players = { header: `${lang.tr('pyr')} [${lang.tr('rnk').toLowerCase()}]`, cell: 'matchrow ctxclk', column: 'teamcolumn', fx: formatTeams };
       let score = { header: lang.tr('scr'), cell: 'flexcenter flexjustifystart padright matchscore', column: '', fx: matchScore };
       let duration = { header: lang.tr('duration'), cell: 'flexcenter flexjustifystart duration padaround', column: '', fx: (m) => m.duration || '' };
       let court = { header: court_icon, cell: 'flexcenter padaround', column: 'court', fx: courtData };
@@ -3091,7 +3099,7 @@
          <div grouping='team' class='team_players player_container' style='display: none'></div>
 
          <div class='flexrow divider eligible'>
-            <div id='${ids.eligible}'>${lang.tr('events.eligible')} <span id='${ids.eligible_count}'></span></div>
+            <div id='${ids.eligible}' class='ctxclk'>${lang.tr('events.eligible')} <span id='${ids.eligible_count}'></span></div>
             ${addall}
          </div>
          <div grouping='eligible' class='eligible_players player_container'></div>
@@ -3282,7 +3290,7 @@
          let player_click = click ? 'player_click ' : '';
          let html = `
             <div puid='${p.puid}' uid='${p.id}' class='${player_click}flexrow detail'>
-               <div class='event_player_name flexjustifystart'>${p.full_name}</div>
+               <div class='ctxclk event_player_name flexjustifystart'>${p.full_name}</div>
             </div>`;
          return html;
       }
