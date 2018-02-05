@@ -32,6 +32,7 @@ html {
    top: 4.8em;
 }
 
+.context_click { color: #36AB0A; }
 .subtle { opacity: 0 }
 .subtle:hover { opacity: 1 }
 
