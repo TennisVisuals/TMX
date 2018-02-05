@@ -617,7 +617,7 @@
          draw.options({scores: { max_font_size: 40, min_font_size: 40 }});
 
          if (info.draw_positions.length <= 16) {
-            draw.options({names: { length_divisor: 10 }});
+            draw.options({names: { length_divisor: 23 }});
             draw.options({names:  { max_font_size: 50, min_font_size: 50 }});
             draw.options({umpires: { offset: 45 }});
             draw.options({detail_offsets: { base: 80, width: 65 }});
@@ -626,7 +626,7 @@
             draw.options({detail_attr: { font_size: 40 }});
             draw.options({detail_attr: { seeding_font_size: 54 }});
          } else if (info.draw_positions.length <= 24) {
-            draw.options({names: { length_divisor: 12 }});
+            draw.options({names: { length_divisor: 23 }});
             draw.options({umpires: { offset: 45 }});
             draw.options({detail_offsets: { base: 80, width: 65 }});
             draw.options({lines: { stroke_width: 4 }});
@@ -634,7 +634,7 @@
             draw.options({detail_attr: { font_size: 36 }});
             draw.options({detail_attr: { seeding_font_size: 54 }});
          } else if (info.draw_positions.length <= 32) {
-            draw.options({names: { length_divisor: 12 }});
+            draw.options({names: { length_divisor: 23 }});
             draw.options({umpires: { offset: 45 }});
             draw.options({detail_offsets: { base: 80, width: 60 }});
             draw.options({lines: { stroke_width: 4 }});
@@ -642,7 +642,7 @@
             draw.options({detail_attr: { font_size: 30 }});
             draw.options({detail_attr: { seeding_font_size: 45 }});
          } else if (info.draw_positions.length <= 48) {
-            draw.options({names: { length_divisor: 12 }});
+            draw.options({names: { length_divisor: 23 }});
             draw.options({umpires: { offset: 45 }});
             draw.options({detail_offsets: { base: 80, width: 60 }});
             draw.options({lines: { stroke_width: 4 }});
@@ -650,7 +650,7 @@
             draw.options({detail_attr: { font_size: 30 }});
             draw.options({detail_attr: { seeding_font_size: 45 }});
          } else if (info.draw_positions.length <= 64) {
-            draw.options({names: { length_divisor: 12 }});
+            draw.options({names: { length_divisor: 23 }});
             draw.options({umpires: { offset: 45 }});
             draw.options({detail_offsets: { base: 80, width: 60 }});
             draw.options({lines: { stroke_width: 4 }});
@@ -696,7 +696,7 @@
          draw.options(options);
          draw.options({ sizeToFit: false, min_width: 3000, width: 3000, min_height: 600, id: `rr${UUID.new()}` });
 
-         draw.options({names: { length_divisor: 13 }});
+         draw.options({names: { length_divisor: 23 }});
          draw.options({names:  { max_font_size: 40, min_font_size: 40 }});
          draw.options({scores: { max_font_size: 40, min_font_size: 40 }});
 
