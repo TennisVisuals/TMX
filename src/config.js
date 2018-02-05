@@ -41,7 +41,8 @@ let config = function() {
    // END queryString
 
    var env = {
-      version: '0.9.60.1.1',
+      // version is Major.minor.added.changed.fixed
+      version: '0.9.62.2.3',
       version_check: undefined,
       org: {
          name: undefined,
@@ -889,10 +890,15 @@ let config = function() {
                   notice: 'Data Persistence Not Guaranteed; save locally or publish to server before closing your browser. Or try Firefox Quantum.', warning: true
                });
             }
-         });
+         }, notSupported);
       } else {
          env.messages.push({ title: 'warn', notice: 'Data Persistence Not Supported', warning: true });
          gen.homeIconState('warning');
+         notSupported();
+      }
+
+      function notSupported(err) {
+         if (err) console.log('Persistence error:', err);
          coms.emitTmx({ 
             event: 'Persistence',
             notice: `Persistence Not Supported`,
@@ -930,7 +936,10 @@ let config = function() {
       handleUnhandled();
 
       function closeModal() { gen.escapeFx = undefined; gen.closeModal(); }
-      function refreshApp() { location.reload(true); }
+      function refreshApp() {
+         location.pathname = "/tmx/";
+         // location.reload(true);
+      }
       function displayMessages() {
          gen.escapeModal();
          gen.homeContextMessage(refreshApp, closeModal, env.messages)
@@ -1196,7 +1205,6 @@ let config = function() {
       }
 
       function callback(player) {
-         console.log(player);
          player.puid = `pl${UUID.new()}`;
          player.id = player.puid;
          db.addPlayer(player);
