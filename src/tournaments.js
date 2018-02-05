@@ -4784,17 +4784,101 @@ let tournaments = function() {
             muid = muid || evt.target.getAttribute('muid');
             euid = euid || evt.target.getAttribute('euid');
             if (!muid || !euid) return;
+            let mouse = {
+               x: evt.clientX,
+               y: evt.clientY
+            }
             let e = findEventByID(euid);
             let match = eventMatches(e, tournament).reduce((p, c) => p = (c.match.muid == muid) ? c : p, undefined);
-            if (state.edit && match.match.winner == undefined) {
-               if (puid) {
-                  // if clicked on the player go directly to assigning any penalties to that player
-               }
-               gen.popUpMessage('matches context menu');
+            if (state.edit) {
+               matchesTabContext(e, mouse, match.match, puid);
             }
          }
          util.addEventToClass('cell_singles', matchContext, container.matches.element, 'contextmenu');
          util.addEventToClass('cell_doubles', matchContext, container.matches.element, 'contextmenu');
+
+         function matchesTabContext(e, mouse, match, puid) {
+            let complete = match && match.winner != undefined;
+            if (match) {
+               let options = [];
+               if (!complete) options.push({ label: lang.tr('draws.changestatus'), key: 'changestatus' });
+               options.push({ label: lang.tr('draws.penalty'), key: 'penalty' });
+
+               gen.svgModal({ x: mouse.x, y: mouse.y, options, callback: modifySchedule });
+
+               function modifySchedule(choice, index) {
+                  if (choice.key == 'changestatus') {
+                     let statuses = [
+                        lang.tr('schedule.called'),
+                        lang.tr('schedule.oncourt'),
+                        lang.tr('schedule.warmingup'),
+                        lang.tr('schedule.suspended'),
+                        lang.tr('schedule.raindelay'),
+                        lang.tr('schedule.clear'),
+                     ];
+                     gen.svgModal({ x: mouse.x, y: mouse.y, options: statuses, callback: matchStatus });
+                  } else if (choice.key == 'penalty') {
+                     let statuses = [
+                        { label: lang.tr('penalties.illegalcoaching'), value: 'illegalcoaching' },
+                        { label: lang.tr('penalties.unsporting'), value: 'unsporting' },
+                        { label: lang.tr('penalties.ballabuse'), value: 'ballabuse' },
+                        { label: lang.tr('penalties.racquetabuse'), value: 'racquetabuse' },
+                        { label: lang.tr('penalties.equipmentabuse'), value: 'equipmentabuse' },
+                        { label: lang.tr('penalties.cursing'), value: 'cursing' },
+                        { label: lang.tr('penalties.rudegestures'), value: 'rudegestures' },
+                        { label: lang.tr('penalties.foullanguage'), value: 'foullanguage' },
+                        { label: lang.tr('penalties.timeviolation'), value: 'timeviolation' },
+                        { label: lang.tr('penalties.latearrival'), value: 'latearrival' },
+                        { label: lang.tr('penalties.fail2signout'), value: 'fail2signout' },
+                     ];
+                     gen.svgModal({ x: mouse.x, y: mouse.y, options: statuses, callback: assessPenalty });
+                  }
+               }
+               function assessPenalty(penalty, penalty_index, penalty_value) {
+
+                  if (puid) {
+                     processPlayerPenalty(puid);
+                  } else {
+                     let players = match.players.map(p=>p.full_name);
+                     gen.svgModal({ x: mouse.x, y: mouse.y, options: players, callback: playerPenalty });
+                  }
+
+                  function playerPenalty(player, index, value) {
+                     let puid = match.players[index].puid;
+                     processPlayerPenalty(puid);
+                  }
+                  function processPlayerPenalty(puid) {
+                     let tournament_player = tournament.players.reduce((p, s) => s.puid == puid ? s : p);
+                     if (!tournament_player.penalties) tournament_player.penalties = [];
+                     gen.escapeModal();
+                     let penalty_code = `penalties.${penalty.value}`;
+                     let message = `
+                        ${lang.tr('draws.penalty')}: ${lang.tr(penalty_code)}
+                        <p style='color: red'>${tournament_player.first_name} ${tournament_player.last_name}</p>
+                     `;
+                     gen.okCancelMessage(message, savePenalty, () => gen.closeModal());
+                     function savePenalty() {
+                        let penalty_event = {
+                           penalty,
+                           muid: match.muid,
+                           round: match.round_name,
+                           event: e.name,
+                           tuid: tournament.tuid,
+                           time: new Date().getTime()
+                        }
+                        tournament_player.penalties.push(penalty_event);
+                        saveTournament(tournament);
+                        playersTab();
+                        gen.closeModal();
+                     }
+                  }
+               }
+               function matchStatus(value, index) {
+                  match.status = index == 4 ? '' : value;
+                  match.source.status = match.status;
+               }
+            }
+         }
       }
 
       // Returns NEW objects; modifications don't change originals
@@ -4856,6 +4940,7 @@ let tournaments = function() {
                org: config.env().org,
                start: tourny.start,
                end: tourny.end,
+               categories: tourny.categories
             },
             event: {
                euid: evt.euid,
@@ -5999,7 +6084,6 @@ let tournaments = function() {
                   // TODO: this block of code is duplicated
                   let info = tree_draw.info();
                   if (info.unassigned.length == 1) {
-                     console.log('unassigned 2');
                      let unassigned_position = info.unassigned[0].data.dp;
                      let placements = draw.unseeded_placements.map(p=>p.id);
                      let ut = draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
@@ -7231,7 +7315,6 @@ let tournaments = function() {
    }
 
    function displayTournamentPoints(container, tournament, points={}, filters) {
-
       let filterPointsByGender = (obj) => {
          if (!obj) return {};
 
