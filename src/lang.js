@@ -58,6 +58,8 @@
    }
 
    idioms.default = {
+      delete:  'Delete',
+      merge:   'Merge',
       week:    'Week',
       warn:    'WARNING',
       ptz:     'Penalties',
@@ -386,6 +388,8 @@
          add_location: 'Add Location',
          save_location: 'Save Location',
          delete_location: 'Delete Location',
+         delete_tournament: 'Delete Tournament',
+         edit_tournament: 'Edit Tournament',
       },
 
       signin: {
