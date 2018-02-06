@@ -114,7 +114,6 @@
    color: #2F3FBB;
 }
 .calendar_row {
- /*  width: 100%; */
    min-height: 2em;
    display: flex;
    -webkit-flex-direction: row;
@@ -123,9 +122,8 @@
    justify-content: space-between;
    border-bottom: 1px solid lightgray;
 }
-.calendar_row:hover { 
-   background: #0077c0;
-   color: white;
+.calendar_highlight:hover { 
+   background: #F4F5F4;
 }
 .calendar_row .dates {
    width: 15%;
