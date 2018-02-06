@@ -386,13 +386,13 @@ let coms = function() {
    }
 
    fx.fetchTournament = fetchTournament;
-   function fetchTournament() {
+   function fetchTournament(merge_with_tuid, coords, modifyTournament) {
       db.findSetting('fetchTournament').then(s => {
          if (s) {
             let fetchFx = s.fx ? util.createFx(s.fx) : undefined;
             if (!fetchFx || typeof fetchFx != 'function') return;
 
-            let obj = gen.entryModal('tournaments.id', false);
+            let obj = gen.entryModal('tournaments.id', false, coords);
             gen.escapeModal();
             let entry_modal = d3.select(obj.entry_modal.element);
             let removeEntryModal = () => {
@@ -404,7 +404,7 @@ let coms = function() {
             obj.search_field.element.addEventListener("keyup", function(e) { 
                if (e.which == 13) {
                   let id = obj.search_field.element.value;
-                  if (id) fetchFx(id, fetchHTML).then(()=>{}, ()=>{ console.log('invalid', id); });
+                  if (id) fetchFx(id, fetchHTML).then(completeFetch, ()=>{ console.log('invalid', id); });
                   removeEntryModal();
                }
             });
@@ -415,6 +415,24 @@ let coms = function() {
             console.log('no fx');
          }
       });
+
+      function completeFetch(fetched) {
+         if (merge_with_tuid) {
+            console.log('merge tournament with tuid:', merge_with_tuid);
+            db.findTournament(merge_with_tuid).then(existing => mergeTournaments(existing, fetched), util.logError);
+         } else {
+            db.addTournament(fetched).then(tournaments.displayCalendar);
+         }
+      }
+
+      function mergeTournaments(existing, fetched) {
+         existing.start = Math.min(existing.start, fetched.start);
+         existing.end = Math.max(existing.end, fetched.end);
+         existing.players = existing.players.concat(...fetched.players);
+         db.addTournament(existing).then(() => {
+            tournaments.createNewTournament({ tournament_data: existing, title: lang.tr('actions.edit_tournament'), callback: modifyTournament })
+         });
+      }
    }
 
    function fetchHTML(url) {
