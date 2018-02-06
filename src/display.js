@@ -1314,6 +1314,7 @@
          rank: gen.uuid(),
          start: gen.uuid(),
          inout: gen.uuid(),
+         surface: gen.uuid(),
          end: gen.uuid(),
          judge: gen.uuid(),
          draws: gen.uuid(),
@@ -1364,6 +1365,7 @@
                      </div>
                      <div class='flexrow tournamentattrddlb'>
                         <div id='${ids.inout}' class='flexjustifystart categoryddlb'> </div>
+                        <div id='${ids.surface}' class='flexjustifystart categoryddlb'> </div>
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.judge}' value='${tournament.judge || ''}'>
@@ -2474,7 +2476,7 @@
       return html;
    }
 
-   gen.entryModal = (label, mouse) => {
+   gen.entryModal = (label, mouse, coords) => {
       let su_ids = {
          entry_modal: gen.uuid(),
       }
@@ -2484,10 +2486,10 @@
          .attr('class', 'modal')
          .attr('id', su_ids.entry_modal);
 
-      let coords = mouse ? d3.mouse(document.body) : [window.innerWidth / 2, 200];
+      let srcn = mouse ? d3.mouse(document.body) : coords ? [coords.x, coords.y] : [window.innerWidth / 2, 200];
       let { ids, html } = entryModalEntryField(label);
       let entry = floatingEntry().selector('#' + su_ids.entry_modal)
-      entry(coords[0], coords[1] - window.scrollY, html);
+      entry(srcn[0], srcn[1] - window.scrollY, html);
 
       Object.assign(ids, su_ids);
       let id_obj = idObj(ids);
@@ -3419,9 +3421,9 @@
       }
 
       return `
-         <div tuid='${tournament.tuid}' class='calendar_click calendar_row ${background} ${received}'>
+         <div tuid='${tournament.tuid}' class='calendar_click calendar_row calendar_highlight ${background} ${received}'>
             <span class='dates' style='overflow: hidden'> ${displayDate(tournament.start)}&nbsp;/ ${displayDate(tournament.end)} </span>
-            <div class='name'>${tournament.name}</div>
+            <div class='name ctxclk'>${tournament.name}</div>
             <div class='category'>${category || ''}</div>
             <div class='rank'>${tournament.rank || ''}</div>
             <!-- <div class='actual'>${actual_rankings}</div> -->
