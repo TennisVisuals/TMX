@@ -86,7 +86,6 @@ let tournaments = function() {
 
    fx.displayCalendar = displayCalendar;
    function displayCalendar() {
-
       let category = config.env().calendar.category;
       let month_start = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
 
@@ -148,12 +147,12 @@ let tournaments = function() {
       category = config.legacyCategory(category);
 
       calendar_container.add.element.addEventListener('click', () => {
-         createNewTournament({ title: lang.tr('tournaments.new'), callback: saveNewTournament })
+         createNewTournament({ title: lang.tr('tournaments.new'), callback: modifyTournament })
       });
 
-      calendar_container.add.element.addEventListener('contextmenu', coms.fetchTournament);
+      calendar_container.add.element.addEventListener('contextmenu', () => coms.fetchTournament());
 
-      function saveNewTournament(tournament) {
+      function modifyTournament(tournament) {
          if (!tournament || !Object.keys(tournament).length) return;
 
          tournament.log = [];
@@ -182,18 +181,40 @@ let tournaments = function() {
 
             gen.calendarRows(calendar_container.rows.element, tournaments);
 
-            let dt = (evt) => displayTournament({tuid: util.getParent(evt.target, 'calendar_click').getAttribute('tuid')});
-            let editTournament = (evt) => {
+            function dt(evt) { return displayTournament({tuid: util.getParent(evt.target, 'calendar_click').getAttribute('tuid')}); }
+            function tournamentContextOptions(evt) {
+               // if (!evt.target.classList.contains('ctxclk')) return;
+               var mouse = { x: evt.clientX, y: evt.clientY }
                var tuid = util.getParent(evt.target, 'calendar_click').getAttribute('tuid');
-               db.findTournament(tuid).then(editIt, util.logError);
-           
-               function editIt(tournament_data) {
-                  createNewTournament({ tournament_data, title: 'Edit Tournament', callback: saveNewTournament })
+               db.findTournament(tuid).then(checkOptions, util.logError);
+               function checkOptions(tournament_data) { db.findSetting('fetchTournament').then(fetch => options(fetch, tournament_data)); }
+
+               function options(fetch, tournament_data) {
+                  var options = [];
+                  options.push({ label: lang.tr('tournaments.edit'), key: 'edit' });
+                  options.push({ label: lang.tr('delete'), key: 'delete' });
+                  if (fetch) options.push({ label: lang.tr('merge'), key: 'merge' });
+                  gen.svgModal({ x: mouse.x, y: mouse.y, options, callback: selectionMade });
+
+                  function selectionMade(choice, index) {
+                     if (choice.key == 'edit') {
+                        return createNewTournament({ tournament_data, title: lang.tr('actions.edit_tournament'), callback: modifyTournament })
+                     } else if (choice.key == 'delete') {
+                        var caption = `${lang.tr('actions.delete_tournament')}: <br>${tournament_data.name}`;
+                        gen.okCancelMessage(caption, deleteTournament, () => gen.closeModal());
+                        function deleteTournament() {
+                           db.db.tournaments.where('tuid').equals(tuid).delete().then(() => fx.displayCalendar());
+                           gen.closeModal();
+                        }
+                     } else if (choice.key == 'merge') {
+                        coms.fetchTournament(tuid, mouse, modifyTournament);
+                     }
+                  }
                }
             }
             Array.from(calendar_container.container.element.querySelectorAll('.calendar_click')).forEach(elem => {
                elem.addEventListener('click', dt);
-               elem.addEventListener('contextmenu', editTournament);
+               elem.addEventListener('contextmenu', tournamentContextOptions);
             });
          }
       }
@@ -1037,6 +1058,8 @@ let tournaments = function() {
          }
 
          let addNew = () => {
+            searchBox.typeAhead.suggestions = [];
+
             new_player.signed_in = false;
             if (!new_player.rankings) new_player.rankings = {};
             new_player.full_name = `${new_player.last_name.toUpperCase()}, ${util.normalizeName(new_player.first_name, false)}`;
@@ -2112,6 +2135,7 @@ let tournaments = function() {
 
          let events = tournament.events
             .filter(f => types[type].indexOf(f.draw_type) >= 0)
+            .filter(f => f.gender == e.gender)
             .map(m => ({ key: `${m.name}${modifiers[m.draw_type] || ''}`, value: m.euid }));
          let options = [].concat({ key: 'None', value: '' }, ...events);
          if (!events.length) return false;
@@ -2157,7 +2181,6 @@ let tournaments = function() {
          event_config[etype].ddlb.setValue(e.links[linkType(types, type)] || '');
 
          return Object.keys(e.links).indexOf(type) >= 0;
-
       }
 
       function setDrawSize(e) {
@@ -2502,6 +2525,7 @@ let tournaments = function() {
                e.regenerate = true;
             }
             e.gender = value;
+            configDrawType(e);
             eventPlayers(e);
             eventName();
          }
@@ -7688,9 +7712,19 @@ let tournaments = function() {
 
       var inout_options = [{key: '-', value: ''}, {key: lang.tr('indoors'), value: 'i'}, {key: lang.tr('outdoors'), value: 'o'}]
       dd.attachDropDown({ id: container.inout.id, options: inout_options });
-
       container.inout.ddlb = new dd.DropDown({ element: container.inout.element, onChange: (value) => { trny.inout = value } });
       container.inout.ddlb.setValue(tournament_data && tournament_data.inout || '');
+
+      var surface_options = [
+         { key: '-', value: ''},
+         { key: lang.tr('surfaces.clay'), value: 'C'},
+         { key: lang.tr('surfaces.hard'), value: 'H'},
+         { key: lang.tr('surfaces.grass'), value: 'G'},
+         { key: lang.tr('surfaces.carpet'), value: 'R'},
+      ];
+      dd.attachDropDown({ id: container.surface.id, label: `${lang.tr('events.surface')}:`, options: surface_options });
+      container.surface.ddlb = new dd.DropDown({ element: container.surface.element, onChange: (value) => { trny.surface = value } });
+      container.surface.ddlb.setValue(tournament_data && tournament_data.surface || '');
 
       let defineAttr = (attr, evt, required, element) => {
          let valid = true;
@@ -7811,7 +7845,7 @@ let tournaments = function() {
       container.judge.element.addEventListener('keydown', catchTab, false);
       container.draws.element.addEventListener('keydown', catchTab, false);
 
-      container.name.element.addEventListener('keyup', (evt) => defineAttr('name', evt, { length: 8 }));
+      container.name.element.addEventListener('keyup', (evt) => defineAttr('name', evt, { length: 2 }));
       container.start.element.addEventListener('keyup', (evt) => validateDate(evt, 'start'));
       container.end.element.addEventListener('keyup', (evt) => validateDate(evt, 'end'));
 
