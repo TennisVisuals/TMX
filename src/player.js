@@ -271,7 +271,7 @@ let player = function() {
          if (!round || rung <= 0) return;
          rung = 8 - rung;
          let value = {
-            category: match.tournament.category,
+            category: config.legacyCategory((match.event && match.event.category) || match.tournament.category, true),
             date: new Date(match.date),
             round,
             rung,
