@@ -275,8 +275,7 @@
       }
    }
 
-   exp.downloadMatches = (category, group_size = 600) => {
-      if (category && [12, 14, 16, 18, 20].indexOf(category) < 0) return;
+   exp.downloadMatches = (category, group_size=600) => {
       db.findAllMatches().then(matches => {
          let cursor = 0;
          let category_matches = category ? matches.filter(m => m.tournament.category == category) : matches;
@@ -292,8 +291,7 @@
       matches.forEach(match => match.players.forEach(player => { delete player.points; delete player.rankings; }));
    }
 
-   exp.downloadPoints = (category, group_size = 700) => {
-      if (category && [12, 14, 16, 18, 20].indexOf(category) < 0) return;
+   exp.downloadPoints = (category, group_size=700) => {
       db.findAllPoints().then(points => {
          let cursor = 0;
          let category_points = category ? points.filter(p => p.category == category) : points;
@@ -302,6 +300,14 @@
             cursor += group_size;
          }
       });
+   }
+
+   exp.downloadArray = (filename, array, group_size=700) => {
+      let cursor = 0;
+      while (cursor < array.length) {
+         exp.downloadJSON(filename, array.slice(cursor, cursor + group_size));
+         cursor += group_size;
+      }
    }
 
    exp.downloadRankLists = (ranklists) => ranklists.forEach(exp.rankListCSV);
