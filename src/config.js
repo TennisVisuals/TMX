@@ -42,8 +42,9 @@ let config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.64.4.5',
+      version: '0.9.67.7.8',
       version_check: undefined,
+      searchMode: 'firstlast',
       org: {
          name: undefined,
          abbr: undefined,
@@ -443,15 +444,7 @@ let config = function() {
       return setting;
    }
 
-   function calendarCalcs(calendar, type) {
-      db.findAllCalculations().then(calcs => {
-         let df = {};
-         calcs.filter(c=>c.type == type).forEach(d => util.weekDays(d.date).forEach(date => df[util.formatDate(date)] = d.valid ? .03 : -.03));
-         calendar.data(df);
-         calendar.fillDays();
-      });
-   }
-
+   fx.pointCalc = pointCalc;
    function pointCalc(selected_date) {
       if (selected_date) {
          gen.showProcessing('Calculating Ranking Points ...');
@@ -459,75 +452,51 @@ let config = function() {
       }
    }
 
-   fx.pointCalc = configurePointCalc;
-   function configurePointCalc() {
+   function configureCalc(mode) {
+      if (!mode || ['points', 'rankings'].indexOf(mode) < 0) return;
       let date = new Date();
-      let container = gen.pointCalcConfig();
+      let container = gen.dateConfig();
+
+      var ds = gen.dateSelector({
+         date: new Date(),
+         date_element: container.picked.element,
+         container: container.datepicker.element,
+      });
 
       gen.escapeModal();
-      container.submit.element.addEventListener('click', () => callPointCalc(container));
+      container.submit.element.addEventListener('click', callCalc);
       container.cancel.element.addEventListener('click', () => gen.closeModal());
 
-      let cal = yearCal()
-         .selector(container.datepicker.element)
-         .sizeToFit(false)
-         .width(800)
-         .height(140)
-      cal();
-
-      calendarCalcs(cal, 'points');
-
-      function callPointCalc(container) {
+      function callCalc(container) {
          gen.closeModal();
-         let selected_date = cal.date() ? new Date(cal.date()) : date;
-         selected_date = new Date(cal.date());
-         pointCalc(selected_date);
+         if (mode == 'rankings') {
+            rankCalc(ds.getDate());
+         } else {
+            pointCalc(ds.getDate());
+         }
       }
    }
 
-   fx.rankCalc = configureRankCalc;
-   function configureRankCalc() {
-      let date = new Date();
-      let container = gen.rankListConfig();
-
-      gen.escapeModal();
-      container.submit.element.addEventListener('click', () => callRankCalc(container));
-      container.cancel.element.addEventListener('click', () => gen.closeModal());
-
-      let cal = yearCal()
-         .selector(container.datepicker.element)
-         .sizeToFit(false)
-         .width(800)
-         .height(140)
-      cal();
-
-      calendarCalcs(cal, 'rankings');
-
-      function callRankCalc(container) {
-         gen.closeModal();
-         let selected_date = cal.date() ? new Date(cal.date()) : date;
-         rankCalc(selected_date);
-      }
-   }
-
+   fx.rankCalc = rankCalc;
    function rankCalc(selected_date) {
-      let week = rank.getWeek(selected_date.getTime()); 
-      let year = selected_date.getFullYear();
+      selected_date = typeof selected_date == 'string' ? new Date(selected_date) : selected_date;
+      var week = rank.getWeek(selected_date.getTime()); 
+      var year = selected_date.getFullYear();
 
-      let dpp = (evt) => {
-         let elem = util.getParent(evt.target, 'player_rank');
-         let puid = elem.getAttribute('puid');
+      function dpp(evt) {
+         var elem = util.getParent(evt.target, 'player_rank');
+         var puid = elem.getAttribute('puid');
          player.displayPlayerProfile({ puid }).then(()=>{}, ()=>{});
       }
 
       gen.showProcessing('Calculating Current Rank List ...');
       rank.calculateRankLists(week, year).then(categories => { 
 
-         let rankings = { week, year, categories };
+         var rankings = { week, year, categories };
          gen.closeModal(); 
 
          if (Object.keys(categories).length) {
-            let container = gen.rankLists(categories, week, year);
+            var container = gen.rankLists(categories, week, year);
 
             util.addEventToClass('print', pdfList, container.container.element)
             util.addEventToClass('category_csv', exportCategorySpreadsheet, container.container.element)
@@ -545,17 +514,17 @@ let config = function() {
          }
 
          function pdfList(ev) {
-            let category = ev.target.getAttribute('category');
-            let gender = ev.target.getAttribute('gender');
+            var category = ev.target.getAttribute('category');
+            var gender = ev.target.getAttribute('gender');
             rank.rankListPDF({ category, gender, list: rankings.categories[category][gender], week, year, date: selected_date });
          }
          function exportCategoriesSpreadsheet(ev) {
             console.log('export spreadsheeet containing all categories');
          }
          function exportCategorySpreadsheet(ev) {
-            let category = ev.target.getAttribute('category');
-            let gender = ev.target.getAttribute('gender');
-            let ranklist = {
+            var category = ev.target.getAttribute('category');
+            var gender = ev.target.getAttribute('gender');
+            var ranklist = {
                week,
                year,
                category,
@@ -566,7 +535,6 @@ let config = function() {
          }
          function exportJSON() { exp.downloadRankings(rankings); }
       });
-
    }
 
    fx.search = () => {
@@ -601,12 +569,14 @@ let config = function() {
          displayClub();
       };
 
-      let searchMode = 'firstlast';
       searchBox.populateSearch = {};
-      searchBox.populateSearch.players = function() {
+      searchBox.populateSearch.players = function({filtered} = {}) {
+         var filter_values = searchBox.typeAhead._list.map(l=>l.value);
          db.findAllPlayers().then(arr => {
             searchBox.searchCount(arr.length);
             searchBox.searchCategory('search_players_total');
+
+            if (filtered) arr = arr.filter(el => filter_values.indexOf(el.puid) >= 0);
 
             let firstlast = arr.map(player => { 
                let label = util.normalizeName([player.first_name, player.last_name].join(' '));
@@ -619,7 +589,7 @@ let config = function() {
                return { value: player.puid, label, }
             });
 
-            if (searchMode == 'lastfirst') {
+            if (env.searchMode == 'lastfirst') {
                searchBox.typeAhead.list = lastfirst;
             } else {
                searchBox.typeAhead.list = firstlast;
@@ -635,11 +605,11 @@ let config = function() {
 
             function doSomething(choice, index) {
                if (index == 0) {
-                  searchMode = 'firstlast';
+                  env.searchMode = 'firstlast';
                } else if (index == 1) {
-                  searchMode = 'lastfirst';
+                  env.searchMode = 'lastfirst';
                }
-               searchBox.populateSearch.players();
+               searchBox.populateSearch.players({filtered: true});
             }
          }
       }
@@ -918,7 +888,7 @@ let config = function() {
       // enableNotifications();
 
       gen.initModals();
-      config.search();
+      fx.search();
 
       if (device.isMobile || device.isIDevice) {
          gen.showModal('<h2>Mobile Support Soon!</h2>', false);
@@ -955,8 +925,15 @@ let config = function() {
          }
       });
 
-      document.getElementById('refresh').addEventListener('click', () => updateAction());
-      document.getElementById('refresh').addEventListener('contextmenu', () => refreshAction());
+      var refresh_icon = document.getElementById('refresh');
+      var searchextra = document.getElementById('searchextra');
+      refresh_icon.addEventListener('click', () => updateAction());
+      refresh_icon.addEventListener('contextmenu', () => refreshAction());
+      searchextra.addEventListener('mouseover', showRefresh);
+      searchextra.addEventListener('mouseout', hideRefresh);
+
+      function showRefresh() { refresh_icon.style.opacity = 1; }
+      function hideRefresh() { refresh_icon.style.opacity = 0; }
 
       let checkVisible = () => {
          document.getElementById('searchextra').style.display = window.innerWidth > 500 ? 'flex' : 'none'; 
@@ -1081,9 +1058,13 @@ let config = function() {
    }
 
    function updateAction() { 
-      if (searchBox.category == 'players') updatePlayers(); 
-      if (searchBox.category == 'tournaments') updateTournaments(); 
-      if (searchBox.category == 'clubs') updateClubs(); 
+      if (window.navigator.onLine) {
+         if (searchBox.category == 'players') updatePlayers(); 
+         if (searchBox.category == 'tournaments') updateTournaments(); 
+         if (searchBox.category == 'clubs') updateClubs(); 
+      } else {
+         gen.okCancelMessage(lang.tr('phrases.cantrefresh'), () => gen.closeModal());
+      }
    }
 
    function splash() {
@@ -1143,47 +1124,113 @@ let config = function() {
    }
 
    function exportData() {
-      let tabs = {
-         players: gen.playersExport(),
-         points: gen.pointsExport(),
-         matches: gen.matchesExport(),
+      var tabs = {
+//         players: gen.exportRange({ label: lang.tr('bd'), id_names: { start: 'py_start', end: 'py_end', export: 'py_export' }}),
+         points: gen.exportRange({ id_names: { start: 'pt_start', end: 'pt_end', export: 'pt_export' }}),
+         matches: gen.exportRange({ id_names: { start: 'mt_start', end: 'mt_end', export: 'mt_export' }}),
       }
 
-      let tabdata = [];
+      var tabdata = [];
       if (tabs.players && tabs.players.html) tabdata.push({ tab: lang.tr('pyr'), content: tabs.players.html });
       if (tabs.points && tabs.points.html) tabdata.push({ tab: lang.tr('pts'), content: tabs.points.html });
       if (tabs.matches && tabs.matches.html) tabdata.push({ tab: lang.tr('mts'), content: tabs.matches.html });
 
-      let { container } = gen.tabbedModal({ tabs, tabdata, title: lang.tr('phrases.exportdata'), save: false });
+      var { container } = gen.tabbedModal({ tabs, tabdata, title: lang.tr('phrases.exportdata'), save: false });
 
-      /*
-      gen.dateRange({
-         start,
+      var start = new Date();
+      var end = new Date();
+      var dates = { pt_start: start, pt_end: end, py_start: start, py_end: end, mt_start: start, mt_end: end }
+
+      if (container.py_start) gen.dateRange({
+         start: dates.py_start,
          start_element: container.py_start.element,
-         startFx,
-         end,
+         startFx: (date)=>{ dates.py_start = date; },
+         end: dates.py_end,
          end_element: container.py_end.element,
-         endFx
+         endFx: (date)=>{ dates.py_end = date; }
          });
       gen.dateRange({
-         start,
+         start: dates.pt_start,
          start_element: container.pt_start.element,
-         startFx,
-         end,
+         startFx: (date)=>{ dates.pt_start = date; },
+         end: dates.pt_end,
          end_element: container.pt_end.element,
-         endFx
+         endFx: (date)=>{ dates.pt_end = date; }
       });
       gen.dateRange({
-         start,
+         start: dates.mt_start,
          start_element: container.mt_start.element,
-         startFx,
-         end,
+         startFx: (date)=>{ dates.mt_start = date; },
+         end: dates.mt_end,
          end_element: container.mt_end.element,
-         endFx
+         endFx: (date)=>{ dates.mt_end = date; }
       });
-      */
 
       if (container.cancel.element) container.cancel.element.addEventListener('click', () => gen.closeModal());
+      if (container.py_export) container.py_export.element.addEventListener('click', downloadPlayers);
+      if (container.pt_export) container.pt_export.element.addEventListener('click', downloadPoints);
+      if (container.mt_export) container.mt_export.element.addEventListener('click', downloadMatches);
+
+      function downloadPlayers() {
+         // Abandoned for now because database indexes by 'birthdate' instead of 'birth'
+         db.findPlayersRange(dates.py_start.getTime(), dates.py_end.getTime()).then(pyz => {
+            if (!pyz || !pyz.length) {
+               gen.okCancelMessage(lang.tr('noresults'), () => gen.closeModal('processing'));
+               return;
+            }
+            console.log(pyz);
+         });
+      }
+
+      function downloadPoints() {
+         db.findPointsRange(dates.pt_start.getTime(), dates.pt_end.getTime()).then(pts => {
+            if (!pts || !pts.length) {
+               gen.okCancelMessage(lang.tr('noresults'), () => gen.closeModal('processing'));
+               return;
+            }
+
+            // TODO: check whether there is a configuration setting for organization
+            let config_option = (config.env().org.abbr == 'HTS') ? true : false;
+            if (!config_option) {
+               exp.downloadArray('points.json', pts);
+            } else {
+               let text = `${lang.tr('phrases.export')}: ${lang.tr('pts')}`;
+               let choices = gen.twoChoices({ text, option1: 'JSON', option2: 'HTS' });
+               choices.option1.element.addEventListener('click', () => {
+                  exp.downloadArray('points.json', pts);
+                  gen.closeModal('configmodal');
+               });
+               choices.option2.element.addEventListener('click', () => {
+                  hts.downloadHTSformattedPoints({points: pts});
+                  gen.closeModal('configmodal');
+               });
+            }
+         });
+      }
+      function downloadMatches() {
+         db.findMatchesRange(dates.mt_start.getTime(), dates.mt_end.getTime()).then(mtz => {
+            if (!mtz || !mtz.length) {
+               gen.okCancelMessage(lang.tr('noresults'), () => gen.closeModal('processing'));
+               return;
+            }
+            let text = `${lang.tr('phrases.export')}: ${lang.tr('mts')}`;
+            let choices = gen.twoChoices({ text, option1: 'JSON', option2: 'UTR' });
+            choices.option1.element.addEventListener('click', () => {
+               exp.downloadArray('matches.json', mtz);
+               gen.closeModal('configmodal');
+            });
+            choices.option2.element.addEventListener('click', () => {
+               downloadUTRmatches(mtz);
+               gen.closeModal('configmodal');
+            });
+         });
+
+         function downloadUTRmatches(matches) {
+            let match_records = exp.matchRecords(matches);
+            let csv = exp.json2csv(match_records);
+            exp.downloadText('UTR-Matches.csv', csv);
+         }
+      }
 
    }
 
@@ -1196,12 +1243,12 @@ let config = function() {
 
       if (o.components.players && o.components.players.calcs) {
          actions.pointCalc.element.style.display = 'flex';
-         actions.pointCalc.element.addEventListener('click', () => config.pointCalc());
+         actions.pointCalc.element.addEventListener('click', () => configureCalc('points'));
       }
 
       if (o.components.players && o.components.players.ranklist) {
          actions.rankCalc.element.style.display = 'flex';
-         actions.rankCalc.element.addEventListener('click', () => config.rankCalc());
+         actions.rankCalc.element.addEventListener('click', () => configureCalc('rankings'));
       }
 
       function callback(player) {
