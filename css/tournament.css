@@ -277,6 +277,18 @@
    margin-bottom: 1em;
 }
 
+.attribute_row {
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+   -webkit-align-content: space-between;
+   align-content: space-between;
+   margin-right: 1em;
+   margin-bottom: 1em;
+}
+
 .point_info {
    height: auto;
    display: flex;
@@ -624,7 +636,6 @@
 }
 .event_details .detail_body .detail_selections {
    display: flex;
-   flex-grow: 1;
    -webkit-flex-direction: column;
    flex-direction: column;
    -webkit-justify-content: flex-start;
@@ -647,6 +658,8 @@
    display: flex;
    -webkit-flex-direction: column;
    flex-direction: column;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
    margin-left: 1em;
 }
 .event_details .divider {
@@ -663,6 +676,7 @@
    -webkit-flex-direction: row;
    -webkit-justify-content: flex-start;
    justify-content: flex-start;
+   -webkit-flex-wrap: wrap;
    flex-wrap: wrap;
    margin-bottom: .53em;
 }
