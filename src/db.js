@@ -29,6 +29,21 @@ let db = function() {
             settings: "key",
             idioms: "ioc",
          });
+         /*
+         db.db.version(3).stores({ 
+            aliases: "&alias",
+            ignored: "[hash+ioc]",
+            clubs: "&id, &code",
+            calculations: "&hash, date, type",
+            matches: "&muid, *puids, format, date, tournament.category, tournament.tuid",
+            points: "[puid+tuid+format+round], puid, tuid, muid, date",
+            tournaments: "&tuid, name, start, end, category, cuid",
+            players: "&puid, hash, cuid, &id, [last_name+first_name], last_name, birth",
+            rankings: "category",
+            settings: "key",
+            idioms: "ioc",
+         });
+         */
          db.db.open().then(resolve, reject);
       });
    }
@@ -60,6 +75,11 @@ let db = function() {
    db.findPlayersWhere = (attr, val) => db.findWhere('players', attr, val);
    db.findClubPlayers = (cuid) => db.findWhere('players', 'cuid', cuid);
    db.findRankings = (category) => db.findUnique('rankings', 'category', category);
+   db.findPointsRange = (start, end) => db.db.points.where('date').between(start, end).toArray();
+   db.findMatchesRange = (start, end) => db.db.matches.where('date').between(start, end).toArray();
+
+   // TODO: update the database version to index player dates properly!
+   // db.findPlayersRange = (start, end) => db.db.players.where('birth').between(start, end).toArray();
 
    db.pointsAfter = (date) => new Promise ((resolve, reject) => db.db.points.where('date').aboveOrEqual(date).toArray(resolve, reject).catch(reject));
 
