@@ -1281,29 +1281,37 @@
       return { ids, html, ddlb };
    }
 
-   gen.playersExport = () => {
-      let ids = {
-      };
+   gen.exportRange = ({ label, id_names }) => {
+      let ids = Object.assign({}, ...Object.keys(id_names).map(id => ({ [id_names[id]]: gen.uuid() })));
       let ddlb = [];
 
       let html = `
          <div style='min-height: 150px'>
-         <h2>&nbsp;</h2>
-         <div class='flexcenter' style='width: 100%;'>
-             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                <div class='tournament_attr'>
-                    <label class='calabel'>Not Implemented</label>
+            <h2>&nbsp;</h2>
+            <div class='flexcenter' style='width: 100%;'>
+                <div class='attribute_row' style='border: 1px solid gray; padding: .5em;'>
+                   <div class='tournament_attr'>
+                       <div style='font-weight: bold; margin-right: 1em;'>${label || ''}</div>
+                       <div class='flexrow'>
+                          <div class='calendar_date' style='font-weight: bold'>
+                             <div class='calabel'>${lang.tr('frm')}:</div>
+                             <input tabindex='-1' class='calinput' id='${ids[id_names["start"]]}'>
+                          </div>
+                       </div>
+                       <div class='flexrow'>
+                          <div class='calendar_date' style='font-weight: bold'>
+                             <div class='calabel'>${lang.tr('to')}:</div>
+                             <input tabindex='-1' class='calinput' id='${ids[id_names["end"]]}'>
+                          </div>
+                       </div>
+                       <button id='${ids[id_names["export"]]}' class='btn btn-small edit-submit' alt='${lang.tr("phrases.export")}'>${lang.tr("sbt")}</button> 
+                   </div>
                 </div>
-             </div>
-         </div>
-
+            </div>
          </div>
       `;
       return { ids, html, ddlb }
    }
-
-   gen.pointsExport = gen.playersExport;
-   gen.matchesExport = gen.playersExport;
 
    gen.createNewTournament = (title, tournament = {}) => {
       let ids = {
@@ -1479,34 +1487,34 @@
 
       var name = util.normalizeName([p.first_name, p.last_name].join(' '), false);
       var clubdata = !club.name ? '' :
-         `<div class='flexrow'><div class='pdata_label'>${lang.tr('clb')}:</div><div class='pdata_value'>${club.name}</div></div>`;
+         `<div class='flexrow pdata_container'><div class='pdata_label'>${lang.tr('clb')}:</div><div class='pdata_value'>${club.name}</div></div>`;
       var clubcode = !club.code ? '' :
-         `<div class='flexrow'><div class='pdata_label'>${lang.tr('clb')}:</div><div class='pdata_value'>${club.code}</div></div>`;
+         `<div class='flexrow pdata_container'><div class='pdata_label'>${lang.tr('clb')}:</div><div class='pdata_value'>${club.code}</div></div>`;
       var cropin = !p.cropin ? '' :
-         `<div class='flexrow'><div class='pdata_label'>CROPIN:</div><div class='pdata_value'>${p.cropin || ''}</div></div>`;
+         `<div class='flexrow pdata_container'><div class='pdata_label'>CROPIN:</div><div class='pdata_value'>${p.cropin || ''}</div></div>`;
       var birth = !p.birth ? '' :
-         `<div class='flexrow'><div class='pdata_label'>${lang.tr('bd')}:</div><div class='pdata_value'>${displayYear(p.birth)}</div></div>`;
+         `<div class='flexrow pdata_container'><div class='pdata_label'>${lang.tr('bd')}:</div><div class='pdata_value'>${displayYear(p.birth)}</div></div>`;
       var city = !p.city ? '' :
-         `<div class='flexrow'><div class='pdata_label'>${lang.tr('cty')}:</div><div class='pdata_value'>${p.city}</div></div>`;
+         `<div class='flexrow pdata_container'><div class='pdata_label'>${lang.tr('cty')}:</div><div class='pdata_value'>${p.city}</div></div>`;
       var country = !p.ioc ? '' :
-         `<div class='flexrow'><div class='pdata_label'>${lang.tr('cnt')}:</div><div class='pdata_value'>${p.ioc}</div></div>`;
+         `<div class='flexrow pdata_container'><div class='pdata_label'>${lang.tr('cnt')}:</div><div class='pdata_value'>${p.ioc}</div></div>`;
 
       var rtp = p.right_to_play_until ? displayFullDate(p.right_to_play_until) : '';
       var expired_medical = medical != false || !rtp ? '' :
-         `<div class='flexrow'>
+         `<div class='flexrow pdata_container'>
             <div class='pdata_label'>${lang.tr('signin.medical')}:</div>
             <div class='pdata_value' style='color: red'>${rtp}</div>
          </div>`;
 
 
       var expired_registration = registration != false ? '' :
-         `<div class='flexrow'>
+         `<div class='flexrow pdata_container'>
             <div class='pdata_label'>${lang.tr('signin.registration')}:</div>
             <div class='pdata_value' style='color: red'>${displayFullDate(p.registered_until)}</div>
          </div>`;
 
       var detail_1 = !cropin && !clubdata && !clubcode ? '' : `
-         <div class='pdetail' style="height: 100%">
+         <div class='pdetail' style="width: 100%">
             ${cropin} ${clubdata} ${clubcode}
          </div>
       `;
@@ -1564,6 +1572,52 @@
    gen.playerHead2Head = (singles, puid) => {
       // TODO
       return 'Big TODO!';
+   }
+
+   gen.tournamentPenalties = (tournament, penalties, saveFx) => {
+      let ids = {
+         penalties: gen.uuid(),
+         ok: gen.uuid(),
+      }
+      let penalty_list = penalties.map((pe, i) => {
+         let event_info = `${pe.round || ''}`;
+         if (pe.event) event_info += ` ${pe.event || ''}`;
+         if (event_info) event_info = `${event_info}:&nbsp;`;
+         let phtml = `
+            <div class='flexrow'>
+               <div class='flexcenter' style='color: blue; margin-right: 1em;'>${pe.player.full_name} </div>
+               <div class='flexrow flexjustifyright'>
+                  <div class='flexcenter'>${event_info}<span style='color: red;'>${pe.penalty.label}</span></div>
+                  <div penalty_index='${i}' class='player_penalty action_icon_small trash'></div>
+               </div>
+            </div>
+         `;
+         return phtml;
+      }).join('');
+      let html = `
+         <div id='${ids.penalties}' class='flexcol' style='margin-left: 1em; margin-right: 1em; margin-bottom: 1em;'>
+            <div class='settings_info flexcenter'> <h2 style='width: 100%;'>${lang.tr('ptz')}</h2> </div>
+            <div> <div class='flexcol'>${penalty_list}</div> </div>
+            <div class="flexcenter" style='margin: 1em;'>
+               <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${lang.tr('actions.ok')}</button>
+            </div>
+         </div>
+         `;
+      gen.escapeModal();
+      gen.showConfigModal(html);
+      id_obj = idObj(ids);
+      id_obj.ok.element.addEventListener('click', () => gen.closeModal());
+      util.addEventToClass('player_penalty', removePenalty, id_obj.penalties.element);
+      function removePenalty(evt) {
+         let element = util.getParent(evt.target, 'player_penalty');
+         let penalty_index = element.getAttribute('penalty_index');
+         let penalty = penalties[penalty_index];
+         let player = tournament.players.reduce((p, c) => c.id == penalty.player.id ? c : p, {});
+         player.penalties.splice(penalty.ppi, 1);
+         penalties.splice(penalty_index, 1);
+         if (typeof saveFx == 'function') saveFx();
+         if (penalties.length) { gen.tournamentPenalties(tournament, penalties, saveFx); } else { gen.closeModal(); }
+      }
    }
 
    gen.playerPenalties = (p, saveFx) => {
@@ -3098,19 +3152,13 @@
             <div>${lang.tr('events.teams')}</div>
             ${promoteall}
          </div>
-         <div grouping='team' class='team_players player_container' style='display: none'></div>
+         <div grouping='team' class='team_players player_container'></div>
 
          <div class='flexrow divider eligible'>
             <div id='${ids.eligible}' class='ctxclk'>${lang.tr('events.eligible')} <span id='${ids.eligible_count}'></span></div>
             ${addall}
          </div>
          <div grouping='eligible' class='eligible_players player_container'></div>
-
-         <div class='flexjustifystart divider unavailable' style='display: none'>${lang.tr('events.unavailable')}</div>
-         <div grouping='unavailable' class='unavailable_players player_container' style='display: none'></div>
-
-         <div class='flexjustifystart divider ineligible' style='display: none'>${lang.tr('events.ineligible')}</div>
-         <div grouping='ineligible' class='ineligible_players player_container' style='display: none'></div>
       `;
       d3.select(container.detail_players.element).html(detail_players);
 
@@ -3243,12 +3291,10 @@
       event_details.select('.event_name').html(name);
    }
 
-   gen.displayEventPlayers = ({ container, approved, teams, eligible, ineligible, unavailable }) => {
+   gen.displayEventPlayers = ({ container, approved, teams, eligible }) => {
       genGrouping(approved, 'approved');
       genGrouping(teams, 'team');
       genGrouping(eligible, 'eligible');
-      genGrouping(ineligible, 'ineligible');
-      genGrouping(unavailable, 'unavailable');
 
       container.approved_count.element.innerHTML = approved && approved.length ? `(${approved.length})` : '';
       container.eligible_count.element.innerHTML = eligible && eligible.length ? `(${eligible.length})` : '';
@@ -3605,38 +3651,20 @@
       return idObj(ids);
    }
 
-   gen.pointCalcConfig = () => {
+   gen.dateConfig = () => {
       let ids = {
          cancel: gen.uuid(),
          submit: gen.uuid(),
          datepicker: gen.uuid(),
+         picked: gen.uuid(),
       }
       let html = `
          <div class='flexccol'>
-            <div id='${ids.datepicker}' class='flexcenter'></div>
+            <div id='${ids.datepicker}' style='margin: 1em;'></div>
+            <div class='flexcenter'><input id='${ids.picked}' style='display: none;' class='rankingsdate'></div>
             <div class='config_actions'>
-               <div id='${ids.cancel}' class='btn btn-large config_cancel'>${lang.tr('actions.cancel')}</div>
-               <div id='${ids.submit}' class='btn btn-large config_submit'>${lang.tr('sbt')}</div>
-            </div>
-         </div>
-      `;
-      gen.showConfigModal(html);
-
-      return idObj(ids);
-   }
-
-   gen.rankListConfig = () => {
-      let ids = {
-         cancel: gen.uuid(),
-         submit: gen.uuid(),
-         datepicker: gen.uuid(),
-      }
-      let html = `
-         <div class='flexccol'>
-            <div id='${ids.datepicker}' class='flexcenter'></div>
-            <div class='config_actions'>
-               <div id='${ids.cancel}' class='btn btn-large config_cancel'>${lang.tr('actions.cancel')}</div>
-               <div id='${ids.submit}' class='btn btn-large config_submit'>${lang.tr('sbt')}</div>
+               <div id='${ids.cancel}' class='btn btn-small config_cancel'>${lang.tr('actions.cancel')}</div>
+               <div id='${ids.submit}' class='btn btn-small config_submit'>${lang.tr('sbt')}</div>
             </div>
          </div>
       `;
@@ -3767,8 +3795,8 @@
                shapeSizeBase:  3000,
 
                typeKey:        'category',
-               typeRange:      ["triangle", "square", "pentagon", "circle"],
-               typeDomain:     ["12", "14", "16", "18"]
+               typeRange:      ["triangle", "square", "pentagon", "circle", "star"],
+               typeDomain:     ["12", "14", "16", "18", "S"]
             },
             content: {
               rows: ["R128","R64","R32","R16","QF","SF","F","W"]
@@ -4198,11 +4226,35 @@
 
    }
 
+   gen.dateSelector = ({ date, date_element, dateFx, container }) => {
+      if (!date_element) return;
+
+      date = new Date(date || new Date());
+      var datePicker = new Pikaday({
+         field: date_element,
+         defaultDate: date,
+         setDefaultDate: true,
+         i18n: lang.obj('i18n'),
+         firstDay: config.env().calendar.first_day,
+         onSelect: function() { 
+            let this_date = this.getDate();
+            date = new Date(util.dateUTC(this_date));
+            this.setStartRange(new Date(date));
+            if (dateFx && typeof dateFx == 'function') dateFx(date);
+         },
+         bound: false,
+         container,
+      });
+      datePicker.setStartRange(new Date(date));
+
+      return datePicker;
+   }
+
    gen.dateRange = ({ start, start_element, startFx, end, end_element, endFx }) => {
       if (!start_element || !end_element) return;
 
-      start = util.dateUTC(start || new Date());
-      end = util.dateUTC(end || new Date());
+      start = new Date(start || new Date());
+      end = new Date(end || new Date());
 
       var startPicker = new Pikaday({
          field: start_element,
@@ -4227,6 +4279,8 @@
          field: end_element,
          i18n: lang.obj('i18n'),
          firstDay: config.env().calendar.first_day,
+         defaultDate: end,
+         setDefaultDate: true,
          onSelect: function() {
             let this_date = this.getDate();
             end = new Date(util.dateUTC(this_date));
