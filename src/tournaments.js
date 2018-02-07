@@ -514,8 +514,13 @@ let tournaments = function() {
       }
 
       container.penalty_report.element.addEventListener('click', () => {
-         let penalties = playerPenalties();
-         console.log(penalties);
+         var penalties = [].concat(...penaltyPlayers().map(playerPenalties));
+         if (penalties) gen.tournamentPenalties(tournament, penalties, saveFx);
+         function saveFx() {
+            penaltyReportIcon();
+            saveTournament(tournament);
+         }
+         function playerPenalties(p) { return p.penalties.map((pe, ppi)=>Object.assign({}, pe, { ppi, player: { full_name: p.full_name, puid: p.puid, id: p.id }})); }
       });
 
       container.pub_link.element.addEventListener('click', () => {
@@ -5791,8 +5796,7 @@ let tournaments = function() {
                   rr_draw.updateBracket(d.bracket);
                   matchesTab();
                } else {
-                  let message = 'Cannot Delete: Qualified Player Active in Main Draw';
-                  gen.okCancelMessage(message, () => gen.closeModal());
+                  gen.okCancelMessage(lang.tr('phrases.cantdelqual'), () => gen.closeModal());
                }
 
                logEventChange(displayed_draw_event, { fx: 'match score removed', d: { muid: d.match.muid } });
@@ -6930,7 +6934,7 @@ let tournaments = function() {
       }
 
       function penaltyReportIcon() {
-         let visible = state.edit && playerPenalties().length ? true : false;
+         let visible = state.edit && penaltyPlayers().length ? true : false;
          container.penalty_report.element.style.display = visible ? 'inline' : 'none';
       }
 
@@ -6968,9 +6972,9 @@ let tournaments = function() {
          penaltyReportIcon();
       }
 
-      function playerPenalties() {
+      function penaltyPlayers() {
          if (!tournament.players || !tournament.players.length) return [];
-         return [].concat(...tournament.players.map(p=>p.penalties)).filter(f=>f);
+         return tournament.players.filter(p=>p.penalties && p.penalties.length);
       }
 
       function legacyTournamentOptions() {
