@@ -58,6 +58,7 @@
    }
 
    idioms.default = {
+      noresults: 'No Results',
       delete:  'Delete',
       merge:   'Merge',
       week:    'Week',
@@ -333,6 +334,8 @@
          updatedioc: 'Update Language File',
          revokeauth: 'Revoke Authorization?',
          clearalldays: 'Clear All Days?',
+         cantdelqual: 'Cannot Delete: Qualified Player Active in Main Draw',
+         cantrefresh: 'Offline: Cannot Refresh'
       },
 
       events: {
