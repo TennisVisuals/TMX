@@ -799,6 +799,8 @@
          }
 
          function handleError(err, params) { 
+            if (!dev.per) dev.perr = [];
+            dev.perr.push(params);
             console.log('params:', params);
             delayNext();
          }
