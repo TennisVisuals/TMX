@@ -8,6 +8,9 @@
     background-color: rgba(0,0,0,0.1);
 }
 
+#configmodal {
+    z-index: 30000;
+}
 .configmodal {
     display: flex;
     flex-direction: column;
@@ -61,6 +64,9 @@
     background-color: rgba(0,0,0,0.3);
 }
 
+#edit {
+    z-index: 29000;
+}
 .editmodal {
     display: flex;
     flex-direction: column;
