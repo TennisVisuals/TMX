@@ -872,6 +872,7 @@
 
 /* settings */
 .add_tournament {
+   width: 100%;
    margin-right: 1em;
 }
 .tournamentattrs {
@@ -887,8 +888,16 @@
    -webkit-align-items: center;
    align-items: center;
 }
+.rowcol {
+   width: 100%;
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+}
 .tournamentattrvalues {
-   width: 100%
+   width: 100%;
 }
 .tournamentattrddlb {
    width: 100%;
