@@ -783,62 +783,63 @@
    }
    
    function formatTeams(match, which, puid) {
-      let flags = config.env().draws.tree_draw.flags.display;
+      var flags = config.env().draws.tree_draw.flags.display;
 
       function playerBlock(pindex, side) {
-         let p = match.players[pindex];
-         let player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
-         let ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
-         let flag =  !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="./assets/flags/${player_ioc}.png">`;
-         let assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
-         let left = side == 'right' ? `${assoc} ` : '';
-         let right = side == 'left' ? ` ${assoc}` : '';
-         let first_name = util.normalizeName(p.first_name, false);
-         let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : '';
-         let seed = p.seed ? ` [${p.seed}]` : '';
+         var p = match.players[pindex];
+         if (!p.puid) return potentialBlock(p, side);
+         var player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
+         var ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
+         var flag =  !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="./assets/flags/${player_ioc}.png">`;
+         var assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
+         var left = side == 'right' ? `${assoc} ` : '';
+         var right = side == 'left' ? ` ${assoc}` : '';
+         var first_name = util.normalizeName(p.first_name, false);
+         var last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : '';
+         var seed = p.seed ? ` [${p.seed}]` : '';
          return `<div puid='${p.puid}' class='ctxclk player_click cell_player'>${left}${first_name} ${last_name}${seed}${right}</div>`;
       }
 
       function potentialBlock(p, side) {
-         let player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
-         let ioc = player_ioc ? `{${player_ioc.toUpperCase()}}` : '';
-         let flag = !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="./assets/flags/${player_ioc}.png">`;
-         let assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
-         let left = side == 'right' ? `${assoc} ` : '';
-         let right = side == 'left' ? ` ${assoc}` : '';
-         let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? 'Qualifier' : '';
-         let seed = p.seed ? ` [${p.seed}]` : '';
+         var player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
+         var ioc = player_ioc ? `{${player_ioc.toUpperCase()}}` : '';
+         var flag = !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="./assets/flags/${player_ioc}.png">`;
+         var assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
+         var left = side == 'right' ? `${assoc} ` : '';
+         var right = side == 'left' ? ` ${assoc}` : '';
+         var last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? 'Qualifier' : '';
+         var seed = p.seed ? ` [${p.seed}]` : '';
          return `<div puid='${p.puid}' class='ctxclk player_click cell_player potential'>${left}${last_name}${seed}${right}</div>`;
       }
 
       function unknownBlock(pindex, side) {
-         let index = match.potentials[pindex] ? pindex : 0;
-         let potentials = match.potentials[index];
-         let blocks = potentials.map(p=>stack(p.map(b=>potentialBlock(b, side)))).join(`<div class='potential_separator flexcenter'><span>${lang.tr('or')}</span></div>`);
+         var index = match.potentials[pindex] ? pindex : 0;
+         var potentials = match.potentials[index];
+         var blocks = potentials.map(p=>stack(p.map(b=>potentialBlock(b, side)))).join(`<div class='potential_separator flexcenter'><span>${lang.tr('or')}</span></div>`);
          return `<div class='potential_${side}'>${blocks}</div>`;
 
          function stack(potential_team) { return `<div class='flexcol'>${potential_team.join('')}</div>`; }
       }
 
-      let player_position = puid ? match.outcome.winning_puids.indexOf(puid) >= 0 ? 'left' : 'right' : '';
-      let pleft = puid && player_position == 'left' ? ' player' : '';
-      let pright = puid && player_position == 'right' ? ' player' : '';
-      let complete = match.winner != undefined;
+      var player_position = puid ? match.outcome.winning_puids.indexOf(puid) >= 0 ? 'left' : 'right' : '';
+      var pleft = puid && player_position == 'left' ? ' player' : '';
+      var pright = puid && player_position == 'right' ? ' player' : '';
+      var complete = match.winner != undefined;
 
-      let left_position = 0;
-      let right_position = 1;
-      let left_outcome = (!complete || puid) ? '' : match.winner_index == 0 ? ' winner' : ' loser';
-      let right_outcome = (!complete || puid) ? '' : match.winner_index == 1 ? ' winner' : ' loser';
+      var left_position = 0;
+      var right_position = 1;
+      var left_outcome = (!complete || puid) ? '' : match.winner_index == 0 ? ' winner' : ' loser';
+      var right_outcome = (!complete || puid) ? '' : match.winner_index == 1 ? ' winner' : ' loser';
 
-      let lp = match.team_players[left_position];
-      let rp = match.team_players[right_position];
+      var lp = match.team_players[left_position];
+      var rp = match.team_players[right_position];
 
-      let left_team = lp ? lp.map(p=>playerBlock(p, 'left')).join('') : unknownBlock(0, 'left');
-      let right_team = rp ? rp.map(p=>playerBlock(p, 'right')).join('') : unknownBlock(1, 'right');
+      var left_team = lp ? lp.map(p=>playerBlock(p, 'left')).join('') : unknownBlock(0, 'left');
+      var right_team = rp ? rp.map(p=>playerBlock(p, 'right')).join('') : unknownBlock(1, 'right');
 
-      let left_html = `<div class='team left_team${left_outcome}${pleft}'>${left_team}</div>`;
-      let right_html = `<div class='team right_team${right_outcome}${pright}'>${right_team}</div>`;
-      let html = `
+      var left_html = `<div class='team left_team${left_outcome}${pleft}'>${left_team}</div>`;
+      var right_html = `<div class='team right_team${right_outcome}${pright}'>${right_team}</div>`;
+      var html = `
          <div class='team left_team${complete ? " winner" : ""}'>${left_team}</div>
          <div>&nbsp;-&nbsp;</div>
          <div class='team right_team${complete ? " loser" : ""}'>${right_team}</div>
@@ -848,7 +849,6 @@
    }
 
    function matchBlock({ headers=true, title, divider, matches, type, puid }) {
-
       function matchTime(match) {
          if (match.schedule && match.schedule.day) return displayDate(new Date(match.schedule.day));
          if (match.date) return displayDate(match.date);
@@ -2461,7 +2461,6 @@
 
       let first_team = complete && winner_index == 0 ? `<b>${teams[0]}</b>` : (teams[0] || unknownBlock(0));
       let second_team = complete && winner_index == 1 ? `<b>${teams[1]}</b>` : (teams[1] || unknownBlock(1));
-
       let format = lang.tr(`formats.${match.format || ''}`);
 
       let score = match.score || '';
@@ -2494,9 +2493,10 @@
 
       function teamName(team) {
          if (team.length == 1) {
-            let p = match.players[team[0]];
-            let club = p.club_code ? ` (${p.club_code})` : '';
-            let ioc = p.ioc ? ` {${p.ioc}}` : '';
+            var p = match.players[team[0]];
+            if (!p.puid) return potentialBlock(p);
+            var club = p.club_code ? ` (${p.club_code})` : '';
+            var ioc = p.ioc ? ` {${p.ioc}}` : '';
             return `${p.full_name}${club || ioc}`;
          } else {
             return team.map(p=>match.players[p].last_name.toUpperCase()).join('/');
