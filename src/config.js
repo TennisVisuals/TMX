@@ -42,7 +42,7 @@ let config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.67.7.8',
+      version: '0.9.67.8.10',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -204,8 +204,22 @@ let config = function() {
 
    function clearHistory() { history.pushState('', document.title, window.location.pathname); }
 
+   function idiomLimit(opts) {
+      var ioc_opts = opts.map(o=>`<div class='flag_opt' ioc='${o.value}' title='${o.title}'>${o.key}</div>`).join('');
+      let html = `<div class='flag_wrap'>${ioc_opts}</div>`;
+      gen.showProcessing(html);
+      gen.escapeModal();
+      util.addEventToClass('flag_opt', selectIOC);
+      function selectIOC(evt) {
+         let elem = util.findUpClass(evt.target, 'flag_opt');
+         let ioc = elem.getAttribute('ioc');
+         changeIdiom(ioc);
+         gen.closeModal();
+      }
+   }
+
    dd.attachDropDown({ id: 'idiomatic', });
-   fx.idiom_ddlb = new dd.DropDown({ element: document.getElementById('idiomatic'), onChange: changeIdiom });
+   fx.idiom_ddlb = new dd.DropDown({ element: document.getElementById('idiomatic'), onChange: changeIdiom, max: 15, maxFx: idiomLimit });
    fx.idiom_ddlb.setStyle('selection_value', 'black');
    fx.idiom_ddlb.setStyle('selection_novalue', 'black');
    fx.idiom_ddlb.selectionBackground('black');
