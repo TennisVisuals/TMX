@@ -43,6 +43,25 @@ html {
    height: 1.5em;
 }
 
+.flag_opt {
+   padding-left: .5em;
+   padding-right: .5em;
+   padding-bottom: .5em;
+}
+
+.flag_wrap {
+   padding-top: .5em;
+   width: 385px;
+   display: flex;
+	flex-direction: row;
+   -webkit-flex-direction: row;
+	flex-wrap: wrap;
+	align-items: stretch;
+	align-content: stretch;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start 
+}
+
 .noselect {
   cursor: default;
   -webkit-touch-callout: none;
