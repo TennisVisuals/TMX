@@ -1335,11 +1335,12 @@
       let end =   !tournament.end   ? '' : util.formatDate(tournament.end); 
       let header = !title ? '' : `<h2>${title}</h2>`;
 
+      let inout = lang.tr('inout').split(' ').join('&nbsp;');
       let html = `
-         <div class='add_tournament' style='margin: 2em; width: 300px'>
+         <div class='add_tournament' style='margin: 2em; width: auto'>
             ${header}
-            <div id='${ids.form}' class='add_tournament_form'>
-               <div class='flexrow'>
+            <div class='add_tournament_form'>
+               <div class='rowcol'>
                   <div class='flexcol tournamentattrs'>
                      <div class='tournamentattr'>${lang.tr('nm')}:</div>
                      <div class='tournamentattr'>${lang.tr('cat')}:</div>
@@ -1347,7 +1348,7 @@
                      <div class='tournamentattr'>${lang.tr('signin.organization')}:</div>
                      <div class='tournamentattr'>${lang.tr('start')}:</div>
                      <div class='tournamentattr'>${lang.tr('end')}:</div>
-                     <div class='tournamentattr'>${lang.tr('inout')}:</div>
+                     <div class='tournamentattr'>${inout}:</div>
                      <div class='tournamentattr'>${lang.tr('ref')}:</div>
                      <div class='tournamentattr'>${lang.tr('drz')}:</div>
                   </div>
