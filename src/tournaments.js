@@ -264,6 +264,12 @@ let tournaments = function() {
    function tournamentOpts(opts = {}, container) {
       let numberValue = (val) => !val || isNaN(val) ? 0 : parseInt(val);
 
+      let ddlb = util.intersection(Object.keys(container), ['category', 'dbl_rank', 'sgl_rank']).length == 3;
+      if (!ddlb) {
+         console.log('missing ddlb');
+         return opts;
+      }
+
       if (Object.keys(opts).length) {
          container.category.ddlb.setValue(opts.category);
          container.dbl_rank.ddlb.setValue(opts.dbl_rank);
@@ -1061,7 +1067,7 @@ let tournaments = function() {
             eventsTab();
          }
 
-         let addNew = () => {
+         let addNew = (evt) => {
             searchBox.typeAhead.suggestions = [];
 
             new_player.signed_in = false;
@@ -1087,6 +1093,7 @@ let tournaments = function() {
             }
 
             function addPlayer() {
+               console.log('adding');
                pushNewPlayer(new_player);
                cleanUp();
             }
@@ -1111,10 +1118,10 @@ let tournaments = function() {
          });
 
          // have to modify behavior to avoid keyup initiating second event in searchBox
-         assignment.signin.element.addEventListener('keydown', (evt) => evt.preventDefault());
-         assignment.signin.element.addEventListener('keyup', signIn);
-         assignment.add.element.addEventListener('keydown', (evt) => evt.preventDefault());
-         assignment.add.element.addEventListener('keyup', addNew);
+         assignment.signin.element.addEventListener('keydown', evt => evt.preventDefault());
+         assignment.signin.element.addEventListener('keyup', evt => { if (evt.which == 13) signIn(); });
+         assignment.add.element.addEventListener('keydown', evt => evt.preventDefault());
+         assignment.add.element.addEventListener('keyup', evt => { if (evt.which == 13) addNew(); });
 
          let give_focus = !existing.length ? 'add' : existing.length && !existing[0].signed_in ? 'signin' : '';
          if (give_focus) assignment[give_focus].element.focus();
@@ -1672,7 +1679,7 @@ let tournaments = function() {
          eventList(false);
       }
 
-      let approvedByRank = (e) => {
+      function approvedByRank(e) {
          // assumes that tournament.players is already sorted by rank
          if (e.format == 'S') {
             if (!e.wildcards) e.wildcards = [];
@@ -1684,7 +1691,7 @@ let tournaments = function() {
          }
       }
 
-      let approvedChanged = (e, update_players=false) => {
+      function approvedChanged(e, update_players=false) {
          approvedByRank(e);
          eventBackground(e);
          if (update_players) { eventPlayers(e); }
@@ -1693,7 +1700,7 @@ let tournaments = function() {
          }
       }
 
-      let modifyApproved = {
+      var modifyApproved = {
          push: function(e, id) {
             if (!state.edit || e.active) return;
             e.approved.push(id);
@@ -2237,7 +2244,7 @@ let tournaments = function() {
          drawTypes[e.draw_type] ? drawTypes[e.draw_type]() : undefined;
       }
 
-      let qualifyingDrawSizeOptions = (e) => {
+      function qualifyingDrawSizeOptions(e) {
          let upper_range = e.approved && e.approved.length ? Math.max(e.approved.length, 1) : 1;
          let range = d3.range(0, Math.min(16, upper_range));
          let max_qualifiers = Math.max(...range);
@@ -2245,7 +2252,7 @@ let tournaments = function() {
          return { max_qualifiers, options }
       }
 
-      let roundRobinDrawBracketOptions = (e) => {
+      function roundRobinDrawBracketOptions(e) {
          let opponents = e.approved.length;
          let lower_range = o.draws.brackets.min_bracket_size;
          let upper_range = o.draws.brackets.max_bracket_size;
@@ -2784,7 +2791,6 @@ let tournaments = function() {
       }
 
       function eligiblePlayers(e, ineligible_players, unavailable_players) {
-
          unavailable_players = unavailable_players || unavailablePlayers(e);
          let unavailable_ids = unavailable_players.map(p=>p.id);
 
@@ -4236,7 +4242,7 @@ let tournaments = function() {
                }
 
                if (match && match.teams) {
-                  if (match.teams.length != 2) {
+                  if (match.teams.length != 2 || unQualified(match.teams)) {
                      console.log('not two teams');
                   } else {
                      let round = match.round_name || '';
@@ -4254,6 +4260,8 @@ let tournaments = function() {
                      });
                   }
                }
+
+               function unQualified(teams) { return teams.reduce((p, c) => !c[0].puid || p, false); }
             }
          }
       }
@@ -4745,7 +4753,6 @@ let tournaments = function() {
          util.addEventToClass('player_click', playerInMatchContext, container.matches.element, 'contextmenu');
 
          function enterMatchScore(e, match) {
-
             let existing_scores = match && match.match && match.match.score ? 
                scoreBoard.convertStringScore({
                   string_score: match.match.score,
@@ -4862,8 +4869,8 @@ let tournaments = function() {
                      gen.svgModal({ x: mouse.x, y: mouse.y, options: statuses, callback: assessPenalty });
                   }
                }
-               function assessPenalty(penalty, penalty_index, penalty_value) {
 
+               function assessPenalty(penalty, penalty_index, penalty_value) {
                   if (puid) {
                      processPlayerPenalty(puid);
                   } else {
@@ -4901,6 +4908,7 @@ let tournaments = function() {
                      }
                   }
                }
+
                function matchStatus(value, index) {
                   match.status = index == 4 ? '' : value;
                   match.source.status = match.status;
@@ -5557,6 +5565,7 @@ let tournaments = function() {
          if (elimination_event.draw && (elimination_event.active || !info.unassigned.length)) {
             dfx.assignPosition({ node: elimination_event.draw, position, team: team_copy });
             elimination_event.draw.unseeded_placements.push({ id: team_copy[0].id, position });
+            // dfx.advanceTeamsWithByes({ draw: elimination_event.draw });
          }
 
          if (elimination_event.draw) {
