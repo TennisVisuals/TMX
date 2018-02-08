@@ -54,7 +54,7 @@ gulp.task('concat-lib', function() {
          '../components/minimized/qrious.min.js',
 
          '../components/ugly/ladderChart.min.js',
-         '../components/ugly/yearCal.min.js',
+         // '../components/ugly/yearCal.min.js',
 
          '../components/src/dynamicDraw.js',
          '../components/src/contextMenu.js',
