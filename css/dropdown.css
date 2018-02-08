@@ -51,9 +51,10 @@
    /* height: 100%; */
    display: block;
    position: relative;
-   float: left;
+   float: right;
    background: #000;
 }
+.dd .floatleft { right: 1px; }
 .dd ul li span {
    /* height: 100%; */
    display: block;
@@ -97,5 +98,3 @@
   width: auto;
   text-align: center;
 }
-
-

@@ -137,7 +137,7 @@
        },
    }
 
-   let dropDownHTML = (label, options = [], selected, border=true, style) => {
+   let dropDownHTML = (label, options = [], selected, border=true, style, floatleft) => {
       let selected_option = selected != undefined && options[selected] ? options[selected].key : '';
       let options_style = border ? "style='border: 1px solid #000;'" : "";
       let options_html = options.map(option => optionHTML(option, style)).join('');
@@ -148,7 +148,7 @@
                <li class='dd_state'>
                   <span class='active'>${selected_option}</span>
                   <div>
-                     <ul>
+                     <ul class='${floatleft ? "floatleft" : ""}'>
                      ${options_html}
                      </ul>
                   </div>
@@ -158,12 +158,12 @@
       return html;
    }
 
-   dd.attachDropDown = ({id, label = '', options, selected = 0, css_class, border, style}) => {
+   dd.attachDropDown = ({ id, label = '', options, selected = 0, css_class, border, style, floatleft }) => {
       let element = document.getElementById(id);
       // elements will not be visible until new DropDown()
       element.style.display = 'none';
       element.classList.add(css_class || "dd");
-      element.innerHTML = dropDownHTML(label, options, selected, border, style);
+      element.innerHTML = dropDownHTML(label, options, selected, border, style, floatleft);
    }
 
    dd.closeAllDropDowns = (css_class) => {
