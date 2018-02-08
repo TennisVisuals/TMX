@@ -14,9 +14,11 @@
    }
 
    dd.DropDown = DropDown;
-   function DropDown({ element, onChange, css_class, style, id, locked }) {
+   function DropDown({ element, onChange, css_class, style, id, locked, max, maxFx }) {
       this.id = id;
       this.val = '';
+      this.max = max;
+      this.maxFx = maxFx;
       this.el = element;
       this.style = style || [];
       this.locked = locked;
@@ -41,6 +43,13 @@
             let { elem: option, depth: option_depth } = findUpClass(e.target, 'dd_option');
 
             let actv = dd_state && Array.from(dd_state.classList).indexOf('active') >= 0;
+
+            if (obj.max && !option && obj.opts && obj.opts.length > obj.max) {
+               if (obj.maxFx && typeof obj.maxFx == 'function') {
+                  obj.maxFx(obj.options);
+                  return;
+               }
+            }
 
             dd.closeAllDropDowns(obj.class);
 
@@ -93,6 +102,7 @@
           if (!Array.isArray(options) || !options.length || !this.list) return;
           let list = this.list.querySelector('ul');
           if (!list) return;
+          if (this.max && options && options.length > this.max) { dd.closeAllDropDowns(this.class); }
           list.innerHTML = options.map(option=>optionHTML(option, style)).join('');
           this.options = options; 
           this.opts = this.list.querySelectorAll('li');
