@@ -111,90 +111,7 @@
    padding: .5em;
    border: 1px solid #000;
 }
-/*
-.player_date {
-   display: flex;
-   -webkit-justify-content: center;
-   justify-content: center;
-   -webkit-align-content: center;
-   align-content: center;
-   -webkit-align-items: center;
-   align-items: center;
-}
-.player_header {
-   color: white;
-   -webkit-justify-content: center;
-   justify-content: center;
-   -webkit-align-content: center;
-   align-content: center;
-   -webkit-align-items: center;
-   align-items: center;
-}
-.player_row {
-   width: 100%;
-   display: flex;
-   -webkit-flex-direction: row;
-   flex-direction: row;
-   -webkit-justify-content: space-between;
-   justify-content: space-between;
-   background: lightgray; 
-   border: 1px solid #FFF;
-}
-.player_row:hover { 
-   background: blue; 
-   color: white;
-}
-.player_row .dates {
-   width: 10%;
-   display: flex;
-   -webkit-flex-direction: column;
-   flex-direction: column;
-   -webkit-justify-content: space-around;
-   justify-content: space-around;
-}
-.player_row .name { 
-   width: 30%; 
-   padding-left: .5em;
-   -webkit-justify-content: flex-start;
-   justify-content: flex-start;
-}
-.player_row .category { 
-   width: 5%; 
-   -webkit-justify-content: center;
-   justify-content: center;
-}
-.player_row .rank { 
-   width: 5%; 
-   -webkit-justify-content: center;
-   justify-content: center;
-}
-.player_row .club { 
-   width: 25%; 
-   padding-left: .5em;
-   -webkit-justify-content: flex-start;
-   justify-content: flex-start;
-}
-.player_row .draws { 
-   width: 25%; 
-   padding-left: .5em;
-   -webkit-justify-content: flex-start;
-   justify-content: flex-start;
-}
-
-.player_row div {
-   display: flex;
-   margin-left: 1px;
-   -webkit-align-content: center;
-   align-content: center;
-   -webkit-align-items: center;
-   align-items: center;
-   border-left: 1px solid #FFF;
-}
-*/
-.player_section {
-   height: 100%;
-   width: 100%;
-}
+.player_section { width: 100%; }
 
 .player_data {
    display: flex;
@@ -211,9 +128,7 @@
 }
 
 /* .pdata { width: 100%; } */
-.pdata_container {
-   width: 100%;
-}
+.pdata_container { width: 100%; }
 .pdetail {
    height: 100%;
    display: flex;
