@@ -7725,7 +7725,7 @@ let tournaments = function() {
          { key: lang.tr('surfaces.grass'), value: 'G'},
          { key: lang.tr('surfaces.carpet'), value: 'R'},
       ];
-      dd.attachDropDown({ id: container.surface.id, label: `${lang.tr('events.surface')}:`, options: surface_options });
+      dd.attachDropDown({ id: container.surface.id, label: `${lang.tr('events.surface')}:`, options: surface_options, floatleft: true });
       container.surface.ddlb = new dd.DropDown({ element: container.surface.element, onChange: (value) => { trny.surface = value } });
       container.surface.ddlb.setValue(tournament_data && tournament_data.surface || '');
 
