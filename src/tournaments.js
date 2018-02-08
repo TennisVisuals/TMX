@@ -160,7 +160,7 @@ let tournaments = function() {
          tournament.end = new Date(tournament.end).getTime();
          tournament.start = new Date(tournament.start).getTime();
 
-         let refresh = () => generateCalendar({start, end, category});
+         function refresh() { generateCalendar({start, end, category}); }
          db.addTournament(tournament).then(refresh, console.log);
       }
 
@@ -170,20 +170,19 @@ let tournaments = function() {
          db.findTournamentsBetween(start, end).then(displayTournyCal, console.log);
 
          function displayTournyCal(tournaments) {
-            let categories = util.unique(tournaments.map(t => t.category)).sort();
-            let options = [{ key: '-', value: '' }].concat(...categories.map(c => ({ key: c, value: c })));
-            options.forEach(o => o.key = config.legacyCategory(o.key, true));
+            var categories = util.unique(tournaments.map(t => t.category)).sort();
+            var options = [{ key: '-', value: '' }].concat(...categories.map(c => ({ key: config.legacyCategory(c, true), value: c })));
             calendar_container.category.ddlb.setOptions(options);
             calendar_container.category.ddlb.setValue(category || '');
 
-            if (category) tournaments = tournaments.filter(t => t.category == config.legacyCategory(category));
+            function filterCategory(cat) { return cat == config.legacyCategory(category) || cat == config.legacyCategory(category, true); }
+            if (category) tournaments = tournaments.filter(t => filterCategory(t.category));
             tournaments = tournaments.filter(t => t.end <= end);
 
             gen.calendarRows(calendar_container.rows.element, tournaments);
 
             function dt(evt) { return displayTournament({tuid: util.getParent(evt.target, 'calendar_click').getAttribute('tuid')}); }
             function tournamentContextOptions(evt) {
-               // if (!evt.target.classList.contains('ctxclk')) return;
                var mouse = { x: evt.clientX, y: evt.clientY }
                var tuid = util.getParent(evt.target, 'calendar_click').getAttribute('tuid');
                db.findTournament(tuid).then(checkOptions, util.logError);
