@@ -693,7 +693,7 @@ let coms = function() {
                } else {
                   if (!suppress_notice) { 
                      // TODO: This is supposed to be a notice that rank list is out of date
-                     console.log([listname]); 
+                     console.log(category, 'is out of date'); 
                   }
                   resolve({ listname: category, valid: false, rankings });
                }
