@@ -127,9 +127,13 @@ let util = function() {
         if (typeof oo == 'object' && typeof vo !== 'function' && oo.constructor !== Array) {
             boolAttrs(optionsObject[oKeys[k]]);
         } else {
-            if (oo === 'true') optionsObject[oKeys[k]] = true;
-            if (oo === 'false') optionsObject[oKeys[k]] = false;
-            if (!isNaN(oo)) optionsObject[oKeys[k]] = parseInt(oo);
+            if (oo === 'true' || oo == true) {
+               optionsObject[oKeys[k]] = true;
+            } else if (oo === 'false' || oo == false) {
+               optionsObject[oKeys[k]] = false;
+            } else if (!isNaN(oo)) {
+               optionsObject[oKeys[k]] = parseInt(oo);
+            }
         }
       }
    }
