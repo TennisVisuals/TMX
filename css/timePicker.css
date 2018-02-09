@@ -55,13 +55,13 @@
     background: #fff;
     box-shadow: 0 1px 6px rgba(0,0,0,.15);
     width: 10em;
-    height: 10em;
+    height: 25em;
     font-weight: 400
 }
 
 .time-picker .dropdown .select-list {
     width: 10em;
-    height: 10em;
+    height: 25em;
     overflow: hidden;
     display: flex;
     flex-flow: row;
