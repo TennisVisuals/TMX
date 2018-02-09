@@ -199,12 +199,14 @@ let tournaments = function() {
                      if (choice.key == 'edit') {
                         return createNewTournament({ tournament_data, title: lang.tr('actions.edit_tournament'), callback: modifyTournament })
                      } else if (choice.key == 'delete') {
-                        var caption = `${lang.tr('actions.delete_tournament')}: <br>${tournament_data.name}`;
+                        var caption = `<p>${lang.tr('actions.delete_tournament')}:</p> <p>${tournament_data.name}</p>`;
                         gen.okCancelMessage(caption, deleteTournament, () => gen.closeModal());
                         function deleteTournament() {
-                           db.db.tournaments.where('tuid').equals(tuid).delete().then(() => fx.displayCalendar());
+                           db.db.tournaments.where('tuid').equals(tuid).delete().then(deleteTournamentMatches, util.logError);
                            gen.closeModal();
                         }
+                        function deleteTournamentMatches() { db.deleteTournamentMatches(tuid).then(deleteTournamentPoints, util.logError); }
+                        function deleteTournamentPoints() { db.deleteTournamentPoints(tuid).then(() => fx.displayCalendar(), util.logError); }
                      } else if (choice.key == 'merge') {
                         coms.fetchTournament(tuid, mouse, modifyTournament);
                      }
@@ -987,6 +989,7 @@ let tournaments = function() {
          { key: lang.tr('draws.qualification'), value: 'Q'},
          { key: lang.tr('draws.roundrobin'), value: 'R'},
          { key: lang.tr('draws.consolation'), value: 'C'},
+         { key: lang.tr('pyo'), value: 'P'},
       ];
 
       // if there are any matches, add match players first
@@ -2140,6 +2143,7 @@ let tournaments = function() {
             'R': 'qualification',
             'C': 'consolation',
             'E': 'elimination',
+            'P': 'playoff',
          }
 
          let modifiers = { 'R': ' RR', }
@@ -2180,6 +2184,7 @@ let tournaments = function() {
                previous_linked_event.regenerate = true;
             }
 
+            saveTournament(tournament);
             if (linkChanged && typeof linkChanged == 'function') linkChanged(value);
             eventList(true);
          }
@@ -2360,6 +2365,22 @@ let tournaments = function() {
             determineLinkedDraw(e, 'C', linkChanged);
          }
 
+         let setPlayoffConfig = () => {
+            let options = [{ key: lang.tr('draws.standard'), value: 'standard' }];
+
+            let setStructure = (value) => {
+               e.structure = value;
+               eventList(true);
+            }
+
+            event_config = gen.configTreeDraw(container, e, options);
+            event_config.structure.ddlb = new dd.DropDown({ element: event_config.structure.element, onChange: setStructure });
+            event_config.structure.ddlb.selectionBackground();
+            event_config.structure.ddlb.setValue(e.structure || 'standard');
+
+            determineLinkedDraw(e, 'E', linkChanged);
+         }
+
          let setConsolationConfig = () => {
             let options = [{ key: lang.tr('draws.standard'), value: 'standard' }, { key: lang.tr('draws.feedin'), value: 'feed' }];
 
@@ -2424,10 +2445,12 @@ let tournaments = function() {
             'E': () => setEliminationConfig(),
             'C': () => setConsolationConfig(),
             'Q': () => setQualificationConfig(),
+            'P': () => setPlayoffConfig(),
          }
 
          if (drawTypes[e.draw_type]) drawTypes[e.draw_type]();
          setDrawSize(e);
+         setAvailableDrawTypes(e);
 
          // certain draw types, such as Consolation, will have no event players until linked draws have begun play
          eventPlayers(e);
@@ -2509,6 +2532,21 @@ let tournaments = function() {
          gen.svgModal({ x: evt.clientX, y: evt.clientY, options: teams, callback: clickAction });
       }
 
+      function availableDrawTypes(e) {
+         let filtered_event_types = tournament.events
+            .filter(evt => evt.euid != e.euid && evt.category == e.category && evt.gender == e.gender)
+            .map(evt => evt.draw_type);
+         if (filtered_event_types.indexOf('E') >= 0) return draw_types;
+         return draw_types.filter(dt=>['C', 'P'].indexOf(dt.value) < 0);
+      }
+
+      function setAvailableDrawTypes(e) {
+         let available = availableDrawTypes(e);
+         container.draw_type.ddlb.setOptions(available);
+         let current_value = container.draw_type.ddlb.getValue();
+         if (available.map(a=>a.value).indexOf(current_value) < 0) { container.draw_type.ddlb.setValue('E'); }
+      }
+
       function configureEventSelections(e) {
          let eventName = () => {
             e.name = `${getKey(genders, e.gender)} ${config.legacyCategory(e.category, true)} ${getKey(formats, e.format)}`;
@@ -2516,8 +2554,18 @@ let tournaments = function() {
             eventList(true);
          }
          eventName();
-       
-         let details = gen.displayEventDetails(tournament, container, e, genders, inout, surfaces, formats, draw_types, state.edit);
+
+         let details = gen.displayEventDetails({
+            tournament,
+            container,
+            e,
+            genders,
+            inout,
+            surfaces,
+            formats,
+            draw_types: availableDrawTypes(e),
+            edit: state.edit
+         });
 
          Object.assign(container, details);
 
@@ -2808,59 +2856,30 @@ let tournaments = function() {
             })
             .filter(p => unavailable_ids.indexOf(p.id) < 0);
 
+         let completed_matches = e.links['E'] ?  eventMatches(findEventByID(e.links['E']), tournament).filter(m=>m.match.winner) : [];
+         if (['C', 'P'].indexOf(e.draw_type) >= 0 && (!e.links['E'] || !completed_matches.length)) return [];
+
+         if (e.draw_type == 'P') {
+            let ep = exitProfiles(completed_matches);
+            // if building a playoff draw, available players are those who have lost in semifinal (for now...)
+            available_players = available_players.filter(p => ep[p.id] && ep[p.id].round_name == 'SF');
+         }
+
          if (e.draw_type == 'C') {
-            // if building a consolation draw, available players are those who have lost in a linked main draw event...
-            if (!e.links['E']) return [];
-
-            let linked = findEventByID(e.links['E']);
-
-            // find all completed matches from linked elimination draw
-            let completed_matches = eventMatches(linked, tournament).filter(m=>m.match.winner);
-            if (!completed_matches.length) return [];
-
             let winner_ids = [].concat(...completed_matches.map(match => match.match.winner.map(team=>team.id)));
             let all_loser_ids = [].concat(...completed_matches.map(match => match.match.loser.map(team=>team.id)));
             let losing_players = tournament.players.filter(p=>all_loser_ids.indexOf(p.id) >= 0);
             let no_wins_ids = all_loser_ids.filter(i => winner_ids.indexOf(i) < 0);
             let alternate_ids = all_loser_ids.filter(i=>no_wins_ids.indexOf(i) < 0);
-
-            let event_rounds = {};
-            let exit_profiles = {};
-            completed_matches.forEach(match => {
-               let round = match.round;
-               let loser_id = match.match.loser[0].id;
-               let winner_id = match.match.winner[0].id;
-               if (!event_rounds[loser_id]) event_rounds[loser_id] = []
-               if (!event_rounds[winner_id]) event_rounds[winner_id] = [];
-               event_rounds[loser_id].push(round);
-               event_rounds[winner_id].push(round);
-
-               if (!exit_profiles[loser_id]) exit_profiles[loser_id] = {};
-               exit_profiles[loser_id] = {
-                  muid: match.match.muid,
-                  exit_round: round,
-                  round_name: match.match.round_name,
-                  event_rounds: event_rounds[loser_id],
-                  winner: {
-                     id: winner_id,
-                     name: `${match.match.winner[0].first_name} ${match.match.winner[0].last_name}`
-                  }
-               };
-            });
-
-            Object.keys(exit_profiles).forEach(ep => {
-               let profile = exit_profiles[ep];
-               profile.winner.event_rounds = event_rounds[profile.winner.id];
-               profile.winner.exit_round = exit_profiles[profile.winner.id] ? exit_profiles[profile.winner.id].exit_round : undefined;
-            });
-
+            let ep = exitProfiles(completed_matches);
             available_players.forEach(p => {
                if (alternate_ids.indexOf(p.id) >= 0) {
                   p.alternate = true;
-                  p.exit_profile = exit_profiles[p.id];
+                  p.exit_profile = ep[p.id];
                }
             });
 
+            // if building a consolation draw, available players are those who have lost in a linked main draw event...
             available_players = available_players.filter(p=>no_wins_ids.indexOf(p.id) >= 0 || alternate_ids.indexOf(p.id) >= 0);
          }
 
@@ -2872,6 +2891,40 @@ let tournaments = function() {
             let team_players = e.teams ? [].concat(...e.teams) : [];
             return available_players.filter(p => team_players.indexOf(p.id) < 0);
          }
+      }
+
+      function exitProfiles(completed_matches) {
+         let event_rounds = {};
+         let exit_profiles = {};
+         completed_matches.forEach(match => {
+            let round = match.round;
+            let loser_id = match.match.loser[0].id;
+            let winner_id = match.match.winner[0].id;
+            if (!event_rounds[loser_id]) event_rounds[loser_id] = []
+            if (!event_rounds[winner_id]) event_rounds[winner_id] = [];
+            event_rounds[loser_id].push(round);
+            event_rounds[winner_id].push(round);
+
+            if (!exit_profiles[loser_id]) exit_profiles[loser_id] = {};
+            exit_profiles[loser_id] = {
+               muid: match.match.muid,
+               exit_round: round,
+               round_name: match.match.round_name,
+               event_rounds: event_rounds[loser_id],
+               winner: {
+                  id: winner_id,
+                  name: `${match.match.winner[0].first_name} ${match.match.winner[0].last_name}`
+               }
+            };
+         });
+
+         Object.keys(exit_profiles).forEach(ep => {
+            let profile = exit_profiles[ep];
+            profile.winner.event_rounds = event_rounds[profile.winner.id];
+            profile.winner.exit_round = exit_profiles[profile.winner.id] ? exit_profiles[profile.winner.id].exit_round : undefined;
+         });
+
+         return exit_profiles;
       }
 
       function rankedTeams(list) { 
@@ -3075,7 +3128,7 @@ let tournaments = function() {
 
          var draw_type = e.draw_type == 'R' ? 'rr_draw' : 'tree_draw';
          var minimums = config.env().draws[draw_type].minimums;
-         var minimum_opponents = e.format == 'S' ? minimums.singles : minimums.doubles;
+         var minimum_opponents = e.draw_type == 'P' ? 2 : e.format == 'S' ? minimums.singles : minimums.doubles;
 
          if (!approved_opponents.length || approved_opponents.length < minimum_opponents) return;
 
@@ -3089,7 +3142,6 @@ let tournaments = function() {
          tree_draw.options({ flags: { path: './assets/flags/' }});
 
          let qualification = () => {
-
             let draw_size = dfx.acceptedDrawSizes(num_players);
             if ([1, 2, 4, 8, 16, 32, 64].indexOf(e.qualifiers) >= 0 && draw_size == util.nearestPow2(draw_size)) {
                let structural_byes = draw_size == 12 ? dfx.structuralByes(draw_size, true) : undefined;
@@ -3263,6 +3315,7 @@ let tournaments = function() {
             'E': () => elimination(),
             'R': () => roundrobin(),
             'C': () => consolation(),
+            'P': () => consolation(),
          }
 
          if (drawTypes[e.draw_type] && !e.active) drawTypes[e.draw_type](); 
@@ -3953,24 +4006,24 @@ let tournaments = function() {
                      // gen.timePicker({ hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
                      gen.timePicker({ hour_range: { start: 8 }, minute_increment: 5, callback: setTime })
                   } else if (choice.key == 'notbefore') {
-                     modifyMatchSchedule([{ attr: 'time_prefix', value: 'NB ' }]);
+                     modifyMatchSchedule([{ attr: 'time_prefix', value: `${lang.tr('schedule.nb')} ` }]);
                   } else if (choice.key == 'followedby') {
                      let pairs = [
                         { attr: 'time_prefix', value: '' },
                         { attr: 'time', value: '' },
-                        { attr: 'heading', value: 'Followed By' },
+                        { attr: 'heading', value: lang.tr('schedule.followedby') },
                      ];
                      modifyMatchSchedule(pairs);
                   } else if (choice.key == 'afterrest') {
                      let pairs = [
-                        { attr: 'time_prefix', value: 'After Rest' },
+                        { attr: 'time_prefix', value: lang.tr('schedule.afterrest') },
                         { attr: 'time', value: '' },
                         { attr: 'heading', value: '' },
                      ];
                      modifyMatchSchedule(pairs);
                   } else if (choice.key == 'tba') {
                      let pairs = [
-                        { attr: 'time_prefix', value: 'TBA' },
+                        { attr: 'time_prefix', value: lang.tr('schedule.tba') },
                         { attr: 'time', value: '' },
                      ];
                      modifyMatchSchedule(pairs);
@@ -4027,6 +4080,8 @@ let tournaments = function() {
                if (!complete) {
                   options = [
                      { label: lang.tr('draws.matchtime'), key: 'matchtime' },
+                     { label: lang.tr('draws.starttime'), key: 'starttime' },
+                     { label: lang.tr('draws.endtime'), key: 'endtime' },
                      { label: lang.tr('draws.timeheader'), key: 'timeheader' },
                      { label: lang.tr('draws.changestatus'), key: 'changestatus' },
                      { label: lang.tr('draws.umpire'), key: 'umpire' },
@@ -4045,8 +4100,13 @@ let tournaments = function() {
                function modifySchedule(choice, index) {
                   if (choice.key == 'matchtime') {
                      let time_string = match.schedule && match.schedule.time;
-                     // gen.timePicker({ time_string, hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
-                     gen.timePicker({ hour_range: { start: 8 }, minute_increment: 5, callback: setTime })
+                     gen.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setTime })
+                  } else if (choice.key == 'starttime') {
+                     let time_string = match.schedule && (match.schedule.start || match.schedule.time);
+                     gen.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setStart })
+                  } else if (choice.key == 'endtime') {
+                     let time_string = match.schedule && match.schedule.end;
+                     gen.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setEnd })
                   } else if (choice.key == 'timeheader') {
                      let headings = [
                         lang.tr('schedule.notbefore'),
@@ -4092,6 +4152,8 @@ let tournaments = function() {
                }
 
                function setTime(value) { modifyMatchSchedule([{ attr: 'time', value }]); }
+               function setStart(value) { modifyMatchSchedule([{ attr: 'start', value }]); }
+               function setEnd(value) { modifyMatchSchedule([{ attr: 'end', value }]); }
                function assessPenalty(penalty, penalty_index, penalty_value) {
                   let players = match.players.map(p=>p.full_name);
                   gen.svgModal({ x: ev.clientX, y: ev.clientY, options: players, callback: playerPenalty });
@@ -4129,7 +4191,7 @@ let tournaments = function() {
                }
                function timeHeading(selection, index) {
                   if (index == 0) {
-                     modifyMatchSchedule([{ attr: 'time_prefix', value: 'NB ' }]);
+                     modifyMatchSchedule([{ attr: 'time_prefix', value: `${lang.tr('schedule.nb')} ` }]);
                   } else if (index == 1) {
                      let pairs = [
                         { attr: 'time_prefix', value: lang.tr('schedule.followedby') },
@@ -5273,7 +5335,7 @@ let tournaments = function() {
             if (qlinkinfo) {
                qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), team_ids).length == 0);
                qlinkinfo.nodes.forEach(node => {
-                  if (!node.height && node.data.team && util.intersection(node.data.team.map(t=>t.id), team_ids).length) {
+                  if (node.data.team && util.intersection(node.data.team.map(t=>t.id), team_ids).length) {
                      node.data.qualifier = true;
                      node.data.team = node.data.team.map(team => ({ bye: undefined, entry: 'Q', qualifier: true, draw_position: team.draw_position }) );
                   }
@@ -5563,9 +5625,8 @@ let tournaments = function() {
          // if the draw is active or if there are no unassigned teams
          // then place the team in a qualifier position
          if (elimination_event.draw && (elimination_event.active || !info.unassigned.length)) {
-            dfx.assignPosition({ node: elimination_event.draw, position, team: team_copy });
+            dfx.assignPosition({ node: elimination_event.draw, position, team: team_copy, propagate: true });
             elimination_event.draw.unseeded_placements.push({ id: team_copy[0].id, position });
-            // dfx.advanceTeamsWithByes({ draw: elimination_event.draw });
          }
 
          if (elimination_event.draw) {
@@ -6608,22 +6669,23 @@ let tournaments = function() {
          }
 
          function drawActiveContextClick(d, coords) {
-            let draw = e.draw;
-            let position = d.data.dp;
+            var draw = e.draw;
+            var position = d.data.dp;
 
-            let info = dfx.drawInfo(draw);
-            let linked = findEventByID(e.links['E']);
-            let linked_info = null;
+            var info = dfx.drawInfo(draw);
+            var linked = findEventByID(e.links['E']);
+            var linked_info = null;
 
-            let selector = d3.select('#' + container.draws.id + ' svg').node();
-            let finalist_dp = info.final_round.map(m=>m.data.dp);
-            let qualifier_index = finalist_dp.indexOf(position);
-            let qualified = qualifier_index >= 0;
+            var selector = d3.select('#' + container.draws.id + ' svg').node();
+            var finalist_dp = info.final_round.map(m=>m.data.dp);
+            var qualifier_index = finalist_dp.indexOf(position);
+            var qualified = qualifier_index >= 0;
 
-            let match_score = d.data.match && d.data.match.score;
+            var match_score = d.data.match && d.data.match.score;
+            var qualification = ['Q', 'R'].indexOf(e.draw_type) >= 0;
             var active_in_linked = null;
 
-            if (match_score && qualified && linked && linked.draw) {
+            if (qualification && match_score && qualified && linked && linked.draw) {
                linked_info = dfx.drawInfo(linked.draw);
                let team_ids = d.data.team.map(m=>m.id);
                let advanced_positions = linked_info.match_nodes.filter(n=>n.data.match && n.data.match.players);
@@ -6634,7 +6696,7 @@ let tournaments = function() {
                active_in_linked = util.intersection(active_player_positions, position_in_linked).length;
             }
 
-            let possible_to_remove = (!d.parent || !d.parent.data || !d.parent.data.team);
+            var possible_to_remove = (!d.parent || !d.parent.data || !d.parent.data.team);
 
             if (match_score && possible_to_remove && !active_in_linked) {
                let options = [`${lang.tr('draws.remove')}: ${lang.tr('mtc')}`];
@@ -7106,6 +7168,7 @@ let tournaments = function() {
                'R': lang.tr('draws.roundrobin'),
                'C': lang.tr('draws.consolation'),
                'Q': lang.tr('draws.qualification'),
+               'P': lang.tr('pyo'),
             }
             draw_options = tournament.events.map((e, i) => { 
                if (displayed_event && displayed_event == e.euid) selection = i;
@@ -7583,16 +7646,16 @@ let tournaments = function() {
       if (!matches) return groups;
 
       groups.ms = matches.filter(match => match.format == 'singles' && match.gender == 'M' && match.consolation == false);
-      groups.msq = groups.ms.filter(match => match.round.indexOf('Q') == 0 && match.round.indexOf('QF') != 0);
-      groups.msm = groups.ms.filter(match => match.round.indexOf('RR') < 0 && (match.round.indexOf('QF') == 0 || match.round.indexOf('Q') < 0));
-      groups.msrr = groups.ms.filter(match => match.round.indexOf('RR') == 0);
+      groups.msq = groups.ms.filter(match => match.round && match.round.indexOf('Q') == 0 && match.round.indexOf('QF') != 0);
+      groups.msm = groups.ms.filter(match => match.round && match.round.indexOf('RR') < 0 && (match.round.indexOf('QF') == 0 || match.round.indexOf('Q') < 0));
+      groups.msrr = groups.ms.filter(match => match.round && match.round.indexOf('RR') == 0);
 
       groups.md = matches.filter(match => match.format == 'doubles' && match.gender == 'M' && match.consolation == false);
 
       groups.ws = matches.filter(match => match.format == 'singles' && match.gender == 'W' && match.consolation == false);
-      groups.wsq = groups.ws.filter(match => match.round.indexOf('Q') == 0 && match.round.indexOf('QF') != 0);
-      groups.wsm = groups.ws.filter(match => match.round.indexOf('RR') < 0 && (match.round.indexOf('QF') == 0 || match.round.indexOf('Q') < 0));
-      groups.wsrr = groups.ws.filter(match => match.round.indexOf('RR') == 0);
+      groups.wsq = groups.ws.filter(match => match.round && match.round.indexOf('Q') == 0 && match.round.indexOf('QF') != 0);
+      groups.wsm = groups.ws.filter(match => match.round && match.round.indexOf('RR') < 0 && (match.round.indexOf('QF') == 0 || match.round.indexOf('Q') < 0));
+      groups.wsrr = groups.ws.filter(match => match.round && match.round.indexOf('RR') == 0);
 
       groups.wd = matches.filter(match => match.format == 'doubles' && match.gender == 'W' && match.consolation == false);
 
@@ -7636,10 +7699,10 @@ let tournaments = function() {
       matches.forEach(match => { 
          if (!match.gender) match.gender = rank.determineGender(match); 
          if (match.consolation) match.draw = 'C';
-         if (match.round.indexOf('Q') == 0 && match.round.indexOf('QF') < 0) match.draw = 'Q';
+         if (match.round && match.round.indexOf('Q') == 0 && match.round.indexOf('QF') < 0) match.draw = 'Q';
 
          // TODO: RR is not always Q... if there is only one bracket...
-         if (match.round.indexOf('RR') == 0) match.draw = 'Q';
+         if (match.round && match.round.indexOf('RR') == 0) match.draw = 'Q';
       });
    }
 
@@ -7912,6 +7975,7 @@ let tournaments = function() {
    function roundNames(e) {
       if (['E', 'C'].indexOf(e.draw_type) >= 0) return ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R96', 'R128'];
       if (['Q'].indexOf(e.draw_type) >= 0) return ['Q', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5'];
+      if (['P'].indexOf(e.draw_type) >= 0) return ['PO3'];
       return [];
    }
 
@@ -8002,7 +8066,6 @@ let tournaments = function() {
       }
 
       function configureDateSelectors(tournament, container) {
-
          let start = new Date(tournament.start);
          let end = new Date(tournament.end);
 
