@@ -536,6 +536,12 @@
    padding-bottom: 1.7em;
    background-size: 100%;
 }
+.tiny_icon { 
+   width: 1em;
+   height: 0;
+   padding-bottom: 1em;
+   background-size: 100%;
+}
 
 .time_header { background-image: url("../icons/time.png"); }
 .time_header_inactive { background-image: url("../icons/time_inactive.png"); }
