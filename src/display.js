@@ -728,8 +728,8 @@
          }
       }
 
-      let rr = (m) => m.round.indexOf('RR') >= 0 && m.round.indexOf('Q') < 0;
-      let qual = (m) => m.round.indexOf('Q') >= 0 && m.round.indexOf('QF') < 0;
+      let rr = (m) => m.round && m.round.indexOf('RR') >= 0 && m.round.indexOf('Q') < 0;
+      let qual = (m) => m.round && m.round.indexOf('Q') >= 0 && m.round.indexOf('QF') < 0;
       let singles = matchSort(completed_matches.filter(m => m.format == 'singles')).reverse();
       let doubles = matchSort(completed_matches.filter(m => m.format == 'doubles')).reverse();
       let roundrobin = singles.filter(m => rr(m));
@@ -2472,11 +2472,12 @@
       let status_message = (match.status && match.score && !match.umpire) ? match.status : '';
       let umpire = match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : status_message;
       let heading = match.schedule.heading ? `${match.schedule.heading} ` : '';
+      let time_icon = match.schedule.start || match.schedule.end ? `&nbsp;<div class='time_header tiny_icon'></div>` : '';
       let time_prefix = match.schedule.time_prefix ? `${match.schedule.time_prefix} ` : '';
-      let header = `${heading}${time_prefix}${match.schedule.time || ''}`;
+      let header = `${heading}${time_prefix}${match.schedule.time || ''}${time_icon}`;
       let font_sizes = ['1em', '1em'];
       let html = `
-         <div class='header'>${header}</div> 
+         <div class='header flexrow'>${header}</div> 
          <div class='catround'>
             <div class='category'>${match.gender || ''} ${category}</div>
             <div class='format'>${format}</div>
@@ -3093,7 +3094,7 @@
       return idObj(ids);
    }
 
-   gen.displayEventDetails = (tournament, container, e, genders, inout, surfaces, formats, draw_types, edit) => {
+   gen.displayEventDetails = ({ tournament, container, e, genders, inout, surfaces, formats, draw_types, edit }) => {
       let ids = {
          eligible: gen.uuid(),
          gender: gen.uuid(),
@@ -3285,6 +3286,7 @@
          'R': lang.tr('draws.roundrobin'),
          'C': lang.tr('draws.consolation'),
          'Q': lang.tr('draws.qualification'),
+         'P': lang.tr('pyo'),
       }
       let type = types[e.draw_type] || lang.tr('draws.maindraw');
       let name = `${e.name}&nbsp;<span class='event_type'>${type}</span>`;
@@ -3964,7 +3966,7 @@
       }
    }
 
-   gen.timePicker = ({ time_string, hour_range, minute_increment, minutes, callback }) => {
+   gen.timePicker = ({ value, time_string, hour_range, minute_increment, minutes, callback }) => {
       let hour = 0;
       let minute = 0;
 
@@ -3977,15 +3979,23 @@
       let entry = floatingEntry().selector('#timepicker');
 
       let x = window.innerWidth * .4;
-      let y = window.innerHeight * .4;
+      let y = window.innerHeight * .2;
       entry(x, y, pickerHTML({ hour_range, minute_increment, minutes }));
       let time = backplane.node().querySelector('.display-time');
+      if (value) time.value = value;
 
       backplane.select('.floating-entry').on('click', () => { d3.event.stopPropagation(); });
       backplane.select('.clear-btn').on('click', () => { time.value = ""; });
 
       backplane.on('click', returnValue);
-      time.addEventListener('click', returnValue);
+      time.addEventListener('keyup', evt => {
+         var semis = 0;
+         evt.target.value = evt.target.value.split('').filter(v=> {
+            if (v == ':') semis += 1;
+            return !isNaN(v) || ( v == ':' && semis == 1)
+         }).join('');
+         if (evt.which == 13) returnValue();
+      });
 
       util.addEventToClass('hour', setHour);
       util.addEventToClass('minute', setMinute);
@@ -4022,7 +4032,7 @@
             .map(m=>`<li class='minute'>${zeroPad(m)}</li>`).join('');
          let html = `
                <span class="time-picker">
-                  <input class="display-time" type="text" readonly="readonly" placeholder='HH:mm'>
+                  <input class="display-time" type="text" placeholder='HH:mm'>
                   <span class="clear-btn" style="display: flex;">×</span>
                   <div class="dropdown" style="display: flex;">
                      <div class="select-list">
