@@ -14,7 +14,7 @@
       let match_round = match.round_name || match.round;
 
       // draw_positions is total # of draw positions
-      let qualifying = match_round.indexOf('Q') >= 0 && match_round != 'QF' && match_round.indexOf('RR') < 0;
+      let qualifying = match_round && match_round.indexOf('Q') >= 0 && match_round != 'QF' && match_round.indexOf('RR') < 0;
       let round = qualifying ? `${match.draw_positions}${match_round}` : match_round;
 
       if (points_table && points_table.categories[category] && points_table.categories[category][match.format]) {
