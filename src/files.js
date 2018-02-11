@@ -714,7 +714,6 @@
             let bracket_svgs = Array.from(element.querySelectorAll('svg'));
             Promise.all(bracket_svgs.map(exp.SVGasURI)).then(images => drawSheet({ tournament, images, logo, selected_event, event, info }), reject).then(cleanUp, cleanUp);
          }
-
       });
    }
 
