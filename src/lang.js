@@ -331,6 +331,7 @@
          export: 'Export',
          pointsvalidfrom: 'Points Valid From',
          linkcopied: 'Link Copied to Clipboard',
+         keycopied: 'Key Copied to Clipboard',
          submitkey: 'Submit Key',
          selectkey: 'Select Key',
          deletereplace: 'Delete / Replace',
@@ -340,7 +341,9 @@
          revokeauth: 'Revoke Authorization?',
          clearalldays: 'Clear All Days?',
          cantdelqual: 'Cannot Delete: Qualified Player Active in Main Draw',
-         cantrefresh: 'Offline: Cannot Refresh'
+         cantrefresh: 'Offline: Cannot Refresh',
+         blocked:'Pop-Up Windows are blocked by your browser',
+         enablepopups: 'Please enable Pop-Ups for PDF printing',
       },
 
       events: {
