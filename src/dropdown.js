@@ -1,6 +1,6 @@
-!function() {
+let dd = function() {
 
-   let dd = {};
+   let fx = {};
 
    function findUpClass(elem, class_name) {
       let depth = 1;
@@ -13,7 +13,7 @@
       return { elem: null, depth: 0 };
    }
 
-   dd.DropDown = DropDown;
+   fx.DropDown = DropDown;
    function DropDown({ element, onChange, css_class, style, id, locked, max, maxFx }) {
       this.id = id;
       this.val = '';
@@ -51,7 +51,7 @@
                }
             }
 
-            dd.closeAllDropDowns(obj.class);
+            fx.closeAllDropDowns(obj.class);
 
             // active ddlb if option not found or dd_state found before option
             if (dd_state && (!option_depth || dd_state_depth < option_depth)) dd_state.classList[actv ? 'remove' : 'add']("active")
@@ -102,7 +102,7 @@
           if (!Array.isArray(options) || !options.length || !this.list) return;
           let list = this.list.querySelector('ul');
           if (!list) return;
-          if (this.max && options && options.length > this.max) { dd.closeAllDropDowns(this.class); }
+          if (this.max && options && options.length > this.max) { fx.closeAllDropDowns(this.class); }
           list.innerHTML = options.map(option=>optionHTML(option, style)).join('');
           this.options = options; 
           this.opts = this.list.querySelectorAll('li');
@@ -158,7 +158,7 @@
       return html;
    }
 
-   dd.attachDropDown = ({ id, label = '', options, selected = 0, css_class, border, style, floatleft }) => {
+   fx.attachDropDown = ({ id, label = '', options, selected = 0, css_class, border, style, floatleft }) => {
       let element = document.getElementById(id);
       // elements will not be visible until new DropDown()
       element.style.display = 'none';
@@ -166,14 +166,13 @@
       element.innerHTML = dropDownHTML(label, options, selected, border, style, floatleft);
    }
 
-   dd.closeAllDropDowns = (css_class) => {
+   fx.closeAllDropDowns = (css_class) => {
       let elems = document.querySelectorAll('li.dd_state.active');
       Array.from(elems).forEach(elem => { elem.classList.remove('active'); })
    }
 
-   document.addEventListener("click", () => dd.closeAllDropDowns());
+   document.addEventListener("click", () => fx.closeAllDropDowns());
 
-   if (typeof define === "function" && define.amd) define(dd); else if (typeof module === "object" && module.exports) module.exports = dd;
-   this.dd = dd;
+   return fx;
  
 }();
