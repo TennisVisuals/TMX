@@ -175,6 +175,7 @@ let util = function() {
    }
 
    // Miscellaneous Functions
+   fx.zeroPad = (number) => number.toString()[1] ? number : "0" + number;
    fx.numeric = (value) => value && !isNaN(value) ? parseInt(value.toString().trim()) : 0;
    fx.isMember = (list, m) => list.reduce((p, c) => c == m || p, false);
    fx.unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
