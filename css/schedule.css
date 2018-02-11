@@ -213,13 +213,23 @@
    background: #EAEDED;
 }
 
-.unscheduled_match .left_team { 
+.left_team { 
    width: 30em;
    text-align: right; 
+   display: flex;
+   -webkit-justify-content: flex-end;
+   justify-content: flex-end;
+   -webkit-flex-direction: row;
+   flex-direction: row;
 }
-.unscheduled_match .right_team { 
-   width: 30em; 
+.right_team { 
+   width: 30em;
    text-align: left; 
+   display: flex;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+   -webkit-flex-direction: row;
+   flex-direction: row;
 }
 .unscheduled_match .event_name {
    padding-left: 1em;
@@ -236,7 +246,12 @@
 }
 
 .potential {
+  white-space: nowrap;
    color: gray;
    font-style: italic;
+}
+
+.team_width {
+   width: 30em;
 }
 
