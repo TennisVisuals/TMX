@@ -42,13 +42,17 @@ let config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.69.18.21',
+      version: '0.9.76.27.29',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
          name: undefined,
          abbr: undefined,
          ouid: undefined
+      },
+      assets: {
+         flags: '/media/flags/',
+         ioc_codes: './assets/ioc_codes',
       },
       auto_update: {
          players: false,
@@ -245,7 +249,7 @@ let config = function() {
             .sort()
             .map(value => {
                let ioc_value = value.length == 3 ? value : 'gbr';
-               let img_src = `./assets/flags/${ioc_value.toUpperCase()}.png`;
+               let img_src = `${config.env().assets.flags}${ioc_value.toUpperCase()}.png`;
                return { key: `<div class=''><img src="${img_src}" class='idiom_flag'></div>`, value, title: ioc_idioms[value.toUpperCase()] }
             })
             .filter(f=>f.title);
@@ -853,9 +857,16 @@ let config = function() {
 
    function handleUnhandled() {
       window.onunhandledrejection = (event) => {
-        event.preventDefault();
-        let reason = event.reason;
-        console.warn('Unhandled promise rejection:', (reason && (reason.stack || reason)));
+         event.preventDefault();
+         let reason = event.reason;
+         let message = reason && (reason.stack || reason);
+         if (message.indexOf('blocked') > 0) {
+            gen.escapeModal();
+            let notice = `<p>${lang.tr('phrases.blocked')}</p><p>${lang.tr('phrases.enablepopups')}</p>`;
+            gen.okCancelMessage(notice, () => gen.closeModal('processing'));
+         } else {
+            console.warn('Unhandled promise rejection:', (reason && (reason.stack || reason)));
+         }
       };
    }
 
@@ -868,7 +879,7 @@ let config = function() {
                notice: `Persistence: ${env.storage}`,
                persistent
             });
-            if (persistent && env.storage != true ) {
+            if (env.storage != true ) {
                fx.addMessage({
                   title: 'warn',
                   notice: 'Data Persistence Not Guaranteed; save locally or publish to server before closing your browser. Or try Firefox Quantum.', warning: true
@@ -892,6 +903,7 @@ let config = function() {
    }
 
    function enableNotifications() {
+      // TODO: future, once server and service workers implemented...
       Notification.requestPermission(granted => {
          env.notifications = granted;
       });
