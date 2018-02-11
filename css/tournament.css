@@ -75,6 +75,13 @@
 .push2cloud_updated { background-image: url("../icons/ul_green.png"); }
 .trash { background-image: url("../icons/trash.png"); }
 .penalty { background-image: url("../icons/penalty.png"); }
+.medical_icon {
+   background-image: url("../icons/redcross.png");
+   width: 1em;
+   height: 0;
+   padding-bottom: 1em;
+   background-size: 100%;
+}
 .penalty_icon {
    background-image: url("../icons/penalty.png");
    width: 1em;
@@ -543,6 +550,9 @@
    background-size: 100%;
 }
 
+.score_header { background-image: url("../icons/scoreboard.png"); }
+.duration_header { background-image: url("../icons/duration.png"); }
+.cal_header { background-image: url("../icons/calendar.png"); }
 .time_header { background-image: url("../icons/time.png"); }
 .time_header_inactive { background-image: url("../icons/time_inactive.png"); }
 .opponents_header { background-image: url("../icons/players.png"); }
@@ -579,6 +589,7 @@
 
 .events .event:hover { background-color: #EAEDED }
 .events .highlight_listitem { font-weight: bold }
+.events .listitem_warning { color: red }
 
 .events button {
    margin: .2em;
