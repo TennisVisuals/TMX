@@ -86,7 +86,6 @@
       if (document.body.scrollIntoView) document.body.scrollIntoView();
    }
 
-   let zeroPad = (number) => number.toString()[1] ? number : "0" + number;
    let fullName = (p) => `${p.last_name.toUpperCase()}, ${util.normalizeName(p.first_name, false)}`;
 
    function matchSort(matches) {
@@ -438,13 +437,13 @@
 
    function displayDate(timestamp) {
       let date = new Date(timestamp);
-      return [zeroPad(date.getMonth() + 1), zeroPad(date.getDate())].join('&#8209;');
-      // return [date.getFullYear(), zeroPad(date.getMonth() + 1), zeroPad(date.getDate())].join('-');
-      // return [zeroPad(date.getDate()), zeroPad(date.getMonth() + 1), date.getFullYear()].join('&nbsp;');
+      return [util.zeroPad(date.getMonth() + 1), util.zeroPad(date.getDate())].join('&#8209;');
+      // return [date.getFullYear(), util.zeroPad(date.getMonth() + 1), util.zeroPad(date.getDate())].join('-');
+      // return [util.zeroPad(date.getDate()), util.zeroPad(date.getMonth() + 1), date.getFullYear()].join('&nbsp;');
    }
    function displayFullDate(timestamp) {
       let date = new Date(timestamp);
-      return [date.getFullYear(), zeroPad(date.getMonth() + 1), zeroPad(date.getDate())].join('&#8209;');
+      return [date.getFullYear(), util.zeroPad(date.getMonth() + 1), util.zeroPad(date.getDate())].join('&#8209;');
    }
    function displayYear(timestamp) {
       let date = new Date(timestamp);
@@ -688,7 +687,7 @@
       let date = new Date(points.date);
       let expired = expire_date && date.getTime() <= expire_date ? 'expired' : '';
       let even = odd ? 'row_even' : '';
-      let formatted_date = [zeroPad(date.getMonth() + 1), zeroPad(date.getDate()), date.getFullYear()].join('/');
+      let formatted_date = [util.zeroPad(date.getMonth() + 1), util.zeroPad(date.getDate()), date.getFullYear()].join('/');
       let round = points.round;
       let format = `formats.${points.format}`;
       let html = `
@@ -704,7 +703,7 @@
       return html;
    }
 
-   gen.displayTournamentMatches = ({ container, pending_matches=[], completed_matches=[], filters=[] }) => {
+   gen.displayTournamentMatches = ({ tournament, container, pending_matches=[], completed_matches=[], filters=[] }) => {
       let html = ``;
 
       if (filters.indexOf('M') >= 0) {
@@ -721,10 +720,10 @@
          let unscheduled = matchSort(pending_matches.filter(m=>!m.schedule || !m.schedule.court));
 
          if (unscheduled.length) {
-            html += matchBlock({ title: lang.tr('draws.unscheduled'), matches: unscheduled, type: 'unscheduled' });
+            html += matchBlock({ title: lang.tr('draws.unscheduled'), tournament, matches: unscheduled, type: 'unscheduled' });
          }
          if (scheduled.length) {
-            html += matchBlock({ title: lang.tr('draws.scheduled'), matches: scheduled, type: 'scheduled' });
+            html += matchBlock({ title: lang.tr('draws.scheduled'), tournament, matches: scheduled, type: 'scheduled' });
          }
       }
 
@@ -739,7 +738,7 @@
       if (completed_matches.length) {
          html += `<div class='flexcenter match_block_title'>${lang.tr('draws.completed')}</div>`;
          let completed_ordered = [].concat(...singles, ...qualifying, ...roundrobin, ...doubles);
-         html += matchBlock({ matches: completed_ordered, type: 'completed' });
+         html += matchBlock({ matches: completed_ordered, tournament, type: 'completed' });
       }
 
       /*
@@ -782,28 +781,31 @@
       });
    }
    
-   function formatTeams(match, which, puid) {
+   function formatTeams({tournament, match, which, puid}) {
       var flags = config.env().draws.tree_draw.flags.display;
+      var flag_root = config.env().assets.flags;
 
       function playerBlock(pindex, side) {
          var p = match.players[pindex];
          if (!p.puid) return potentialBlock(p, side);
          var player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
          var ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
-         var flag =  !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="./assets/flags/${player_ioc}.png">`;
+         var flag =  !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="${flag_root}${player_ioc}.png">`;
+         var penalty = !tournament ? undefined : matchPenalties(tournament.players, p.puid, match.muid);
+         var penalty_icon = penalty ? `&nbsp;<div class='penalty_icon'></div>` : '';
          var assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
-         var left = side == 'right' ? `${assoc} ` : '';
-         var right = side == 'left' ? ` ${assoc}` : '';
+         var left = side == 'right' ? `${assoc} ` : `${penalty_icon}`;
+         var right = side == 'left' ? ` ${assoc}` : `${penalty_icon}`;
          var first_name = util.normalizeName(p.first_name, false);
          var last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : '';
          var seed = p.seed ? ` [${p.seed}]` : '';
-         return `<div puid='${p.puid}' class='ctxclk player_click cell_player'>${left}${first_name} ${last_name}${seed}${right}</div>`;
+         return `<div puid='${p.puid}' class='${side}_team ctxclk player_click cell_player'>${left}${first_name} ${last_name}${seed}${right}</div>`;
       }
 
       function potentialBlock(p, side) {
          var player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
          var ioc = player_ioc ? `{${player_ioc.toUpperCase()}}` : '';
-         var flag = !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="./assets/flags/${player_ioc}.png">`;
+         var flag =  !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="${flag_root}${player_ioc}.png">`;
          var assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
          var left = side == 'right' ? `${assoc} ` : '';
          var right = side == 'left' ? ` ${assoc}` : '';
@@ -837,8 +839,8 @@
       var left_team = lp ? lp.map(p=>playerBlock(p, 'left')).join('') : unknownBlock(0, 'left');
       var right_team = rp ? rp.map(p=>playerBlock(p, 'right')).join('') : unknownBlock(1, 'right');
 
-      var left_html = `<div class='team left_team${left_outcome}${pleft}'>${left_team}</div>`;
-      var right_html = `<div class='team right_team${right_outcome}${pright}'>${right_team}</div>`;
+      var left_html = `<div class='team team_width left_team${left_outcome}${pleft}'>${left_team}</div>`;
+      var right_html = `<div class='team team_width right_team${right_outcome}${pright}'>${right_team}</div>`;
       var html = `
          <div class='team left_team${complete ? " winner" : ""}'>${left_team}</div>
          <div>&nbsp;-&nbsp;</div>
@@ -848,20 +850,65 @@
       return which == 'left' ? left_html : which == 'right' ? right_html : html;
    }
 
-   function matchBlock({ headers=true, title, divider, matches, type, puid }) {
+   function matchBlock({ tournament, headers=true, title, divider, matches, type, puid }) {
       function matchTime(match) {
          if (match.schedule && match.schedule.day) return displayDate(new Date(match.schedule.day));
          if (match.date) return displayDate(match.date);
          return '';
+
+         function duration(start, end) {
+            var seconds = getSeconds(end) - getSeconds(start);
+            if (seconds <= 0) seconds = getSeconds(end, 12) - getSeconds(start);
+            if (seconds <= 0) seconds = getSeconds(end, 12) - getSeconds(start, -12);
+            var hours = Math.floor(seconds / (60 * 60));
+            var minutes = Math.floor(seconds - (hours * 60 * 60)) / 60;
+            return `${util.zeroPad(hours)}:${util.zeroPad(minutes)}`;
+         }
+         function getSeconds(hm, mod=0) {
+            var a = hm.split(':');
+            var getNum = (x) => x && !isNaN(x) ? +x : 0;
+            var hours = getNum(a[0]) + mod;
+            var minutes = getNum(a[1]);
+            return hours * 60 * 60 + minutes * 60;
+         }
+      }
+
+      function matchDuration(match) {
+         if (match.schedule && match.schedule.start && match.schedule.end) {
+            let d = duration(match.schedule.start, match.schedule.end);
+            return `<b>${d}</b>`;
+         }
+         return '';
+
+         function duration(start, end) {
+            var seconds = getSeconds(end) - getSeconds(start);
+            if (seconds <= 0) seconds = getSeconds(end, 12) - getSeconds(start);
+            if (seconds <= 0) seconds = getSeconds(end, 12) - getSeconds(start, -12);
+            var hours = Math.floor(seconds / (60 * 60));
+            var minutes = Math.floor(seconds - (hours * 60 * 60)) / 60;
+            return `${util.zeroPad(hours)}:${util.zeroPad(minutes)}`;
+         }
+         function getSeconds(hm, mod=0) {
+            var a = hm.split(':');
+            var getNum = (x) => x && !isNaN(x) ? +x : 0;
+            var hours = getNum(a[0]) + mod;
+            var minutes = getNum(a[1]);
+            return hours * 60 * 60 + minutes * 60;
+         }
       }
 
       function tournamentData(match) {
          return (!match.tournament || !match.tournament.name) ? '' : `<div class='tournament_click' tuid='${match.tournament.tuid}'>${match.tournament.name}</div>`;
       }
 
-      function courtData(match) {
-         return (match.schedule && match.schedule.court) || '';
+      function matchStatus(match) {
+         let start_time = match.schedule && match.schedule.start ? `${lang.tr('draws.starttime')}: ${match.schedule.start}` : '';
+         return match.status || start_time;
       }
+
+      function fT({match, which, puid}) { return formatTeams({tournament, match, which, puid}); }
+      function matchFinish(match) { return match.schedule && match.schedule.end ? match.schedule.end : ''; }
+      function courtData(match) { return (match.schedule && match.schedule.court) || ''; }
 
       function fillSpace(match) {
          if (match.score && match.winner == undefined) return match.score.replace(/\-/g, '&#8209;');
@@ -878,13 +925,25 @@
          <div class='${gen.info}' label='${lang.tr("rnd")}'>
             <div class='match_block_icon drawsize_header'></div>
          </div>`;
+      let duration_icon = `
+         <div class='${gen.info}' label='${lang.tr("duration")}'>
+            <div class='match_block_icon duration_header'></div>
+         </div>`;
       let time_icon = `
-         <div class='${gen.info}' label='${lang.tr("time")}'>
+         <div class='${gen.info}' label='${lang.tr("draws.endtime")}'>
             <div class='match_block_icon time_header'></div>
+         </div>`;
+      let cal_icon = `
+         <div class='${gen.info}' label='${lang.tr("dt")}'>
+            <div class='match_block_icon cal_header'></div>
          </div>`;
       let status_icon = `
          <div class='${gen.info}' label='Status'>
             <div class='match_block_icon status_header'></div>
+         </div>`;
+      let score_icon = `
+         <div class='${gen.info} flexcenter' label='${lang.tr("scr")}'>
+            <img src="./icons/scoreboard.png" style='width: 30px;'>
          </div>`;
       let court_icon = `
          <div class='flexcenter ${gen.info}' style='width: 100%' label='${lang.tr("crt") || "Court"}'>
@@ -892,22 +951,23 @@
          </div>`;
 
       let round = { header: round_icon, cell: 'flexcenter flexjustifystart padright', column: 'round', fx: (m) => m.round_name || m.round || '' };
-      let tournament = { header: '', cell: 'flexcenter flexjustifystart padright trim15', column: 'tournament', fx: tournamentData };
-      let time = { header: time_icon || '${lang.tr("time")}', cell: 'flexcenter padaround', column: 'time', fx: matchTime };
-      let players = { header: `${lang.tr('pyr')} [${lang.tr('rnk').toLowerCase()}]`, cell: 'matchrow ctxclk', column: 'teamcolumn', fx: formatTeams };
-      let score = { header: lang.tr('scr'), cell: 'flexcenter flexjustifystart padright matchscore', column: '', fx: matchScore };
-      let duration = { header: lang.tr('duration'), cell: 'flexcenter flexjustifystart duration padaround', column: '', fx: (m) => m.duration || '' };
+      let trny = { header: '', cell: 'flexcenter flexjustifystart padright trim15', column: 'tournament', fx: tournamentData };
+      let time = { header: cal_icon || '${lang.tr("time")}', cell: 'flexcenter padaround', column: 'time', fx: matchTime };
+      let players = { header: `${lang.tr('pyr')} [${lang.tr('rnk').toLowerCase()}]`, cell: 'matchrow ctxclk', column: 'teamcolumn', fx: match => fT({match}) };
+      let score = { header: score_icon, cell: 'flexcenter padright matchscore', column: '', fx: matchScore };
+      let duration = { header: duration_icon, cell: 'flexcenter duration padaround', column: '', fx: matchDuration };
+      let finish = { header: time_icon, cell: 'flexcenter duration padaround', column: '', fx: matchFinish };
       let court = { header: court_icon, cell: 'flexcenter padaround', column: 'court', fx: courtData };
-      let statuz = { header: status_icon || 'Status', cell: 'flexcenter padaround', column: 'status', fx: (m) => m.status || '' };
+      let statuz = { header: status_icon || 'Status', cell: 'flexcenter flexjustifystart padaround', column: 'status', fx: matchStatus };
 
-      let teamleft = { header: '', cell: 'matchrow', column: 'teamcolumn', fx: (m) => formatTeams(m, 'left', puid) };
-      let teamright = { header: '', cell: 'matchrow', column: 'teamcolumn', fx: (m) => formatTeams(m, 'right', puid) };
+      let teamleft = { header: '', cell: 'matchrow', column: 'teamcolumn', fx: match => fT({ match, which: 'left', puid }) };
+      let teamright = { header: '', cell: 'matchrow', column: 'teamcolumn', fx: match => fT({ match, which: 'right', puid }) };
       let spacer = { header: '', cell: 'flexcenter', column: '', fx: () => '&nbsp;-&nbsp;' };
       let filler = { header: '', cell: 'flexcenter', column: 'filler', fx: fillSpace };
 
       let directives = [];
       if (type == 'completed') {
-         directives = [ round, time, teamleft, spacer, teamright, filler, score ];
+         directives = [ round, time, finish, teamleft, spacer, teamright, filler, score ];
          if (window.innerWidth > 700) {
             directives.push(duration);
             // directives.push(court);
@@ -920,7 +980,7 @@
          directives = [ time, teamleft, spacer, teamright, filler];
          if (window.innerWidth > 1000) {
             directives.push(round);
-            directives.push(tournament);
+            directives.push(trny);
          }
          directives.push(score);
       }
@@ -1701,7 +1761,6 @@
          j+=1;
       }
       let genSection = (notice, arr) => {
-
          let m = arr.filter(f=>f.sex == 'M');
          let w = arr.filter(f=>f.sex == 'W');
          let u = arr.filter(f=>f.sex == undefined);
@@ -1757,7 +1816,7 @@
       let birthyear = !isNaN(birth) ? birth : '----';
 
       let font_color = !gender ? 'black' : gender == 'W' ? '#840076' : '#00368c'; 
-      if (p.signed_in && (!player.registration(p) || !player.medical(p))) font_color = '#c93214';
+      let medical_icon = !player.medical(p) ? `&nbsp;<div class='medical_icon'></div>` : '';
       let penalty_icon = p.penalties && p.penalties.length ? `&nbsp;<div class='penalty_icon'></div>` : '';
       let font_weight = penalty_icon ? 'bold' : 'normal';
       let style = `style='color: ${font_color}; font-weight: ${font_weight}'`;
@@ -1774,7 +1833,7 @@
       let html = `
          <div puid='${p.puid}' index='${i}' class='player_click signin-row flexrow detail' ${style}>
             <div class='registered_count flexjustifystart'>${i || ''}</div>
-            <div class='registered_player flexjustifystart'>${p.full_name}${penalty_icon}</div>
+            <div class='registered_player flexjustifystart'>${p.full_name}${penalty_icon}${medical_icon}</div>
             ${additional}
             <div class='registered_attr rankrow'>
                <span class='flexcenter rankvalue'>${ranking}</span>
@@ -2342,9 +2401,9 @@
       let content = `
          <div class='event_name'>${match.event.name}</div>
          <div class='event_round'>${match.round_name}</div>
-         <div class='left_team'>${formatTeams(match, 'left')}</div>
+         <div class='left_team'>${formatTeams({match, which: 'left'})}</div>
          <div>&nbsp;-&nbsp;</div>
-         <div class='right_team'>${formatTeams(match, 'right')}</div>
+         <div class='right_team'>${formatTeams({match, which: 'right'})}</div>
       `;
 
       let html = `
@@ -2732,7 +2791,8 @@
       let first_name = team[index].first_name;
       let last_name = team[index].last_name;
       let ioc = team[index].ioc && team[index].ioc.length == 3 ? team[index].ioc.toUpperCase() : 'spacer';
-      let ioc_flag = flags ? `<img onerror="this.style.visibility='hidden'" width="25px" src="./assets/flags/${ioc}.png">` : '';
+      // let ioc_flag = flags ? `<img onerror="this.style.visibility='hidden'" width="25px" src="./assets/flags/${ioc}.png">` : '';
+      let ioc_flag = flags ? `<img onerror="this.style.visibility='hidden'" width="25px" src="${config.env().assets.flags}${ioc}.png">` : '';
 
       // Alternatives:
       // onerror="this.style.display='none'"
@@ -3004,6 +3064,7 @@
 
    function eventRow(e, i, highlight_listitem) {
       let highlight = highlight_listitem != undefined && highlight_listitem == i ? ' highlight_listitem' : '';
+      let warning = e.warning ? ' listitem_warning' : '';
       let created = e.active ? 'blue' : e.draw_created ? 'green' : 'black';
       let created_state = e.active ? 'drawactive' : e.draw_created ? 'drawcreated' : 'notcreated';
       let background = ` style='color: ${created}'`;
@@ -3025,7 +3086,7 @@
       let created_label = created_labels[created_state];
 
       let html = `
-         <div class='event event_row${highlight}' index='${i}'>
+         <div class='event event_row${highlight}${warning}' index='${i}'>
             <div class='event_name'>${e.name}</div>
             <div class='event_draw_type'>${e.draw_type}</div>
             <div class='event_data flexcenter'>${e.draw_size}</div>
@@ -3943,7 +4004,7 @@
       }
       function pickerHTML({ tournament }) {
          let umpires = tournament.umpires || [];
-         let umpire_list = umpires.map(h=>`<li class='hour'>${zeroPad(h)}</li>`).join('');
+         let umpire_list = umpires.map(h=>`<li class='hour'>${util.zeroPad(h)}</li>`).join('');
          let html = `
                <span class="time-picker">
                   <input class="display-time" type="text" readonly="readonly" placeholder='HH:mm'>
@@ -4017,7 +4078,7 @@
          minute = ev.target.innerText;
          setTime();
       }
-      function setTime() { time.value = `${parseInt(hour)}:${zeroPad(minute)}`; }
+      function setTime() { time.value = `${parseInt(hour)}:${util.zeroPad(minute)}`; }
       function returnValue() { 
          if (typeof callback == 'function') callback(time.value);
          document.body.style.overflow  = null;
@@ -4025,11 +4086,11 @@
       }
       function pickerHTML({ hour, minute, hour_range = {}, minute_increment, minutes } = {}) {
          let hour_list = util.range(hour_range.start || 0, (hour_range.end || 23) + 1)
-            .map(h=>`<li class='hour'>${zeroPad(h)}</li>`).join('');
+            .map(h=>`<li class='hour'>${util.zeroPad(h)}</li>`).join('');
          let minute_end = Math.abs(60 / (minute_increment || 1));
          minutes = minutes || util.range(0, minute_end).map((m, i)=>i*(minute_increment || 1));
          let minute_list = minutes
-            .map(m=>`<li class='minute'>${zeroPad(m)}</li>`).join('');
+            .map(m=>`<li class='minute'>${util.zeroPad(m)}</li>`).join('');
          let html = `
                <span class="time-picker">
                   <input class="display-time" type="text" placeholder='HH:mm'>
@@ -4318,6 +4379,12 @@
          endPicker.setEndRange(new Date(end));
          if (endFx && typeof endFx == 'function') endFx(end);
       };
+   }
+
+   function matchPenalties(players, puid, muid) {
+      let penalty_players = players.filter(p=>p.penalties && p.penalties.length);
+      let match_penalties = penalty_players.filter(p=>p.penalties.filter(f=>f.muid == muid).length);
+      return match_penalties.filter(p=>p.puid == puid).length;
    }
 
    if (typeof define === "function" && define.amd) define(gen); else if (typeof module === "object" && module.exports) module.exports = gen;
