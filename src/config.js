@@ -42,7 +42,7 @@ let config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.76.27.29',
+      version: '0.9.78.32.31',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
