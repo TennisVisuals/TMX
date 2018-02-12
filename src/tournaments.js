@@ -202,14 +202,24 @@ let tournaments = function() {
                         var caption = `<p>${lang.tr('actions.delete_tournament')}:</p> <p>${tournament_data.name}</p>`;
                         gen.okCancelMessage(caption, deleteTournament, () => gen.closeModal());
                         function deleteTournament() {
-                           db.db.tournaments.where('tuid').equals(tuid).delete().then(deleteTournamentMatches, util.logError);
+                           db.deleteTournament(tuid).then(() => fx.displayCalendar(), util.logError);
+                           unpublishTournament(tuid);
                            gen.closeModal();
                         }
-                        function deleteTournamentMatches() { db.deleteTournamentMatches(tuid).then(deleteTournamentPoints, util.logError); }
-                        function deleteTournamentPoints() { db.deleteTournamentPoints(tuid).then(() => fx.displayCalendar(), util.logError); }
                      } else if (choice.key == 'merge') {
                         coms.fetchTournament(tuid, mouse, modifyTournament);
                      }
+                  }
+
+                  function unpublishTournament(tuid) {
+                     deleteTournamentEvents = { tuid };
+                     coms.emitTmx({ deleteTournamentEvents })
+                     gen.closeModal();
+                     tournament.events.forEach(evt => {
+                        evt.published = false;
+                        evt.up_to_date = false;
+                     });
+                     coms.emitTmx({ deleteOOP: { tuid }});
                   }
                }
             }
@@ -321,6 +331,7 @@ let tournaments = function() {
 
       let { groups: match_groups, group_draws } = groupMatches(dbmatches);
       let { container, classes, displayTab, display_context, tab_ref } = gen.tournamentContainer(tournament, tabCallback);
+      container.edit.element.style.display = sameOrg(tournament) ? 'inline' : 'none';
 
       // TODO: remove this when finished
       dev.tournament = tournament;
@@ -530,7 +541,14 @@ let tournaments = function() {
          function playerPenalties(p) { return p.penalties.map((pe, ppi)=>Object.assign({}, pe, { ppi, player: { full_name: p.full_name, puid: p.puid, id: p.id }})); }
       });
 
+      container.delegate.element.addEventListener('click', () => {
+         console.log('DELEGAGTE');
+         let delegation_key = UUID.generate();
+         // let message = `https://${location.host}/draws/?tuid=${tournament.tuid}`;
+      });
+
       container.pub_link.element.addEventListener('click', () => {
+         // TODO: publink /draws/ could be /HTS/ ... would have to be a key setting
          let message = `https://${location.host}/draws/?tuid=${tournament.tuid}`;
          let ctext = `
             <canvas id='qr'></canvas>
@@ -570,6 +588,10 @@ let tournaments = function() {
 
       function pushTournament2Cloud() {
          tournament.published = new Date().getTime();
+
+         let ouid = config.env().org && config.env().org.ouid;
+         if (!tournament.ouid) tournament.ouid = ouid;
+
          coms.emitTmx({
             event: 'Push Tournament',
             version: config.env().version,
@@ -586,6 +608,10 @@ let tournaments = function() {
 
       gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
       container.localdownload.element.addEventListener('click', () => {
+
+         let ouid = config.env().org && config.env().org.ouid;
+         if (!tournament.ouid) tournament.ouid = ouid;
+
          exp.downloadCircularJSON(`${tournament.tuid}.circular.json`, tournament);
          tournament.saved_locally = true;
          gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
@@ -994,7 +1020,7 @@ let tournaments = function() {
 
       // if there are any matches, add match players first
       // this must be invoked before tabs created...
-      mergePlayers(matchPlayers(dbmatches));
+      mergePlayers(matchPlayers(dbmatches), false);
 
       tournamentTab();
       drawsTab();
@@ -1354,7 +1380,7 @@ let tournaments = function() {
          let elem = container.schedule_tab.element.querySelector('.' + classes.schedule_details).querySelector('div');
          gen.scheduleDetailsState(elem, tournament.schedule);
 
-         let display_publish_icon = display && tournament.schedule.published;
+         let display_publish_icon = display;
          container.schedule_tab.element.querySelector('.' + classes.publish_schedule).style.display = display_publish_icon ? 'inline' : 'none';
       }
 
@@ -1467,10 +1493,13 @@ let tournaments = function() {
       }
 
       function setEditState() {
+         let ouid = config.env().org && config.env().org.ouid;
+         let same_org = sameOrg(tournament);
+
+         container.authorize.element.style.display = 'none';
          container.edit.element.style.display = state.edit ? 'none' : 'inline';
          container.finish.element.style.display = state.edit ? 'inline' : 'none';
-         container.authorize.element.style.display = 'none';
-         container.cloudfetch.element.style.display = 'none';
+         container.cloudfetch.element.style.display = state.edit && same_org ? 'inline' : 'none';
          container.export_points.element.firstChild.className = 'action_icon';
          container.export_matches.element.firstChild.className = 'action_icon';
          checkAdminActions();
@@ -1499,11 +1528,6 @@ let tournaments = function() {
                if (setting && setting.auth) {
                   if (util.string2boolean(setting.auth.tournaments)) {
                      container.authorize.element.style.display = 'inline';
-                     container.cloudfetch.element.style.display = 'inline';
-                     enableDownloads();
-                  }
-                  if (util.string2boolean(setting.auth.cloudfetch)) {
-                     container.cloudfetch.element.style.display = 'inline';
                      enableDownloads();
                   }
                   if (util.string2boolean(setting.auth.authorize)) container.authorize.element.style.display = 'inline';
@@ -1519,11 +1543,14 @@ let tournaments = function() {
 
       function enableTournamentOptions() {
          let bool = state.edit;
+         let same_org = sameOrg(tournament);
          [ 'start_date', 'end_date', 'organization', 'organizers', 'location', 'judge' ].forEach(field=>container[field].element.disabled = !bool);
          let publications = !tournament.events || !tournament.events.length ? false : tournament.events.reduce((p, c) => c.published || p, false);
+         let delegation = tournament.events && tournament.events.length && tournament.events.reduce((p, c) => p || c.active, false);
+         container.delegate.element.style.display = bool && delegation && same_org ? 'inline' : 'none';
          container.pub_link.element.style.display = bool && publications ? 'inline' : 'none';
-         container.push2cloud.element.style.display = bool ? 'inline' : 'none';
-         container.localdownload.element.style.display = bool ? 'inline' : 'none';
+         container.push2cloud.element.style.display = bool && same_org ? 'inline' : 'none';
+         container.localdownload.element.style.display = bool && same_org ? 'inline' : 'none';
       }
 
       function addRegistered(registered_players) {
@@ -1531,7 +1558,7 @@ let tournaments = function() {
          playersTab();
       }
 
-      function mergePlayers(players) {
+      function mergePlayers(players, save=true) {
          if (!players || !players.length) return;
          if (!tournament.players) tournament.players = [];
 
@@ -1543,7 +1570,7 @@ let tournaments = function() {
 
          // add any new players that don't already exist in tournament
          players.forEach(pushNewPlayer);
-         saveTournament(tournament);
+         if (save) saveTournament(tournament);
       }
 
       function printDraw() {
@@ -4263,24 +4290,6 @@ let tournaments = function() {
 
                   updateScheduleBox(match);
 
-                  /*
-                  let sb = gen.scheduleBox({ match, editable: true});
-                  target.innerHTML = sb.innerHTML;
-                  gen.scaleTeams(target);
-                  target.style.background = sb.background;
-                  target.setAttribute('draggable', match.winner != undefined ? 'false' : 'true');
-                  target.setAttribute('ondragover', "event.preventDefault();");
-                  target.setAttribute('muid', match.muid);
-
-                  if (!target.classList.contains('dragdrop')) {
-                     target.classList.add('dragdrop');
-                     setTimeout(function() {
-                        target.addEventListener('dragstart', dragStart);
-                        target.addEventListener('dragdrop', drop);
-                     }, 500);
-                  }
-                  */
-
                   // now update matches to show new matches resulting from completion
                   filterDayMatches();
 
@@ -4750,7 +4759,7 @@ let tournaments = function() {
             var match_data = { matches: mz, points_table, points_date };
             var points = rank.calcMatchesPoints(match_data);
 
-            saveMatchesAndPoints({ tournament, matches: mz, points });
+            if (sameOrg(tournament)) saveMatchesAndPoints({ tournament, matches: mz, points });
             displayTournamentPoints(container, tournament, points, filters);
 
             function scrubPlayer(p) {
@@ -7761,6 +7770,10 @@ let tournaments = function() {
    fx.createNewTournament = createNewTournament;
    function createNewTournament({ title, tournament_data, callback }) {
       gen.escapeModal();
+
+      let ouid = config.env().org && config.env().org.ouid;
+      if (!tournament_data.ouid) tournament_data.ouid = ouid;
+
       var trny = Object.assign({}, tournament_data);
       var { container } = gen.createNewTournament(title, trny);
 
@@ -8047,6 +8060,11 @@ let tournaments = function() {
             }
          });
       }
+   }
+
+   function sameOrg(tournament) {
+      let ouid = config.env().org && config.env().org.ouid;
+      return !tournament.ouid || tournament.ouid == ouid;
    }
 
    function legacyTournament(tournament, container) {
