@@ -90,9 +90,11 @@ let coms = function() {
          oi.socket.on('tmx directive', tmxDirective);
          oi.socket.on('tmx error', tmxError);
          oi.socket.on('tmx message', tmxMessage);
-         oi.socket.on('tourny record', receiveTournament);
-         oi.socket.on('tmx trny evts', receiveEvents);
-         oi.socket.on('tmx_event', receiveEvent);
+         oi.socket.on('tourny record', record => receiveTournament(record, true));
+         oi.socket.on('tournament record', receiveTournamentRecord);
+         oi.socket.on('tmx tournament events', receiveTournamentEvents);
+         oi.socket.on('tmx_event', e => receiveEvent(e, true));
+         oi.socket.on('noauth_event', e => receiveEvent(e, false));
          oi.socket.on('idioms available', receiveIdiomList);
       }
    } 
@@ -134,22 +136,21 @@ let coms = function() {
       }
    }
 
-   function receiveEvents(euids) { euids.forEach(euid => oi.socket.emit('tmx_event', euid)); }
+   function receiveTournamentEvents(list) { list.forEach(item => oi.socket.emit(item.authorized ? 'tmx_event' : 'noauth_event', item.euid)); }
 
    var receive_modal = false;
-
-   function receiveEvent(e) {
-      let evt = attemptJSONparse(e);
-      let existing = fx.received_events.map(r=>r.event.euid);
-      if (evt && existing.indexOf(evt.event.euid) < 0) fx.received_events.push(evt);
+   function receiveEvent(e, authorized) {
+      let revt = attemptJSONparse(e);
+      let existing = fx.received_events.map(r=>r.revt.event.euid);
+      if (revt && existing.indexOf(revt.event.euid) < 0) fx.received_events.push({ revt, authorized });
       if (!receive_modal && fx.received_events.length) mergeReceivedEvent();
    }
 
    function mergeReceivedEvent() {
       receive_modal = true;
 
-      let revt = fx.received_events.pop();
-      db.findTournament(revt.tournament.tuid).then(found, util.logError);
+      let { revt, authorized } = fx.received_events.pop();
+      db.findTournament(revt.tournament.tuid).then(trny => found(trny, authorized), util.logError);
 
       var draw_types = {
          'E': lang.tr('draws.elimination'),
@@ -158,12 +159,13 @@ let coms = function() {
          'C': lang.tr('draws.consolation'),
       };
 
-      function found(trny) {
+      function found(trny, authorized) {
          gen.escapeModal(() => receive_modal = false);
 
          let euids = trny.events.map(e=>e.euid);
          let exists = euids.indexOf(revt.event.euid) >= 0;
 
+         let auth_message = authorized ? `<span style='color: green'>${lang.tr('tournaments.auth')}</span>` : lang.tr('tournaments.noauth');
          let message = `
             <h2>Received Event</h2>
             ${revt.event.name} ${draw_types[revt.event.draw_type]}
@@ -171,6 +173,7 @@ let coms = function() {
                <b>${lang.tr('tournaments.publishtime')}:</b>
                <br>${isNaN(revt.event.published) ? '' : new Date(revt.event.published).toGMTString()}
             </p>
+            ${auth_message}
          `;
 
          let action = exists ? lang.tr('replace') : lang.tr('add');
@@ -199,12 +202,17 @@ let coms = function() {
       }
    }
 
-   function receiveTournament(record) {
+   // TODO eventually this will replace receiveTournament, once all clients expect record to contain authorization attribute
+   function receiveTournamentRecord(data) { receiveTournament(data.record, data.authorized); }
+
+   function receiveTournament(record, authorized) {
       let published_tournament = CircularJSON.parse(record);
+      let auth_message = authorized ? `<span style='color: green'>${lang.tr('tournaments.auth')}</span>` : lang.tr('tournaments.noauth');
       let message = `
          <h2>${lang.tr('tournaments.received')}</h2>
          ${published_tournament.name}
          <p><b>${lang.tr('tournaments.publishtime')}:</b><br>${new Date(published_tournament.published).toGMTString()}</p>
+         ${auth_message}
          <p><b>${lang.tr('tournaments.replacelocal')}</b></p>
       `;
       let cancelAction = () => gen.closeModal();
@@ -303,6 +311,7 @@ let coms = function() {
 
    fx.requestTournamentEvents = (tuid) => {
       if (connected) {
+         console.log('requestiong trny evts');
          oi.socket.emit('tmx trny evts', { tuid, authorized: true });
       } else {
          let message = `Offline: must be connected to internet`;
@@ -312,7 +321,11 @@ let coms = function() {
 
    fx.requestTournament = (tuid) => {
       if (connected) {
-         oi.socket.emit('tmx tourny', { tuid, authorized: true });
+         db.findSetting('userUUID').then(sendRequest);
+         function sendRequest(uuuid) {
+            let data = { tuid, timestamp: new Date().getTime(), uuuid: uuuid ? uuuid.value : undefined };
+            oi.socket.emit('tmx tourny', data);
+         }
       } else {
          let message = `Offline: must be connected to internet`;
          let container = gen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
@@ -417,6 +430,9 @@ let coms = function() {
       });
 
       function completeFetch(fetched) {
+         let ouid = config.env().org && config.env().org.ouid;
+         if (!fetched.ouid) fetched.ouid = ouid;
+
          if (merge_with_tuid) {
             console.log('merge tournament with tuid:', merge_with_tuid);
             db.findTournament(merge_with_tuid).then(existing => mergeTournaments(existing, fetched), util.logError);
@@ -577,9 +593,11 @@ let coms = function() {
          }
 
          function normalizeTournaments(trnys) {
+            let ouid = config.env().org && config.env().org.ouid;
             trnys.forEach(t => {
                t.start = new Date(t.start).getTime();
                t.end = new Date(t.end).getTime();
+               if (!t.ouid) t.ouid = ouid;
 
                // TODO: This needs to be a configured SID (Site ID?) and not config.env().org (HTS)
                t.tuid = `${config.env().org.abbr}${t.tuid}`;
