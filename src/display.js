@@ -792,7 +792,7 @@
          var ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
          var flag =  !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="${flag_root}${player_ioc}.png">`;
          var penalty = !tournament ? undefined : matchPenalties(tournament.players, p.puid, match.muid);
-         var penalty_icon = penalty ? `&nbsp;<div class='penalty_icon'></div>` : '';
+         var penalty_icon = !penalty ? '' : `<img height="10px" src="./icons/penalty.png">`;
          var assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
          var left = side == 'right' ? `${assoc} ` : `${penalty_icon}`;
          var right = side == 'left' ? ` ${assoc}` : `${penalty_icon}`;
@@ -839,8 +839,8 @@
       var left_team = lp ? lp.map(p=>playerBlock(p, 'left')).join('') : unknownBlock(0, 'left');
       var right_team = rp ? rp.map(p=>playerBlock(p, 'right')).join('') : unknownBlock(1, 'right');
 
-      var left_html = `<div class='team team_width left_team${left_outcome}${pleft}'>${left_team}</div>`;
-      var right_html = `<div class='team team_width right_team${right_outcome}${pright}'>${right_team}</div>`;
+      var left_html = `<div class='left_team${left_outcome}${pleft}'>${left_team}</div>`;
+      var right_html = `<div class='right_team${right_outcome}${pright}'>${right_team}</div>`;
       var html = `
          <div class='team left_team${complete ? " winner" : ""}'>${left_team}</div>
          <div>&nbsp;-&nbsp;</div>
@@ -2021,6 +2021,7 @@
          push2cloud: gen.uuid(),
          push2cloud_state: gen.uuid(),
          pub_link: gen.uuid(),
+         delegate: gen.uuid(),
          localdownload: gen.uuid(),
          localdownload_state: gen.uuid(),
          export_points: gen.uuid(),
@@ -2333,8 +2334,6 @@
       let tabs = jsTabs.generate(tabdata);
       let tab_refs = Object.assign({}, ...tabdata.map((t, i)=>({[t.ref]: i})));
 
-      let editable = !tournament.association || !config.env().org.abbr ? true : tournament.association == config.env().org.abbr;
-
       let authorize_button = `
          <div id='${ids.authorize}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.key")}' style='display: none'>
             <img src='./icons/keys.png' class='club_link'>
@@ -2350,20 +2349,25 @@
             <img src='./icons/link.png' class='club_link'>
           </div>
       `;
-      let edit_button = !editable ? '' :
-         `<div id='${ids.edit}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.edit")}'>
-         <img src='./icons/edit.png' class='club_link'>
+      let delegate_button = `
+         <div id='${ids.delegate}' class='${gen.info}' label='${lang.tr("phrases.delegate")}' style='margin-left: .2em; display: none;'>
+            <img src='./icons/mobile.png' style='height: 1.5em;'>
+          </div>
+      `;
+      let edit_button = `
+         <div id='${ids.edit}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.edit")}' style='display: none'>
+            <img src='./icons/edit.png' class='club_link'>
          </div>
          `;
-      let finish_button = !editable ? '' :
-         `<div id='${ids.finish}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.done")}' style='display: none'>
+      let finish_button = `
+         <div id='${ids.finish}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.done")}' style='display: none'>
             <img src='./icons/finished.png' class='club_link'>
          </div>`;
       let html = `
          <div id='${ids.container}' class='tournament_container'>
             <div class='tournament_info'> 
                <div id='${ids.name}'><h2>${tournament.name}</h2></div>
-               <div class='flexrow'>${authorize_button}${cloudfetch_button}${pubLink_button}</div>
+               <div class='flexrow'>${authorize_button}${cloudfetch_button}${pubLink_button}${delegate_button}</div>
                ${edit_button}${finish_button}
             </div>
             ${tabs}
