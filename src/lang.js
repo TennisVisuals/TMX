@@ -286,6 +286,7 @@
       },
 
       phrases: {
+         delegate: 'Delegate to Mobile',
          ranklists: 'Rank Lists for',
          reset: 'Database will be reset',
          action: 'Players requiring some action...',
