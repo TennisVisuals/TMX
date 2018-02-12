@@ -95,6 +95,13 @@ let db = function() {
       if (euid && point.euid && euid == point.euid) return delete ref.value;
    }).then(resolve, reject));
 
+   db.deleteTournament = (tuid) => {
+      return new Promise((resolve, reject) => {
+         db.db.tournaments.where('tuid').equals(tuid).delete().then(deleteTournamentMatches, reject);
+         function deleteTournamentMatches() { db.deleteTournamentMatches(tuid).then(deleteTournamentPoints, reject); }
+         function deleteTournamentPoints() { db.deleteTournamentPoints(tuid).then(resolve, reject); }
+      });
+   }
    // Sometimes necessary to delete only specific gender (when loading gendered spreadsheet)
    db.deleteTournamentMatches = (tuid, gender, format) => new Promise ((resolve, reject) => db.db.matches.where('tournament.tuid').equals(tuid).modify((match, ref) => {
       if (!gender && !format) return delete ref.value;
