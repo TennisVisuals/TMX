@@ -370,7 +370,7 @@
 
       function formatMessage(msg) {
          let msguid = UUID.generate();
-         let color = msg.warning ? '#EF8C7E' : msg.authorized ? '#D1FBA7' : '#FEF8A7';
+         let color = msg.warning ? '#EF8C7E' : msg.authorized || msg.success ? '#D1FBA7' : '#FEF8A7';
          let pointer = msg.inDB ? 'cursor: pointer;' : '';
          let html = `
             <div id='${msguid}' style='margin: 1em; padding: 1px; background-color: ${color}; ${pointer}'>
@@ -1210,8 +1210,9 @@
 
    gen.drawSettings = () => {
       let ids = {
-         compressed_draw_formats: gen.uuid(),
          auto_byes: gen.uuid(),
+         compressed_draw_formats: gen.uuid(),
+         fixed_bye_order: gen.uuid(),
          display_flags: gen.uuid(),
          court_detail: gen.uuid(),
          after_matches: gen.uuid(),
@@ -1229,6 +1230,10 @@
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.automatedbyes')}:</label>
                     <input type='checkbox' id="${ids.auto_byes}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.fixedbyes')}:</label>
+                    <input type='checkbox' id="${ids.fixed_bye_order}">
                 </div>
              </div>
              <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
@@ -1418,7 +1423,7 @@
                      </div>
                      <div class='flexrow tournamentattrddlb'>
                         <div id='${ids.category}' class='flexjustifystart categoryddlb'> </div>
-                        <div id='${ids.rank}' class='flexjustifystart rankddlb'> </div>
+                        <div id='${ids.rank}' class='flexjustifystart rankddlb' style='margin-left: 1em;'> </div>
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.association}' value='${tournament.association || ''}' placeholder="${lang.tr('tournaments.natlassoc')}">
@@ -1434,7 +1439,7 @@
                      </div>
                      <div class='flexrow tournamentattrddlb'>
                         <div id='${ids.inout}' class='flexjustifystart categoryddlb'> </div>
-                        <div id='${ids.surface}' class='flexjustifystart categoryddlb'> </div>
+                        <div id='${ids.surface}' class='flexjustifystart categoryddlb' style='margin-left: 1em;'> </div>
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.judge}' value='${tournament.judge || ''}'>
@@ -1969,8 +1974,17 @@
 
       return { ids, html, container };
    }
+
+   gen.delegated = (container, bool) => {
+      if (bool) {
+         container.delegate.element.style.display = 'inline';
+         container.edit.element.style.display = 'none';
+      }
+      let icon = `mobile${bool ? '_active' : ''}`;
+      container.delegate.element.innerHTML = `<img src='./icons/${icon}.png' style='height: 1.5em;'>`;
+   }
    
-   gen.tournamentContainer = (tournament, tabCallback) => {
+   gen.tournamentContainer = ({ tournament, tabCallback }) => {
       let ids = {
          name: gen.uuid(),
          edit: gen.uuid(),
@@ -2349,8 +2363,9 @@
             <img src='./icons/link.png' class='club_link'>
           </div>
       `;
+      let delegation = config.env().delegation ? '' : 'visibility: hidden';
       let delegate_button = `
-         <div id='${ids.delegate}' class='${gen.info}' label='${lang.tr("phrases.delegate")}' style='margin-left: .2em; display: none;'>
+         <div id='${ids.delegate}' style='margin-left: .2em; display: none; ${delegation}'>
             <img src='./icons/mobile.png' style='height: 1.5em;'>
           </div>
       `;
@@ -2795,7 +2810,6 @@
       let first_name = team[index].first_name;
       let last_name = team[index].last_name;
       let ioc = team[index].ioc && team[index].ioc.length == 3 ? team[index].ioc.toUpperCase() : 'spacer';
-      // let ioc_flag = flags ? `<img onerror="this.style.visibility='hidden'" width="25px" src="./assets/flags/${ioc}.png">` : '';
       let ioc_flag = flags ? `<img onerror="this.style.visibility='hidden'" width="25px" src="${config.env().assets.flags}${ioc}.png">` : '';
 
       // Alternatives:
@@ -4268,10 +4282,10 @@
    }
 
    gen.escapeModal = escapeModal;
-   function escapeModal(callback) {
+   function escapeModal(callback, which) {
       setTimeout(function() {
          gen.escapeFx = () => {
-            gen.closeModal();
+            gen.closeModal(which);
             gen.escapeFx = undefined;
             if (typeof callback == 'function') callback();
          }

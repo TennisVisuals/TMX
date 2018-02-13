@@ -42,7 +42,7 @@ let config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.78.32.31',
+      version: '0.9.81.45.32',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -75,6 +75,7 @@ let config = function() {
       drawFx: {
          auto_byes: true,
          auto_qualifiers: false,
+         fixed_bye_order: false,
          compressed_draw_formats: true,
          consolation_seeding: false,
          seed_limits: [ [0, 0], [4, 2], [11, 4], [21, 8], [41, 16], [97, 32] ],
@@ -111,6 +112,7 @@ let config = function() {
          require_confirmation: true,
          publish_on_score_entry: true,
       },
+      delegation: false,
       messages: [],
       storage: undefined,
       notifications: undefined,
@@ -127,7 +129,7 @@ let config = function() {
       let message_hash = msgHash(msg);
       let exists = env.messages.reduce((p, c) => msgHash(c) ==  message_hash ? true : p, false);
       if (!exists) env.messages.push(msg);
-      gen.homeIconState('messages');
+      gen.homeIconState(msg.state || 'messages');
    }
 
    fx.authMessage = (msg) => {
@@ -354,13 +356,21 @@ let config = function() {
          if (container.cancel.element) container.cancel.element.addEventListener('click', revertSettings);
 
          if (v.draws) {
-            container.compressed_draw_formats.element.addEventListener('click', compressedDrawFormats);
-            container.compressed_draw_formats.element.checked = util.string2boolean(env.drawFx.compressed_draw_formats);
-            function compressedDrawFormats(evt) { env.drawFx.compressed_draw_formats = container.compressed_draw_formats.element.checked; }
+            container.fixed_bye_order.element.addEventListener('click', fixedByeOrder);
+            container.fixed_bye_order.element.checked = util.string2boolean(env.drawFx.fixed_bye_order);
+            function fixedByeOrder(evt) { env.drawFx.fixed_bye_order = container.fixed_bye_order.element.checked; }
 
             container.auto_byes.element.addEventListener('click', automatedByes);
             container.auto_byes.element.checked = util.string2boolean(env.drawFx.auto_byes);
-            function automatedByes(evt) { env.drawFx.auto_byes = container.auto_byes.element.checked; }
+            function automatedByes(evt) {
+               env.drawFx.auto_byes = container.auto_byes.element.checked;
+               container.fixed_bye_order.element.disabled = !env.drawFx.auto_byes;
+            }
+            container.fixed_bye_order.element.disabled = !env.drawFx.auto_byes;
+
+            container.compressed_draw_formats.element.addEventListener('click', compressedDrawFormats);
+            container.compressed_draw_formats.element.checked = util.string2boolean(env.drawFx.compressed_draw_formats);
+            function compressedDrawFormats(evt) { env.drawFx.compressed_draw_formats = container.compressed_draw_formats.element.checked; }
 
             container.display_flags.element.addEventListener('click', displayFlags);
             container.display_flags.element.checked = util.string2boolean(env.draws.tree_draw.flags.display);
@@ -882,7 +892,8 @@ let config = function() {
             if (env.storage != true ) {
                fx.addMessage({
                   title: 'warn',
-                  notice: 'Data Persistence Not Guaranteed; save locally or publish to server before closing your browser. Or try Firefox Quantum.', warning: true
+                  notice: 'Data Persistence Not Guaranteed; save locally or publish to server before closing your browser.',
+                  warning: true
                });
             }
          }, notSupported);
