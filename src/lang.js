@@ -154,6 +154,7 @@
       indoors: 'Indoors',
       outdoors:'Outdoors',
       existing: 'Existing',
+      success: 'Success',
 
       set: 'Settings',
       version: 'Version',
@@ -182,6 +183,7 @@
          publishonscore: 'Publish when score entered',
          matchesbefore: 'Matches Before Count',
          automatedbyes: 'Automatic Bye Placement',
+         fixedbyes: 'Fixed Bye Order',
          courtdetail: 'Court Details',
          firstday: 'Week Starts Monday',
       },
@@ -286,7 +288,11 @@
       },
 
       phrases: {
-         delegate: 'Delegate to Mobile',
+         delegate: 'Delegate',
+         delegate2mobile: 'Delegate to Mobile',
+         revokedelegation: 'Revoke Delegation',
+         delegationrevoked: 'Delegation has been revoked',
+         scanQRcode: 'Scan QR Code with Mobile',
          ranklists: 'Rank Lists for',
          reset: 'Database will be reset',
          action: 'Players requiring some action...',
@@ -297,6 +303,8 @@
          badfile: 'File Not Recognized',
          invalid: 'Invalid file type',
          fileerror: 'Error reading file',
+         servererror: 'Error Message from Server',
+         notfound: 'Not Found',
          pointcalc: 'Point calculation requires tournament category and rank',
          drawcreated: 'Draw Created',
          drawactive: 'Active Draw',
