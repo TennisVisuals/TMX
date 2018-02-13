@@ -90,7 +90,8 @@ let coms = function() {
          oi.socket.on('tmx directive', tmxDirective);
          oi.socket.on('tmx error', tmxError);
          oi.socket.on('tmx message', tmxMessage);
-         oi.socket.on('tourny record', record => receiveTournament(record, true));
+         oi.socket.on('tmx delegation', tmxDelegation);
+         oi.socket.on('tourny record', record => receiveTournament({ record, authorized: true }));
          oi.socket.on('tournament record', receiveTournamentRecord);
          oi.socket.on('tmx tournament events', receiveTournamentEvents);
          oi.socket.on('tmx_event', e => receiveEvent(e, true));
@@ -100,10 +101,16 @@ let coms = function() {
    } 
 
    function tmxError(err) {
+      let error = err.phrase ? lang.tr(`phrases.${err.phrase}`) : err.error;
       if (err.error) {
-         let message = `Error Message from Server<p>${err.error}`;
+         let message = `${lang.tr('phrases.servererror')}<p>${error}`;
          let container = gen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
       }
+   }
+
+   function tmxDelegation(msg) {
+      if (msg && msg.keyset != undefined && coms.delegated && typeof coms.delegated == 'function') coms.delegated(msg);
+      if (msg && msg.revoked != undefined && coms.revoked && typeof coms.revoked == 'function') coms.revoked(msg);
    }
 
    function tmxMessage(msg) {
@@ -203,9 +210,10 @@ let coms = function() {
    }
 
    // TODO eventually this will replace receiveTournament, once all clients expect record to contain authorization attribute
-   function receiveTournamentRecord(data) { receiveTournament(data.record, data.authorized); }
+   fx.receiveTournamentRecord = receiveTournamentRecord;
+   function receiveTournamentRecord(data) { receiveTournament(data); }
 
-   function receiveTournament(record, authorized) {
+   function receiveTournament({ record, authorized }) {
       let published_tournament = CircularJSON.parse(record);
       let auth_message = authorized ? `<span style='color: green'>${lang.tr('tournaments.auth')}</span>` : lang.tr('tournaments.noauth');
       let message = `

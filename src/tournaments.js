@@ -1,8 +1,3 @@
-// TODO:
-// 7. state/displayManager function to handle all end-of-routine display updates
-//    -> aggregate state changes into one place where it's easier to track/debug
-//    -> insure that points are regenerated after match events, even if display doesn't need to be
-
 let tournaments = function() {
 
    let fx = {};
@@ -14,10 +9,7 @@ let tournaments = function() {
             max_bracket_size: 5,
          },
       },
-      sign_in: {
-         rapid: true,
-      },
-      save: true,
+      sign_in: { rapid: true, },
       byes_with_unseeded: true,
    }
 
@@ -202,8 +194,8 @@ let tournaments = function() {
                         var caption = `<p>${lang.tr('actions.delete_tournament')}:</p> <p>${tournament_data.name}</p>`;
                         gen.okCancelMessage(caption, deleteTournament, () => gen.closeModal());
                         function deleteTournament() {
-                           db.deleteTournament(tuid).then(() => fx.displayCalendar(), util.logError);
                            unpublishTournament(tuid);
+                           db.deleteTournament(tuid).then(() => fx.displayCalendar(), util.logError);
                            gen.closeModal();
                         }
                      } else if (choice.key == 'merge') {
@@ -212,8 +204,8 @@ let tournaments = function() {
                   }
 
                   function unpublishTournament(tuid) {
-                     deleteTournamentEvents = { tuid };
-                     coms.emitTmx({ deleteTournamentEvents })
+                     deleteEventsRequest = { tuid };
+                     coms.emitTmx({ deleteEventsRequest })
                      gen.closeModal();
                      tournament.events.forEach(evt => {
                         evt.published = false;
@@ -330,17 +322,20 @@ let tournaments = function() {
       tournamentGenders(tournament, dbmatches);
 
       let { groups: match_groups, group_draws } = groupMatches(dbmatches);
-      let { container, classes, displayTab, display_context, tab_ref } = gen.tournamentContainer(tournament, tabCallback);
-      container.edit.element.style.display = sameOrg(tournament) ? 'inline' : 'none';
+      let { container, classes, displayTab, display_context, tab_ref } = gen.tournamentContainer({ tournament, tabCallback });
 
       // TODO: remove this when finished
       dev.tournament = tournament;
       dev.container = container;
       dev.dbmatches = dbmatches;
 
+      // TODO: if tournament has been delegated to mobile don't allow editing...
+      container.edit.element.style.display = sameOrg(tournament) && !tournament.delegated ? 'inline' : 'none';
+      if (tournament.delegated && sameOrg(tournament)) gen.delegated(container, true);
+
       // create and initialize draw objects
       let rr_draw = rrDraw();
-      let tree_draw = treeDraw();
+      let tree_draw = treeDraw().dfxOptions(config.env().drawFx);
 
       draws_context[display_context] = { roundrobin: rr_draw, tree: tree_draw };
 
@@ -542,14 +537,82 @@ let tournaments = function() {
       });
 
       container.delegate.element.addEventListener('click', () => {
-         console.log('DELEGAGTE');
-         let delegation_key = UUID.generate();
-         // let message = `https://${location.host}/draws/?tuid=${tournament.tuid}`;
+         if (!window.navigator.onLine && location.hostname != 'localhost') {
+            return gen.okCancelMessage(lang.tr('phrases.noconnection'), ()=>gen.closeModal('processing'));
+         }
+         gen.escapeModal(undefined, 'processing');
+         if (tournament.delegated) {
+            gen.okCancelMessage(lang.tr('phrases.revokedelegation'), revoke, () => gen.closeModal('processing'));
+         } else {
+            gen.okCancelMessage(lang.tr('phrases.delegate2mobile'), delegate, () => gen.closeModal('processing'));
+         }
+
+         function revoke() {
+            coms.revoked = (result) => {
+               if (!result.revoked) {
+                  gen.okCancelMessage(lang.tr('tournaments.noauth'), () => gen.closeModal('processing'));
+               } else {
+                  coms.receiveTournamentRecord(result);
+               }
+               coms.revoked = undefined;
+            }
+            let revokeDelegation = { 
+               key_uuid: tournament.delegated,
+               "tuid": tournament.tuid
+            }
+            coms.emitTmx({ revokeDelegation });
+            tournament.delegated = false;
+            activateEdit();
+            gen.closeModal('processing');
+            finish();
+         }
+
+         function finish() {
+            gen.delegated(container, tournament.delegated);
+            saveTournament(tournament);
+         }
+
+         function delegate() {
+            let key_uuid = UUID.generate();
+
+            // set function in coms as 'callback'
+            coms.delegated = (result) => {
+               if (!result.keyset) {
+                  let msg = gen.okCancelMessage(lang.tr('tournaments.noauth'), () => gen.closeModal('processing'));
+               } else {
+                  tournament.delegated = key_uuid;
+                  deactivateEdit();
+
+                  // let message = `${location.origin}/Live/?actionKey=${key_uuid}`;
+                  let message = `${location.origin}/devel/ranking/?actionKey=${key_uuid}`;
+                  console.log(message);
+                  finish();
+
+                  gen.escapeFx = undefined;
+                  let ctext = `<canvas id='qr'></canvas><p id='msg'>${lang.tr('phrases.scanQRcode')}</p>`;
+                  let msg = gen.okCancelMessage(ctext, () => gen.closeModal('processing'));
+                  genQUR(message);
+               }
+               coms.delegated = undefined;
+            };
+
+            tournament.published = new Date().getTime();
+            let delegationKey = {
+               key_uuid,
+               "tournament": CircularJSON.stringify(tournament),
+               "content": {
+                  "onetime": true,
+                  "directive": "delegate",
+                  "content": { "tuid": tournament.tuid }
+               }
+            }
+            coms.emitTmx({ delegationKey });
+         }
       });
 
       container.pub_link.element.addEventListener('click', () => {
          // TODO: publink /draws/ could be /HTS/ ... would have to be a key setting
-         let message = `https://${location.host}/draws/?tuid=${tournament.tuid}`;
+         let message = `${location.origin}/draws/?tuid=${tournament.tuid}`;
          let ctext = `
             <canvas id='qr'></canvas>
             <div class='flexcenter flexrow' style='width: 100%; margin-top: .5em; margin-bottom: .5em;'>
@@ -581,42 +644,43 @@ let tournaments = function() {
          var qr = new QRious({
             element: document.getElementById('qr'),
             level: 'H',
-            size: 200,
+            size: 250,
             value: message
          });
       }
 
       function pushTournament2Cloud() {
-         tournament.published = new Date().getTime();
-
          let ouid = config.env().org && config.env().org.ouid;
          if (!tournament.ouid) tournament.ouid = ouid;
 
+         tournament.published = new Date().getTime();
          coms.emitTmx({
             event: 'Push Tournament',
             version: config.env().version,
             tuid: tournament.tuid,
             tournament: CircularJSON.stringify(tournament)
          });
+
          gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
-         // can't call saveTournament() here because saveTournament sets publish state
-         if (o.save) db.addTournament(tournament);
+         saveTournament(tournament, false);
       }
 
       gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
-      container.push2cloud.element.addEventListener('click', () => { if (!tournament.published) pushTournament2Cloud(); });
-
       gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
-      container.localdownload.element.addEventListener('click', () => {
 
+      container.push2cloud.element.addEventListener('click', () => { if (!tournament.published) pushTournament2Cloud(); });
+      container.localdownload.element.addEventListener('click', () => {
          let ouid = config.env().org && config.env().org.ouid;
          if (!tournament.ouid) tournament.ouid = ouid;
 
          exp.downloadCircularJSON(`${tournament.tuid}.circular.json`, tournament);
          tournament.saved_locally = true;
+
          gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
+         saveTournament(tournament, false);
+
          // can't call saveTournament() here because saveTournament sets save state
-         if (o.save) db.addTournament(tournament);
+         // db.addTournament(tournament);
       });
 
       container.export_points.element.addEventListener('click', () => {
@@ -1384,78 +1448,84 @@ let tournaments = function() {
          container.schedule_tab.element.querySelector('.' + classes.publish_schedule).style.display = display_publish_icon ? 'inline' : 'none';
       }
 
+      function activateEdit() {
+         state.edit = true;
+
+         // for editing insure tournament is not in modal
+         util.moveNode('content', container.container.id);
+         gen.content = 'tournament';
+         gen.closeModal();
+
+         if (display_context != 'content') {
+            delete draws_context[display_context];
+            display_context = 'content';
+            draws_context[display_context] = { roundrobin: rr_draw, tree: tree_draw };
+         }
+
+         setEditState();
+
+         if (current_tab == 'schedule') scheduleTab();
+         if (current_tab == 'players') {
+            displayedPlayers();
+            enableAddPlayer();
+         }
+
+         if (document.body.scrollIntoView) document.body.scrollIntoView();
+
+         // TODO: insure that config.env().org.abbr is appropriately set when externalRequest URLs are configured
+         let tournament_date = tournament && (tournament.points_date || tournament.end);
+         let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+         let categories = config.orgCategories({calc_date});
+         if (tournament.sid == config.env().org.abbr) coms.fetchRankLists(categories).then(()=>{}, ()=>{});
+      }
+
+      function deactivateEdit() {
+         state.edit = false;
+         document.querySelector('.ranking_order').style.opacity = 0;
+         saveTournament(tournament);
+         setEditState();
+      }
+
+      function revokeAuthorization() {
+         gen.escapeModal();
+         gen.okCancelMessage(lang.tr('phrases.revokeauth'), revokeAuthorization, () => gen.closeModal());
+         function revokeAuthorization() {
+            let revokeAuthorization = { tuid: tournament.tuid };
+            coms.emitTmx({ revokeAuthorization });
+            gen.closeModal();
+         }
+      }
+
+      function authorizeUser() {
+         let key_uuid = UUID.generate();
+         tournament.published = new Date().getTime();
+         let pushKey = {
+            key_uuid,
+            "tournament": CircularJSON.stringify(tournament),
+            "content": {
+               "onetime": true,
+               "directive": "authorize",
+               "content": { "tuid": tournament.tuid }
+            }
+         }
+         let ctext = lang.tr('phrases.keycopied');
+
+         // TODO: server won't accept pushKey unless user uuuid in superuser cache on server
+         coms.emitTmx({ pushKey });
+         gen.escapeModal();
+         let msg = gen.okCancelMessage(ctext, () => gen.closeModal());
+         copyClick(key_uuid);
+      }
+
       function editAction() {
          if (!container.edit.element || !container.finish.element) return;
          
-         container.edit.element.addEventListener('click', () => {
-            if (!state.edit) {
-               state.edit = true;
-
-               // for editing insure tournament is not in modal
-               util.moveNode('content', container.container.id);
-               gen.content = 'tournament';
-               gen.closeModal();
-
-               if (display_context != 'content') {
-                  delete draws_context[display_context];
-                  display_context = 'content';
-                  draws_context[display_context] = { roundrobin: rr_draw, tree: tree_draw };
-               }
-
-               setEditState();
-
-               if (current_tab == 'schedule') scheduleTab();
-               if (current_tab == 'players') {
-                  displayedPlayers();
-                  enableAddPlayer();
-               }
-
-               if (document.body.scrollIntoView) document.body.scrollIntoView();
-
-               // TODO: insure that config.env().org.abbr is appropriately set when externalRequest URLs are configured
-               let tournament_date = tournament && (tournament.points_date || tournament.end);
-               let calc_date = tournament_date ? new Date(tournament_date) : new Date();
-               let categories = config.orgCategories({calc_date});
-               if (tournament.sid == config.env().org.abbr) coms.fetchRankLists(categories).then(()=>{}, ()=>{});
-
-            }
-         });
-         container.finish.element.addEventListener('click', () => {
-            state.edit = false;
-            document.querySelector('.ranking_order').style.opacity = 0;
-            saveTournament(tournament);
-            setEditState();
-         });
+         container.edit.element.addEventListener('click', () => { if (!state.edit) activateEdit(); });
+         container.finish.element.addEventListener('click', () => { deactivateEdit(); });
          container.cloudfetch.element.addEventListener('contextmenu', () => { coms.requestTournamentEvents(tournament.tuid); });
          container.cloudfetch.element.addEventListener('click', () => { coms.requestTournament(tournament.tuid); });
-         container.authorize.element.addEventListener('contextmenu', () => {
-            gen.escapeModal();
-            gen.okCancelMessage(lang.tr('phrases.revokeauth'), revokeAuthorization, () => gen.closeModal());
-            function revokeAuthorization() {
-               let revokeAuthorization = { tuid: tournament.tuid };
-               coms.emitTmx({ revokeAuthorization });
-               gen.closeModal();
-            }
-         });
-         container.authorize.element.addEventListener('click', () => {
-            let key_uuid = UUID.generate();
-            let pushKey = {
-               key_uuid,
-               "tournament": CircularJSON.stringify(tournament),
-               "content": {
-                  "onetime": true,
-                  "directive": "authorize",
-                  "content": { "tuid": tournament.tuid }
-               }
-            }
-            let ctext = lang.tr('phrases.keycopied');
-
-            // TODO: server won't accept pushKey unless user uuuid in superuser cache on server
-            coms.emitTmx({ pushKey });
-            gen.escapeModal();
-            let msg = gen.okCancelMessage(ctext, () => gen.closeModal());
-            copyClick(key_uuid);
-         });
+         container.authorize.element.addEventListener('contextmenu', revokeAuthorization);
+         container.authorize.element.addEventListener('click', authorizeUser);
       }
 
       function copyClick(message) {
@@ -1546,8 +1616,8 @@ let tournaments = function() {
          let same_org = sameOrg(tournament);
          [ 'start_date', 'end_date', 'organization', 'organizers', 'location', 'judge' ].forEach(field=>container[field].element.disabled = !bool);
          let publications = !tournament.events || !tournament.events.length ? false : tournament.events.reduce((p, c) => c.published || p, false);
-         let delegation = tournament.events && tournament.events.length && tournament.events.reduce((p, c) => p || c.active, false);
-         container.delegate.element.style.display = bool && delegation && same_org ? 'inline' : 'none';
+         let delegation = tournament.events && tournament.events.length && tournament.events.reduce((p, c) => p || c.draw_created, false);
+         container.delegate.element.style.display = (bool || tournament.delegated) && delegation && same_org ? 'inline' : 'none';
          container.pub_link.element.style.display = bool && publications ? 'inline' : 'none';
          container.push2cloud.element.style.display = bool && same_org ? 'inline' : 'none';
          container.localdownload.element.style.display = bool && same_org ? 'inline' : 'none';
@@ -1917,6 +1987,7 @@ let tournaments = function() {
          util.addEventToClass('event', eventDetails, container.events.element);
          util.addEventToClass('published_header', unpublishAllEvents, document, 'contextmenu');
          if (regen_drawstab) drawsTab();
+         enableTournamentOptions();
       }
 
       function unpublishAllEvents() {
@@ -1925,8 +1996,8 @@ let tournaments = function() {
          gen.escapeModal();
 
          function unPublishAll() {
-            deleteTournamentEvents = { tuid: tournament.tuid };
-            coms.emitTmx({ deleteTournamentEvents })
+            deleteEventsRequest = { tuid: tournament.tuid };
+            coms.emitTmx({ deleteEventsRequest })
             gen.closeModal();
             tournament.events.forEach(evt => {
                evt.published = false;
@@ -2005,7 +2076,6 @@ let tournaments = function() {
          e = e || findEventByID(displayed_event);
          if (e.euid != displayed_event) return;
          if (!e) return;
-         // if (e.draw_created) background = '#EFFBF2';
          if (drawIsCreated(e)) background = '#EFFBF2';
          if (e.active) background = '#EFF5FB';
          if (tournament.events.map(v=>v.euid).indexOf(e.euid) < 0) background = 'lightyellow';
@@ -3204,11 +3274,11 @@ let tournaments = function() {
             if (e.automated) {
                if (e.draw.max_round && e.draw.max_round == 1) {
                   // if pre-round, distribute byes FIRST, because all ranked players are seeded
-                  dfx.distributeByes({ draw: e.draw, bye_order: false });
+                  dfx.distributeByes({ draw: e.draw });
                   dfx.placeSeedGroups({ draw: e.draw });
                } else {
                   dfx.placeSeedGroups({ draw: e.draw });
-                  dfx.distributeByes({ draw: e.draw, bye_order: false });
+                  dfx.distributeByes({ draw: e.draw });
                }
                dfx.placeUnseededTeams({ draw: e.draw });
                dfx.advanceTeamsWithByes({ draw: e.draw });
@@ -4742,8 +4812,6 @@ let tournaments = function() {
       function tournamentPoints(tournament, mz) {
          var tournament_date = tournament && (tournament.points_date || tournament.end);
          var points_date = tournament_date ? new Date(tournament_date) : new Date();
-
-         pointsTabVisible(container, tournament, mz && mz.length);
          if (!mz || !mz.length) return;
 
          checkAllPlayerPUIDs(tournament.players).then(proceed, util.logError);
@@ -4797,7 +4865,6 @@ let tournaments = function() {
       function matchesTab() {
          let t_matches = tMatches();
          tabVisible(container, 'MT', t_matches);
-         pointsTabVisible(container, tournament, t_matches);
 
          showSchedule();
          if (!t_matches) return;
@@ -7262,13 +7329,15 @@ let tournaments = function() {
          coms.fetchRegisteredPlayers(tournament.tuid, tournament.category, remote_request).then(done, notConfigured);
       }
 
-      function saveTournament(tournament) {
+      function saveTournament(tournament, changed=true) {
+         if (changed) {
+            tournament.saved_locally = false;
+            tournament.published = false;
+            gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
+            gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
+         }
          tournament.saved = new Date().getTime();
-         if (o.save) db.addTournament(tournament);
-         tournament.saved_locally = false;
-         tournament.published = false;
-         gen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
-         gen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
+         db.addTournament(tournament);
       }
 
       function logEventChange(evt, change) {
@@ -7445,10 +7514,14 @@ let tournaments = function() {
          doubles: filterPointsByGender(points.doubles),
       }
 
-      pointsTabVisible(container, tournament, filtered_points && filtered_points.length);
-      gen.displayPlayerPoints(container, filtered_points);
-      let pp = (evt) => player.displayPlayerProfile({ puid: util.getParent(evt.target, 'point_row').getAttribute('puid') }).then(()=>{}, ()=>{});
-      util.addEventToClass('point_row', pp, container.points.element)
+      let pts = Object.keys(points.singles).length || Object.keys(points.doubles).length;
+      pointsTabVisible(container, tournament, pts);
+
+      if (pts) {
+         gen.displayPlayerPoints(container, filtered_points);
+         let pp = (evt) => player.displayPlayerProfile({ puid: util.getParent(evt.target, 'point_row').getAttribute('puid') }).then(()=>{}, ()=>{});
+         util.addEventToClass('point_row', pp, container.points.element)
+      }
    }
 
    function attachFilterToggles(classes, filterFx = console.log) {
@@ -7772,9 +7845,9 @@ let tournaments = function() {
       gen.escapeModal();
 
       let ouid = config.env().org && config.env().org.ouid;
-      if (!tournament_data.ouid) tournament_data.ouid = ouid;
 
       var trny = Object.assign({}, tournament_data);
+      if (!trny.ouid) trny.ouid = ouid;
       var { container } = gen.createNewTournament(title, trny);
 
       var field_order = [ 'name', 'association', 'organization', 'start', 'end', 'judge', 'draws', 'cancel', 'save' ];
