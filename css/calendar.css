@@ -82,6 +82,7 @@
 }
 .calabel {
    margin-right: 1em;
+   text-align: left;
 }
 .calinput {
    width: 7em;
