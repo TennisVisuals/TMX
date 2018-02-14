@@ -11,6 +11,7 @@ let tournaments = function() {
       },
       sign_in: { rapid: true, },
       byes_with_unseeded: true,
+      focus: { place_player: undefined }
    }
 
    let dfx = drawFx();
@@ -1790,6 +1791,7 @@ let tournaments = function() {
       }
 
       function approvedChanged(e, update_players=false) {
+         eventName(e);
          approvedByRank(e);
          eventBackground(e);
          if (update_players) { eventPlayers(e); }
@@ -1949,6 +1951,9 @@ let tournaments = function() {
                let event_matches = eventMatches(e, tournament);
                let scheduled = event_matches.filter(m=>m.match.schedule && m.match.schedule.court).length;
 
+               let pre = e.draw_type == 'Q' && e.approved && e.approved.length && e.qualifiers == e.approved.length / 2;
+               let draw_type = pre ? lang.tr('draws.preround') : getKey(draw_types, e.draw_type); 
+
                return {
                   scheduled,
                   name: e.name,
@@ -1965,14 +1970,14 @@ let tournaments = function() {
                   inout: e.inout,
                   surface: e.surface,
                   warning: e.draw_type == 'Q' && e.approved && e.approved.length && !e.qualifiers,
-                  draw_type: getKey(draw_types, e.draw_type),
+                  draw_type,
                   opponents: e.approved.length + (e.draw_type == 'E' ? (e.qualifiers || 0) : 0),
                };
             });
          }
 
          gen.eventList(container, events, highlight_listitem);
-         let eventDetails = (evt) => {
+         function eventDetails(evt) {
             let clicked_event = util.getParent(evt.target, 'event');
             let class_list = clicked_event.classList;
             if (class_list.contains('highlight_listitem')) {
@@ -2232,6 +2237,7 @@ let tournaments = function() {
          let linkType = (types, type) => types[type].filter(t=>e.links[t]);
 
          let draw_types = {
+            'D': 'preround',
             'Q': 'qualification',
             'R': 'qualification',
             'C': 'consolation',
@@ -2395,7 +2401,7 @@ let tournaments = function() {
          return { options, size_options }
       }
 
-      let setRRQualifiers = (e) => {
+      function setRRQualifiers(e) {
          let min_qualifiers = (e.approved && e.approved.length ? 1 : 0) * e.brackets;
          let max_qualifiers = min_qualifiers * 2;
          let range = d3.range(min_qualifiers, max_qualifiers + 1);
@@ -2407,9 +2413,10 @@ let tournaments = function() {
       }
 
       function configDrawType(e) {
-         let linkChanged = () => eventPlayers(e);
-         let setQualifiers = (value) => {
+         function linkChanged() { return eventPlayers(e); }
+         function setQualifiers(value) {
             e.qualifiers = +value;
+            eventName(e);
 
             let linked = findEventByID(e.links['E']);
             if (linked) {
@@ -2429,8 +2436,8 @@ let tournaments = function() {
             drawsTab();
          }
 
-         let setQualificationConfig = () => {
-            let {max_qualifiers, options } = qualifyingDrawSizeOptions(e);
+         function setQualificationConfig() {
+            let { max_qualifiers, options } = qualifyingDrawSizeOptions(e);
             event_config = gen.configQualificationDraw(container, e, options);
             event_config.qualifiers.ddlb = new dd.DropDown({ element: event_config.qualifiers.element, onChange: setQualifiers });
             event_config.qualifiers.ddlb.selectionBackground();
@@ -2440,7 +2447,7 @@ let tournaments = function() {
             determineLinkedDraw(e, 'E', linkChanged);
          }
 
-         let setEliminationConfig = () => {
+         function setEliminationConfig() {
             // let options = [{ key: lang.tr('draws.standard'), value: 'standard' }, { key: lang.tr('draws.feedin'), value: 'feed' }];
             let options = [{ key: lang.tr('draws.standard'), value: 'standard' }, ];
 
@@ -2458,7 +2465,7 @@ let tournaments = function() {
             determineLinkedDraw(e, 'C', linkChanged);
          }
 
-         let setPlayoffConfig = () => {
+         function setPlayoffConfig() {
             let options = [{ key: lang.tr('draws.standard'), value: 'standard' }];
 
             let setStructure = (value) => {
@@ -2474,7 +2481,7 @@ let tournaments = function() {
             determineLinkedDraw(e, 'E', linkChanged);
          }
 
-         let setConsolationConfig = () => {
+         function setConsolationConfig() {
             let options = [{ key: lang.tr('draws.standard'), value: 'standard' }, { key: lang.tr('draws.feedin'), value: 'feed' }];
 
             let setStructure = (value) => {
@@ -2490,7 +2497,7 @@ let tournaments = function() {
             determineLinkedDraw(e, 'E', linkChanged);
          }
 
-         let setRoundRobinConfig = () => {
+         function setRoundRobinConfig() {
             let {options, size_options } = roundRobinDrawBracketOptions(e);
 
             event_config = gen.configRoundRobinDraw(container, e, options, size_options);
@@ -2533,7 +2540,7 @@ let tournaments = function() {
             displayQualifiers(linked);
          }
 
-         let drawTypes = {
+         var drawTypes = {
             'R': () => setRoundRobinConfig(),
             'E': () => setEliminationConfig(),
             'C': () => setConsolationConfig(),
@@ -2640,13 +2647,14 @@ let tournaments = function() {
          if (available.map(a=>a.value).indexOf(current_value) < 0) { container.draw_type.ddlb.setValue('E'); }
       }
 
+      function eventName(e) {
+         e.name = `${getKey(genders, e.gender)} ${config.legacyCategory(e.category, true)} ${getKey(formats, e.format)}`;
+         gen.setEventName(container, e);
+         eventList(true);
+      }
+
       function configureEventSelections(e) {
-         let eventName = () => {
-            e.name = `${getKey(genders, e.gender)} ${config.legacyCategory(e.category, true)} ${getKey(formats, e.format)}`;
-            gen.setEventName(container, e);
-            eventList(true);
-         }
-         eventName();
+         eventName(e);
 
          let details = gen.displayEventDetails({
             tournament,
@@ -2679,7 +2687,7 @@ let tournaments = function() {
             e.gender = value;
             configDrawType(e);
             eventPlayers(e);
-            eventName();
+            eventName(e);
          }
          details.gender.ddlb = new dd.DropDown({ element: details.gender.element, onChange: filterGender });
          details.gender.ddlb.setStyle('label_novalue', 'black');
@@ -2691,7 +2699,7 @@ let tournaments = function() {
             }
             e.category = value;
             eventPlayers(e);
-            eventName();
+            eventName(e);
          }
          details.category.ddlb = new dd.DropDown({ element: details.category.element, onChange: filterCategory });
          if (e.category || tournament.category) {
@@ -2716,7 +2724,7 @@ let tournaments = function() {
                displayScoring(e.scoring);
             }
 
-            eventName();
+            eventName(e);
             configDrawType(e);
             enableEventTeams(e);
             saveTournament(tournament);
@@ -2775,7 +2783,7 @@ let tournaments = function() {
             }
 
             configDrawType(e);
-            eventName();
+            eventName(e);
             saveTournament(tournament);
          }
          details.draw_type.ddlb = new dd.DropDown({ element: details.draw_type.element, onChange: setDrawType });
@@ -5113,6 +5121,8 @@ let tournaments = function() {
       }
 
       function eventBroadcastObject(tourny, evt, draw=true) {
+         let draw_type_name = gen.genEventName(evt).type;
+
          let ebo = { 
             tournament: {
                name: tourny.name,
@@ -5140,6 +5150,7 @@ let tournaments = function() {
                wildcards: evt.wildcards,
                draw_size: evt.draw_size,
                draw_type: evt.draw_type,
+               draw_type_name,
                qualified: evt.qualified,
                qualifiers: evt.qualifiers,
                score_format: evt.score_format,
@@ -6111,12 +6122,11 @@ let tournaments = function() {
 
             pobj.entry_field.element.addEventListener('click', removeEntryField);
             pobj.player_index.element.addEventListener('keyup', playerIndex , false);
-            pobj.player_index.element.focus();
 
             let selection_flag = false;
             let list = unplaced_teams.map(team => { 
                let player = team[0];
-               let label = `${util.normalizeName([player.first_name, player.last_name].join(' '))} [${team.order}]`;
+               let label = `${util.normalizeName([player.first_name, player.last_name].join(' '))}`;
                return { value: player.puid, label, }
             });
             pobj.typeAhead = new Awesomplete(pobj.player_search.element, { list });
@@ -6126,6 +6136,7 @@ let tournaments = function() {
                let team = unplaced_teams.filter(u=>u[0].puid == uuid)[0];
 
                removeEntryField();
+               o.focus.place_player = 'player_search';
                return placeRRplayer(team, placement, info);
             }
             pobj.player_search.element
@@ -6142,6 +6153,12 @@ let tournaments = function() {
                selection_flag = false;
             });
 
+            if (o.focus.place_player == 'player_search') {
+               pobj.player_search.element.focus()
+            } else {
+               pobj.player_index.element.focus();
+            }
+
             // disable scrolling on background
             document.body.style.overflow  = 'hidden';
 
@@ -6155,6 +6172,7 @@ let tournaments = function() {
 
                      let team = unplaced_teams.filter(u=>u.order == player_index)[0];
                      removeEntryField();
+                     o.focus.place_player = 'player_index';
                      return placeRRplayer(team, placement, info);
                   }
 
@@ -6210,7 +6228,6 @@ let tournaments = function() {
 
             entry_field.on('click', removeEntryField);
             pobj.player_index.element.addEventListener('keyup', playerIndex , false);
-            pobj.player_index.element.focus();
 
             let selection_flag = false;
             let playerLabel = (player) => util.normalizeName([player.first_name, player.last_name].join(' '));
@@ -6226,6 +6243,7 @@ let tournaments = function() {
                let team = unplaced_teams.filter(u=>u[0].puid == uuid)[0];
                let player_index = team.order;
                submitPlayer(player_index);
+               o.focus.place_player = 'player_search';
                removeEntryField();
             }
             pobj.player_search.element
@@ -6241,6 +6259,12 @@ let tournaments = function() {
                }
                selection_flag = false;
             });
+
+            if (o.focus.place_player == 'player_search') {
+               pobj.player_search.element.focus()
+            } else {
+               pobj.player_index.element.focus();
+            }
 
             // disable scrolling on background
             document.body.style.overflow  = 'hidden';
@@ -6286,6 +6310,7 @@ let tournaments = function() {
                if (evt.which == 13) {
                   let player_index = value ? +value[0] : undefined;
                   if (player_index) submitPlayer(player_index);
+                  o.focus.place_player = 'player_index';
                   return;
                }
 
