@@ -3360,15 +3360,21 @@
       return idObj(ids);
    }
 
-   gen.setEventName = (container, e) => {
+   gen.genEventName = (e) => {
       let types = {
          'R': lang.tr('draws.roundrobin'),
          'C': lang.tr('draws.consolation'),
          'Q': lang.tr('draws.qualification'),
          'P': lang.tr('pyo'),
       }
-      let type = types[e.draw_type] || lang.tr('draws.maindraw');
+      let pre = e.draw_type == 'Q' && e.approved && e.approved.length && e.qualifiers == e.approved.length / 2;
+      let type = pre ? lang.tr('draws.preround'): types[e.draw_type] || lang.tr('draws.maindraw');
       let name = `${e.name}&nbsp;<span class='event_type'>${type}</span>`;
+      return { type, name }
+   }
+
+   gen.setEventName = (container, e) => {
+      let { type, name } = gen.genEventName(e);
       let event_details = d3.select(container.event_details.element);
       event_details.select('.event_name').html(name);
    }
