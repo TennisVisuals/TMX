@@ -213,6 +213,7 @@
          elimination: 'Elimination',
          consolation: 'Consolation',
          qualification: 'Qualification',
+         preround: 'Pre-Round',
          remove: 'Remove',
          changestatus: 'Change Status',
          penalty: 'Assess Penalty',
