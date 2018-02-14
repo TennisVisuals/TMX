@@ -720,11 +720,7 @@
    function drawSheetPageHeader(tournament, logo, type, selected_event, event, info) {
       var evt = event || (tournament.events && tournament.events[selected_event]) || { name: 'Unknown' };
 
-      var event_type = lang.tr('draws.maindraw');
-      if (evt.draw_type == 'Q') event_type = lang.tr('draws.qualification');
-      if (evt.draw_type == 'R') event_type = lang.tr('draws.roundrobin');
-      if (evt.draw_type == 'C') event_type = lang.tr('draws.consolation');
-
+      var event_type = gen.genEventName(evt).type;
       var tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
       // let organizers = tournament.organizers && tournament.organizers != tournament.name ? tournament.organizers : '';
