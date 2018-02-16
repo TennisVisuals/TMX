@@ -16,6 +16,11 @@
       escapeFx: undefined,
    };
 
+   let env = {
+      calstart: undefined,
+      calend: undefined
+   }
+
    // BUSY fx ---------------------------------------------------------
    let busy = {
       count: 0,
@@ -50,6 +55,8 @@
          evt.preventDefault();
          evt.stopPropagation();
       }
+      if (gen.content == 'calendar' && !gen.modal && evt.keyCode == '112' && env.calstart) document.getElementById(env.calstart).focus();
+      if (gen.content == 'calendar' && !gen.modal && evt.keyCode == '113' && env.calend) document.getElementById(env.calend).focus();
    });
 
    document.addEventListener('keyup', evt => { 
@@ -3495,6 +3502,10 @@
          add:        gen.uuid(),
          rows:       gen.uuid(),
       }
+
+      env.calstart = ids.start;
+      env.calend = ids.end;
+
       let html = `
          <div id='${ids.container}' class='calendar_container'>
             <div class='calendar_selection'>

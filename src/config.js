@@ -42,7 +42,7 @@ let config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.82.51.32',
+      version: '0.9.84.61.38',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -72,13 +72,26 @@ let config = function() {
          category: undefined,
          first_day: 0
       },
+      points: { walkover_wins: ['F'] },
       drawFx: {
          auto_byes: true,
          auto_qualifiers: false,
          fixed_bye_order: false,
          compressed_draw_formats: true,
          consolation_seeding: false,
+         consolation_from_elimination: true,
+         consolation_from_qualifying: false,
          seed_limits: [ [0, 0], [4, 2], [11, 4], [21, 8], [41, 16], [97, 32] ],
+         "seedPositions": {
+            "1" : [["1", "0"]],
+            "2" : [["0", "1"]],
+            "3" : [["1", ".250"], [0, ".750"]],
+            "5" : [["0", ".250"], [0, ".500"], [1, ".500"], [1, ".750"]],
+            "9" : [["1", ".125"], [0, ".375"], [1, ".625"], [0, ".875"]],
+            "13": [["0", ".125"], [1, ".375"], [0, ".625"], [1, ".875"]],
+            "17": [["1", ".0625"], [0, ".1875"], [1, ".3125"], [0, ".4325"], [1, ".5625"], [0, ".6875"], [1, ".8125"], [0, ".9375"] ],
+            "25": [["0", ".0625"], [1, ".1875"], [0, ".3125"], [1, ".4325"], [0, ".5625"], [1, ".6875"], [0, ".8125"], [1, ".9375"] ]
+         }
       },
       draws: {
          tree_draw: {
@@ -109,7 +122,7 @@ let config = function() {
          tiebreaks_at: 6
       },
       publishing: {
-         require_confirmation: true,
+         require_confirmation: false,
          publish_on_score_entry: true,
       },
       delegation: false,

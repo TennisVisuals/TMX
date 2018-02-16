@@ -239,6 +239,7 @@ let tournaments = function() {
             dbl_rank: tournament.rank,
          }
          if (tournament.accepted) Object.assign(rankings, tournament.accepted);
+         gen.escapeModal();
          createTournamentContainer({tournament, dbmatches, selected_tab, display_points: true});
       }
    }
@@ -330,7 +331,6 @@ let tournaments = function() {
       dev.container = container;
       dev.dbmatches = dbmatches;
 
-      // TODO: if tournament has been delegated to mobile don't allow editing...
       container.edit.element.style.display = sameOrg(tournament) && !tournament.delegated ? 'inline' : 'none';
       if (tournament.delegated && sameOrg(tournament)) gen.delegated(container, true);
 
@@ -1451,6 +1451,7 @@ let tournaments = function() {
 
       function activateEdit() {
          state.edit = true;
+         gen.escapeFx = undefined;
 
          // for editing insure tournament is not in modal
          util.moveNode('content', container.container.id);
@@ -2237,7 +2238,6 @@ let tournaments = function() {
          let linkType = (types, type) => types[type].filter(t=>e.links[t]);
 
          let draw_types = {
-            'D': 'preround',
             'Q': 'qualification',
             'R': 'qualification',
             'C': 'consolation',
@@ -2264,16 +2264,13 @@ let tournaments = function() {
             // link in the opposite direction as well...
             if (linked_event) {
                linked_event.links[e.draw_type] = e.euid;
-               if (linked_event.draw_type == 'E' && e.draw_type != 'C') {
-                  linked_event.regenerate = true;
-               }
-
+               if (linked_event.draw_type == 'E' && e.draw_type != 'C') { linked_event.regenerate = true; }
                if (linked_event.draw_type == 'R') determineRRqualifiers(linked_event);
                if (linked_event.draw_type == 'Q') checkForQualifiedTeams(linked_event);
 
-               let qualified = linked_event.qualified ? linked_event.qualified.map(teamHash) : [];
                if (!e.approved) e.approved = [];
-               e.approved = [].concat(...e.approved, ...qualified);
+               let qualified = linked_event.qualified ? linked_event.qualified.map(teamHash) : [];
+               if (e.draw_type != 'C') e.approved = [].concat(...e.approved, ...qualified);
             }
 
             // remove any previous links
@@ -2462,7 +2459,7 @@ let tournaments = function() {
             event_config.structure.ddlb.setValue(e.structure || 'standard');
 
             determineLinkedDraw(e, 'Q', linkChanged);
-            determineLinkedDraw(e, 'C', linkChanged);
+            if (config.env().drawFx.consolation_from_elimination) determineLinkedDraw(e, 'C', linkChanged);
          }
 
          function setPlayoffConfig() {
@@ -2494,7 +2491,8 @@ let tournaments = function() {
             event_config.structure.ddlb.selectionBackground();
             event_config.structure.ddlb.setValue(e.structure || 'standard');
 
-            determineLinkedDraw(e, 'E', linkChanged);
+            if (config.env().drawFx.consolation_from_elimination) determineLinkedDraw(e, 'E', linkChanged);
+            if (config.env().drawFx.consolation_from_qualifying) determineLinkedDraw(e, 'Q', linkChanged);
          }
 
          function setRoundRobinConfig() {
@@ -2610,7 +2608,7 @@ let tournaments = function() {
          if (!e || !e.draw) return;
          let competitors = [].concat(...e.draw.opponents.map(team=>team.map(p=>p.id)));
          let linkedQ = findEventByID(e.links['Q']) || findEventByID(e.links['R']);
-         let linked_info = linkedQ ? dfx.drawInfo(linkedQ.draw) : undefined;
+         let linked_info = linkedQ && linkedQ.draw ? dfx.drawInfo(linkedQ.draw) : undefined;
 
          if (!linked_info) return;
 
@@ -2650,7 +2648,7 @@ let tournaments = function() {
       function eventName(e) {
          e.name = `${getKey(genders, e.gender)} ${config.legacyCategory(e.category, true)} ${getKey(formats, e.format)}`;
          gen.setEventName(container, e);
-         eventList(true);
+         eventList();
       }
 
       function configureEventSelections(e) {
@@ -2798,7 +2796,7 @@ let tournaments = function() {
                let sb_config = d3.select(cfg_obj.config.element);
 
                let f = config.env().default_score_format;
-               scoreBoard.configureScoring(cfg_obj, f);
+               scoreBoard.configureScoring(cfg_obj, e.score_format || f);
                sb_config.on('click', removeConfigScoring);
                cfg_obj.cancel.element.addEventListener('click', removeConfigScoring)
                cfg_obj.accept.element.addEventListener('click', modifyEventScoring)
@@ -2816,10 +2814,23 @@ let tournaments = function() {
                      final_set_supertiebreak: cfg_obj.finalset.ddlb.getValue() == 'N' ? false : true,
                   }
                   e.score_format = sf;
+                  modifyUnscoredMatches(sf);
                   let stb = sf.final_set_supertiebreak ? '/S' : '';
                   e.scoring = `${sf.max_sets}/${sf.games_for_set}/${sf.tiebreak_to}T${stb}`;
                   removeConfigScoring();
                   saveTournament(tournament);
+               }
+
+               function modifyUnscoredMatches(sf) {
+                  let info = e.draw && dfx.drawInfo(e.draw);
+                  if (info && info.match_nodes) {
+                     // update scoring format for unfinished matches
+                     info.match_nodes.forEach(node => modify(node.data.match));
+                  } else if (info && info.matches) {
+                     // update scoring format for unfinished RR matches
+                     info.matches.forEach(modify);
+                  }
+                  function modify(match) { if (!match.winner) { match.score_format = sf; } }
                }
 
                function removeConfigScoring() {
@@ -2959,7 +2970,7 @@ let tournaments = function() {
             .filter(p => unavailable_ids.indexOf(p.id) < 0);
 
          let completed_matches = e.links && e.links['E'] ?  eventMatches(findEventByID(e.links['E']), tournament).filter(m=>m.match.winner) : [];
-         if (['C', 'P'].indexOf(e.draw_type) >= 0 && (!e.links['E'] || !completed_matches.length)) return [];
+         if (e.draw_type == 'P' && (!e.links['E'] || !completed_matches.length)) return [];
 
          if (e.draw_type == 'P') {
             let ep = exitProfiles(completed_matches);
@@ -2968,21 +2979,32 @@ let tournaments = function() {
          }
 
          if (e.draw_type == 'C') {
-            let winner_ids = [].concat(...completed_matches.map(match => match.match.winner.map(team=>team.id)));
-            let all_loser_ids = [].concat(...completed_matches.map(match => match.match.loser.map(team=>team.id)));
-            let losing_players = tournament.players.filter(p=>all_loser_ids.indexOf(p.id) >= 0);
-            let no_wins_ids = all_loser_ids.filter(i => winner_ids.indexOf(i) < 0);
-            let alternate_ids = all_loser_ids.filter(i=>no_wins_ids.indexOf(i) < 0);
-            let ep = exitProfiles(completed_matches);
-            available_players.forEach(p => {
-               if (alternate_ids.indexOf(p.id) >= 0) {
-                  p.alternate = true;
-                  p.exit_profile = ep[p.id];
-               }
-            });
+            let linkedQ = findEventByID(e.links['Q']) || findEventByID(e.links['R']);
+            let qualifying_consolation = linkedQ && e.draw_type == 'C';
 
-            // if building a consolation draw, available players are those who have lost in a linked main draw event...
-            available_players = available_players.filter(p=>no_wins_ids.indexOf(p.id) >= 0 || alternate_ids.indexOf(p.id) >= 0);
+            if (qualifying_consolation) {
+               // if building a consolation draw for a qualifying event, available players are thos who didn't qualify
+               let qualifier_ids = linkedQ.qualified.map(q=>q[0].id);
+               available_players = available_players.filter(p=>qualifier_ids.indexOf(p.id) < 0);
+            } else {
+               if (!e.links['E'] || !completed_matches.length) return [];
+
+               let winner_ids = [].concat(...completed_matches.map(match => match.match.winner.map(team=>team.id)));
+               let all_loser_ids = [].concat(...completed_matches.map(match => match.match.loser.map(team=>team.id)));
+               let losing_players = tournament.players.filter(p=>all_loser_ids.indexOf(p.id) >= 0);
+               let no_wins_ids = all_loser_ids.filter(i => winner_ids.indexOf(i) < 0);
+               let alternate_ids = all_loser_ids.filter(i=>no_wins_ids.indexOf(i) < 0);
+               let ep = exitProfiles(completed_matches);
+               available_players.forEach(p => {
+                  if (alternate_ids.indexOf(p.id) >= 0) {
+                     p.alternate = true;
+                     p.exit_profile = ep[p.id];
+                  }
+               });
+
+               // if building a consolation draw for an elimination event, available players are those who have lost in a linked elimination event...
+               available_players = available_players.filter(p=>no_wins_ids.indexOf(p.id) >= 0 || alternate_ids.indexOf(p.id) >= 0);
+            }
          }
 
          if (e.gender) modifyApproved.filterGender(e);
@@ -3051,20 +3073,23 @@ let tournaments = function() {
          // Round Robins must have at least one seed per bracket
          if (e.draw_type == 'R') { seed_limit = Math.max(seed_limit, e.brackets * 2); }
          if (e.draw_type == 'Q') seed_limit = (e.qualifiers * 2) || Math.max(seed_limit, e.qualifiers);
-
-         // if (e.draw_type == 'C' && !config.env().drawFx.consolation_seeding) seed_limit = 0;
+         if (e.draw_type == 'C' && !config.env().drawFx.consolation_seeding) seed_limit = 0;
 
          let ranked_players = approved_players.filter(a=>a.category_ranking).length;
          if (ranked_players < seed_limit) seed_limit = ranked_players;
 
          let linkedQ = findEventByID(e.links['Q']) || findEventByID(e.links['R']);
          let qualifier_ids = linkedQ && linkedQ.qualified ? linkedQ.qualified.map(teamHash) : [];
+         let qualifying_consolation = linkedQ && e.draw_type == 'C';
+
+         if (qualifying_consolation) approved_players = approved_players.filter(p=>qualifier_ids.indexOf(p.id) < 0);
 
          let linkedE = findEventByID(e.links['E']);
          let alternate_ids = (e.draw_type == 'C' && linkedE && linkedE.approved) ?
             approved_players.map(ap => ap.id).filter(i => linkedE.approved.indexOf(i) < 0) : [];
 
-         let seeding = rankedTeams(approved_players);
+         let pre = e.draw_type == 'Q' && e.approved && e.approved.length && e.qualifiers == e.approved.length / 2;
+         let seeding = !pre && rankedTeams(approved_players);
 
          approved_players = approved_players
             .map((p, i) => {
@@ -3086,6 +3111,7 @@ let tournaments = function() {
                return p;
             });
 
+         // console.log('returning approved:', approved_players.length);
          return approved_players;
       }
 
@@ -3175,7 +3201,7 @@ let tournaments = function() {
 
          var dbls_rankings = tournament.players.reduce((p, c) => c.category_dbls || p, false);
          var teams = not_promoted.map(t=>teamObj(e, t, idmap)).sort(combinedRankSort);
-         teams.forEach(team => team.rank = team.combined_rank);
+         teams.forEach(team => team.rank = team.combined_rank || team.combined_dbls_rank);
 
          return teams;
       }
@@ -3260,7 +3286,7 @@ let tournaments = function() {
             } else {
                e.draw = dfx.buildQualDraw(num_players, e.qualifiers || 1);
 
-               // TODO: for abnormal number of qualifiers where should seeds be placed?
+               if (e.approved.length / 2 == e.qualifiers) draw_size = e.approved.length;
 
                e.draw.seeded_teams = [];
                if (e.qualifiers > 2 && e.draw_type == 'Q') {
@@ -3434,8 +3460,6 @@ let tournaments = function() {
 
          let linkedQ = findEventByID(e.links['Q']) || findEventByID(e.links['R']);
          let qualifier_ids = linkedQ && linkedQ.qualified ? linkedQ.qualified.map(teamHash) : [];
-
-         let linkedE = findEventByID(e.links['E']);
 
          // TODO: make this configurable
          let alternate_ids = (e.draw_type == 'C') ? eligible.filter(el => el.alternate).filter(f=>f).map(el=>el.id) : [];
@@ -5455,7 +5479,7 @@ let tournaments = function() {
          if (!outcome) return;
 
          var qlink = e.draw_type == 'R' && findEventByID(e.links['E']);
-         var qlinkinfo = qlink && dfx.drawInfo(qlink.draw);
+         var qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
          var puids = outcome.teams.map(t=>t[0].puid);
          var findMatch = (e, n) => (util.intersection(n.match.puids, puids).length == 2) ? n : e;
          var match_event = eventMatches(e, tournament).reduce(findMatch, undefined);
@@ -6627,7 +6651,7 @@ let tournaments = function() {
 
             let competitors = [].concat(...draw.opponents.map(team=>team.map(p=>p.id)));
             let linkedQ = findEventByID(displayed_draw_event.links['Q']) || findEventByID(displayed_draw_event.links['R']);
-            let linked_info = linkedQ ? dfx.drawInfo(linkedQ.draw) : undefined;
+            let linked_info = linkedQ && linkedQ.draw ? dfx.drawInfo(linkedQ.draw) : undefined;
 
             // losers from linked draw excluding losers who have already been substituted
             let losers = linkedLosers(linked_info).filter(l=>util.intersection(l.map(p=>p.id), competitors).length == 0);
@@ -6956,7 +6980,6 @@ let tournaments = function() {
                   // TODO: this block of code is duplicated
                   let info = tree_draw.info();
                   if (info.unassigned.length == 1 && !info.byes.length) {
-                     console.log('unassigned 1');
                      let unassigned_position = info.unassigned[0].data.dp;
                      let placements = draw.unseeded_placements.map(p=>p.id);
                      let ut = draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
@@ -7271,15 +7294,10 @@ let tournaments = function() {
          let onChange = () => undefined;
 
          if (event_draws) {
-            let types = {
-               'R': lang.tr('draws.roundrobin'),
-               'C': lang.tr('draws.consolation'),
-               'Q': lang.tr('draws.qualification'),
-               'P': lang.tr('pyo'),
-            }
             draw_options = tournament.events.map((e, i) => { 
                if (displayed_event && displayed_event == e.euid) selection = i;
-               return { key: `${e.name} ${types[e.draw_type] || ''}`, value: i }
+               let edt = gen.genEventName(e).type || '';
+               return { key: `${e.name} ${edt}`, value: i }
             });
             onChange = genEventDraw;
          } else if (group_draws.length) {

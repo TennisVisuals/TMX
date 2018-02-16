@@ -79,6 +79,16 @@ let scoreBoard = function() {
                set_number += 1;
             }
          }
+         if (set_scores.live) {
+            sobj.p1action.ddlb.setValue(' ');
+            sobj.p2action.ddlb.setValue('live');
+            sobj.p1action.ddlb.lock();
+            sobj.p2action.ddlb.lock();
+            displayActions(true);
+            if (scoreGoal(last_set[0].games, last_set[1].games)) {
+               set_number += 1;
+            }
+         }
       }
 
       // now populate with any existing score
@@ -167,6 +177,7 @@ let scoreBoard = function() {
             { key: 'W.O.', value: 'walkover' },
             { key: 'DEF.', value: 'defaulted' },
             { key: 'INT.', value: 'interrupted' },
+            { key: 'Live', value: 'live' },
             { key: `<div class='link'><img src='./icons/completed.png' class='club_link'></div>`, value: 'winner' },
          ];
          let outcomeChange1 = (value) => outcomeChange(0, value);
@@ -260,7 +271,7 @@ let scoreBoard = function() {
       }
 
       function scoreChange(which, value) {
-         if (interrupted()) resetActions();
+         if (interrupted() || live()) resetActions();
          let tiebreak = false;
          resetTiebreak();
 
@@ -366,6 +377,15 @@ let scoreBoard = function() {
          return false;
       }
 
+      function live() {
+         let s1 = sobj.p1action.ddlb.getValue();
+         let s2 = sobj.p2action.ddlb.getValue();
+
+         if (['live'].indexOf(s1) >= 0) return true;
+         if (['live'].indexOf(s2) >= 0) return true;
+         return false;
+      }
+
       function resetActions() {
          sobj.p1action.ddlb.setValue('');
          sobj.p2action.ddlb.setValue('');
@@ -410,7 +430,7 @@ let scoreBoard = function() {
 
          let sets_won = setsWon();
          // if an equivalent # of sets have been won, no winner
-         if (sets_won[0] == sets_won[1] && !interrupted() && irregularWinner() == undefined) {
+         if (sets_won[0] == sets_won[1] && !live() && !interrupted() && irregularWinner() == undefined) {
             displayActions(false);
             return;
          }
@@ -422,7 +442,7 @@ let scoreBoard = function() {
          if (max_sets_won < needed_to_win) return;
 
          let winner = sets_won[0] >= needed_to_win ? 0 : sets_won[1] >= needed_to_win ? 1 : undefined;
-         if (winner == undefined && !interrupted() && irregularWinner() == undefined) {
+         if (winner == undefined && !live() && !interrupted() && irregularWinner() == undefined) {
             displayActions(false);
             return;
          }
@@ -552,7 +572,7 @@ let scoreBoard = function() {
          let positions = teams.map(team => team[0].draw_position);
 
          if (s1 == 'retired' || s2 == 'retired') score += ' RET.';
-         if (s1 == 'walkover' || s2 == 'walkover') score += ' W.O.';
+         if (s1 == 'walkover' || s2 == 'walkover') score = 'W.O.';
          if (s1 == 'defaulted' || s2 == 'defaulted') score += ' DEF.';
          if (s1 == 'abandoned' || s2 == 'abandoned') {
             complete = false;
@@ -561,6 +581,10 @@ let scoreBoard = function() {
          if (s1 == 'interrupted' || s2 == 'interrupted') {
             complete = false;
             score += ' INT.';
+         }
+         if (s1 == 'live' || s2 == 'live') {
+            complete = false;
+            score += ' Live';
          }
 
          return { score, position, positions, complete, winner: winner_index }
@@ -608,7 +632,7 @@ let scoreBoard = function() {
             }
 
             setScoreDisplay({ selected_set: set_number });
-         } else if (value == 'interrupted') {
+         } else if (value == 'interrupted' || value == 'live') {
             sobj[which ? 'p1action' : 'p2action'].ddlb.setValue(' ');
             ddlb_lock = true;
             setScoreDisplay({ selected_set: set_number });
@@ -734,6 +758,7 @@ let scoreBoard = function() {
 
       if (outcome) {
          if (outcome == 'INT.') sets.interrupted = true;
+         if (outcome == 'Live') sets.live = true;
 
          if (!sets.length) return sets;
 
@@ -827,7 +852,7 @@ let scoreBoard = function() {
       sobj.tiebreaksat.ddlb = new dd.DropDown({ element: sobj.tiebreaksat.element, id: sobj.tiebreaksat.id, onChange: setTiebreakAt });
       sobj.tiebreaksat.ddlb.setStyle('label_value', '#FFF');
       sobj.tiebreaksat.ddlb.selectionBackground();
-      sobj.tiebreaksat.ddlb.setValue(gfs);
+      sobj.tiebreaksat.ddlb.setValue(f.tiebreaks_at && f.tiebreaks_at < gfs ? f.tiebreaks_at : gfs);
 
       dd.attachDropDown({ 
          id: sobj.tiebreaksto.id, 
