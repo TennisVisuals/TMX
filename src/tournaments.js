@@ -208,10 +208,12 @@ let tournaments = function() {
                      deleteEventsRequest = { tuid };
                      coms.emitTmx({ deleteEventsRequest })
                      gen.closeModal();
-                     tournament.events.forEach(evt => {
-                        evt.published = false;
-                        evt.up_to_date = false;
-                     });
+                     if (tournament_data.events) {
+                        tournament_data.events.forEach(evt => {
+                           evt.published = false;
+                           evt.up_to_date = false;
+                        });
+                     }
                      coms.emitTmx({ deleteOOP: { tuid }});
                   }
                }
@@ -585,7 +587,7 @@ let tournaments = function() {
                   deactivateEdit();
 
                   // let message = `${location.origin}/Live/?actionKey=${key_uuid}`;
-                  let message = `${location.origin}/devel/ranking/?actionKey=${key_uuid}`;
+                  let message = `${location.origin}/devel/live/?actionKey=${key_uuid}`;
                   console.log(message);
                   finish();
 
@@ -1950,7 +1952,7 @@ let tournaments = function() {
                let info = !e.draw ? {} : dfx.drawInfo(e.draw);
 
                let event_matches = eventMatches(e, tournament);
-               let scheduled = event_matches.filter(m=>m.match.schedule && m.match.schedule.court).length;
+               let scheduled = event_matches.filter(m=>m.match && m.match.schedule && m.match.schedule.court).length;
 
                let pre = e.draw_type == 'Q' && e.approved && e.approved.length && e.qualifiers == e.approved.length / 2;
                let draw_type = pre ? lang.tr('draws.preround') : getKey(draw_types, e.draw_type); 
@@ -3249,6 +3251,11 @@ let tournaments = function() {
       }
 
       function generateDraw(e, delete_existing) {
+         try { drawGeneration(e, delete_existing); }
+         catch (err) { logEventError(e, error, 'drawGeneration'); }
+      }
+
+      function drawGeneration(e, delete_existing) {
          var approved_opponents = approvedOpponents(e);
 
          // delete any existing draw AFTER capturing any player data (entry information)
@@ -3260,7 +3267,8 @@ let tournaments = function() {
 
          if (!approved_opponents.length || approved_opponents.length < minimum_opponents) return;
 
-         var seed_limit = dfx.seedLimit(approved_opponents.length);
+         var seeded_teams = dfx.seededTeams({ teams: approved_opponents });
+         var seed_limit = Math.min(Object.keys(seeded_teams).length, dfx.seedLimit(approved_opponents.length));
          if (e.draw_type == 'Q') seed_limit = (e.qualifiers * 2) || seed_limit;
 
          var num_players = approved_opponents.length;
@@ -3275,13 +3283,8 @@ let tournaments = function() {
                let structural_byes = draw_size == 12 ? dfx.structuralByes(draw_size, true) : undefined;
                e.draw = dfx.buildDraw({ teams: draw_size, structural_byes });
                e.draw.max_round = util.log2(util.nearestPow2(draw_size)) - util.log2(e.qualifiers);
-               e.draw.seeded_teams = dfx.seededTeams({ teams: approved_opponents });
-
-               if (e.qualifiers < 2) {
-                  e.draw.seed_placements = dfx.validSeedPlacements({ num_players: draw_size, random_sort: true, seed_limit });
-               } else {
-                  e.draw.seed_placements = dfx.qualifyingSeedPlacements({ draw: e.draw, num_players: draw_size, qualifiers: e.qualifiers, seed_limit });
-               }
+               e.draw.seeded_teams = seeded_teams;
+               e.draw.seed_placements = dfx.qualifyingSeedPlacements({ draw: e.draw, num_players: draw_size, qualifiers: e.qualifiers, seed_limit });
 
             } else {
                e.draw = dfx.buildQualDraw(num_players, e.qualifiers || 1);
@@ -3290,7 +3293,7 @@ let tournaments = function() {
 
                e.draw.seeded_teams = [];
                if (e.qualifiers > 2 && e.draw_type == 'Q') {
-                  e.draw.seeded_teams = dfx.seededTeams({ teams: approved_opponents });
+                  e.draw.seeded_teams = seeded_teams;
                   e.draw.seed_placements = dfx.qualifyingSeedPlacements({ draw: e.draw, num_players: draw_size, qualifiers: e.qualifiers, seed_limit });
                } else {
                   approved_opponents.forEach(o => { delete o[0].seed });
@@ -5545,8 +5548,7 @@ let tournaments = function() {
          return true;
       }
 
-      function winnerRemoved({ e, qlink, qlinkinfo, previous_winner }) {
-         console.log('winner removed');
+      function winnerRemoved({ e, qlink, qlinkinfo, previous_winner, outcome }) {
          qlink.approved = qlink.approved.filter(a=>previous_winner.indexOf(a) < 0);
          if (qlinkinfo) {
             qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
@@ -5563,9 +5565,9 @@ let tournaments = function() {
          setDrawSize(e);
 
          // must occur after e.qualified is updated
-         approvedChanged(linked);
-         setDrawSize(linked);
-         linked.up_to_date = false;
+         approvedChanged(qlink);
+         setDrawSize(qlink);
+         qlink.up_to_date = false;
       }
 
       function playerActiveInLinked(qlinkinfo, plyr) {
@@ -5614,7 +5616,7 @@ let tournaments = function() {
             if (active_in_linked && (qualifier_changed || (previous_winner && !current_winner))) {
                return gen.popUpMessage(lang.tr('phrases.cannotchangewinner'));
             } else if (previous_winner && !current_winner) {
-               winnerRemoved({ e, qlink, qlinkinfo, previous_winner });
+               winnerRemoved({ e, qlink, qlinkinfo, previous_winner, outcome });
             } else if (qualifier_changed) {
                qualifierChanged({ e, outcome, qlink, qlinkinfo, previous_winner, current_winner });
             }
@@ -5704,6 +5706,8 @@ let tournaments = function() {
 
       function qualifyTeam(e, team, qualifying_position) {
          if (!e.qualified) e.qualified = [];
+         // TODO: this is a hack
+         if (!team) return;
 
          let team_copy = team.map(player => Object.assign({}, player));
 
@@ -6533,9 +6537,11 @@ let tournaments = function() {
             if (!state.edit) {
                return;
             } else if (!displayed_draw_event.active) {
-               drawNotActiveContextClick(d, coords);
+               try { drawNotActiveContextClick(d, coords); }
+               catch (err) { logEventError(e, err, 'drawNotActiveContextClick'); }
             } else {
-               drawActiveContextClick(d, coords);
+               try { drawActiveContextClick(d, coords); }
+               catch (err) { logEventError(e, err, 'drawActiveContextClick'); }
             }
          }
 
@@ -6816,7 +6822,7 @@ let tournaments = function() {
             var qualification = ['Q', 'R'].indexOf(e.draw_type) >= 0;
             var active_in_linked = null;
 
-            if (qualification && match_score && qualified && linked && linked.draw) {
+            if (qualification && match_score && qualified && linked && linked.draw && d.data.team) {
                linked_info = dfx.drawInfo(linked.draw);
                let team_ids = d.data.team.map(m=>m.id);
                let advanced_positions = linked_info.match_nodes.filter(n=>n.data.match && n.data.match.players);
@@ -6834,7 +6840,7 @@ let tournaments = function() {
 
                // if deleting a match, delete all references in node
                let clickAction = (c, i) => {
-                  if (qualified) {
+                  if (qualified && d.data.team) {
                      let team_ids = d.data.team.map(m=>m.id);
                      removeQualifiedPlayer(e, team_ids, linked, linked_info);
                   }
@@ -7387,6 +7393,13 @@ let tournaments = function() {
          if (!evt.log) evt.log = [];
          change.timestamp = new Date().getTime();
          evt.log.push(change);
+      }
+
+      function logEventError(evt, err, context) {
+         console.log(err);
+         if (!evt.error_log) evt.error_log = [];
+         let timestamp = new Date().getTime();
+         evt.error_log.push({ timestamp, error: err.toString(), stack: err.stack && err.stack.toString(), context });
       }
 
       // if (selected_tab && tab_ref[selected_tab] != undefined) displayTab(rab_ref[selected_tab]);
