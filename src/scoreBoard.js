@@ -177,7 +177,7 @@ let scoreBoard = function() {
             { key: 'W.O.', value: 'walkover' },
             { key: 'DEF.', value: 'defaulted' },
             { key: 'INT.', value: 'interrupted' },
-            { key: 'Live', value: 'live' },
+            { key: 'LIVE', value: 'live' },
             { key: `<div class='link'><img src='./icons/completed.png' class='club_link'></div>`, value: 'winner' },
          ];
          let outcomeChange1 = (value) => outcomeChange(0, value);
@@ -584,7 +584,7 @@ let scoreBoard = function() {
          }
          if (s1 == 'live' || s2 == 'live') {
             complete = false;
-            score += ' Live';
+            score += ' LIVE';
          }
 
          return { score, position, positions, complete, winner: winner_index }
@@ -758,7 +758,7 @@ let scoreBoard = function() {
 
       if (outcome) {
          if (outcome == 'INT.') sets.interrupted = true;
-         if (outcome == 'Live') sets.live = true;
+         if (outcome == 'LIVE') sets.live = true;
 
          if (!sets.length) return sets;
 
