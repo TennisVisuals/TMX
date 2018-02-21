@@ -42,7 +42,7 @@ let config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.84.61.38',
+      version: '0.9.85.64.41',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -101,7 +101,7 @@ let config = function() {
                after: true
             },
             minimums: {
-               singles: 4,
+               singles: 2,
                doubles: 2
             }
          },
@@ -305,6 +305,7 @@ let config = function() {
    function updateSettings(settings) {
       return new Promise((resolve, reject) => {
          if (!settings) resolve();
+         dev.settings = settings;
          db.db.settings.where('key').equals('superUser').delete().then(newSettings, reject);
          function newSettings() { Promise.all(settings.map(s=>db.addSetting(s))).then(resolve, reject) }
       });
@@ -738,12 +739,6 @@ let config = function() {
             let pt = getKey('pointsTable');
             if (pt) o.settings.points_table = pt.table;
 
-            let td = getKey('treeDraw');
-            if (td) {
-               util.boolAttrs(td.options);
-               env.draws.tree_draw = Object.assign(env.draws.tree_draw, td.options);
-            }
-
             let misc = getKey('envSettings');
             if (misc && misc.settings) {
                util.boolAttrs(misc.settings);
@@ -754,6 +749,13 @@ let config = function() {
             if (draws && draws.settings) {
                util.boolAttrs(draws.settings);
                util.keyWalk(draws.settings, env.draws);
+            }
+
+            // TODO: all keys need to replace 'treeDraw' with 'drawSettings'
+            let td = getKey('treeDraw');
+            if (td) {
+               util.boolAttrs(td.options);
+               env.draws.tree_draw = Object.assign(env.draws.tree_draw, td.options);
             }
 
             let settings_tabs = getKey('settingsTabs');
