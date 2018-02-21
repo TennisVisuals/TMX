@@ -473,33 +473,6 @@ let coms = function() {
       });
    }
 
-   function ctsRankings(url) {
-      return new Promise((resolve, reject) => {
-         fetchHTML(url || 'http://www.cztenis.cz/starsi-zactvo/zebricky').then(doc => {
-            var players = [];
-            var rows = Array.from(doc.querySelectorAll('.table-condensed tbody tr'));
-            rows.forEach(row => {
-               var cols = Array.from(row.querySelectorAll('td'));
-               let player = {
-                  "kz": cols[0].innerText,
-                  "rank": cols[1].innerText,
-                  "name": cols[2].innerText,
-                  "birth": cols[3].innerText.split('.').reverse().join('-'),
-                  "club": cols[4].innerText,
-                  "dvouhra": cols[5].innerText,
-                  "čtyřhry": cols[6].innerText,
-                  "points": cols[7].innerText,
-                  "BH": cols[8].innerText,
-                  "rCŽ": cols[9].innerText,
-               }
-               player.id = row.querySelector('a').href.split('/').reverse()[0];
-               players.push(player);
-            });
-            resolve(players);
-         }, err => console.log(err));
-      });
-   }
-
    function updatePlayerDates() {
       console.log('updating player dates');
       fetchPlayerDates().then(processDates, (err) => console.log(err));
