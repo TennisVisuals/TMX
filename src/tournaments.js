@@ -586,8 +586,8 @@ let tournaments = function() {
                   tournament.delegated = key_uuid;
                   deactivateEdit();
 
-                  // let message = `${location.origin}/Live/?actionKey=${key_uuid}`;
-                  let message = `${location.origin}/devel/live/?actionKey=${key_uuid}`;
+                  let devel = location.pathname.indexOf('devel') >= 0;
+                  let message = `${location.origin}${devel ? '/devel' : ''}/Live/?actionKey=${key_uuid}`;
                   console.log(message);
                   finish();
 
