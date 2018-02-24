@@ -38,6 +38,7 @@ let scoreBoard = function() {
       let set_scores = existing_scores || [];
       let action_drawer = false;
 
+      // TODO: flags should be configurable
       let flags = true;
       let sobj = gen.scoreBoard({ container, teams, flags });
       if (round) sobj.round.element.innerHTML = round;
