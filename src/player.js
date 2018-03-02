@@ -179,26 +179,30 @@ let player = function() {
    function matchOutcome(match, puid) {
       let player_won = null;
       let winning_puids = [];
+      let winning_team;
+      let losing_team;
       let losing_puids = [];
 
       // TODO: this is a patch for matches from database
       // .teams needs to be updated to .team_players
       if (!match.team_players) match.team_players = match.teams;
 
-      let winning_team = match.team_players[match.winner].map(pindex => {
-         let player =  match.players[pindex];
-         winning_puids.push(player.puid);
-         if (player.puid == puid) player_won = true;
-         return `${player.full_name}${player.rank ? ' [' + player.rank + ']' : ''}`;
-      }).join('; ');
+      if (match.winner != undefined) {
+         winning_team = match.team_players[match.winner].map(pindex => {
+            let player =  match.players[pindex];
+            winning_puids.push(player.puid);
+            if (player.puid == puid) player_won = true;
+            return `${player.full_name}${player.rank ? ' [' + player.rank + ']' : ''}`;
+         }).join('; ');
 
-      let losing_team = match.team_players[1 - match.winner].map(pindex => {
-         let player =  match.players[pindex];
-         if (!player) return 'Undefined';
-         losing_puids.push(player.puid);
-         if (player.puid == puid) player_won = false;
-         return `${player.full_name}${player.rank ? ' [' + player.rank + ']' : ''}`;
-      }).join('; ');
+         losing_team = match.team_players[1 - match.winner].map(pindex => {
+            let player =  match.players[pindex];
+            if (!player) return 'Undefined';
+            losing_puids.push(player.puid);
+            if (player.puid == puid) player_won = false;
+            return `${player.full_name}${player.rank ? ' [' + player.rank + ']' : ''}`;
+         }).join('; ');
+      }
 
       return { player_won, winning_team, losing_team, winning_puids, losing_puids };
    }
