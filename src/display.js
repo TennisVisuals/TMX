@@ -3068,13 +3068,13 @@
       let display = events && events.length;
       let html = !display ? '' : `
          <div class='event_row events_header'>
+            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("cat")}'><div class='event_icon category_header'></div></div>
             <div class='cell event_name'>${lang.tr('events.name')}</div>
             <div class='cell event_draw_type'>${lang.tr('events.draw_type')}</div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.draw_size")}'><div class='event_icon drawsize_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.opponents")}'><div class='event_icon opponents_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("mts")}'><div class='event_icon matches_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("sch")}'><div class='event_icon time_header'></div></div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("cat")}'><div class='event_icon category_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.rank")}'><div class='event_icon rank_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("inout")}'><div class='event_icon inout_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.surface")}'><div class='event_icon surface_header'></div></div>
@@ -3112,13 +3112,13 @@
 
       let html = `
          <div class='event event_row${highlight}${warning}' index='${i}'>
+            <div class='event_data flexcenter'>${e.category}</div>
             <div class='event_name'>${e.name}</div>
             <div class='event_draw_type'>${e.draw_type}</div>
             <div class='event_data flexcenter'>${e.draw_size}</div>
             <div class='event_data flexcenter'>${e.opponents}</div>
             <div class='event_data flexcenter'>${e.total_matches || 0}</div>
             <div class='event_data flexcenter'>${e.scheduled || 0}</div>
-            <div class='event_data flexcenter'>${e.category}</div>
             <div class='event_data flexcenter'>${e.rank}</div>
             <div class='event_data flexcenter'><div class='event_icon ${inout_icons[e.inout]}'></div></div>
             <div class='event_data flexcenter'><div class='event_icon ${surface_icons[e.surface[0]]}'></div></div>

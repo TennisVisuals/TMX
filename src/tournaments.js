@@ -592,7 +592,10 @@ let tournaments = function() {
                   finish();
 
                   gen.escapeFx = undefined;
-                  let ctext = `<canvas id='qr'></canvas><p id='msg'>${lang.tr('phrases.scanQRcode')}</p>`;
+                  let ctext = `
+                     <p id='msg'>${lang.tr('phrases.scanQRcode')}</p>
+                     <canvas id='qr'></canvas>
+                     `;
                   let msg = gen.okCancelMessage(ctext, () => gen.closeModal('processing'));
                   genQUR(message);
                }
@@ -600,6 +603,7 @@ let tournaments = function() {
             };
 
             tournament.published = new Date().getTime();
+            if (!tournament.org) tournament.org = config.env().org;
             let delegationKey = {
                key_uuid,
                "tournament": CircularJSON.stringify(tournament),
@@ -617,12 +621,12 @@ let tournaments = function() {
          // TODO: publink /draws/ could be /HTS/ ... would have to be a key setting
          let message = `${location.origin}/draws/?tuid=${tournament.tuid}`;
          let ctext = `
-            <canvas id='qr'></canvas>
             <div class='flexcenter flexrow' style='width: 100%; margin-top: .5em; margin-bottom: .5em;'>
                <div class='pdf action_icon' style='display: none'></div>
                <a id='dl' download='tournamenturl'><div class='png action_icon'></div></a>
                <div id='cb' class='clipboard action_icon'></div>
             </div>
+            <div><canvas id='qr'></canvas></div>
             <div id='msg' style='display: none;'>${lang.tr('phrases.linkcopied')}</div>
             `;
          let msg = gen.okCancelMessage(ctext, () => gen.closeModal());
@@ -647,14 +651,14 @@ let tournaments = function() {
          var qr = new QRious({
             element: document.getElementById('qr'),
             level: 'H',
-            size: 250,
+            size: 200,
             value: message
          });
       }
 
       function pushTournament2Cloud() {
          let ouid = config.env().org && config.env().org.ouid;
-         if (!tournament.ouid) tournament.ouid = ouid;
+         if (!tournament.org) tournament.org = config.env().org;
 
          tournament.published = new Date().getTime();
          coms.emitTmx({
@@ -2648,7 +2652,8 @@ let tournaments = function() {
       }
 
       function eventName(e) {
-         e.name = `${getKey(genders, e.gender)} ${config.legacyCategory(e.category, true)} ${getKey(formats, e.format)}`;
+         // e.name = `${getKey(genders, e.gender)} ${config.legacyCategory(e.category, true)} ${getKey(formats, e.format)}`;
+         e.name = `${getKey(genders, e.gender)} ${getKey(formats, e.format)}`;
          gen.setEventName(container, e);
          eventList();
       }
@@ -5260,7 +5265,6 @@ let tournaments = function() {
             tournament: {
                name: tournament.name,
                tuid: tournament.tuid,
-               sid: tournament.sid,
                org: config.env().org,
                start: tournament.start,
                end: tournament.end,
@@ -5480,13 +5484,15 @@ let tournaments = function() {
 
       function scoreRoundRobin(e, existing_scores, outcome) {
          if (!outcome) return;
+         console.log(outcome);
 
          var qlink = e.draw_type == 'R' && findEventByID(e.links['E']);
          var qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
          var puids = outcome.teams.map(t=>t[0].puid);
          var findMatch = (e, n) => (util.intersection(n.match.puids, puids).length == 2) ? n : e;
          var match_event = eventMatches(e, tournament).reduce(findMatch, undefined);
-         var previous_winner = match_event.match.winner ? match_event.match.winner.map(m=>m.id) : undefined;
+         var winner = match_event.match.winner && match_event.match.winner.filter(f=>f).length;
+         var previous_winner = winner ? match_event.match.winner.map(m=>m.id) : undefined;
          var current_winner = outcome.winner != undefined ? outcome.teams[outcome.winner].map(m=>m.id) : undefined;
          var qualifier_changed = !previous_winner ? undefined : util.intersection(previous_winner, current_winner).length == 0;
 
