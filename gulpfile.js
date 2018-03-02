@@ -12,7 +12,6 @@ var exec = require('child_process').exec;
 var banner = "// CourtHive Ranking\n";
 
 let rootdir = '~/Development/node/CourtHive';
-// let rootdir = '/Users/posiwid/Development/Projects/node/AiP/v4';
 
 let pkg = {
    source: 'source',
