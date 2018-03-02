@@ -89,6 +89,13 @@ let scoreBoard = function() {
             if (scoreGoal(last_set[0].games, last_set[1].games)) {
                set_number += 1;
             }
+         } else if (set_scores.retired) {
+            let retired = existing_scores.winner_index != undefined ? 1 - existing_scores.winner_index : undefined;
+            sobj.p1action.ddlb.setValue(retired == 1 ? 'RET.' : '');
+            sobj.p2action.ddlb.setValue(retired == 0 ? 'RET.' : '');
+            sobj.p1action.ddlb.lock();
+            sobj.p2action.ddlb.lock();
+            displayActions(false);
          }
       }
 
@@ -572,20 +579,23 @@ let scoreBoard = function() {
          let position = teams[winner][0].draw_position;
          let positions = teams.map(team => team[0].draw_position);
 
-         if (s1 == 'retired' || s2 == 'retired') score += ' RET.';
-         if (s1 == 'walkover' || s2 == 'walkover') score = 'W.O.';
-         if (s1 == 'defaulted' || s2 == 'defaulted') score += ' DEF.';
+         if (s1 == 'retired' || s2 == 'retired') { score += ' RET.'; set_scores.retired = true; }
+         if (s1 == 'walkover' || s2 == 'walkover') { score = 'W.O.'; set_scores.walkover = true; }
+         if (s1 == 'defaulted' || s2 == 'defaulted') { score += ' DEF.'; set_scores.defaulted = true; }
          if (s1 == 'abandoned' || s2 == 'abandoned') {
             complete = false;
             score += ' Abandonded';
+            set_scores.abandonded = true;
          }
          if (s1 == 'interrupted' || s2 == 'interrupted') {
             complete = false;
             score += ' INT.';
+            set_scores.interrupted = true;
          }
          if (s1 == 'live' || s2 == 'live') {
             complete = false;
             score += ' LIVE';
+            set_scores.live = true;
          }
 
          return { score, position, positions, complete, winner: winner_index }
@@ -706,7 +716,7 @@ let scoreBoard = function() {
       let ss = /(\d+)/;
       let sst = /(\d+)\((\d+)\)/;
 
-      let sets = string_score.split(split).map(set => {
+      let sets = string_score.split(split).filter(f=>f).map(set => {
 
          if (set.indexOf('/') > 0) {
             // look for supertiebreak scores using #/# format
@@ -760,6 +770,7 @@ let scoreBoard = function() {
       if (outcome) {
          if (outcome == 'INT.') sets.interrupted = true;
          if (outcome == 'LIVE') sets.live = true;
+         if (outcome == 'RET.') sets.retired = true;
 
          if (!sets.length) return sets;
 
@@ -772,6 +783,8 @@ let scoreBoard = function() {
             sets.outome = outcome;
          }
       }
+
+      if (winner_index != undefined) sets.winner_index = winner_index;
 
       return sets;
    }
