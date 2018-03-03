@@ -317,7 +317,11 @@ let player = function() {
    }
 
    fx.registration = (player) => player && player.registered_until ? new Date(player.registered_until) > new Date() : true;
-   fx.medical = (player) => player && player.right_to_play_until ? new Date(player.right_to_play_until) > new Date() : true;
+   fx.medical = (player, tournament) => {
+      var validity_date = tournament && tournament.start ? new Date(tournament.start) : new Date();
+      var medical_until = player && player.right_to_play_until ? new Date(player.right_to_play_until) : validity_date;
+      return medical_until >= validity_date;
+   }
 
    fx.createNewPlayer = createNewPlayer;
    function createNewPlayer({player_data={}, category, callback, date=new Date()} = {}) {
