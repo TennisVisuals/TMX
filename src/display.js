@@ -1738,7 +1738,7 @@
       }
    }
 
-   gen.displayTournamentPlayers = ({ container, players, filters=[], edit }) => {
+   gen.displayTournamentPlayers = ({ container, tournament, players, filters=[], edit }) => {
       if (!players) {
          container.players.element.innerHTML = '';
          return;
@@ -1754,11 +1754,11 @@
       if (filters.indexOf('W') >= 0) players = players.filter(f=>f.sex != 'W');
 
       let wd = (p) => (p.withdrawn == true || p.withdrawn == 'Y') && !p.signed_in;
-      let not_signed_in = players.filter(p => !wd(p) && !p.signed_in && player.medical(p));
+      let not_signed_in = players.filter(p => !wd(p) && !p.signed_in && player.medical(p, tournament));
       let signed_in = players.filter(p => !wd(p) && p.signed_in);
       let not_withdrawn = players.filter(p => !wd(p));
       let withdrawn = players.filter(wd);
-      let medical_issues = !edit ? [] : players.filter(p => !player.medical(p) && !wd(p) && !p.signed_in);
+      let medical_issues = !edit ? [] : players.filter(p => !player.medical(p, tournament) && !wd(p) && !p.signed_in);
 
       let additional_attributes = [];
       let cropin = players.reduce((p, c) => c && c.cropin ? true : p, false);
@@ -1768,7 +1768,7 @@
       let html = '';
       let display_order = {}
       let rowHTML = (p, i, gender) => {
-         html += tpRow(p, i + 1, j, gender, additional_attributes);
+         html += tpRow(tournament, p, i + 1, j, gender, additional_attributes);
          display_order[p.puid] = j;
          j+=1;
       }
@@ -1820,7 +1820,7 @@
    }
 
    // TODO: make additional rows configurable; CROPIN should be configuration option
-   function tpRow(p, i, j, gender, additional_attributes) {
+   function tpRow(tournament, p, i, j, gender, additional_attributes) {
       let ioc = p.ioc && p.ioc.length == 3 ? p.ioc.toUpperCase() : '';
       if (ioc == '' && p.foreign == 'Y') ioc = 'INO';
 
@@ -1828,7 +1828,7 @@
       let birthyear = !isNaN(birth) ? birth : '----';
 
       let font_color = !gender ? 'black' : gender == 'W' ? '#840076' : '#00368c'; 
-      let medical_icon = !player.medical(p) ? `&nbsp;<div class='medical_icon'></div>` : '';
+      let medical_icon = !player.medical(p, tournament) ? `&nbsp;<div class='medical_icon'></div>` : '';
       let penalty_icon = p.penalties && p.penalties.length ? `&nbsp;<div class='penalty_icon'></div>` : '';
       let font_weight = penalty_icon ? 'bold' : 'normal';
       let style = `style='color: ${font_color}; font-weight: ${font_weight}'`;
@@ -3112,7 +3112,7 @@
 
       let html = `
          <div class='event event_row${highlight}${warning}' index='${i}'>
-            <div class='event_data flexcenter'>${e.category}</div>
+            <div class='event_data'>${e.category}</div>
             <div class='event_name'>${e.name}</div>
             <div class='event_draw_type'>${e.draw_type}</div>
             <div class='event_data flexcenter'>${e.draw_size}</div>
