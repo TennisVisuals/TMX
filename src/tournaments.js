@@ -3069,6 +3069,8 @@ let tournaments = function() {
          return ranked;
       }
 
+      function qualifierSeedLimit(e) { return (config.env().drawFx.qualifying_bracket_seeding) ? (e.qualifiers * 2) : 0; }
+
       function approvedPlayers(e) {
          let approved_players = tournament.players
             .filter(p => e.approved.indexOf(p.id) >= 0)
@@ -3079,7 +3081,8 @@ let tournaments = function() {
 
          // Round Robins must have at least one seed per bracket
          if (e.draw_type == 'R') { seed_limit = Math.max(seed_limit, e.brackets * 2); }
-         if (e.draw_type == 'Q') seed_limit = (e.qualifiers * 2) || Math.max(seed_limit, e.qualifiers);
+         // if (e.draw_type == 'Q') seed_limit = (e.qualifiers * 2) || Math.max(seed_limit, e.qualifiers);
+         if (e.draw_type == 'Q') seed_limit = qualifierSeedLimit(e) || Math.max(seed_limit, e.qualifiers);
          if (e.draw_type == 'C' && !config.env().drawFx.consolation_seeding) seed_limit = 0;
 
          let ranked_players = approved_players.filter(a=>a.category_ranking).length;
@@ -3274,7 +3277,8 @@ let tournaments = function() {
 
          var seeded_teams = dfx.seededTeams({ teams: approved_opponents });
          var seed_limit = Math.min(Object.keys(seeded_teams).length, dfx.seedLimit(approved_opponents.length));
-         if (e.draw_type == 'Q') seed_limit = (e.qualifiers * 2) || seed_limit;
+         // if (e.draw_type == 'Q') seed_limit = (e.qualifiers * 2) || seed_limit;
+         if (e.draw_type == 'Q') seed_limit = qualifierSeedLimit(e) || seed_limit;
 
          var num_players = approved_opponents.length;
 
@@ -3289,7 +3293,11 @@ let tournaments = function() {
                e.draw = dfx.buildDraw({ teams: draw_size, structural_byes });
                e.draw.max_round = util.log2(util.nearestPow2(draw_size)) - util.log2(e.qualifiers);
                e.draw.seeded_teams = seeded_teams;
-               e.draw.seed_placements = dfx.qualifyingSeedPlacements({ draw: e.draw, num_players: draw_size, qualifiers: e.qualifiers, seed_limit });
+               if (config.env().drawFx.qualifying_bracket_seeding) {
+                  e.draw.seed_placements = dfx.qualifyingBracketSeeding({ draw: e.draw, num_players: draw_size, qualifiers: e.qualifiers, seed_limit });
+               } else {
+                  e.draw.seed_placements = dfx.validSeedPlacements({ num_players, random_sort: true, seed_limit });
+               }
 
             } else {
                e.draw = dfx.buildQualDraw(num_players, e.qualifiers || 1);
@@ -3299,7 +3307,7 @@ let tournaments = function() {
                e.draw.seeded_teams = [];
                if (e.qualifiers > 2 && e.draw_type == 'Q') {
                   e.draw.seeded_teams = seeded_teams;
-                  e.draw.seed_placements = dfx.qualifyingSeedPlacements({ draw: e.draw, num_players: draw_size, qualifiers: e.qualifiers, seed_limit });
+                  e.draw.seed_placements = dfx.qualifyingBracketSeeding({ draw: e.draw, num_players: draw_size, qualifiers: e.qualifiers, seed_limit });
                } else {
                   approved_opponents.forEach(o => { delete o[0].seed });
                }
@@ -4644,7 +4652,7 @@ let tournaments = function() {
             d3.select('#YT' + container.container.id).style('display', 'none');
             return;
          }
-         let display_order = gen.displayTournamentPlayers({ container, players: t_players, filters, edit: state.edit });
+         let display_order = gen.displayTournamentPlayers({ container, tournament, players: t_players, filters, edit: state.edit });
 
          // now add event to all players to display player profile
          let signInState = (evt) => {
@@ -5484,7 +5492,6 @@ let tournaments = function() {
 
       function scoreRoundRobin(e, existing_scores, outcome) {
          if (!outcome) return;
-         console.log(outcome);
 
          var qlink = e.draw_type == 'R' && findEventByID(e.links['E']);
          var qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
