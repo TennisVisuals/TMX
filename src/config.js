@@ -42,7 +42,7 @@ let config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.85.66.41',
+      version: '0.9.86.67.43',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -77,8 +77,9 @@ let config = function() {
          auto_byes: true,
          auto_qualifiers: false,
          fixed_bye_order: false,
-         compressed_draw_formats: true,
          consolation_seeding: false,
+         compressed_draw_formats: true,
+         qualifying_bracket_seeding: true,
          consolation_from_elimination: true,
          consolation_from_qualifying: false,
          seed_limits: [ [0, 0], [4, 2], [11, 4], [21, 8], [41, 16], [97, 32] ],
