@@ -1,3 +1,6 @@
+// import { db } from './db'
+// import { config } from './config'
+
 let coms = function() {
 
    let fx = {
