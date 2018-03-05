@@ -1946,6 +1946,10 @@ let tournaments = function() {
          }
       }
 
+      function isPreRound(e) {
+         return e.draw_type == 'Q' && e.approved && e.approved.length && e.qualifiers == e.draw_size / 2 && config.env().drawFx.qualifying_bracket_seeding;
+      }
+
       function eventList(regen_drawstab = false) {
          let events = [];
          let highlight_listitem;
@@ -1958,8 +1962,7 @@ let tournaments = function() {
                let event_matches = eventMatches(e, tournament);
                let scheduled = event_matches.filter(m=>m.match && m.match.schedule && m.match.schedule.court).length;
 
-               let pre = e.draw_type == 'Q' && e.approved && e.approved.length && e.qualifiers == e.approved.length / 2;
-               let draw_type = pre ? lang.tr('draws.preround') : getKey(draw_types, e.draw_type); 
+               let draw_type = isPreRound(e) ? lang.tr('draws.preround') : getKey(draw_types, e.draw_type); 
 
                return {
                   scheduled,
@@ -2354,6 +2357,8 @@ let tournaments = function() {
       function qualifyingDrawSizeOptions(e) {
          let upper_range = e.approved && e.approved.length ? Math.max(e.approved.length, 1) : 1;
          let range = d3.range(0, Math.min(16, upper_range));
+         let qbs = config.env().drawFx.qualifying_bracket_seeding;
+         if (!qbs) range = range.filter(v => v == util.nearestPow2(v));
          let max_qualifiers = Math.max(...range);
          let options = range.map(c => ({ key: c, value: c }));
          return { max_qualifiers, options }
@@ -2652,7 +2657,6 @@ let tournaments = function() {
       }
 
       function eventName(e) {
-         // e.name = `${getKey(genders, e.gender)} ${config.legacyCategory(e.category, true)} ${getKey(formats, e.format)}`;
          e.name = `${getKey(genders, e.gender)} ${getKey(formats, e.format)}`;
          gen.setEventName(container, e);
          eventList();
@@ -3098,8 +3102,7 @@ let tournaments = function() {
          let alternate_ids = (e.draw_type == 'C' && linkedE && linkedE.approved) ?
             approved_players.map(ap => ap.id).filter(i => linkedE.approved.indexOf(i) < 0) : [];
 
-         let pre = e.draw_type == 'Q' && e.approved && e.approved.length && e.qualifiers == e.approved.length / 2;
-         let seeding = !pre && rankedTeams(approved_players);
+         let seeding = !isPreRound(e) && rankedTeams(approved_players);
 
          approved_players = approved_players
             .map((p, i) => {
@@ -3260,24 +3263,24 @@ let tournaments = function() {
 
       function generateDraw(e, delete_existing) {
          try { drawGeneration(e, delete_existing); }
-         catch (err) { logEventError(e, error, 'drawGeneration'); }
+         catch (err) { logEventError(e, err, 'drawGeneration'); }
       }
 
       function drawGeneration(e, delete_existing) {
          var approved_opponents = approvedOpponents(e);
 
          // delete any existing draw AFTER capturing any player data (entry information)
-         if (displayed_draw_event && delete_existing) delete displayed_draw_event.draw;
+         if (delete_existing) delete e.draw;
+
+         if (!approved_opponents.length) {
+            delete e.draw;
+            return;
+         }
 
          var draw_type = e.draw_type == 'R' ? 'rr_draw' : 'tree_draw';
-         var minimums = config.env().draws[draw_type].minimums;
-         var minimum_opponents = e.draw_type == 'P' ? 2 : e.format == 'S' ? minimums.singles : minimums.doubles;
-
-         if (!approved_opponents.length || approved_opponents.length < minimum_opponents) return;
 
          var seeded_teams = dfx.seededTeams({ teams: approved_opponents });
          var seed_limit = Math.min(Object.keys(seeded_teams).length, dfx.seedLimit(approved_opponents.length));
-         // if (e.draw_type == 'Q') seed_limit = (e.qualifiers * 2) || seed_limit;
          if (e.draw_type == 'Q') seed_limit = qualifierSeedLimit(e) || seed_limit;
 
          var num_players = approved_opponents.length;
@@ -3288,9 +3291,10 @@ let tournaments = function() {
 
          let qualification = () => {
             let draw_size = dfx.acceptedDrawSizes(num_players);
-            if ([1, 2, 4, 8, 16, 32, 64].indexOf(e.qualifiers) >= 0 && draw_size == util.nearestPow2(draw_size)) {
-               let structural_byes = draw_size == 12 ? dfx.structuralByes(draw_size, true) : undefined;
-               e.draw = dfx.buildDraw({ teams: draw_size, structural_byes });
+            if (!meetsMinimums(draw_size)) return;
+
+            if ([1, 2, 4, 8, 16, 32, 64].indexOf(e.qualifiers) >= 0) {
+               e.draw = dfx.buildDraw({ teams: draw_size });
                e.draw.max_round = util.log2(util.nearestPow2(draw_size)) - util.log2(e.qualifiers);
                e.draw.seeded_teams = seeded_teams;
                if (config.env().drawFx.qualifying_bracket_seeding) {
@@ -3323,7 +3327,7 @@ let tournaments = function() {
 
             if (e.automated) {
                if (e.draw.max_round && e.draw.max_round == 1) {
-                  // if pre-round, distribute byes FIRST, because all ranked players are seeded
+                  // if pre-round, distribute byes FIRST
                   dfx.distributeByes({ draw: e.draw });
                   dfx.placeSeedGroups({ draw: e.draw });
                } else {
@@ -3345,6 +3349,7 @@ let tournaments = function() {
          let elimination = () => {
             let num_players = approved_opponents.length + e.qualifiers;
             e.draw_size = dfx.acceptedDrawSizes(num_players);
+            if (!meetsMinimums(e.draw_size)) return;
 
             // build a blank draw 
             // TODO:  why is this == 12 ???!!???
@@ -3393,11 +3398,12 @@ let tournaments = function() {
             // if (!config.env().drawFx.consolation_seeding) seed_limit = 0;
             
             e.draw_size = dfx.acceptedDrawSizes(num_players);
+            if (!meetsMinimums(e.draw_size)) return;
 
             if (e.structure == 'feed') {
-               e.draw = dfx.feedInDraw({ teams: dfx.acceptedDrawSizes(num_players) });
+               e.draw = dfx.feedInDraw({ teams: e.draw_size });
             } else {
-               e.draw = dfx.buildDraw({ teams: dfx.acceptedDrawSizes(num_players) });
+               e.draw = dfx.buildDraw({ teams: e.draw_size });
                e.draw.unseeded_placements = [];
                e.draw.opponents = approved_opponents;
                e.draw.seed_placements = dfx.validSeedPlacements({ num_players, random_sort: true, seed_limit });
@@ -3462,6 +3468,14 @@ let tournaments = function() {
          }
 
          if (drawTypes[e.draw_type] && !e.active) drawTypes[e.draw_type](); 
+
+         function meetsMinimums(draw_size) {
+            var minimums = config.env().draws[draw_type].minimums;
+            var minimum_draw_size = e.draw_type == 'P' ? 2 : e.format == 'S' ? minimums.singles : minimums.doubles;
+            let meets_minimum = (draw_size >= minimum_draw_size);
+            if (!meets_minimum) delete e.draw;
+            return meets_minimum;
+         }
       }
 
       function eventPlayers(e) {
@@ -5161,7 +5175,7 @@ let tournaments = function() {
       }
 
       function eventBroadcastObject(tourny, evt, draw=true) {
-         let draw_type_name = gen.genEventName(evt).type;
+         let draw_type_name = gen.genEventName(evt, isPreRound(evt)).type;
 
          let ebo = { 
             tournament: {
@@ -7315,7 +7329,7 @@ let tournaments = function() {
          if (event_draws) {
             draw_options = tournament.events.map((e, i) => { 
                if (displayed_event && displayed_event == e.euid) selection = i;
-               let edt = gen.genEventName(e).type || '';
+               let edt = gen.genEventName(e, isPreRound(e)).type || '';
                return { key: `${e.name} ${edt}`, value: i }
             });
             onChange = genEventDraw;
@@ -7718,13 +7732,22 @@ let tournaments = function() {
       searchBox.focus();
    }
 
+   fx.calcYear = (year) => {
+      db.findAllTournaments().then(tz => {
+         let ty = tz.filter(t=>new Date(t.start).getFullYear() == year);
+         console.log(ty.length);
+         fx.calcTournaments(ty).then(() => console.log('done'));
+      });
+   }
+   function calcTournament(t) { return calcTournamentPoints({tournament: t}); }
+   fx.calcTournaments = (tournaments) => util.performTask(calcTournament, tournaments, false);
+
+   fx.calcTournamentPoints = calcTournamentPoints;
    function calcTournamentPoints({ tournament }) {
       return new Promise( (resolve, reject) => {
-         db.db.matches.where('tournament.tuid').equals(tournament.tuid).toArray(calcPoints); 
-
          var tournament_date = tournament && (tournament.points_date || tournament.end);
          var points_date = tournament_date ? new Date(tournament_date) : new Date();
-         var points_table = pointsTable({ calc_date: points_date });
+         var points_table = config.pointsTable({ calc_date: points_date });
 
          var rankings = {
             category: undefined,
@@ -7745,13 +7768,22 @@ let tournaments = function() {
                rankings.w_dbl_rank = tournament.accepted.W.dbl_rank;
                rankings.W = tournament.accepted.W;
             }
+            db.deleteTournamentPoints(tournament.tuid).then(fetchMatches, (err) => console.log(err));
+         } else if (tournament.category == '10') {
+            console.log('U10...');
+            resolve();
+         } else {
+            console.log('no accepted rankings... points not calculated', tournament);
+            resolve();
          }
 
          var addPointEvents = (point_events) => util.performTask(db.addPointEvent, point_events, false);
 
-         function calcPoints(matches) {
-            console.log('rankings category:', rankings.category);
+         function fetchMatches() {
+            db.db.matches.where('tournament.tuid').equals(tournament.tuid).toArray(calcPoints); 
+         }
 
+         function calcPoints(matches) {
             var match_data = { matches, category: rankings.category, rankings, date: points_date, points_table };
             var points = rank.bulkPlayerPoints(match_data);
 
@@ -7864,6 +7896,7 @@ let tournaments = function() {
    }
 
    // takes a list of matches creates a list of players and events they played/are playing
+   fx.matchPlayers = matchPlayers;
    function matchPlayers(matches) {
       if (!matches) return [];
       addMatchDraw(matches);

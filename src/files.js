@@ -280,6 +280,7 @@
          let cursor = 0;
          let category_matches = category ? matches.filter(m => m.tournament.category == category) : matches;
          removePointsRankings(category_matches);
+         removeExtraneous(matches);
          while (cursor < category_matches.length) {
             exp.downloadJSON(`${category ? 'U' : '12-S'}${category || ''}-matches.json`, category_matches.slice(cursor, cursor + group_size));
             cursor += group_size;
@@ -287,6 +288,12 @@
       });
    }
 
+   function removeExtraneous(matches) {
+      matches.forEach(match => {
+         delete match.outcome;
+         delete match.dependent;
+      });
+   }
    function removePointsRankings(matches) {
       matches.forEach(match => match.players.forEach(player => { delete player.points; delete player.rankings; }));
    }

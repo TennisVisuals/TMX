@@ -190,7 +190,7 @@ let player = function() {
       if (match.winner != undefined) {
          winning_team = match.team_players[match.winner].map(pindex => {
             let player =  match.players[pindex];
-            winning_puids.push(player.puid);
+            if (player.puid) winning_puids.push(player.puid);
             if (player.puid == puid) player_won = true;
             return `${player.full_name}${player.rank ? ' [' + player.rank + ']' : ''}`;
          }).join('; ');
@@ -198,7 +198,7 @@ let player = function() {
          losing_team = match.team_players[1 - match.winner].map(pindex => {
             let player =  match.players[pindex];
             if (!player) return 'Undefined';
-            losing_puids.push(player.puid);
+            if (player.puid) losing_puids.push(player.puid);
             if (player.puid == puid) player_won = false;
             return `${player.full_name}${player.rank ? ' [' + player.rank + ']' : ''}`;
          }).join('; ');

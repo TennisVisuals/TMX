@@ -815,6 +815,80 @@
       });
    }
 
+   /*
+   rank.calcTournamentPoints = (tournament, callback) => {
+      db.findTournamentMatches(tournament.tuid).then(processMatches, util.logError);
+      function processMatches(matches) {
+         players = tournament.players || tournaments.matchPlayers(matches);
+         var tournament_date = tournament && (tournament.points_date || tournament.end);
+         var points_date = tournament_date ? new Date(tournament_date) : new Date();
+
+         checkAllPlayerPUIDs(tournament.players).then(proceed, util.logError);
+
+         function proceed() {
+            var puid_fix = Object.assign({}, ...tournament.players.map(p=>({[p.id]: p.puid})));
+
+            // remove any calculated points or rankings
+            matches.forEach(match => match.players.forEach(scrubPlayer));
+
+            var points_table = config.pointsTable({ calc_date: points_date });
+
+            var match_data = { matches: matches, points_table, points_date };
+            var points = rank.calcMatchesPoints(match_data);
+            savePoints({ tournament, points, finishFx: callback });
+
+            function scrubPlayer(p) {
+               p.puid = puid_fix[p.id];
+               return player.cleanPlayer(p);
+            }
+         }
+
+         function checkAllPlayerPUIDs(players) {
+            return new Promise((resolve, reject) => Promise.all(players.map(checkPlayerPUID)).then(resolve, util.logError));
+         }
+
+         function checkPlayerPUID(plyr) {
+            return new Promise((resolve, reject) => {
+               db.findPlayerById(plyr.id).then(checkPlayer, ()=>resolve(plyr));
+               function checkPlayer(p) {
+                  if (p) plyr.puid = p.puid;
+                  resolve(plyr);
+               }
+            });
+         }
+
+         // copied from tournaments object
+         function savePoints({ tournament, points, gender, finishFx }) {
+            db.deleteTournamentPoints(tournament.tuid, gender).then(saveAll, (err) => console.log(err));
+
+            function saveAll() {
+               let finish = (result) => { if (typeof finishFx == 'function') finishFx(result); }
+               let singles_points = Object.keys(points.singles).map(player => points.singles[player]);
+               let doubles_points = Object.keys(points.doubles).map(player => points.doubles[player]);
+               let all_points = [].concat(...singles_points, ...doubles_points);
+
+               // total points adds all points for all players
+               let total_points = all_points.length ? all_points.map(p => p.points).reduce((a, b) => +a + (+b || 0)) : 0;
+
+               // if anyone earned points, save point_events then finishFx (if any)
+               if (total_points) {
+                  Promise.all(all_points.map(checkPlayerPUID)).then(addAllPoints, util.logError);
+
+                  function addAllPoints(ap) {
+                     let addPointEvents = (point_events) => util.performTask(db.addPointEvent, point_events, false);
+                     let valid_points = all_points.filter(p => p.points != undefined && p.puid);
+                     addPointEvents(valid_points).then(finish);
+                  }
+
+               } else {
+                  finish();
+               }
+            }
+         }
+      }
+   }
+   */
+
    if (typeof define === "function" && define.amd) define(rank); else if (typeof module === "object" && module.exports) module.exports = rank;
    this.rank = rank;
  

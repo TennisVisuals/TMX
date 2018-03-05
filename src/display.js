@@ -3367,14 +3367,13 @@
       return idObj(ids);
    }
 
-   gen.genEventName = (e) => {
+   gen.genEventName = (e, pre) => {
       let types = {
          'R': lang.tr('draws.roundrobin'),
          'C': lang.tr('draws.consolation'),
          'Q': lang.tr('draws.qualification'),
          'P': lang.tr('pyo'),
       }
-      let pre = e.draw_type == 'Q' && e.approved && e.approved.length && e.qualifiers == e.approved.length / 2;
       let type = pre ? lang.tr('draws.preround'): types[e.draw_type] || lang.tr('draws.maindraw');
       let name = `${e.name}&nbsp;<span class='event_type'>${type}</span>`;
       return { type, name }

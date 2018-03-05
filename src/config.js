@@ -42,7 +42,7 @@ let config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.86.67.43',
+      version: '0.9.87.69.45',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -1002,6 +1002,7 @@ let config = function() {
       coms.emitTmx({
          event: 'Connection',
          notice: window.navigator.userAgent,
+         client: 'tmx',
          version: env.version
       });
 
@@ -1260,12 +1261,18 @@ let config = function() {
             }
          });
       }
+
+      // TODO: data cleaning project...
       function downloadMatches() {
          db.findMatchesRange(dates.mt_start.getTime(), dates.mt_end.getTime()).then(mtz => {
             if (!mtz || !mtz.length) {
                gen.okCancelMessage(lang.tr('noresults'), () => gen.closeModal('processing'));
                return;
             }
+
+            // remove points and rankings
+            mtz.forEach(match => match.players.forEach(player => { delete player.points; delete player.rankings; }));
+
             let text = `${lang.tr('phrases.export')}: ${lang.tr('mts')}`;
             let choices = gen.twoChoices({ text, option1: 'JSON', option2: 'UTR' });
             choices.option1.element.addEventListener('click', () => {
