@@ -1,174 +1,206 @@
-var gulp = require('gulp');
-var babel = require("gulp-babel");
-var htmlmin = require('gulp-htmlmin');
-var rename = require('gulp-rename');
-var uglify = require('gulp-uglify');
-var minify = require('gulp-minify');
-var header = require('gulp-header');
-var concat = require('gulp-concat-util');
-var compress = require('gulp-minify-css');
-var exec = require('child_process').exec;
+const gulp = require('gulp');
+const rollup = require('rollup-stream');
+const source = require('vinyl-source-stream');
+const buffer = require('vinyl-buffer');
+const sourcemaps = require('gulp-sourcemaps');
+const babel = require('rollup-plugin-babel');
+const commonJs = require('rollup-plugin-commonjs');
+const resolveNodeModules = require('rollup-plugin-node-resolve');
 
-var banner = "// CourtHive Ranking\n";
+const uglify = require('gulp-uglify');
+const minify = require('gulp-minify');
+const htmlmin = require('gulp-htmlmin');
+const rename = require('gulp-rename');
+const header = require('gulp-header');
+const concat = require('gulp-concat-util');
+const compress = require('gulp-minify-css');
+const exec = require('child_process').exec;
+const wbBuild = require('workbox-build');
 
-let rootdir = '~/Development/node/CourtHive';
+const banner = "// CourtHive TMX\n";
+const target = `/Users/charlesallen/Development/node/CourtHive/app/static/TMX/`;
 
-let pkg = {
-   source: 'source',
-   min: 'minimized',
-   destination: `${rootdir}/app/static/ranking`,
+const babelConfig = {
+  "presets": [ [ "es2015", { "modules": false } ] ],
+  "plugins": [ "external-helpers" ],
+  babelrc: false
+};
+
+/**
+ * https://duske.me/using-rollup-js-with-gulp-js/
+ * Use rollup in gulp making it compatible with streams
+ * @param {String} inputFile path to main JS file
+ * @param {Object} options configuration object containing format, basePath, und distPath
+ */
+const rollupJS = (inputFile, options) => {
+  return () => {
+
+    let config = {
+      input: options.basePath + inputFile,
+      format: options.format,
+      output: {
+         strict: false
+      },
+      plugins: [
+        babel(babelConfig),
+        resolveNodeModules(),
+        commonJs(),
+      ]
+    }
+
+    if (process.env.live) {
+       return rollup(config)
+       .pipe(source(inputFile, options.basePath))
+       .pipe(buffer())
+       .pipe(sourcemaps.init({loadMaps: true}))
+       .pipe(uglify())
+       .pipe(header(banner))
+       .pipe(gulp.dest(options.distPath));
+    } else {
+       return rollup(config)
+       .pipe(source(inputFile, options.basePath))
+       .pipe(buffer())
+       .pipe(sourcemaps.init({loadMaps: true}))
+       .pipe(header(banner))
+       .pipe(gulp.dest(options.distPath));
+    }
+
+  };
 }
 
-gulp.task('copy-manifest', function() {
-   return gulp.src(['./*.manifest', 'manifest.json'])
-      .pipe(gulp.dest(pkg.destination));
-});
+gulp.task('default', ['bundle-sw']);
 
-gulp.task('compress-css', function() {
-	return gulp.src(['css/*.css'])
-		.pipe(compress())
-		.pipe(rename({ suffix: '.min' }))
-		.pipe(gulp.dest(pkg.min));
-});
-
-gulp.task('concat-css', function() {
-	return gulp.src([ 'minimized/*.css', ])
-      .pipe(concat('style.css'))
-		.pipe(gulp.dest(pkg.destination + '/css'));
-});
-
-gulp.task('concat-lib', function() {
-	return gulp.src([ 
-         '../components/minimized/awesomplete.min.js',
-         '../components/minimized/dexie.min.js',
-         '../components/minimized/d3.v4.min.js',
-         '../components/minimized/aip.min.js',
-         '../components/minimized/UUID.min.js',
-         '../components/minimized/d3.superformula.min.js',
-         '../components/minimized/leaflet.min.js',
-         '../components/minimized/pdfmake.min.js',
-         '../components/minimized/vfs_fonts.js',
-         '../components/minimized/socket.io.min.1.7.2.js',
-         '../components/minimized/circular-json.min.js',
-         '../components/minimized/qrious.min.js',
-
-         '../components/ugly/ladderChart.min.js',
-         // '../components/ugly/yearCal.min.js',
-
-         '../components/src/dynamicDraw.js',
-         '../components/src/contextMenu.js',
-         '../components/src/floatingEntry.js',
-         '../components/src/timeSeries.js',
-
-         '../components/src/diacritics.js',
-         '../components/src/moment.js',
-         '../components/src/pikaday.js',
-         '../components/src/cleanScore.js',
-
-         '../components/minimized/xlsx.core.min.js',
+gulp.task('copy-maps', function() {
+   return gulp.src([
+         'node_modules/socket.io-client/dist/socket.io.js.map'
       ])
-      .pipe(concat('lib_bundle.js'))
-		.pipe(gulp.dest(pkg.destination + '/lib'));
+      .pipe(gulp.dest(target + '/lib'));
 });
 
-gulp.task('ugly-src', function() {
+// minimize external libraries that do not provide minimized verion
+gulp.task('uglify-lib', function() {
 	return gulp.src([ 
-         '../components/src/UUID.js',
-      ])
-      .pipe(babel())
-      .pipe(uglify())
-      .pipe(rename({ suffix: '.min' }))
-		.pipe(gulp.dest('./ugly'));
+      'node_modules/pikaday/pikaday.js',
+   ])
+   .pipe(uglify())
+   .pipe(concat('bundle.min.js'))
+   .pipe(gulp.dest('src/external'));
 });
 
-gulp.task('concat-idioms', function() {
-   // files must be in correct order => dependencies
+gulp.task('concat-lib', ['uglify-lib'], function() {
 	return gulp.src([ 
-         'src/lang.js', 
-         'src/idioms/???.idiom',
-      ])
-      .pipe(concat('idioms.js'))
-      .pipe(gulp.dest('src/idioms/'));
-});
-gulp.task('concat-src', function() {
-   // files must be in correct order => dependencies
-	return gulp.src([ 
-         'src/coms.js', 
-         'src/db.js', 
-         'src/util.js', 
-         'src/load.js', 
-         'src/files.js', 
-         'src/search.js', 
-         // 'src/idioms/idioms.js', 
-         'src/lang.js', 
-         'src/tabs.js', 
-         'src/dropdown.js', 
-         'src/display.js', 
-         'src/rank.js', 
-         'src/xlsDraws.js', 
-         'src/hts.js', 
-         'src/config.js',
-         'src/player.js',
-         'src/tournaments.js',
-         'src/scoreBoard.js',
-      ])
-      .pipe(concat('source.js'))
-      // .pipe(babel())
-      .pipe(gulp.dest('.'));
+      'node_modules/dexie/dist/dexie.min.js',
+      'node_modules/circular-json/build/circular-json.js',
+      'node_modules/socket.io-client/dist/socket.io.js',
+      'node_modules/qrious/dist/qrious.min.js',
+      'node_modules/awesomplete/awesomplete.min.js',
+      'node_modules/leaflet/dist/leaflet.js',
+      'node_modules/moment/min/moment.min.js',
+
+      'src/external/d3.superformula.min.js',
+      'src/external/bundle.min.js',
+   ])
+   .pipe(concat('lib_bundle.js'))
+   .pipe(gulp.dest(target + '/lib'));
 });
 
-gulp.task('uglify-src', function (cb) {
-//   let tfx = 'node /Users/posiwid/Development/Projects/node/AiP/v3/node_modules/babili/bin/babili.js source.js > minimized/source.min.js';
-   let tfx = '/Users/charlesallen/Development/node_modules/babel-minify/bin/minify.js source.js > minimized/source.min.js';
-   exec(tfx, function (err, stdout, stderr) { cb(err); });
-})
+gulp.task('rollup', rollupJS('main.js', {
+  basePath: './src/',
+  format: 'iife',
+  distPath: './build',
+}));
 
-gulp.task('copy-src', function() {
-	return gulp.src([ 'minimized/*.js', ])
-		.pipe(header(banner))
-		.pipe(gulp.dest(pkg.destination));
-});
-
-gulp.task('compress-html', function() {
-  return gulp.src('production.html')
-    .pipe(htmlmin({collapseWhitespace: true}))
-    .pipe(rename('index.html'))
-    .pipe(gulp.dest(pkg.destination));
-});
-
-gulp.task('copy-css-img', function() {
-   return gulp.src(['./css/img/*'])
-      .pipe(gulp.dest(pkg.destination + '/css/img'));
+gulp.task('copy-src', ['concat-src'], function() {
+   return gulp.src(['./dist/source.js'])
+      .pipe(gulp.dest(target));
 });
 
 gulp.task('copy-icons', function() {
-   return gulp.src(['./icons/*'])
-      .pipe(gulp.dest(pkg.destination + '/icons'));
+   return gulp.src(['icons/*'])
+      .pipe(gulp.dest(target + '/icons'));
+});
+
+gulp.task('compress-html', function() {
+  return gulp.src('dist/index.html')
+    .pipe(htmlmin({collapseWhitespace: true}))
+    .pipe(gulp.dest(target));
+});
+
+gulp.task('copy-lib', function() {
+   return gulp.src(['dist/lib/*'])
+      .pipe(gulp.dest(target + '/lib'));
+});
+
+gulp.task('copy-css-img', function() {
+   return gulp.src(['src/css/img/*'])
+      .pipe(gulp.dest(target + '/css/img'));
 });
 
 gulp.task('copy-fonts', function() {
-   return gulp.src(['./fonts/*'])
-      .pipe(gulp.dest(pkg.destination + '/fonts'));
+   return gulp.src(['dist/fonts/*'])
+      .pipe(gulp.dest(target + '/fonts'));
 });
 
 gulp.task('copy-assets', function() {
-   return gulp.src(['./assets/**/*'])
-      .pipe(gulp.dest(pkg.destination + '/assets'));
+   return gulp.src(['assets/**/*'])
+      .pipe(gulp.dest(target + '/assets'));
 });
 
-gulp.task('copy-images', gulp.parallel('copy-css-img', 'copy-icons'));
-gulp.task('copy-other', gulp.parallel('copy-fonts', 'copy-assets'));
-gulp.task('copy', gulp.parallel('copy-images', 'copy-other'));
-gulp.task('resources', gulp.parallel('concat-lib', 'copy'));
-gulp.task('css', gulp.series('compress-css', 'concat-css'));
-gulp.task('src', gulp.series('concat-idioms', 'concat-src'));
-gulp.task('big-concat', gulp.series('src', 'uglify-src'));
-gulp.task('source', gulp.series('big-concat', 'copy-src'));
-gulp.task('html', gulp.parallel('css', 'compress-html'));
+gulp.task('compress-css', function() {
+	return gulp.src(['src/css/*.css'])
+		.pipe(compress())
+		.pipe(rename({ suffix: '.min' }))
+		.pipe(gulp.dest('minimized'));
+});
 
-//gulp.task('code', gulp.parallel('source', 'copy-manifest'));
+gulp.task('concat-css', ['compress-css'], function() {
+	return gulp.src([ 'minimized/*.css', ])
+      .pipe(concat('style.css'))
+		.pipe(gulp.dest(target + '/css'));
+});
 
-// gulp.task('default', gulp.parallel('code', gulp.parallel('resources', 'html')));
-gulp.task('default', gulp.parallel('source', gulp.parallel('resources', 'html')));
+gulp.task('concat-src', ['rollup', 'compress-html'], function() {
+   let list = [];
+   if (process.env.live) {
+      list.push('build/production.js');
+   } else {
+      list.push('build/dev.js');
+   }
+   list.push('build/main.js');
+	return gulp.src(list)
+      .pipe(concat('source.js'))
+		.pipe(gulp.dest('./dist'));
+});
 
+gulp.task('bundle-sw', [
+      'copy-maps',
+      'copy-src',
+      'copy-lib',
+      'copy-icons',
+      'concat-css',
+      'concat-lib',
+      'copy-fonts',
+      'copy-assets',
+      'copy-css-img'
+   ], () => {
+     return wbBuild.generateSW({
+       globDirectory: target,
+       swDest: `${target}/sw.js`,
+       globPatterns: ['**\/*.{html,js,css,png,json,xlsx}'],
+       clientsClaim: true,
+       skipWaiting: true
+     })
+     .then(() => {
+       console.log('Service worker generated.');
+     })
+     .catch((err) => {
+       console.log('[ERROR] This happened: ' + err);
+     });
+   }
+)
+
+gulp.task('watch', ['bundle-sw'], () => {
+  gulp.watch('src/**/*.js', [/* do some linting etc., */ 'copy-src']);
+  gulp.watch('src/css/*.css', [/* do some linting etc., */ 'concat-css']);
+});
 

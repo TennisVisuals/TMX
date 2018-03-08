@@ -1,0 +1,459 @@
+/* 
+// this is desireable for mac, but not for windows...
+::-webkit-scrollbar { display: none; } 
+*/
+
+body {
+   font-family: Roboto, sans-serif;
+   color: #0f3c4b;
+   padding-top: 5rem;
+}
+
+html {
+  touch-action: manipulation;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+#header { overflow: hidden; }
+
+#main {
+   width: 100wh;
+   min-height: 50vh;
+}
+
+#clear-content {
+   display: none;
+   position: fixed;
+   z-index: 1000;
+   right: .8em;
+   top: 4.8em;
+}
+
+.context_click { color: #36AB0A; }
+.subtle { opacity: 0 }
+.subtle:hover { opacity: 1 }
+#refresh { opacity: 0 }
+
+.idiom_flag {
+   padding-top: .3em;
+   width: 2em;
+   height: 1.5em;
+}
+
+.flag_opt {
+   padding-left: .5em;
+   padding-right: .5em;
+   padding-bottom: .5em;
+}
+
+.flag_wrap {
+   padding-top: .5em;
+   width: 385px;
+   display: flex;
+	flex-direction: row;
+   -webkit-flex-direction: row;
+	flex-wrap: wrap;
+	align-items: stretch;
+	align-content: stretch;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start 
+}
+
+.noselect {
+  cursor: default;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -o-user-select: none; 
+}
+
+#content { 
+    width: auto;
+    height: 100%;
+    padding: 1em;
+
+    display: flex;
+    flex-direction: column;
+    -webkit-flex-direction: column;
+    align-items: center;
+    -webkit-align-items: center;
+}
+
+.header { margin-bottom: .5em; }
+
+.title { 
+   font-size: larger; 
+   font-weight: bold; 
+}
+
+#header_actions {
+   padding-left: 1em;
+}
+.icon15, .header_icon, .splash_icon {
+   width: 1.5em;
+   height: 0;
+   padding-bottom: 1.5em;
+   margin-left: .3em;
+   margin-right: .3em;
+   background-size: 100%;
+}
+.icon20 {
+   width: 2em;
+   height: 0;
+   padding-bottom: 1.8em;
+   background-size: 100%;
+   margin-bottom: 2em;
+}
+.icon30 {
+   width: 3em;
+   height: 0;
+   padding-bottom: 2.8em;
+   background-size: 100%;
+   margin-bottom: 2em;
+}
+.splash_tournament { background-image: url("img/cupblack.png"); }
+.splash_keys { background-image: url("img/keys.png"); }
+.splash_players { background-image: url("img/players.png"); }
+.splash_clubs { background-image: url("img/h_court.png"); }
+.splash_upload { background-image: url("img/upload.png"); }
+.splash_download { background-image: url("img/download.png"); }
+.icon_spreadsheet { background-image: url("img/spreadsheet.png"); }
+.icon_csv { background-image: url("img/csv.png"); }
+.icon_json { background-image: url("img/json.png"); }
+.splash_importexport { background-image: url("img/import_export.png"); }
+.splash_settings { background-image: url("img/settings.png"); }
+
+.menuicon { background-image: url("img/menuwhite.png"); }
+.homeicon { background-image: url("img/home.png"); }
+.homeicon_notfound { background-image: url("img/home_red.png"); }
+.homeicon_authorized { background-image: url("img/home_green.png"); }
+.homeicon_messages { background-image: url("img/home_blue.png"); }
+.homeicon_update { background-image: url("img/home_yellow.png"); }
+.homeicon_black { background-image: url("img/home_black.png"); }
+
+.refreshicon { background-image: url("img/refresh.png"); }
+.refreshicon_black { background-image: url("img/refresh_black.png"); }
+
+.downloadicon { background-image: url("img/download.png"); }
+
+.container {
+   width: 100%;
+   min-height: 15em;
+   font-size: 1em;
+}
+
+.splash_screen { margin-top: 2em; }
+.splash_org {
+   min-height: 1em;
+}
+
+.actions {
+   width: 100%;
+   min-height: 6em;
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   margin-bottom: 1em;
+   flex-wrap: wrap;
+}
+.action {
+   height: 2em;
+   font-size: 3em;
+   border-radius: 4px;
+   border: 2px solid #000;
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   margin: .5rem;
+}
+.player_name { width: 70%; }
+
+.winner { color: blue; }
+
+.row_odd { background-color: #F4F6F7; }
+.row_even { 
+   /* background-color: #F0F3F4; */
+}
+.detail:hover { 
+   background: #f1f1f1; 
+}
+
+
+.status_todo { color: red; }
+.status_done { color: green; }
+.action_done { background-color: #D1F3EB; } 
+
+.expired {
+   color: #e74c3c;
+}
+.section_header {
+   padding: .3em;
+   width: 100%;
+   color: white;
+   background: #1565C0;
+   margin-top: 1em;
+   margin-bottom: 1em;
+}
+.section_row { width: 100%; }
+.pdivider {
+   width: 100%;
+   height: 1px;
+   background: gray;
+}
+.psummary {
+   width: 90%;
+   padding-left: 1em;
+   text-align: left;
+}
+.ptotal {
+   width: 8%;
+}
+.ptrny {
+   width: 30%;
+   padding-left: 1em;
+   text-align: left;
+}
+.prank { width: 8%; overflow: hidden; }
+.pround { width: 8%; overflow: hidden; text-align: left; }
+.pformat { width: 15%; overflow: hidden; }
+.pdate { width: 15%; overflow: hidden; }
+.pcat { width: 8%; overflow: hidden; }
+.points { width: 8%; overflow: hidden; }
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nowrap { white-space:nowrap; }
+
+.datepicker {
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+
+.flexrow {
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+}
+
+.flexcol {
+   display: flex;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+}
+
+.flexcenter {
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+
+.flexjustifystart {
+   display: flex;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+}
+
+.flexjustifyend {
+   display: flex;
+   -webkit-justify-content: flex-end;
+   justify-content: flex-end;
+}
+
+.btn {
+  color: #000;
+  cursor: pointer;
+
+  background: 0;
+  background-image: none;
+
+  box-shadow: none
+  -moz-box-shadow: none;
+  -webkit-box-shadow: none;
+
+  border-radius: 4px;
+  border: 1px solid #000;
+
+  font-weight: normal;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+  line-height: 1.3333333;
+
+  -ms-touch-action: manipulation;
+      touch-action: manipulation;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+
+  transition: background ease-out 500ms;
+  -webkit-transition: background ease-out 500ms;
+  -moz-transition: background ease-out 500ms;
+  -o-transition: background ease-out 500ms;
+}
+
+.btn-small {
+  padding: 5px 8px 5px 8px;
+  font-size: 12px;
+}
+
+.btn-medium {
+  padding: 6px 10px 6px 10px;
+  font-size: 14px;
+}
+
+.btn-large {
+  padding: 10px 16px;
+  font-size: 18px;
+  padding-right: 12px;
+  padding-left: 12px;
+}
+
+.edit_actions { margin-top: 1em; }
+
+button.undo:hover { background: violet }
+button.accept:hover { background: #68FF33 }
+button.add:hover { background: #68FF33 }
+button.ignore:hover { background: cyan }
+button.dismiss:hover { background: #FF0 }
+button.edit-cancel:hover { background: #FF0 }
+button.edit-submit:hover { background: #68FF33 }
+
+@media(max-width:1700px) {
+    .match { width: 24.9% }
+    .searchbox { width: 24.9% }
+}
+@media(max-width:1400px) {
+    .match { width: 33.33%; }
+    .searchbox { width: 33.33%; }
+}
+@media(max-width:1000px) {
+    .match { width: 49.9%; }
+    .searchbox { width: 49.9%; }
+}
+@media(max-width:700px) {
+    .match { width: 100%; }
+    .searchbox { width: 80%; }
+}
+
+/* tooltip */
+div.info:hover { position: relative; }
+div.info[label]:hover:after {
+  content: attr(label);
+  padding: 4px 8px;
+  color: #333;
+  position: absolute;
+  font-size: 14px;
+  left: 0%;
+  top: -30px;
+  white-space: nowrap;
+  z-index: 999999;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  -moz-box-shadow: 0px 0px 4px #222;
+  -webkit-box-shadow: 0px 0px 4px #222;
+  box-shadow: 0px 0px 4px #222;
+  background-image: -moz-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0, #eeeeee),color-stop(1, #cccccc));
+  background-image: -webkit-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -moz-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -ms-linear-gradient(top, #eeeeee, #cccccc);
+}
+div.infoleft:hover { position: relative; }
+div.infoleft[label]:hover:after {
+  content: attr(label);
+  padding: 4px 8px;
+  color: #333;
+  position: absolute;
+  font-size: 14px;
+  left: -50px;
+  top: -30px;
+  white-space: nowrap;
+  z-index: 999999;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  -moz-box-shadow: 0px 0px 4px #222;
+  -webkit-box-shadow: 0px 0px 4px #222;
+  box-shadow: 0px 0px 4px #222;
+  background-image: -moz-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0, #eeeeee),color-stop(1, #cccccc));
+  background-image: -webkit-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -moz-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -ms-linear-gradient(top, #eeeeee, #cccccc);
+}
+
+
+
+/* date picker */
+   .day-cell-tooltip {
+     position: fixed;
+     z-index: 9999;
+     padding: 5px 9px;
+     color: #bbbbbb;
+     font-size: 12px;
+     background: rgba(0, 0, 0, 0.85);
+     border-radius: 3px;
+     text-align: center;
+   }
+   .day-cell-tooltip > span {
+     font-family: Helvetica, arial, 'Open Sans', sans-serif
+   }
+   .config_submit { 
+      margin: .5em;
+      padding: .5em;
+   }
+   .config_submit:hover { background: #68FF33 }
+   .config_cancel { 
+      margin: .5em;
+      padding: .5em;
+   }
+   .config_cancel:hover { background: #FF0 }
+   .config_actions {
+      width: 100%;
+      display: flex;
+      -webkit-flex-direction: row;
+      flex-direction: row;
+      -webkit-justify-content: center;
+      justify-content: center;
+      -webkit-align-content: center;
+      align-content: center;
+      -webkit-align-items: center;
+      align-items: center;
+      margin-bottom: 1em;
+   }

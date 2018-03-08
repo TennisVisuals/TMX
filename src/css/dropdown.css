@@ -1,0 +1,120 @@
+body {
+   --dd-active: gray;
+   --dd-active-color: #000;
+   --dd-notactive-color: #FFF;
+   --dd-span-background: #EBEBEB;
+   --dd-span-hover: #CECECE;
+   --dd-li-background: #FFF;
+   --dd-label-color: #000;
+   --dd-hasvalue: #2f2f2f;
+   --dd-novalue: #FFF;
+}
+
+.dd {
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+}
+
+.dd .hasvalue {
+   background: var(--dd-hasvalue);
+}
+
+.dd .novalue {
+   background: var(--dd-novalue);
+}
+
+.dd ul {
+   list-style: none;
+   padding: 0px;
+   margin: 0px;
+   height: 100%;
+}
+
+.dd div.options {
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   padding: 0;
+   margin: 0;
+}
+
+.dd .options span {
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+
+.dd div.label {
+   display: flex;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+   padding: 2px 3px 2px 0px;
+   color: var(--dd-label-color);
+}
+
+.dd span {
+   height: 100%;
+   min-width: 3em;
+   text-align: center;
+   border: none;
+}
+.dd ul li {
+   /* height: 100%; */
+   display: block;
+   position: relative;
+   float: right;
+   background: var(--dd-li-background);
+}
+.dd .floatleft { right: 1px; }
+.dd ul li span {
+   /* height: 100%; */
+   display: block;
+   background: var(--dd-span-background);
+   padding: 2px 8px 2px 8px;
+   text-decoration: none;
+   white-space: nowrap;
+   color: var(--dd-active-color);
+}
+
+.dd .selections {
+   max-height: 100px;
+   overflow-y: auto;
+}
+
+.dd .dd_state {
+   height: 100%;
+}
+
+.dd .selected, .dd div.label {
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+
+.dd li li { float: none; }
+.dd li ul { z-index: 1000; display: none; }
+.dd li:hover li span:hover { background: var(--dd-span-hover); }
+
+.dd li.active ul {
+  display: block; 
+  position: absolute;
+  background: var(--dd-active);
+}
+
+.dd li ul li {
+  width: auto;
+  text-align: center;
+}

@@ -1,0 +1,237 @@
+.club_container {
+   width: 100%;
+   font-size: 1em;
+}
+.club_actions {
+   width: 100%;
+   height: 6em;
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   margin-bottom: 1em;
+}
+
+.club_add_club {
+   width: 1.5em;
+   height: 0;
+   padding-bottom: 1.5em;
+   margin-left: .3em;
+   margin-right: .3em;
+   background-image: url("img/addclub.png");
+   background-size: 100%;
+}
+
+.club_download {
+   width: 1.5em;
+   height: 0;
+   padding-bottom: 1.5em;
+   margin-left: .3em;
+   margin-right: .3em;
+   background-image: url("img/download.png");
+   background-size: 100%;
+}
+
+.club_players {
+   width: 1.5em;
+   height: 0;
+   padding-bottom: 1.5em;
+   margin-left: .3em;
+   margin-right: .3em;
+   background-image: url("img/players.png");
+   background-size: 100%;
+}
+
+.club_player_ranks {
+   width: 1.5em;
+   height: 0;
+   padding-bottom: 1.5em;
+   margin-left: .3em;
+   margin-right: .3em;
+   background-image: url("img/rank.png");
+   background-size: 100%;
+}
+
+.club_link {
+   width: 1.5em;
+   height: 1.5em;
+}
+.club_action {
+   height: 2em;
+   font-size: 3em;
+   border-radius: 4px;
+   border: 2px solid #000;
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   margin-right: 1em;
+}
+.club_row {
+   width: 100%;
+   min-height: 1.8em;
+   border-bottom: 1px solid lightgray;
+
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+}
+.club_row:hover { 
+   background: blue; 
+   color: white;
+}
+.club_row .code {
+   width: 10%;
+   display: flex;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   -webkit-justify-content: space-around;
+   justify-content: space-around;
+}
+.club_row .link { 
+   width: 5%; 
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+}
+.club_row .name { 
+   width: 35%; 
+   padding-left: .5em;
+   display: flex;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+}
+.club_row .courts { 
+   width: 10%; 
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+}
+.club_row .city { 
+   width: 15%; 
+   padding-left: .5em;
+   display: flex;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+}
+.club_row .phone { 
+   width: 20%; 
+   padding-left: .5em;
+   display: flex;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+   overflow: hidden;
+}
+
+.club_row .email { 
+   width: 25%; 
+   padding-left: .5em;
+   display: flex;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+   overflow: hidden;
+   text-overflow: ellipsis;
+}
+
+.club_row div {
+   display: flex;
+   margin-left: 1px;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+   border-left: 1px solid #FFF;
+}
+.club_header div, .club_header span { 
+   height: 2em; 
+   color: white;
+   background: #4B4C4B;
+}
+
+.clubinfo {
+   display: flex;
+   width: 100%;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+   margin-right: 1em;
+}
+
+.inputwrapper {
+   display: block;
+   overflow: hidden;
+   padding: 0 5px 0 0;
+}
+
+.clubname {
+   font-size: 1em;
+   /* text-align: right; */
+   font-weight: bold;
+}
+
+.clubcode {
+   font-size: 1em;
+   text-align: left;
+   font-weight: bold;
+   margin-right: 0;
+}
+
+.clubname:disabled {
+   border: none;
+   color: black;
+}
+.clubcode:disabled {
+   border: none;
+   color: black;
+}
+
+.clubinfo .name {
+   margin-left: 1em;
+   margin-right: 1em;
+   font-weight: bold;
+}
+
+.clubinfo .header {
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+.clubinfo .nameblock {
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+
+.clubinfo .listlink {
+   border-radius: 4px;
+   border: 1px solid #000;
+   padding: 1px 3px 1px 3px;
+   margin: 1px;
+}

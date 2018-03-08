@@ -5,15 +5,16 @@
 	<meta charset="utf-8">
 	<title>CourtHive TMX</title>
 	<meta name="viewport" content="width=device-width,initial-scale=1" />
-   <link rel="stylesheet" type="text/css" href="/tmx/css/style.css" />
+   <link rel="stylesheet" type="text/css" href="css/style.css" />
+	<script>(function(e,t,n){var r=e.querySelectorAll("html")[0];r.className=r.className.replace(/(^|\s)no-js(\s|$)/,"$1js$2")})(document,window,0);</script>
 </head>
 
 <body>
-<script src="dist/lib/xlsx.core.min.js"></script>
-<script src="dist/lib/d3.v4.min.js"></script>
-<script src="dist/lib/pdfmake.min.js"></script>
-<script src="dist/lib/vfs_fonts.js"></script>
-<script src="/tmx/lib/lib_bundle.js"></script>
+<script src="lib/xlsx.core.min.js"></script>
+<script src="lib/d3.v4.min.js"></script>
+<script src="lib/pdfmake.min.js"></script>
+<script src="lib/vfs_fonts.js"></script>
+<script src="lib/lib_bundle.js"></script>
 
 <div id="header" class='noselect' style="display: flex">
    <div id="searchentry" class="flexrow"> 
@@ -40,6 +41,10 @@
    <div id='content' class="flexcol flexcenter"></div>
 </div>
 
-<script src="dist/source.js"></script>
+
+<script src="source.js"></script>
+<script>
+//   if ('serviceWorker' in navigator) { window.addEventListener('load', function() { navigator.serviceWorker.register('./sw.js').then(function(registration) { console.log('ServiceWorker registration successful with scope: ', registration.scope); }, function(err) { console.log('ServiceWorker registration failed: ', err); }); }); }
+</script>
 </body>
 </html>
