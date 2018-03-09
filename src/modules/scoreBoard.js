@@ -898,7 +898,7 @@ export const scoreBoard = function() {
       });
       sobj.bestof.ddlb = new dd.DropDown({ element: sobj.bestof.element, id: sobj.bestof.id, onChange: setBestOf });
       sobj.bestof.ddlb.selectionBackground();
-      sobj.bestof.ddlb.setValue(f.max_sets);
+      sobj.bestof.ddlb.setValue(f.max_sets, 'white');
 
       dd.attachDropDown({ 
          id: sobj.setsto.id, 
@@ -910,7 +910,7 @@ export const scoreBoard = function() {
       });
       sobj.setsto.ddlb = new dd.DropDown({ element: sobj.setsto.element, id: sobj.setsto.id, onChange: setsTo });
       sobj.setsto.ddlb.selectionBackground();
-      sobj.setsto.ddlb.setValue(f.games_for_set);
+      sobj.setsto.ddlb.setValue(f.games_for_set, 'white');
 
       let gfs = f.games_for_set;
       let tbat_options = [
@@ -924,7 +924,7 @@ export const scoreBoard = function() {
       });
       sobj.tiebreaksat.ddlb = new dd.DropDown({ element: sobj.tiebreaksat.element, id: sobj.tiebreaksat.id, onChange: setTiebreakAt });
       sobj.tiebreaksat.ddlb.selectionBackground();
-      sobj.tiebreaksat.ddlb.setValue(f.tiebreaks_at && f.tiebreaks_at < gfs ? f.tiebreaks_at : gfs);
+      sobj.tiebreaksat.ddlb.setValue(f.tiebreaks_at && f.tiebreaks_at < gfs ? f.tiebreaks_at : gfs, 'white');
 
       dd.attachDropDown({ 
          id: sobj.tiebreaksto.id, 
@@ -935,7 +935,7 @@ export const scoreBoard = function() {
       });
       sobj.tiebreaksto.ddlb = new dd.DropDown({ element: sobj.tiebreaksto.element, id: sobj.tiebreaksto.id });
       sobj.tiebreaksto.ddlb.selectionBackground();
-      sobj.tiebreaksto.ddlb.setValue(f.tiebreak_to);
+      sobj.tiebreaksto.ddlb.setValue(f.tiebreak_to, 'white');
 
       dd.attachDropDown({ 
          id: sobj.finalset.id, 
@@ -946,7 +946,7 @@ export const scoreBoard = function() {
       });
       sobj.finalset.ddlb = new dd.DropDown({ element: sobj.finalset.element, id: sobj.finalset.id, onChange: finalSet });
       sobj.finalset.ddlb.selectionBackground();
-      sobj.finalset.ddlb.setValue(f.final_set_supertiebreak ? 'S' : 'N');
+      sobj.finalset.ddlb.setValue(f.final_set_supertiebreak ? 'S' : 'N', 'white');
 
       dd.attachDropDown({ 
          id: sobj.supertiebreakto.id, 
@@ -958,7 +958,7 @@ export const scoreBoard = function() {
       });
       sobj.supertiebreakto.ddlb = new dd.DropDown({ element: sobj.supertiebreakto.element, id: sobj.supertiebreakto.id, onChange: superTiebreakTo });
       sobj.supertiebreakto.ddlb.selectionBackground();
-      sobj.supertiebreakto.ddlb.setValue(f.supertiebreak_to);
+      sobj.supertiebreakto.ddlb.setValue(f.supertiebreak_to, 'white');
       sobj.supertiebreakto.element.style.opacity = f.final_set_supertiebreak ? 1 : 0;
       sobj.stb2.element.style.opacity = f.final_set_supertiebreak ? 1 : 0;
 
@@ -976,7 +976,7 @@ export const scoreBoard = function() {
             {key: `${value}-${value}`, value: value},
          ];
          sobj.tiebreaksat.ddlb.setOptions(tbat_options);
-         sobj.tiebreaksat.ddlb.setValue(value);
+         sobj.tiebreaksat.ddlb.setValue(value, 'white');
          if (typeof changeFx == 'function') changeFx();
       }
 
