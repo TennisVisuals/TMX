@@ -1,6 +1,5 @@
 import { db } from './modules/db';
 import { theme } from './modules/theme';
-import { playerFx } from './modules/playerFx';
 import { tournamentDisplay } from './modules/tournamentDisplay';
 
 import { config } from './modules/config';
@@ -38,10 +37,16 @@ var elements = {
 }
 
 function start() {
-   db.addDev({theme});
    db.addDev({db});
+   db.addDev({theme});
 
    playerFx.displayTournament = tournamentDisplay.displayTournament;
 
    config.init();
 }
+
+/* TODO:
+ *
+ * 1. config.env() data must be added to tournament record when sent to mobilref
+ *
+ */
