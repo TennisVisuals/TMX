@@ -14,6 +14,7 @@ import { searchBox } from './searchBox';
 // remove these dependencies by moving fx elsewhere!!
 import { displayFx } from './displayFx';
 import { playerFx } from './playerFx';
+import { tournamentFx } from './tournamentFx';
 import { tournamentDisplay } from './tournamentDisplay';
 
 export const config = function() {
@@ -57,7 +58,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.87.79.46',
+      version: '0.9.88.112.55',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -260,8 +261,8 @@ export const config = function() {
    fx.changeIdiom = changeIdiom;
    function changeIdiom(ioc) {
       if (lang.set(ioc)) {
-         fx.idiom_ddlb.setValue(ioc);
-         fx.idiom_ddlb.selectionBackground('black');
+         fx.idiom_ddlb.setValue(ioc, 'black');
+         // fx.idiom_ddlb.selectionBackground('black');
          splash();
       } else {
          if (ioc && ioc.length == '3') coms.sendKey(`${ioc}.idiom`);
@@ -284,8 +285,8 @@ export const config = function() {
             })
             .filter(f=>f.title);
          fx.idiom_ddlb.setOptions(options)
-         fx.idiom_ddlb.setValue(ioc);
-         fx.idiom_ddlb.selectionBackground('black')
+         fx.idiom_ddlb.setValue(ioc, 'black');
+         // fx.idiom_ddlb.selectionBackground('black')
       });
    }
 
@@ -377,7 +378,7 @@ export const config = function() {
                dd.attachDropDown({ id: container[ddlbkey].id, options: external_file_options });
                ddlb.dropdown = new dd.DropDown({ element: container[ddlbkey].element });
                ddlb.dropdown.selectionBackground();
-               ddlb.dropdown.setValue(ddlb.value);
+               ddlb.dropdown.setValue(ddlb.value, 'white');
             });
          }
 
@@ -901,6 +902,10 @@ export const config = function() {
       tournamentDisplay.fx.pointsTable = fx.pointsTable;
       tournamentDisplay.fx.orgCategoryOptions = fx.orgCategoryOptions;
       tournamentDisplay.fx.orgCategories = fx.orgCategories;
+      tournamentDisplay.fx.orgRankingOptions = fx.orgRankingOptions;
+
+      tournamentFx.fx.env = fx.env;
+      tournamentFx.fx.legacyCategory = fx.legacyCategory;
    }
 
    fx.init = () => {
@@ -938,7 +943,7 @@ export const config = function() {
       }
       function displayMessages() {
          displayFx.escapeModal();
-         displayFx.homeContextMessage(refreshApp, closeModal, env.messages)
+         displayFx.homeContextMessage(refreshApp, closeModal, env.messages, tournamentDisplay.displayTournament)
          env.messages = [];
          displayFx.homeIconState();
       }
@@ -975,7 +980,7 @@ export const config = function() {
       coms.emitTmx({
          event: 'Connection',
          notice: window.navigator.userAgent,
-         client: 'tmx',
+         client: 'tmxv',
          version: env.version
       });
 
