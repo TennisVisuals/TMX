@@ -361,7 +361,7 @@ export const displayFx = function() {
       return id_obj;
    }
 
-   gen.homeContextMessage = (refreshAction, okAction, messages) => {
+   gen.homeContextMessage = (refreshAction, okAction, messages, displayTournament) => {
       if (searchBox.element) searchBox.element.blur();
       let ids = { 
          ok: gen.uuid(), 
@@ -386,11 +386,11 @@ export const displayFx = function() {
       document.getElementById('processingtext').innerHTML = html;
       if (messages.length) {
          messages.forEach((message, i) => {
-            let displayTournament = () => {
-               tournamentDisplay.displayTournament({ tuid: message.tuid });
+            let dT = () => {
+               displayTournament({ tuid: message.tuid });
                gen.closeModal();
             }
-            if (message.inDB) document.getElementById(message_list[i].msguid).addEventListener('click', displayTournament);
+            if (message.inDB) document.getElementById(message_list[i].msguid).addEventListener('click', dT);
          });
       }
       let id_obj = idObj(ids);
@@ -810,13 +810,13 @@ export const displayFx = function() {
       });
    }
    
-   function formatTeams({tournament, match, which, puid}) {
+   function formatTeams({tournament, match, which, puid, potentials=true}) {
       var flags = gen.fx.env().draws.tree_draw.flags.display;
       var flag_root = gen.fx.env().assets.flags;
 
       function playerBlock(pindex, side) {
          var p = match.players[pindex];
-         if (!p.puid) return potentialBlock(p, side);
+         if (!p.puid && potentials) return potentialBlock(p, side);
          var player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
          var ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
          var flag =  !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="${flag_root}${player_ioc}.png">`;
@@ -935,7 +935,7 @@ export const displayFx = function() {
          return match.status || start_time;
       }
 
-      function fT({match, which, puid}) { return formatTeams({tournament, match, which, puid}); }
+      function fT({match, which, puid}) { return formatTeams({tournament, match, which, puid, potentials: false}); }
       function matchFinish(match) { return match.schedule && match.schedule.end ? match.schedule.end : ''; }
       function courtData(match) { return (match.schedule && match.schedule.court) || ''; }
 
@@ -1141,8 +1141,7 @@ export const displayFx = function() {
          let options = keys.map(k=>({key: k.description, value: k.keyid}));
          dd.attachDropDown({ id: ids.keys, options });
          id_obj.keys.ddlb = new dd.DropDown({ element: id_obj.keys.element });
-         id_obj.keys.ddlb.selectionBackground();
-         id_obj.keys.ddlb.setValue(keys[0].keyid);
+         id_obj.keys.ddlb.setValue(keys[0].keyid, 'white');
       }
 
       return { container: id_obj };
@@ -1864,6 +1863,7 @@ export const displayFx = function() {
       let club = p.club_code || p.club_name || '';
       let club_gradient = `registered_club_${!gender ? 'u' : gender == 'W' ? 'w' : 'm'}`;
       let club_class = p.club_code || !club ? 'registered_attr flexcenter' : `registered_club ${club_gradient}`;
+      let gender_abbr = p.sex ? lang.tr(p.sex == 'M' ? 'genders.male_abbr' : 'genders.female_abbr') : 'X';
       let html = `
          <div puid='${p.puid}' index='${i}' class='player_click signin-row flexrow detail' ${style}>
             <div class='registered_count flexjustifystart'>${i || ''}</div>
@@ -4024,8 +4024,8 @@ export const displayFx = function() {
                <input id="${ids.player_rep2}" class='rinput' placeholder='${lang.tr("draws.playerrep")}'>
             </div>
             <div class='config_actions'>
-               <div id='${ids.cancel}' class='btn btn-large config_cancel'>${lang.tr('actions.cancel')}</div>
-               <div id='${ids.submit}' class='btn btn-large config_submit'>${lang.tr('sbt')}</div>
+               <div id='${ids.cancel}' class='btn btn-small config_cancel'>${lang.tr('actions.cancel')}</div>
+               <div id='${ids.submit}' class='btn btn-small config_submit'>${lang.tr('sbt')}</div>
             </div>
          </div>
       `;
