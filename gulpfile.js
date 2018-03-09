@@ -72,7 +72,8 @@ gulp.task('default', ['bundle-sw']);
 
 gulp.task('copy-maps', function() {
    return gulp.src([
-         'node_modules/socket.io-client/dist/socket.io.js.map'
+         'node_modules/socket.io-client/dist/socket.io.js.map',
+         'node_modules/awesomplete/awesomplete.min.js.map'
       ])
       .pipe(gulp.dest(target + '/lib'));
 });
