@@ -192,6 +192,7 @@ export const util = function() {
    fx.arrayCount = (array) => array.reduce((r,k) => { r[k] = ++r[k] || 1; return r},{});
    fx.occurrences = (val, arr) => arr.reduce((r,val) => { r[val] = 1+r[val] || 1; return r},{})[val] || 0;
    fx.indices = (val, arr) => arr.reduce((a, e, i) => { if (e === val) a.push(i); return a; }, []) 
+   fx.randomPop = (array) => array.length ? array.splice(Math.floor(Math.random()*array.length), 1)[0] : undefined;
 
    fx.hashReduce = (arr) => {
       return arr.reduce((l, c) => {
