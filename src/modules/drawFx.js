@@ -2687,6 +2687,7 @@ export function drawFx(opts) {
       }
 
       let info = drawInfo(tree);
+      if (!info.nodes) return;
       info.nodes
          .filter(node => node.depth == info.depth && !node.data.team)
          .forEach(node => {
