@@ -1297,11 +1297,11 @@ export const exportFx = function() {
          { text: lang.tr('lnm'), style: 'tableHeader' }, 
          { text: lang.tr('fnm'), style: 'tableHeader' }, 
          { text: lang.tr('clb'), style: 'centeredTableHeader' }, 
-         { text: lang.tr('rnk'), style: 'centeredTableHeader' }, 
+         { text: lang.tr('prnk'), style: 'centeredTableHeader' }, 
          { text: lang.tr('lnm'), style: 'tableHeader' }, 
          { text: lang.tr('fnm'), style: 'tableHeader' }, 
          { text: lang.tr('clb'), style: 'centeredTableHeader' }, 
-         { text: lang.tr('rnk'), style: 'centeredTableHeader' }, 
+         { text: lang.tr('prnk'), style: 'centeredTableHeader' }, 
       ];
 
       let empty = (x) => Array.from({length: x}, () => undefined);
@@ -1488,7 +1488,7 @@ export const exportFx = function() {
          { text: lang.tr('lnm'), style: 'tableHeader' }, 
          { text: lang.tr('fnm'), style: 'tableHeader' }, 
          { text: lang.tr('clb'), style: 'centeredTableHeader' }, 
-         { text: lang.tr('rnk'), style: 'centeredTableHeader' }, 
+         { text: lang.tr('prnk'), style: 'centeredTableHeader' }, 
          { text: lang.tr('stt'), style: 'centeredTableHeader' }, 
          { text: lang.tr('ord'), style: 'centeredTableHeader' }, 
          { text: lang.tr('signin.signature'), style: 'tableHeader' }, 
