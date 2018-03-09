@@ -1,7 +1,10 @@
 import { db } from './db';
 import { util } from './util';
+import { UUID } from './UUID';
 import { config } from './config';
+import { lang } from './translator';
 import { displayFx } from './displayFx';
+import { tournamentDisplay } from './tournamentDisplay';
 
 export const messaging = function() {
    let fx = {
@@ -87,7 +90,7 @@ export const messaging = function() {
             obj.search_field.element.addEventListener("keyup", function(e) { 
                if (e.which == 13) {
                   let id = obj.search_field.element.value;
-                  if (id) fetchFx(id, fetchHTML).then(completeFetch, ()=>{ console.log('invalid', id); });
+                  if (id) fetchFx(id, fetchHTML).then(completeFetch, (err)=>{ console.log('invalid', id); console.log('error:', err); });
                   removeEntryModal();
                }
             });
@@ -103,12 +106,57 @@ export const messaging = function() {
          let ouid = config.env().org && config.env().org.ouid;
          if (!fetched.ouid) fetched.ouid = ouid;
 
-         if (merge_with_tuid) {
-            console.log('merge tournament with tuid:', merge_with_tuid);
-            db.findTournament(merge_with_tuid).then(existing => mergeTournaments(existing, fetched), util.logError);
-         } else {
-            db.addTournament(fetched).then(tournaments.displayCalendar);
+         // just to be sure... such filtering should be done in injected fx
+         let players = fetched.players.filter(p=>p);
+         delete fetched.players;
+
+         db.addDev({fetched, players});
+         addTournamentPlayers(players).then(addTournament, util.logError);
+
+         function addTournament(players) {
+            fetched.players = players; // players have been merged with existing data
+
+            if (merge_with_tuid) {
+               db.findTournament(merge_with_tuid).then(existing => mergeTournaments(existing, fetched), util.logError);
+            } else {
+               db.addTournament(fetched).then(tournamentDisplay.displayCalendar);
+            }
          }
+      }
+
+      function addTournamentPlayers(players) {
+         return new Promise((resolve, reject) => {
+            Promise.all(players.map(findPlayer)).then(resolve, reject);
+            function findPlayer(player) {
+               return new Promise((resolve, reject) => {
+                  if (!player.id) {
+                     return resolve();
+                  } else {
+                     player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
+                     db.findPlayerById(player.id).then(searchResult, util.logError);
+                  }
+
+                  function searchResult(existing) {
+                     if (existing) {
+                        player = Object.assign(player, existing);
+                        resolve(player);
+                     } else {
+                        player.puid = UUID.generate();
+
+                        let new_player = Object.assign({}, player);
+                        delete new_player.registration_time;
+                        delete new_player.name;
+                        delete new_player.withdrawn;
+                        delete new_player.alternate;
+                        delete new_player.category_ranking;
+                        delete new_player.category_dbls;
+                        db.addPlayer(new_player);
+                        resolve(player);
+                     }
+                  }
+               });
+            }
+         });
       }
 
       function mergeTournaments(existing, fetched) {
@@ -116,7 +164,7 @@ export const messaging = function() {
          existing.end = Math.max(existing.end, fetched.end);
          existing.players = existing.players.concat(...fetched.players);
          db.addTournament(existing).then(() => {
-            tournaments.createNewTournament({ tournament_data: existing, title: lang.tr('actions.edit_tournament'), callback: modifyTournament })
+            tournamentDisplay.createNewTournament({ tournament_data: existing, title: lang.tr('actions.edit_tournament'), callback: modifyTournament })
          });
       }
    }
