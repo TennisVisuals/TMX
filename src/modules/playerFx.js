@@ -2,6 +2,7 @@ import { db } from './db'
 import { util } from './util';
 import { dd } from './dropdown';
 import { config } from './config';
+import { matchFx } from './matchFx';
 import { lang } from './translator';
 import { rankCalc } from './rankCalc';
 import { exportFx } from './exportFx';
@@ -135,7 +136,7 @@ export const playerFx = function() {
          }
 
          function displayMatches(matches) {
-            matches.forEach(match => match.outcome = matchOutcome(match, puid));
+            matches.forEach(match => match.outcome = matchFx.matchOutcome(match, puid));
             let singles = matches.filter(m => m.format == 'singles');
             let doubles = matches.filter(m => m.format == 'doubles');
 
@@ -151,7 +152,7 @@ export const playerFx = function() {
             util.addEventToClass('tournament_click', tournamentClick, container.matches.element);
 
             if (singles.length) {
-               singles.forEach(match => matchOutcome(match, puid));
+               singles.forEach(match => matchFx.matchOutcome(match, puid));
                let final_rounds = finalRounds(singles);
                if (final_rounds && final_rounds.length) {
                   let data = {
@@ -193,38 +194,6 @@ export const playerFx = function() {
          <p style='text-align: left'><b>TUID:</b> ${tuid}</p>
       `;
       displayFx.showEdit(html);
-   }
-
-   fx.matchOutcome = matchOutcome;
-   function matchOutcome(match, puid) {
-      let player_won = null;
-      let winning_puids = [];
-      let winning_team;
-      let losing_team;
-      let losing_puids = [];
-
-      // TODO: this is a patch for matches from database
-      // .teams needs to be updated to .team_players
-      if (!match.team_players) match.team_players = match.teams;
-
-      if (match.winner != undefined) {
-         winning_team = match.team_players[match.winner].map(pindex => {
-            let player =  match.players[pindex];
-            if (player.puid) winning_puids.push(player.puid);
-            if (player.puid == puid) player_won = true;
-            return `${player.full_name}${player.rank ? ' [' + player.rank + ']' : ''}`;
-         }).join('; ');
-
-         losing_team = match.team_players[1 - match.winner].map(pindex => {
-            let player =  match.players[pindex];
-            if (!player) return 'Undefined';
-            if (player.puid) losing_puids.push(player.puid);
-            if (player.puid == puid) player_won = false;
-            return `${player.full_name}${player.rank ? ' [' + player.rank + ']' : ''}`;
-         }).join('; ');
-      }
-
-      return { player_won, winning_team, losing_team, winning_puids, losing_puids };
    }
 
    fx.scheduledMatchDetails = scheduledMatchDetails;
@@ -390,7 +359,7 @@ export const playerFx = function() {
       let setGender = (value) => player.sex = value;
       player_container.gender.ddlb = new dd.DropDown({ element: player_container.gender.element, onChange: setGender });
       player_container.gender.ddlb.selectionBackground();
-      if (player.sex) player_container.gender.ddlb.setValue(player.sex);
+      if (player.sex) player_container.gender.ddlb.setValue(player.sex, 'white');
 
       // IOC Awesomplete
       d3.json('./assets/ioc_codes.json', data => {
