@@ -61,13 +61,13 @@ export const jsTabs = function() {
    } 
 
    jsTabs.generate = (tabs) => {
-      let html = `<div class="jstabs"><div class="tabs">`;
+      let html = `<div class="jstabs"><div class='hscroll'><div class="tabs">`;
       html += tabs.map(o => {
          let id = o.id ? ` id="${o.id}"` : '';
          let display = o.display || 'inline';
          return `<span${id} style="display: ${display}">${o.tab}</span>`
       }).join('');
-      html += `</div>`;
+      html += `</div></div>`;
       html += tabs.map(o => {
          let reference = o.ref ? ` reference='${o.ref}'` : '';
          return `<div class="tab"${reference}>${o.content}</div>`;
