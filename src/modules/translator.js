@@ -390,7 +390,9 @@ export const lang = function() {
 
       genders: {
          male: 'Male',
+         male_abbr: 'M',
          female: 'Female',
+         female_abbr: 'W',
          mixed: 'Mixed',
       },
 
