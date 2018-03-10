@@ -1,5 +1,6 @@
 import { db } from './modules/db';
 import { theme } from './modules/theme';
+import { playerFx } from './modules/playerFx';
 import { tournamentDisplay } from './modules/tournamentDisplay';
 
 import { config } from './modules/config';
