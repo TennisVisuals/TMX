@@ -4,7 +4,7 @@ import { util } from './util';
 import { config } from './config';
 import { lang } from './translator';
 import { rankCalc } from './rankCalc';
-import { displayFx } from './displayFx';
+import { displayGen } from './displayGen';
 import { cleanScore } from './cleanScore';
 import { rrDraw, treeDraw, drawFx } from './drawFx';
 
@@ -734,7 +734,7 @@ export const exportFx = function() {
    function drawSheetPageHeader(tournament, logo, type, selected_event, event, info) {
       var evt = event || (tournament.events && tournament.events[selected_event]) || { name: 'Unknown' };
 
-      var event_type = displayFx.genEventName(evt).type;
+      var event_type = displayGen.genEventName(evt).type;
       var tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
       // let organizers = tournament.organizers && tournament.organizers != tournament.name ? tournament.organizers : '';
@@ -1741,7 +1741,7 @@ export const exportFx = function() {
          reader.onload = function(event) {
             let url = event.target.result;
             if (file.type.indexOf('image') != 0) {
-               displayFx.popUpMessage('Must be an image file!');
+               displayGen.popUpMessage('Must be an image file!');
                return;
             }
             imageDimensions(url).then(dimensions => analyzeImage(url, dimensions, size), console.log);
@@ -1752,7 +1752,7 @@ export const exportFx = function() {
       function analyzeImage(url, dimensions, size) {
          let wh_ratio = dimensions.width / dimensions.height;
          if (wh_ratio < 2.8 || wh_ratio > 3.5) {
-            displayFx.popUpMessage(`<div>Ratio: ${wh_ratio}</div><div>Width / Height Ratio must be between 3 and 3.5</div>`);
+            displayGen.popUpMessage(`<div>Ratio: ${wh_ratio}</div><div>Width / Height Ratio must be between 3 and 3.5</div>`);
             return;
          }
          document.getElementById(div_id).innerHTML = "<img width='200px' src='" + url + "' />";

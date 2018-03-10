@@ -12,8 +12,8 @@ import { messaging } from './messaging';
 import { searchBox } from './searchBox';
 
 // remove these dependencies by moving fx elsewhere!!
-import { displayFx } from './displayFx';
 import { playerFx } from './playerFx';
+import { displayGen } from './displayGen';
 import { tournamentFx } from './tournamentFx';
 import { tournamentDisplay } from './tournamentDisplay';
 
@@ -58,7 +58,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.88.112.55',
+      version: '0.9.88.117.55',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -159,7 +159,7 @@ export const config = function() {
       let message_hash = msgHash(msg);
       let exists = env.messages.reduce((p, c) => msgHash(c) ==  message_hash ? true : p, false);
       if (!exists) env.messages.push(msg);
-      displayFx.homeIconState(msg.state || 'messages');
+      displayGen.homeIconState(msg.state || 'messages');
    }
 
    fx.authMessage = (msg) => {
@@ -179,13 +179,13 @@ export const config = function() {
             msg.inDB = true;
             msg.notice = `${tournament.name}`;
             env.messages.push(msg);
-            displayFx.homeIconState('authorized');
+            displayGen.homeIconState('authorized');
          }
 
          function noTournament() {
             msg.notice = "Not Found in Calendar";
             env.messages.push(msg);
-            displayFx.homeIconState('notfound');
+            displayGen.homeIconState('notfound');
          }
       }
    }
@@ -243,14 +243,14 @@ export const config = function() {
    function idiomLimit(opts) {
       var ioc_opts = opts.map(o=>`<div class='flag_opt' ioc='${o.value}' title='${o.title}'>${o.key}</div>`).join('');
       let html = `<div class='flag_wrap'>${ioc_opts}</div>`;
-      displayFx.showProcessing(html);
-      displayFx.escapeModal();
+      displayGen.showProcessing(html);
+      displayGen.escapeModal();
       util.addEventToClass('flag_opt', selectIOC);
       function selectIOC(evt) {
          let elem = util.findUpClass(evt.target, 'flag_opt');
          let ioc = elem.getAttribute('ioc');
          changeIdiom(ioc);
-         displayFx.closeModal();
+         displayGen.closeModal();
       }
    }
 
@@ -336,13 +336,13 @@ export const config = function() {
 
          let v = o.settings_tabs;
          let tabs = {
-            general: v.general ? displayFx.generalSettings() : undefined,
-            org: v.org ? displayFx.orgSettings() : undefined,
-            categories: v.categories ? displayFx.categorySettings() : undefined,
-            points: v.points ? displayFx.pointsSettings() : undefined,
-            draws: v.draws ? displayFx.drawSettings() : undefined,
-            publishing: v.publishing ? displayFx.publishingSettings() : undefined,
-            data: v.data ? displayFx.externalRequestSettings(external_request_settings) : undefined
+            general: v.general ? displayGen.generalSettings() : undefined,
+            org: v.org ? displayGen.orgSettings() : undefined,
+            categories: v.categories ? displayGen.categorySettings() : undefined,
+            points: v.points ? displayGen.pointsSettings() : undefined,
+            draws: v.draws ? displayGen.drawSettings() : undefined,
+            publishing: v.publishing ? displayGen.publishingSettings() : undefined,
+            data: v.data ? displayGen.externalRequestSettings(external_request_settings) : undefined
          }
 
          let tabdata = [];
@@ -354,18 +354,18 @@ export const config = function() {
          if (tabs.publishing && tabs.publishing.html) tabdata.push({ tab: lang.tr('settings.publishing'), content: tabs.publishing.html });
          if (tabs.data && tabs.data.html) tabdata.push({ tab: lang.tr('settings.data'), content: tabs.data.html });
 
-         let { container } = displayFx.tabbedModal({ tabs, tabdata, title: lang.tr('set') });
+         let { container } = displayGen.tabbedModal({ tabs, tabdata, title: lang.tr('set') });
 
          let org_logo = document.getElementById('org_logo');
          if (org_logo) {
             org_logo.addEventListener('change', evt => exportFx.handleFileUpload(evt, 'orgLogo', 'org_logo_display'));
-            db.findSetting('orgLogo').then(url => displayFx.displayImage('getLogo', url, 'org_logo_display'), console.log);
+            db.findSetting('orgLogo').then(url => displayGen.displayImage('getLogo', url, 'org_logo_display'), console.log);
          }
 
          let org_name = document.getElementById('org_name');
          if (org_name) {
             org_name.addEventListener('change', evt => exportFx.handleFileUpload(evt, 'orgName', 'org_name_display'));
-            db.findSetting('orgName').then(url => displayFx.displayImage('getName', url, 'org_name_display'), console.log);
+            db.findSetting('orgName').then(url => displayGen.displayImage('getName', url, 'org_name_display'), console.log);
          }
 
          if (tabs.data && tabs.data.ddlb) {
@@ -457,7 +457,7 @@ export const config = function() {
 
          function revertSettings() {
             envSettings();
-            displayFx.closeModal();
+            displayGen.closeModal();
          }
 
          function saveSettings() {
@@ -486,7 +486,7 @@ export const config = function() {
             }
 
             updateSettings(settings).then(settingsLoaded, err => console.log('update settings failed:', err));
-            displayFx.closeModal();
+            displayGen.closeModal();
          }
       }
    }
@@ -505,20 +505,20 @@ export const config = function() {
    function configureCalc(mode) {
       if (!mode || ['points', 'rankings'].indexOf(mode) < 0) return;
       let date = new Date();
-      let container = displayFx.dateConfig();
+      let container = displayGen.dateConfig();
 
-      var ds = displayFx.dateSelector({
+      var ds = displayGen.dateSelector({
          date: new Date(),
          date_element: container.picked.element,
          container: container.datepicker.element,
       });
 
-      displayFx.escapeModal();
+      displayGen.escapeModal();
       container.submit.element.addEventListener('click', callCalc);
-      container.cancel.element.addEventListener('click', () => displayFx.closeModal());
+      container.cancel.element.addEventListener('click', () => displayGen.closeModal());
 
       function callCalc(container) {
-         displayFx.closeModal();
+         displayGen.closeModal();
          if (mode == 'rankings') {
             rankCalc.rankCalc(ds.getDate());
          } else {
@@ -544,7 +544,7 @@ export const config = function() {
       searchBox.searchType = {};
       searchBox.searchType.players = function(puid) {
          searchBox.active.player = { puid };
-         if (displayFx.content == 'identify') {
+         if (displayGen.content == 'identify') {
             playerFx.playerAssignment();
          } else {
             playerFx.displayPlayerProfile({ puid }).then(()=>{}, ()=>{});
@@ -591,7 +591,7 @@ export const config = function() {
       searchBox.contextMenu = (ev) => {
          if (searchBox.category == 'players') {
             let options = [lang.tr('search.firstlast'), lang.tr('search.lastfirst')];
-            displayFx.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: doSomething });
+            displayGen.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: doSomething });
 
             function doSomething(choice, index) {
                if (index == 0) {
@@ -643,7 +643,7 @@ export const config = function() {
          function idiomsReady() {
             splash();
             searchBox.init();
-            displayFx.onreset = splash;
+            displayGen.onreset = splash;
          }
       }
    }
@@ -663,7 +663,7 @@ export const config = function() {
       function setIdiom() { db.findSetting('defaultIdiom').then(checkIdiom, util.logError); }
       function checkIdiom(idiom) {
          if (lang.set() != idiom.ioc) changeIdiom(idiom.ioc);
-         displayFx.closeModal();
+         displayGen.closeModal();
          splash();
       }
    }
@@ -745,17 +745,12 @@ export const config = function() {
             settingsLoaded();
 
             // turn off info labels...
-            // if no info displayFx.info = '';
+            // if no info displayGen.info = '';
             resolve();
 
             function getKey(key) { return settings.reduce((p, c) => c.key == key ? c : p, undefined); }
          }
       });
-   }
-
-   fx.drawOptions = ({draw}) => {
-      let type = draw.options().bracket ? 'rr_draw' : 'tree_draw';
-      if (env.draws[type]) draw.options(env.draws[type]);
    }
 
    var device = {
@@ -834,9 +829,9 @@ export const config = function() {
          let reason = event.reason;
          let message = reason && (reason.stack || reason);
          if (message.indexOf('blocked') > 0) {
-            displayFx.escapeModal();
+            displayGen.escapeModal();
             let notice = `<p>${lang.tr('phrases.blocked')}</p><p>${lang.tr('phrases.enablepopups')}</p>`;
-            displayFx.okCancelMessage(notice, () => displayFx.closeModal('processing'));
+            displayGen.okCancelMessage(notice, () => displayGen.closeModal('processing'));
          } else {
             console.warn('Unhandled promise rejection:', (reason && (reason.stack || reason)));
          }
@@ -862,7 +857,7 @@ export const config = function() {
          }, notSupported);
       } else {
          env.messages.push({ title: 'warn', notice: 'Data Persistence Not Supported', warning: true });
-         displayFx.homeIconState('warning');
+         displayGen.homeIconState('warning');
          notSupported();
       }
 
@@ -884,12 +879,12 @@ export const config = function() {
    }
 
    function configufeDependents() {
-      displayFx.fx.env = fx.env;
-      displayFx.fx.legacyCategory = fx.legacyCategory;
-      displayFx.fx.settings = fx.settings;
-      displayFx.fx.setMap = fx.setMap;
-      displayFx.fx.pointsTable = fx.pointsTable;
-      displayFx.fx.orgCategoryOptions = fx.orgCategoryOptions;
+      displayGen.fx.env = fx.env;
+      displayGen.fx.legacyCategory = fx.legacyCategory;
+      displayGen.fx.settings = fx.settings;
+      displayGen.fx.setMap = fx.setMap;
+      displayGen.fx.pointsTable = fx.pointsTable;
+      displayGen.fx.orgCategoryOptions = fx.orgCategoryOptions;
 
       playerFx.fx.env = fx.env;
       playerFx.fx.legacyCategory = fx.legacyCategory;
@@ -909,7 +904,7 @@ export const config = function() {
    }
 
    fx.init = () => {
-      // remove config dependence on displayFx so this can be removed
+      // remove config dependence on displayGen so this can be removed
       configufeDependents();
 
       console.log('version:', env.version);
@@ -917,11 +912,11 @@ export const config = function() {
       persistStorage();
       // enableNotifications();
 
-      displayFx.initModals();
+      displayGen.initModals();
       fx.search();
 
       if (device.isMobile || device.isIDevice) {
-         displayFx.showModal('<h2>Mobile Support Soon!</h2>', false);
+         displayGen.showModal('<h2>Mobile Support Soon!</h2>', false);
          return;
       }
 
@@ -936,16 +931,16 @@ export const config = function() {
 
       handleUnhandled();
 
-      function closeModal() { displayFx.escapeFx = undefined; displayFx.closeModal(); }
+      function closeModal() { displayGen.escapeFx = undefined; displayGen.closeModal(); }
       function refreshApp() {
          location.pathname = "/tmx/";
          // location.reload(true);
       }
       function displayMessages() {
-         displayFx.escapeModal();
-         displayFx.homeContextMessage(refreshApp, closeModal, env.messages, tournamentDisplay.displayTournament)
+         displayGen.escapeModal();
+         displayGen.homeContextMessage(refreshApp, closeModal, env.messages, tournamentDisplay.displayTournament)
          env.messages = [];
-         displayFx.homeIconState();
+         displayGen.homeIconState();
       }
       document.getElementById('go_home').addEventListener('contextmenu', displayMessages);
       document.getElementById('go_home').addEventListener('click', () => {
@@ -1004,15 +999,15 @@ export const config = function() {
       db.findClub(cuid).then(findClubPlayers);
 
       function findClubPlayers(club) {
-         let id_obj = displayFx.displayClub(club);
+         let id_obj = displayGen.displayClub(club);
          id_obj.edit.element.addEventListener('click', () => toggleInputs(id_obj));
          id_obj.ranks.element.addEventListener('click', () => clubPlayerRanks(club));
          id_obj.players.element.addEventListener('click', () => clubPlayers(club));
       }
 
       function toggleInputs(id_obj) {
-         displayFx.toggleInput(id_obj.name.element);
-         displayFx.toggleInput(id_obj.code.element);
+         displayGen.toggleInput(id_obj.name.element);
+         displayGen.toggleInput(id_obj.code.element);
       }
 
    }
@@ -1050,24 +1045,24 @@ export const config = function() {
 
    function updatePlayers() {
       if (!navigator.onLine) return;
-      let id = displayFx.busy.message(`<p>${lang.tr('refresh.players')}...</p>`, searchBox.updateSearch);
-      let done = () => displayFx.busy.done(id);
+      let id = displayGen.busy.message(`<p>${lang.tr('refresh.players')}...</p>`, searchBox.updateSearch);
+      let done = () => displayGen.busy.done(id);
       let addNew = (players) => importFx.processPlayers(players).then(done, done);
-      let notConfigured = (err) => { done(); displayFx.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
+      let notConfigured = (err) => { done(); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       messaging.fetchNewPlayers().then(addNew, notConfigured);
    }
 
    fx.updateTournaments = updateTournaments;
    function updateTournaments({ merge }={}) {
       if (!navigator.onLine) return;
-      let id = displayFx.busy.message(`<p>${lang.tr('refresh.calendar')}...</p>`, searchBox.updateSearch);
+      let id = displayGen.busy.message(`<p>${lang.tr('refresh.calendar')}...</p>`, searchBox.updateSearch);
       let done = () => {
-         displayFx.busy.done(id);
-         if (displayFx.content == 'calendar') tournamentDisplay.displayCalendar();
+         displayGen.busy.done(id);
+         if (displayGen.content == 'calendar') tournamentDisplay.displayCalendar();
       }
       let addNew = (trnys) => util.performTask(db.addTournament, trnys, false).then(done, done);
       let mergeTournaments = (trnys) => util.performTask(mergeTournament, trnys, false).then(done, done);
-      let notConfigured = (err) => { done(); displayFx.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
+      let notConfigured = (err) => { done(); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       if (merge) {
          messaging.fetchNewTournaments(merge).then(mergeTournaments, notConfigured);
       } else {
@@ -1090,25 +1085,25 @@ export const config = function() {
 
    function updateClubs() {
       if (!navigator.onLine) return;
-      let id = displayFx.busy.message(`<p>${lang.tr('refresh.clubs')}...</p>`, searchBox.updateSearch);
-      let done = () => displayFx.busy.done(id);
+      let id = displayGen.busy.message(`<p>${lang.tr('refresh.clubs')}...</p>`, searchBox.updateSearch);
+      let done = () => displayGen.busy.done(id);
       let addNew = (clubs) => util.performTask(db.addClub, clubs, false).then(done, done);
-      let notConfigured = (err) => { done(); displayFx.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
+      let notConfigured = (err) => { done(); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       messaging.fetchNewClubs().then(addNew, notConfigured);
    }
 
    function refreshAction() {
       if (searchBox.category == 'players') {
          let message = `${lang.tr('tournaments.renewlist')}<p><i style='color: red;'>(${lang.tr('phrases.deletereplace')})</i>`;
-         displayFx.okCancelMessage(message, renewList, () => displayFx.closeModal());
+         displayGen.okCancelMessage(message, renewList, () => displayGen.closeModal());
 
          function renewList() {
-            db.db.players.toCollection().delete().then(updateAction, () => displayFx.closeModal());
+            db.db.players.toCollection().delete().then(updateAction, () => displayGen.closeModal());
          }
       }; 
       if (searchBox.category == 'tournaments') {
          let message = `${lang.tr('tournaments.renewlist')}`;
-         displayFx.okCancelMessage(message, mergeList, () => displayFx.closeModal());
+         displayGen.okCancelMessage(message, mergeList, () => displayGen.closeModal());
          function mergeList() { updateTournaments({ merge: true }); }
       }; 
    }
@@ -1119,13 +1114,13 @@ export const config = function() {
          if (searchBox.category == 'tournaments') updateTournaments(); 
          if (searchBox.category == 'clubs') updateClubs(); 
       } else {
-         displayFx.okCancelMessage(lang.tr('phrases.cantrefresh'), () => displayFx.closeModal());
+         displayGen.okCancelMessage(lang.tr('phrases.cantrefresh'), () => displayGen.closeModal());
       }
    }
 
    function splash() {
       tournamentDisplay.reset();
-      let container = displayFx.splashScreen(o.components, o.settings_tabs);
+      let container = displayGen.splashScreen(o.components, o.settings_tabs);
 
       splashEvent(container, 'tournaments', tournamentDisplay.displayCalendar);
       splashEvent(container, 'players', displayPlayers);
@@ -1153,13 +1148,13 @@ export const config = function() {
 
    function displayKeyActions() {
       db.findSetting('keys').then(setting => {
-         let actions = displayFx.keyActions(setting && setting.keys); 
+         let actions = displayGen.keyActions(setting && setting.keys); 
          actions.container.key.element.addEventListener('keyup', keyStroke);
          function keyStroke(evt) {
             if (evt.which == 13) {
                let value = actions.container.key.element.value;
                if (value) coms.sendKey(value);
-               displayFx.closeModal();
+               displayGen.closeModal();
             }
          }
          if (actions.container.select.element) {
@@ -1173,17 +1168,17 @@ export const config = function() {
    }
 
    function displayImportExport() {
-      let actions = displayFx.importExport(); 
+      let actions = displayGen.importExport(); 
       actions.download.element.addEventListener('click', exportData);
-      actions.template.element.addEventListener('click', displayFx.downloadTemplate);
+      actions.template.element.addEventListener('click', displayGen.downloadTemplate);
       importFx.initDragAndDrop(importFx.reset);
    }
 
    function exportData() {
       var tabs = {
-//         players: displayFx.exportRange({ label: lang.tr('bd'), id_names: { start: 'py_start', end: 'py_end', export: 'py_export' }}),
-         points: displayFx.exportRange({ id_names: { start: 'pt_start', end: 'pt_end', export: 'pt_export' }}),
-         matches: displayFx.exportRange({ id_names: { start: 'mt_start', end: 'mt_end', export: 'mt_export' }}),
+//         players: displayGen.exportRange({ label: lang.tr('bd'), id_names: { start: 'py_start', end: 'py_end', export: 'py_export' }}),
+         points: displayGen.exportRange({ id_names: { start: 'pt_start', end: 'pt_end', export: 'pt_export' }}),
+         matches: displayGen.exportRange({ id_names: { start: 'mt_start', end: 'mt_end', export: 'mt_export' }}),
       }
 
       var tabdata = [];
@@ -1191,13 +1186,13 @@ export const config = function() {
       if (tabs.points && tabs.points.html) tabdata.push({ tab: lang.tr('pts'), content: tabs.points.html });
       if (tabs.matches && tabs.matches.html) tabdata.push({ tab: lang.tr('mts'), content: tabs.matches.html });
 
-      var { container } = displayFx.tabbedModal({ tabs, tabdata, title: lang.tr('phrases.exportdata'), save: false });
+      var { container } = displayGen.tabbedModal({ tabs, tabdata, title: lang.tr('phrases.exportdata'), save: false });
 
       var start = new Date();
       var end = new Date();
       var dates = { pt_start: start, pt_end: end, py_start: start, py_end: end, mt_start: start, mt_end: end }
 
-      if (container.py_start) displayFx.dateRange({
+      if (container.py_start) displayGen.dateRange({
          start: dates.py_start,
          start_element: container.py_start.element,
          startFx: (date)=>{ dates.py_start = date; },
@@ -1205,7 +1200,7 @@ export const config = function() {
          end_element: container.py_end.element,
          endFx: (date)=>{ dates.py_end = date; }
          });
-      displayFx.dateRange({
+      displayGen.dateRange({
          start: dates.pt_start,
          start_element: container.pt_start.element,
          startFx: (date)=>{ dates.pt_start = date; },
@@ -1213,7 +1208,7 @@ export const config = function() {
          end_element: container.pt_end.element,
          endFx: (date)=>{ dates.pt_end = date; }
       });
-      displayFx.dateRange({
+      displayGen.dateRange({
          start: dates.mt_start,
          start_element: container.mt_start.element,
          startFx: (date)=>{ dates.mt_start = date; },
@@ -1222,7 +1217,7 @@ export const config = function() {
          endFx: (date)=>{ dates.mt_end = date; }
       });
 
-      if (container.cancel.element) container.cancel.element.addEventListener('click', () => displayFx.closeModal());
+      if (container.cancel.element) container.cancel.element.addEventListener('click', () => displayGen.closeModal());
       if (container.py_export) container.py_export.element.addEventListener('click', downloadPlayers);
       if (container.pt_export) container.pt_export.element.addEventListener('click', downloadPoints);
       if (container.mt_export) container.mt_export.element.addEventListener('click', downloadMatches);
@@ -1231,7 +1226,7 @@ export const config = function() {
          // Abandoned for now because database indexes by 'birthdate' instead of 'birth'
          db.findPlayersRange(dates.py_start.getTime(), dates.py_end.getTime()).then(pyz => {
             if (!pyz || !pyz.length) {
-               displayFx.okCancelMessage(lang.tr('noresults'), () => displayFx.closeModal('processing'));
+               displayGen.okCancelMessage(lang.tr('noresults'), () => displayGen.closeModal('processing'));
                return;
             }
             console.log(pyz);
@@ -1241,7 +1236,7 @@ export const config = function() {
       function downloadPoints() {
          db.findPointsRange(dates.pt_start.getTime(), dates.pt_end.getTime()).then(pts => {
             if (!pts || !pts.length) {
-               displayFx.okCancelMessage(lang.tr('noresults'), () => displayFx.closeModal('processing'));
+               displayGen.okCancelMessage(lang.tr('noresults'), () => displayGen.closeModal('processing'));
                return;
             }
 
@@ -1251,14 +1246,14 @@ export const config = function() {
                exportFx.downloadArray('points.json', pts);
             } else {
                let text = `${lang.tr('phrases.export')}: ${lang.tr('pts')}`;
-               let choices = displayFx.twoChoices({ text, option1: 'JSON', option2: 'HTS' });
+               let choices = displayGen.twoChoices({ text, option1: 'JSON', option2: 'HTS' });
                choices.option1.element.addEventListener('click', () => {
                   exportFx.downloadArray('points.json', pts);
-                  displayFx.closeModal('configmodal');
+                  displayGen.closeModal('configmodal');
                });
                choices.option2.element.addEventListener('click', () => {
                   hts.downloadHTSformattedPoints({points: pts});
-                  displayFx.closeModal('configmodal');
+                  displayGen.closeModal('configmodal');
                });
             }
          });
@@ -1268,7 +1263,7 @@ export const config = function() {
       function downloadMatches() {
          db.findMatchesRange(dates.mt_start.getTime(), dates.mt_end.getTime()).then(mtz => {
             if (!mtz || !mtz.length) {
-               displayFx.okCancelMessage(lang.tr('noresults'), () => displayFx.closeModal('processing'));
+               displayGen.okCancelMessage(lang.tr('noresults'), () => displayGen.closeModal('processing'));
                return;
             }
 
@@ -1276,14 +1271,14 @@ export const config = function() {
             mtz.forEach(match => match.players.forEach(player => { delete player.points; delete player.rankings; }));
 
             let text = `${lang.tr('phrases.export')}: ${lang.tr('mts')}`;
-            let choices = displayFx.twoChoices({ text, option1: 'JSON', option2: 'UTR' });
+            let choices = displayGen.twoChoices({ text, option1: 'JSON', option2: 'UTR' });
             choices.option1.element.addEventListener('click', () => {
                exportFx.downloadArray('matches.json', mtz);
-               displayFx.closeModal('configmodal');
+               displayGen.closeModal('configmodal');
             });
             choices.option2.element.addEventListener('click', () => {
                downloadUTRmatches(mtz);
-               displayFx.closeModal('configmodal');
+               displayGen.closeModal('configmodal');
             });
          });
 
@@ -1297,7 +1292,7 @@ export const config = function() {
    }
 
    function displayPlayers() {
-      let actions = displayFx.playerActions(); 
+      let actions = displayGen.playerActions(); 
       if (o.components.players && o.components.players.add) {
          actions.add.element.style.display = 'flex';
          actions.add.element.addEventListener('click', () => playerFx.createNewPlayer({ callback }));
@@ -1330,7 +1325,7 @@ export const config = function() {
       db.findAllClubs().then(clubList, console.log); 
 
       function clubList(clubs) {
-         let actions = displayFx.clubList(clubs);
+         let actions = displayGen.clubList(clubs);
          if (actions.add.element) actions.add.element.addEventListener('click', newClub);
          if (actions.download.element) actions.download.element.addEventListener('click', exportFx.clubsJSON);
 

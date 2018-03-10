@@ -3,17 +3,18 @@ import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
 import { dd } from './dropdown';
+import { lang } from './translator';
 import { matchFx } from './matchFx';
 import { courtFx } from './courtFx';
 import { staging } from './staging';
-import { lang } from './translator';
 import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
 import { importFx } from './importFx';
 import { rankCalc } from './rankCalc';
+import { publishFx } from './publishFx';
 import { messaging } from './messaging';
 import { searchBox } from './searchBox';
-import { displayFx } from './displayFx';
+import { displayGen } from './displayGen';
 import { calendarFx } from './calendarFx';
 import { scheduleFx } from './scheduleFx';
 import { scoreBoard } from './scoreBoard';
@@ -45,10 +46,14 @@ export const tournamentDisplay = function() {
       legacyCategory: () => console.log('legacy category'),
       pointsTable: () => console.log('points table'),
       setCalendar: () => console.log('set calendar'),
-      drawOptions: () => console.log('draw options'),
       orgCategoryOptions: () => console.log('org category options'),
       orgCategories: () => console.log('org categories'),
       orgRankingOptions: () => console.log('org ranking options'),
+   }
+
+   fx.drawOptions = ({draw}) => {
+      let type = draw.options().bracket ? 'rr_draw' : 'tree_draw';
+      if (fx.fx.env().draws[type]) draw.options(fx.fx.env().draws[type]);
    }
 
    let dfx = drawFx();
@@ -122,7 +127,7 @@ export const tournamentDisplay = function() {
       let start = fx.fx.env().calendar.start || util.dateUTC(new Date());
       let end = fx.fx.env().calendar.end || new Date(start).setMonth(new Date(start).getMonth()+1);
 
-      let calendar_container = displayFx.calendarContainer();
+      let calendar_container = displayGen.calendarContainer();
 
       function updateStartDate() {
          fx.fx.setCalendar({start});
@@ -209,7 +214,7 @@ export const tournamentDisplay = function() {
             if (category) tournaments = tournaments.filter(t => filterCategory(t.category));
             tournaments = tournaments.filter(t => t.end <= end);
 
-            displayFx.calendarRows(calendar_container.rows.element, tournaments);
+            displayGen.calendarRows(calendar_container.rows.element, tournaments);
 
             function dt(evt) { return displayTournament({tuid: util.getParent(evt.target, 'calendar_click').getAttribute('tuid')}); }
             function tournamentContextOptions(evt) {
@@ -223,18 +228,18 @@ export const tournamentDisplay = function() {
                   options.push({ label: lang.tr('tournaments.edit'), key: 'edit' });
                   options.push({ label: lang.tr('delete'), key: 'delete' });
                   if (fetch) options.push({ label: lang.tr('merge'), key: 'merge' });
-                  displayFx.svgModal({ x: mouse.x, y: mouse.y, options, callback: selectionMade });
+                  displayGen.svgModal({ x: mouse.x, y: mouse.y, options, callback: selectionMade });
 
                   function selectionMade(choice, index) {
                      if (choice.key == 'edit') {
                         return createNewTournament({ tournament_data, title: lang.tr('actions.edit_tournament'), callback: modifyTournament })
                      } else if (choice.key == 'delete') {
                         var caption = `<p>${lang.tr('actions.delete_tournament')}:</p> <p>${tournament_data.name}</p>`;
-                        displayFx.okCancelMessage(caption, deleteTournament, () => displayFx.closeModal());
+                        displayGen.okCancelMessage(caption, deleteTournament, () => displayGen.closeModal());
                         function deleteTournament() {
                            unpublishTournament(tuid);
                            db.deleteTournament(tuid).then(() => fx.displayCalendar(), util.logError);
-                           displayFx.closeModal();
+                           displayGen.closeModal();
                         }
                      } else if (choice.key == 'merge') {
                         messaging.fetchTournament(tuid, mouse, modifyTournament);
@@ -244,7 +249,7 @@ export const tournamentDisplay = function() {
                   function unpublishTournament(tuid) {
                      let deleteEventsRequest = { tuid };
                      coms.emitTmx({ deleteEventsRequest })
-                     displayFx.closeModal();
+                     displayGen.closeModal();
                      if (tournament_data.events) {
                         tournament_data.events.forEach(evt => {
                            evt.published = false;
@@ -272,13 +277,13 @@ export const tournamentDisplay = function() {
 
       function go(tournament, dbmatches) {
          if (!tournament) return;
-         if (displayFx.inExisting(['identify', 'tournament'])) importFx.reset();
+         if (displayGen.inExisting(['identify', 'tournament'])) importFx.reset();
          let rankings = {
             sgl_rank: tournament.rank,
             dbl_rank: tournament.rank,
          }
          if (tournament.accepted) Object.assign(rankings, tournament.accepted);
-         displayFx.escapeModal();
+         displayGen.escapeModal();
          createTournamentContainer({tournament, dbmatches, selected_tab, display_points: true});
       }
    }
@@ -363,13 +368,13 @@ export const tournamentDisplay = function() {
       tournamentGenders(tournament, dbmatches);
 
       let { groups: match_groups, group_draws } = groupMatches(dbmatches);
-      let { container, classes, displayTab, display_context, tab_ref } = displayFx.tournamentContainer({ tournament, tabCallback });
+      let { container, classes, displayTab, display_context, tab_ref } = displayGen.tournamentContainer({ tournament, tabCallback });
 
       db.addDev({tournament});
       db.addDev({container});
 
       container.edit.element.style.display = sameOrg(tournament) && !tournament.delegated ? 'inline' : 'none';
-      if (tournament.delegated && sameOrg(tournament)) displayFx.delegated(container, true);
+      if (tournament.delegated && sameOrg(tournament)) displayGen.delegated(container, true);
 
       // create and initialize draw objects
       let rr_draw = rrDraw();
@@ -429,10 +434,10 @@ export const tournamentDisplay = function() {
 
       util.addEventToClass(classes.schedule_details, scheduleDetails);
       function scheduleDetails() {
-         displayFx.escapeModal();
-         var modal = displayFx.scheduleDetails();
+         displayGen.escapeModal();
+         var modal = displayGen.scheduleDetails();
          modal.submit.element.addEventListener('click', () => submitDetails());
-         modal.cancel.element.addEventListener('click', () => displayFx.closeModal());
+         modal.cancel.element.addEventListener('click', () => displayGen.closeModal());
          var existing_value = tournament.schedule && tournament.schedule.umpirenotes || '';
          modal.umpirenotes.element.value = existing_value;
          modal.umpirenotes.element.focus();
@@ -445,17 +450,17 @@ export const tournamentDisplay = function() {
             tournament.schedule.umpirenotes = modal.umpirenotes.element.value;
             if (tournament.schedule.umpirenotes != existing_value) tournament.schedule.up_to_date = false;
             let elem = container.schedule_tab.element.querySelector('.' + classes.schedule_details).querySelector('div');
-            displayFx.scheduleDetailsState(elem, tournament.schedule);
+            displayGen.scheduleDetailsState(elem, tournament.schedule);
             schedulePublishState();
             saveTournament(tournament);
-            displayFx.closeModal();
+            displayGen.closeModal();
          }
       }
 
       util.addEventToClass(classes.publish_schedule, unPublishSchedule, undefined, 'contextmenu');
       function unPublishSchedule() {
          if (!state.edit || !tournament.schedule || !tournament.schedule.published) return;
-         displayFx.okCancelMessage(lang.tr('schedule.unpublish'), unPublishOOP, () => displayFx.closeModal());
+         displayGen.okCancelMessage(lang.tr('schedule.unpublish'), unPublishOOP, () => displayGen.closeModal());
       }
 
       function unPublishOOP() {
@@ -466,7 +471,7 @@ export const tournamentDisplay = function() {
          coms.emitTmx({ deleteOOP: { tuid: tournament.tuid } });
          schedulePublishState();
          scheduleActions();
-         displayFx.closeModal();
+         displayGen.closeModal();
       }
 
       util.addEventToClass(classes.publish_schedule, publishSchedule);
@@ -475,7 +480,7 @@ export const tournamentDisplay = function() {
          if (schedule) {
             schedulePublishState();
             coms.emitTmx({ tournamentOOP: schedule });
-            displayFx.closeModal();
+            displayGen.closeModal();
 
             // check whether there are published events
             var published_events = tournament.events.reduce((p, c) => c.published || p, false);
@@ -485,7 +490,7 @@ export const tournamentDisplay = function() {
                   .forEach(euid => {
                      let evt = tfx.findEventByID(euid);
                      broadcastEvent(tournament, evt)
-                     displayFx.drawBroadcastState(container.publish_state.element, evt);
+                     displayGen.drawBroadcastState(container.publish_state.element, evt);
                   });
             }
          } else {
@@ -495,7 +500,7 @@ export const tournamentDisplay = function() {
 
       container.penalty_report.element.addEventListener('click', () => {
          var penalties = [].concat(...penaltyPlayers().map(playerPenalties));
-         if (penalties) displayFx.tournamentPenalties(tournament, penalties, saveFx);
+         if (penalties) displayGen.tournamentPenalties(tournament, penalties, saveFx);
          function saveFx() {
             penaltyReportIcon();
             saveTournament(tournament);
@@ -505,19 +510,19 @@ export const tournamentDisplay = function() {
 
       container.delegate.element.addEventListener('click', () => {
          if (!window.navigator.onLine && location.hostname != 'localhost') {
-            return displayFx.okCancelMessage(lang.tr('phrases.noconnection'), ()=>displayFx.closeModal('processing'));
+            return displayGen.okCancelMessage(lang.tr('phrases.noconnection'), ()=>displayGen.closeModal('processing'));
          }
-         displayFx.escapeModal(undefined, 'processing');
+         displayGen.escapeModal(undefined, 'processing');
          if (tournament.delegated) {
-            displayFx.okCancelMessage(lang.tr('phrases.revokedelegation'), revoke, () => displayFx.closeModal('processing'));
+            displayGen.okCancelMessage(lang.tr('phrases.revokedelegation'), revoke, () => displayGen.closeModal('processing'));
          } else {
-            displayFx.okCancelMessage(lang.tr('phrases.delegate2mobile'), delegate, () => displayFx.closeModal('processing'));
+            displayGen.okCancelMessage(lang.tr('phrases.delegate2mobile'), delegate, () => displayGen.closeModal('processing'));
          }
 
          function revoke() {
             coms.revoked = (result) => {
                if (!result.revoked) {
-                  displayFx.okCancelMessage(lang.tr('tournaments.noauth'), () => displayFx.closeModal('processing'));
+                  displayGen.okCancelMessage(lang.tr('tournaments.noauth'), () => displayGen.closeModal('processing'));
                } else {
                   staging.receiveTournamentRecord(result);
                }
@@ -530,12 +535,12 @@ export const tournamentDisplay = function() {
             coms.emitTmx({ revokeDelegation });
             tournament.delegated = false;
             activateEdit();
-            displayFx.closeModal('processing');
+            displayGen.closeModal('processing');
             finish();
          }
 
          function finish() {
-            displayFx.delegated(container, tournament.delegated);
+            displayGen.delegated(container, tournament.delegated);
             saveTournament(tournament);
          }
 
@@ -545,7 +550,7 @@ export const tournamentDisplay = function() {
             // set function in coms as 'callback'
             coms.delegated = (result) => {
                if (!result.keyset) {
-                  let msg = displayFx.okCancelMessage(lang.tr('tournaments.noauth'), () => displayFx.closeModal('processing'));
+                  let msg = displayGen.okCancelMessage(lang.tr('tournaments.noauth'), () => displayGen.closeModal('processing'));
                } else {
                   tournament.delegated = key_uuid;
                   deactivateEdit();
@@ -555,12 +560,12 @@ export const tournamentDisplay = function() {
                   console.log(message);
                   finish();
 
-                  displayFx.escapeFx = undefined;
+                  displayGen.escapeFx = undefined;
                   let ctext = `
                      <p id='msg'>${lang.tr('phrases.scanQRcode')}</p>
                      <canvas id='qr'></canvas>
                      `;
-                  let msg = displayFx.okCancelMessage(ctext, () => displayFx.closeModal('processing'));
+                  let msg = displayGen.okCancelMessage(ctext, () => displayGen.closeModal('processing'));
                   genQUR(message);
                }
                coms.delegated = undefined;
@@ -593,7 +598,7 @@ export const tournamentDisplay = function() {
             <div><canvas id='qr'></canvas></div>
             <div id='msg' style='display: none;'>${lang.tr('phrases.linkcopied')}</div>
             `;
-         let msg = displayFx.okCancelMessage(ctext, () => displayFx.closeModal());
+         let msg = displayGen.okCancelMessage(ctext, () => displayGen.closeModal());
          genQUR(message);
 
          document.getElementById('cb').addEventListener('click', function() {
@@ -632,12 +637,12 @@ export const tournamentDisplay = function() {
             tournament: CircularJSON.stringify(tournament)
          });
 
-         displayFx.tournamentPublishState(container.push2cloud_state.element, tournament.published);
+         displayGen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
          saveTournament(tournament, false);
       }
 
-      displayFx.tournamentPublishState(container.push2cloud_state.element, tournament.published);
-      displayFx.localSaveState(container.localdownload_state.element, tournament.saved_locally);
+      displayGen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
+      displayGen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
 
       container.push2cloud.element.addEventListener('click', () => { if (!tournament.published) pushTournament2Cloud(); });
       container.localdownload.element.addEventListener('click', () => {
@@ -647,7 +652,7 @@ export const tournamentDisplay = function() {
          exportFx.downloadCircularJSON(`${tournament.tuid}.circular.json`, tournament);
          tournament.saved_locally = true;
 
-         displayFx.localSaveState(container.localdownload_state.element, tournament.saved_locally);
+         displayGen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
          saveTournament(tournament, false);
 
          // can't call saveTournament() here because saveTournament sets save state
@@ -667,15 +672,15 @@ export const tournamentDisplay = function() {
                exportFx.downloadJSON(`${tournament.tuid}-points.json`, points);
             } else {
                let text = `${lang.tr('phrases.export')}: ${lang.tr('pts')}`;
-               let choices = displayFx.twoChoices({ text, option1: 'JSON', option2: 'HTS' });
-               displayFx.escapeModal();
+               let choices = displayGen.twoChoices({ text, option1: 'JSON', option2: 'HTS' });
+               displayGen.escapeModal();
                choices.option1.element.addEventListener('click', () => {
                   exportFx.downloadJSON(`${profile}-${tournament.tuid}-points.json`, points);
-                  displayFx.closeModal();
+                  displayGen.closeModal();
                });
                choices.option2.element.addEventListener('click', () => {
                   hts.downloadHTSformattedPoints({points, tuid: tournament.tuid});
-                  displayFx.closeModal();
+                  displayGen.closeModal();
                });
             }
          }
@@ -688,15 +693,15 @@ export const tournamentDisplay = function() {
          let profile = fx.fx.env().org.abbr || 'Unknown';
          function exportMatches(matches) {
             let text = `${lang.tr('phrases.export')}: ${lang.tr('mts')}`;
-            let choices = displayFx.twoChoices({ text, option1: 'JSON', option2: 'UTR' });
-            displayFx.escapeModal();
+            let choices = displayGen.twoChoices({ text, option1: 'JSON', option2: 'UTR' });
+            displayGen.escapeModal();
             choices.option1.element.addEventListener('click', () => {
                exportFx.downloadJSON(`${profile}-${tournament.tuid}-matches.json`, matches);
-               displayFx.closeModal();
+               displayGen.closeModal();
             });
             choices.option2.element.addEventListener('click', () => {
                downloadUTRmatches(tournament, matches);
-               displayFx.closeModal();
+               displayGen.closeModal();
             });
          }
          function downloadUTRmatches(tournament, matches) {
@@ -708,36 +713,36 @@ export const tournamentDisplay = function() {
 
       container.publish_draw.element.addEventListener('contextmenu', () => {
          if (!displayed_draw_event.published) return;
-         displayFx.okCancelMessage(lang.tr('draws.unpublish'), unPublishDraw, () => displayFx.closeModal());
+         displayGen.okCancelMessage(lang.tr('draws.unpublish'), unPublishDraw, () => displayGen.closeModal());
 
          function unPublishDraw() {
             displayed_draw_event.published = false;
             displayed_draw_event.up_to_date = false;
             saveTournament(tournament);
 
-            displayFx.drawBroadcastState(container.publish_state.element, displayed_draw_event);
+            displayGen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
             deletePublishedEvent(tournament, displayed_draw_event);
             enableTournamentOptions();
-            displayFx.closeModal();
+            displayGen.closeModal();
          }
       });
 
       container.publish_draw.element.addEventListener('click', () => {
          if (fx.fx.env().publishing.require_confirmation) {
-            displayFx.okCancelMessage(lang.tr('draws.publishQ'), broadcast, () => displayFx.closeModal());
+            displayGen.okCancelMessage(lang.tr('draws.publishQ'), broadcast, () => displayGen.closeModal());
          } else {
             broadcast();
          }
 
          function broadcast() {
             broadcastEvent(tournament, displayed_draw_event);
-            displayFx.drawBroadcastState(container.publish_state.element, displayed_draw_event);
-            displayFx.closeModal();
+            displayGen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
+            displayGen.closeModal();
          }
       });
 
       container.recycle.element.addEventListener('click', () => {
-         displayFx.okCancelMessage(`${lang.tr('draws.clear')}?`, clearDraw, () => displayFx.closeModal());
+         displayGen.okCancelMessage(`${lang.tr('draws.clear')}?`, clearDraw, () => displayGen.closeModal());
          function clearDraw() {
             displayed_draw_event.draw_created = false;
             generateDraw(displayed_draw_event, true);
@@ -747,14 +752,14 @@ export const tournamentDisplay = function() {
             saveTournament(tournament);
 
             enableDrawActions();
-            displayFx.closeModal();
+            displayGen.closeModal();
          }
       });
 
       container.player_reps.element.addEventListener('click', () => {
-         let modal = displayFx.playerRepresentatives();
+         let modal = displayGen.playerRepresentatives();
          modal.submit.element.addEventListener('click', () => submitReps());
-         modal.cancel.element.addEventListener('click', () => displayFx.closeModal());
+         modal.cancel.element.addEventListener('click', () => displayGen.closeModal());
          if (displayed_draw_event) {
             let valid_reps = tournament.players
                .filter(p=>displayed_draw_event.approved.indexOf(p.id) >= 0)
@@ -802,9 +807,9 @@ export const tournamentDisplay = function() {
          function submitReps() {
             displayed_draw_event.player_representatives[0] = modal.player_rep1.element.value;
             displayed_draw_event.player_representatives[1] = modal.player_rep2.element.value;
-            displayFx.drawRepState(container.player_reps_state.element, displayed_draw_event);
+            displayGen.drawRepState(container.player_reps_state.element, displayed_draw_event);
             saveTournament(tournament);
-            displayFx.closeModal();
+            displayGen.closeModal();
          }
       });
 
@@ -831,23 +836,23 @@ export const tournamentDisplay = function() {
 
             function setup() {
                cmenu(coords[0], coords[1]);
-               // this is not the same as displayFx.escapeModal() !!!!
-               displayFx.escapeFx = () => { cmenu.cleanUp(); displayFx.escapeFx = undefined; };
+               // this is not the same as displayGen.escapeModal() !!!!
+               displayGen.escapeFx = () => { cmenu.cleanUp(); displayGen.escapeFx = undefined; };
             }
 
             function cleanUp() {
                tree_draw.unHighlightCells();
-               displayFx.escapeFx = undefined;
+               displayGen.escapeFx = undefined;
             }
          }
       }
 
       function resetSchedule() {
-         displayFx.escapeModal();
-         displayFx.okCancelMessage(lang.tr('phrases.clearalldays'), reset, () => displayFx.closeModal());
+         displayGen.escapeModal();
+         displayGen.okCancelMessage(lang.tr('phrases.clearalldays'), reset, () => displayGen.closeModal());
          function reset() {
             clearScheduleDay({all: true});
-            displayFx.closeModal();
+            displayGen.closeModal();
          }
       }
 
@@ -923,9 +928,9 @@ export const tournamentDisplay = function() {
 
          let match_rounds = util.unique(filtered_unscheduled.map(m=>m.round_name));
          if (match_rounds.length > 1) {
-            let config = displayFx.autoScheduleConfig();
-            config.order.element.addEventListener('click', () => { order_priority = true; displayFx.closeModal(); doIt(); });
-            config.round.element.addEventListener('click', () => { displayFx.closeModal(); doIt(); });
+            let config = displayGen.autoScheduleConfig();
+            config.order.element.addEventListener('click', () => { order_priority = true; displayGen.closeModal(); doIt(); });
+            config.round.element.addEventListener('click', () => { displayGen.closeModal(); doIt(); });
          } else {
             doIt();
          }
@@ -1109,7 +1114,7 @@ export const tournamentDisplay = function() {
       function addTournamentPlayer(player_container, new_player) {
          if (!tournament.players) tournament.players = [];
          let existing = tournament.players.filter(p=>p.id == new_player.id);
-         let assignment = displayFx.playerAssignmentActions(player_container);
+         let assignment = displayGen.playerAssignmentActions(player_container);
 
          let plyr = tournament.players.reduce((a, b) => a = (b.puid == new_player.puid) ? b : a, undefined);
 
@@ -1119,7 +1124,7 @@ export const tournamentDisplay = function() {
          assignment.signout.element.style.display = existing.length && existing[0].signed_in ? 'inline' : 'none';
 
          let cleanUp = () => {
-            displayFx.closeModal();
+            displayGen.closeModal();
 
             // TODO: any draws which have been created need to be re-validated
             // a newly signed-in player can invlidate seeding; any player
@@ -1173,7 +1178,7 @@ export const tournamentDisplay = function() {
          assignment.new_player.element.addEventListener('click', () => {
             playerFx.createNewPlayer({ player_data: new_player, category: tournament.category, callback: addNewTournamentPlayer });
          });
-         assignment.cancel.element.addEventListener('click', () => displayFx.closeModal());
+         assignment.cancel.element.addEventListener('click', () => displayGen.closeModal());
          assignment.signin.element.addEventListener('click', signIn);
          assignment.signout.element.addEventListener('click', () => { 
             signOutTournamentPlayer(existing[0]);
@@ -1246,7 +1251,7 @@ export const tournamentDisplay = function() {
          let max_year = year - parseInt(ages.to);
 
          playerFx.action = 'addTournamentPlayer';
-         playerFx.displayFx = displayFx.showConfigModal;
+         playerFx.displayGen = displayGen.showConfigModal;
 
          searchBox.category = 'players';
          searchBox.category_switching = false;
@@ -1271,7 +1276,7 @@ export const tournamentDisplay = function() {
             if (next_tab != 'players') resetSearch();
          } else if (current_tab == 'players' && next_tab != 'players') {
             playerFx.action = undefined;
-            playerFx.displayFx = undefined;
+            playerFx.displayGen = undefined;
             resetSearch();
          }
 
@@ -1413,7 +1418,7 @@ export const tournamentDisplay = function() {
          schedulePublishState();
 
          let elem = container.schedule_tab.element.querySelector('.' + classes.schedule_details).querySelector('div');
-         displayFx.scheduleDetailsState(elem, tournament.schedule);
+         displayGen.scheduleDetailsState(elem, tournament.schedule);
 
          let display_publish_icon = display;
          container.schedule_tab.element.querySelector('.' + classes.publish_schedule).style.display = display_publish_icon ? 'inline' : 'none';
@@ -1421,12 +1426,12 @@ export const tournamentDisplay = function() {
 
       function activateEdit() {
          state.edit = true;
-         displayFx.escapeFx = undefined;
+         displayGen.escapeFx = undefined;
 
          // for editing insure tournament is not in modal
          util.moveNode('content', container.container.id);
-         displayFx.content = 'tournament';
-         displayFx.closeModal();
+         displayGen.content = 'tournament';
+         displayGen.closeModal();
 
          if (display_context != 'content') {
             delete draws_context[display_context];
@@ -1459,12 +1464,12 @@ export const tournamentDisplay = function() {
       }
 
       function revokeAuthorization() {
-         displayFx.escapeModal();
-         displayFx.okCancelMessage(lang.tr('phrases.revokeauth'), revokeAuthorization, () => displayFx.closeModal());
+         displayGen.escapeModal();
+         displayGen.okCancelMessage(lang.tr('phrases.revokeauth'), revokeAuthorization, () => displayGen.closeModal());
          function revokeAuthorization() {
             let revokeAuthorization = { tuid: tournament.tuid };
             coms.emitTmx({ revokeAuthorization });
-            displayFx.closeModal();
+            displayGen.closeModal();
          }
       }
 
@@ -1484,8 +1489,8 @@ export const tournamentDisplay = function() {
 
          // TODO: server won't accept pushKey unless user uuuid in superuser cache on server
          coms.emitTmx({ pushKey });
-         displayFx.escapeModal();
-         let msg = displayFx.okCancelMessage(ctext, () => displayFx.closeModal());
+         displayGen.escapeModal();
+         let msg = displayGen.okCancelMessage(ctext, () => displayGen.closeModal());
          copyClick(key_uuid);
       }
 
@@ -1629,11 +1634,11 @@ export const tournamentDisplay = function() {
             var selected_event = container.select_draw.ddlb ? container.select_draw.ddlb.getValue() : undefined;
 
             if (lucky_losers && state.edit) {
-               let actions = displayFx.drawPDFmodal();
-               displayFx.escapeModal();
+               let actions = displayGen.drawPDFmodal();
+               displayGen.escapeModal();
                actions.drawsheet.element.addEventListener('click', () => {
                   if (data && options) printPDF();
-                  displayFx.closeModal();
+                  displayGen.closeModal();
                });
                actions.signinsheet.element.addEventListener('click', () => {
                   let completed_matches = mfx.eventMatches(displayed_draw_event, tournament).filter(m=>m.match.winner);
@@ -1647,7 +1652,7 @@ export const tournamentDisplay = function() {
                      doc_name: `${lang.tr('draws.luckyloser')} ${lang.tr('print.signin')}`,
                      extra_pages: false
                   })
-                  displayFx.closeModal();
+                  displayGen.closeModal();
                });
             } else if (data && options) {
                printPDF();
@@ -1711,17 +1716,17 @@ export const tournamentDisplay = function() {
             return;
          }
 
-         let sisobj = displayFx.signInSheetFormat();
-         displayFx.escapeModal();
+         let sisobj = displayGen.signInSheetFormat();
+         displayGen.escapeModal();
          sisobj.singles.element.addEventListener('click', () => {
             t_players = tfx.orderPlayersByRank(t_players, tournament.category);
             // default configuration is ordered Sign-In List
             exportFx.orderedPlayersPDF({ tournament, players: t_players })
-            displayFx.closeModal();
+            displayGen.closeModal();
          });
          sisobj.doubles.element.addEventListener('click', () => {
             exportFx.doublesSignInPDF({ tournament });
-            displayFx.closeModal();
+            displayGen.closeModal();
          });
       }
 
@@ -1842,12 +1847,12 @@ export const tournamentDisplay = function() {
       function closeEventDetails() {
          searchBox.normalFunction();
          displayed_event = undefined;
-         displayFx.hideEventDetails(container);
+         displayGen.hideEventDetails(container);
       }
 
       function closeLocationDetails() {
          searchBox.normalFunction();
-         displayFx.hideLocationDetails(container);
+         displayGen.hideLocationDetails(container);
       }
 
       function enableApprovePlayer(e) {
@@ -1951,7 +1956,7 @@ export const tournamentDisplay = function() {
             });
          }
 
-         displayFx.eventList(container, events, highlight_listitem);
+         displayGen.eventList(container, events, highlight_listitem);
          function eventDetails(evt) {
             let clicked_event = util.getParent(evt.target, 'event');
             let class_list = clicked_event.classList;
@@ -1972,18 +1977,18 @@ export const tournamentDisplay = function() {
 
       function unpublishAllEvents() {
          if (!state.edit) return;
-         displayFx.okCancelMessage(lang.tr('draws.unpublishall'), unPublishAll, () => displayFx.closeModal());
-         displayFx.escapeModal();
+         displayGen.okCancelMessage(lang.tr('draws.unpublishall'), unPublishAll, () => displayGen.closeModal());
+         displayGen.escapeModal();
 
          function unPublishAll() {
             let deleteEventsRequest = { tuid: tournament.tuid };
             coms.emitTmx({ deleteEventsRequest })
-            displayFx.closeModal();
+            displayGen.closeModal();
             tournament.events.forEach(evt => {
                evt.published = false;
                evt.up_to_date = false;
             });
-            displayFx.drawBroadcastState(container.publish_state.element);
+            displayGen.drawBroadcastState(container.publish_state.element);
             unPublishOOP();
             eventList();
          }
@@ -2017,7 +2022,7 @@ export const tournamentDisplay = function() {
             luckylosers: [],
             draw_size: '',
             draw_type: 'E',
-            euid: displayFx.uuid(),
+            euid: displayGen.uuid(),
             scoring: '3/6/7T',
             automated: false,
             draw_created: false,
@@ -2097,9 +2102,9 @@ export const tournamentDisplay = function() {
                actions.select('.cancel').style('display', 'none');
                actions.select('.del').style('display', 'inline')
                   .on('click', () => {
-                     displayFx.escapeModal();
+                     displayGen.escapeModal();
                      let message = `${lang.tr('actions.delete_event')}: ${e.name}?`;
-                     displayFx.okCancelMessage(message, deleteTournamentEvent, () => displayFx.closeModal());
+                     displayGen.okCancelMessage(message, deleteTournamentEvent, () => displayGen.closeModal());
                });
                actions.select('.done').style('display', 'inline')
                   .on('click', () => {
@@ -2187,7 +2192,7 @@ export const tournamentDisplay = function() {
             }
 
             saveTournament(tournament);
-            displayFx.closeModal();
+            displayGen.closeModal();
          }
 
          eventPlayers(e);
@@ -2367,7 +2372,7 @@ export const tournamentDisplay = function() {
 
          function setQualificationConfig() {
             let { max_qualifiers, options } = qualifyingDrawSizeOptions(e);
-            event_config = displayFx.configQualificationDraw(container, e, options);
+            event_config = displayGen.configQualificationDraw(container, e, options);
             event_config.qualifiers.ddlb = new dd.DropDown({ element: event_config.qualifiers.element, onChange: setQualifiers });
             event_config.qualifiers.ddlb.setValue(Math.min(e.qualifiers || 0, max_qualifiers) || 0);
             event_config.qualifiers.ddlb.selectionBackground(!e.qualifiers ? 'red' : 'white');
@@ -2384,7 +2389,7 @@ export const tournamentDisplay = function() {
                eventList(true);
             }
 
-            event_config = displayFx.configTreeDraw(container, e, options);
+            event_config = displayGen.configTreeDraw(container, e, options);
             event_config.structure.ddlb = new dd.DropDown({ element: event_config.structure.element, onChange: setStructure });
             event_config.structure.ddlb.setValue(e.structure || 'standard', 'white');
 
@@ -2400,7 +2405,7 @@ export const tournamentDisplay = function() {
                eventList(true);
             }
 
-            event_config = displayFx.configTreeDraw(container, e, options);
+            event_config = displayGen.configTreeDraw(container, e, options);
             event_config.structure.ddlb = new dd.DropDown({ element: event_config.structure.element, onChange: setStructure });
             event_config.structure.ddlb.setValue(e.structure || 'standard', 'white');
 
@@ -2415,7 +2420,7 @@ export const tournamentDisplay = function() {
                eventList(true);
             }
 
-            event_config = displayFx.configTreeDraw(container, e, options);
+            event_config = displayGen.configTreeDraw(container, e, options);
             event_config.structure.ddlb = new dd.DropDown({ element: event_config.structure.element, onChange: setStructure });
             event_config.structure.ddlb.setValue(e.structure || 'standard', 'white');
 
@@ -2426,7 +2431,7 @@ export const tournamentDisplay = function() {
          function setRoundRobinConfig() {
             let {options, size_options } = roundRobinDrawBracketOptions(e);
 
-            event_config = displayFx.configRoundRobinDraw(container, e, options, size_options);
+            event_config = displayGen.configRoundRobinDraw(container, e, options, size_options);
             event_config.qualifiers.ddlb = new dd.DropDown({ element: event_config.qualifiers.element, onChange: setQualifiers });
             event_config.qualifiers.ddlb.setValue(e.qualifiers || e.brackets, 'white');
             e.qualifiers = e.qualifiers || e.brackets;
@@ -2481,7 +2486,7 @@ export const tournamentDisplay = function() {
 
       function configureLocationAttributes(l) {
          let disabled = !state.edit
-         let attributes = displayFx.displayLocationAttributes(container, l, state.edit);
+         let attributes = displayGen.displayLocationAttributes(container, l, state.edit);
 
          let field_order = [ 'abbreviation', 'name', 'address', 'courts', 'identifiers' ];
          let constraints = { 'abbreviation': { length: 3 }, 'name': { length: 5 }, 'address': { length: 5 }, 'courts': { number: true } };
@@ -2552,7 +2557,7 @@ export const tournamentDisplay = function() {
             saveTournament(tournament);
          }
          let bod = d3.select('body').node();
-         displayFx.svgModal({ x: evt.clientX, y: evt.clientY, options: teams, callback: clickAction });
+         displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options: teams, callback: clickAction });
       }
 
       function availableDrawTypes(e) {
@@ -2572,14 +2577,14 @@ export const tournamentDisplay = function() {
 
       function eventName(e) {
          e.name = `${getKey(genders, e.gender)} ${getKey(formats, e.format)}`;
-         displayFx.setEventName(container, e);
+         displayGen.setEventName(container, e);
          eventList();
       }
 
       function configureEventSelections(e) {
          eventName(e);
 
-         let details = displayFx.displayEventDetails({
+         let details = displayGen.displayEventDetails({
             tournament,
             container,
             e,
@@ -2719,7 +2724,7 @@ export const tournamentDisplay = function() {
          let changeScoring = () => {
             if (state.edit && !e.active) {
                document.body.style.overflow  = 'hidden';
-               let cfg_obj = displayFx.scoreBoardConfig();
+               let cfg_obj = displayGen.scoreBoardConfig();
                let sb_config = d3.select(cfg_obj.config.element);
 
                let f = fx.fx.env().default_score_format;
@@ -3325,7 +3330,7 @@ export const tournamentDisplay = function() {
             approved = teamRankDuplicates(tfx.approvedTeams({ tournament, e }));
          }
 
-         displayFx.displayEventPlayers({ container, approved, teams, eligible: eligible_players, ineligible: ineligible_players, unavailable: unavailable_players });
+         displayGen.displayEventPlayers({ container, approved, teams, eligible: eligible_players, ineligible: ineligible_players, unavailable: unavailable_players });
 
          function changeGroup(evt) {
             if (!state.edit || e.active) return;
@@ -3403,7 +3408,7 @@ export const tournamentDisplay = function() {
             var options = (grouping == 'approved') ? [] : team_options;
             if (duplicates) options.push({ label: 'Subrank', value: 'subrank' });
 
-            displayFx.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: teamAction });
+            displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: teamAction });
 
             function teamAction(selection, i) {
                if (selection.value == 'cancel') {
@@ -3413,7 +3418,7 @@ export const tournamentDisplay = function() {
                } else if (selection.value == 'subrank') {
                   let remove = [{ label: `${lang.tr('draws.remove')}: Subrank`, value: 'remove' }];
                   let options = remove.concat(...util.range(0, duplicates).map(d => ({ label: `Subrank: ${d + 1}`, value: d + 1 })));
-                  displayFx.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: addSubrank });
+                  displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: addSubrank });
                } else if (selection.value == 'approve') {
                   modifyApproved.pushTeam(e, clicked_team.players);
                }
@@ -3460,7 +3465,7 @@ export const tournamentDisplay = function() {
                   if (plyr && grouping == 'eligible') assignWildcard(plyr, true);
                }
             }
-            displayFx.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: pOpts });
+            displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: pOpts });
          }
 
          function assignWildcard(plyr, wildcard) {
@@ -3663,7 +3668,7 @@ export const tournamentDisplay = function() {
 
             let round_filtered = !round ? euid_filtered : euid_filtered.filter(m=>m.round_name == round);
 
-            displayFx.scheduleTeams({ 
+            displayGen.scheduleTeams({ 
                pending_upcoming: round_filtered,
                element: container.unscheduled.element,
             });
@@ -3676,7 +3681,7 @@ export const tournamentDisplay = function() {
          }
 
          function displayScheduleGrid() {
-            displayFx.scheduleGrid({
+            displayGen.scheduleGrid({
                courts,
                oop_rounds,
                editable: state.edit,
@@ -3702,10 +3707,10 @@ export const tournamentDisplay = function() {
             // and draggable attribute so that match can be dragged
             target.setAttribute('muid', muid);
             target.setAttribute('draggable', 'true');
-            let sb = displayFx.scheduleBox({ match, editable: true});
+            let sb = displayGen.scheduleBox({ match, editable: true});
             target.innerHTML = sb.innerHTML;
             target.style.background = sb.background;
-            displayFx.scaleTeams(target);
+            displayGen.scaleTeams(target);
          }
 
          function removeFromUnscheduled(muid) {
@@ -3725,7 +3730,7 @@ export const tournamentDisplay = function() {
             element.setAttribute('oop_round', match.schedule.oop_round);
             element.style.background = 'white';
 
-            element.innerHTML = displayFx.emptyOOPround(true);
+            element.innerHTML = displayGen.emptyOOPround(true);
             util.addEventToClass('findmatch', showSearch, element, 'click');
             util.addEventToClass('opponentsearch', (e)=>e.stopPropagation(), element, 'click');
 
@@ -3772,7 +3777,7 @@ export const tournamentDisplay = function() {
                });
                opponent_search.focus();
             } else {
-               evt.target.innerHTML = displayFx.opponentSearch();
+               evt.target.innerHTML = displayGen.opponentSearch();
             }
 
             function scheduleMatch(source_muid) {
@@ -3809,7 +3814,7 @@ export const tournamentDisplay = function() {
                   });
 
                   let findmatch = target.querySelector('.findmatch'); 
-                  findmatch.innerHTML = displayFx.opponentSearch();
+                  findmatch.innerHTML = displayGen.opponentSearch();
 
                   source_match.schedule = Object.assign({}, target_schedule);
                   source_match.source.schedule = Object.assign({}, target_schedule);
@@ -3937,13 +3942,13 @@ export const tournamentDisplay = function() {
                   { label: lang.tr('schedule.nextavailable'), key: 'next' },
                   { label: lang.tr('schedule.clear'), key: 'clear' },
                ];
-               displayFx.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: modifySchedules });
+               displayGen.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: modifySchedules });
 
                function modifySchedules(choice, index) {
                   if (choice.key == 'matchestime') {
                      filterDayMatches();
-                     // displayFx.timePicker({ hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
-                     displayFx.timePicker({ hour_range: { start: 8 }, minute_increment: 5, callback: setTime })
+                     // displayGen.timePicker({ hour_range: { start: 8 }, minutes: [0, 30], callback: setTime })
+                     displayGen.timePicker({ hour_range: { start: 8 }, minute_increment: 5, callback: setTime })
                   } else if (choice.key == 'notbefore') {
                      modifyMatchSchedule([{ attr: 'time_prefix', value: `${lang.tr('schedule.nb')} ` }]);
                   } else if (choice.key == 'followedby') {
@@ -4036,18 +4041,18 @@ export const tournamentDisplay = function() {
                      { label: lang.tr('draws.remove'), key: 'remove' },
                   ];
                }
-               displayFx.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: modifySchedule });
+               displayGen.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: modifySchedule });
 
                function modifySchedule(choice, index) {
                   if (choice.key == 'matchtime') {
                      let time_string = match.schedule && match.schedule.time;
-                     displayFx.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setTime })
+                     displayGen.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setTime })
                   } else if (choice.key == 'starttime') {
                      let time_string = match.schedule && (match.schedule.start || match.schedule.time);
-                     displayFx.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setStart })
+                     displayGen.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setStart })
                   } else if (choice.key == 'endtime') {
                      let time_string = match.schedule && match.schedule.end;
-                     displayFx.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setEnd })
+                     displayGen.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setEnd })
                   } else if (choice.key == 'timeheader') {
                      let headings = [
                         lang.tr('schedule.notbefore'),
@@ -4057,7 +4062,7 @@ export const tournamentDisplay = function() {
                         lang.tr('schedule.nextavailable'),
                         lang.tr('schedule.clear'),
                      ];
-                     displayFx.svgModal({ x: ev.clientX, y: ev.clientY, options: headings, callback: timeHeading });
+                     displayGen.svgModal({ x: ev.clientX, y: ev.clientY, options: headings, callback: timeHeading });
                   } else if (choice.key == 'changestatus') {
                      let statuses = [
                         { label: lang.tr('schedule.called'),  value: 'called' },
@@ -4067,7 +4072,7 @@ export const tournamentDisplay = function() {
                         { label: lang.tr('schedule.raindelay'),  value: 'raindelay' },
                         { label: lang.tr('schedule.clear'),  value: 'clear' },
                      ];
-                     displayFx.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: matchStatus });
+                     displayGen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: matchStatus });
                   } else if (choice.key == 'umpire') {
                      addUmpire(match, 'schedule');
                      return;
@@ -4085,7 +4090,7 @@ export const tournamentDisplay = function() {
                         { label: lang.tr('penalties.latearrival'), value: 'latearrival' },
                         { label: lang.tr('penalties.fail2signout'), value: 'fail2signout' },
                      ];
-                     displayFx.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: assessPenalty });
+                     displayGen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: assessPenalty });
                   } else if (choice.key == 'remove') {
                      returnToUnscheduled(match, target);
                      return;
@@ -4097,18 +4102,18 @@ export const tournamentDisplay = function() {
                function setEnd(value) { modifyMatchSchedule([{ attr: 'end', value }]); }
                function assessPenalty(penalty, penalty_index, penalty_value) {
                   let players = match.players.map(p=>p.full_name);
-                  displayFx.svgModal({ x: ev.clientX, y: ev.clientY, options: players, callback: playerPenalty });
+                  displayGen.svgModal({ x: ev.clientX, y: ev.clientY, options: players, callback: playerPenalty });
                   function playerPenalty(player, index, value) {
                      let puid = match.players[index].puid;
                      let tournament_player = tournament.players.reduce((p, s) => s.puid == puid ? s : p);
                      if (!tournament_player.penalties) tournament_player.penalties = [];
-                     displayFx.escapeModal();
+                     displayGen.escapeModal();
                      let penalty_code = `penalties.${penalty.value}`;
                      let message = `
                         ${lang.tr('draws.penalty')}: ${lang.tr(penalty_code)}
                         <p style='color: red'>${tournament_player.first_name} ${tournament_player.last_name}</p>
                      `;
-                     displayFx.okCancelMessage(message, savePenalty, () => displayFx.closeModal());
+                     displayGen.okCancelMessage(message, savePenalty, () => displayGen.closeModal());
                      function savePenalty() {
                         let penalty_event = {
                            penalty,
@@ -4120,7 +4125,7 @@ export const tournamentDisplay = function() {
                         }
                         tournament_player.penalties.push(penalty_event);
                         saveTournament(tournament);
-                        displayFx.closeModal();
+                        displayGen.closeModal();
                      }
                   }
                }
@@ -4191,11 +4196,11 @@ export const tournamentDisplay = function() {
                   }) : undefined;
 
                let scoreSubmitted = (outcome) => {
-                  displayFx.escapeFx = undefined;
+                  displayGen.escapeFx = undefined;
                   if (!outcome) return;
 
                   // this must happen first as 'e' is modified
-                  let result = (e.draw_type == 'R') ? scoreRoundRobin(tournament, e, existing_scores, outcome) : scoreTreeDraw(e, existing_scores, outcome);
+                  let result = (e.draw_type == 'R') ? scoreRoundRobin(tournament, e, existing_scores, outcome) : scoreTreeDraw(tournament, e, existing_scores, outcome);
 
                   if (result) {
                      match.winner_index = outcome.winner;
@@ -4221,7 +4226,7 @@ export const tournamentDisplay = function() {
                         broadcastEvent(tournament, e);
                         if (tournament.schedule.published) publishSchedule();
                      }
-                     displayFx.drawBroadcastState(container.publish_state.element, e);
+                     displayGen.drawBroadcastState(container.publish_state.element, e);
                   }
                }
 
@@ -4233,7 +4238,7 @@ export const tournamentDisplay = function() {
                      let score_format = match.score_format || e.score_format || {};
                      if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
 
-                     displayFx.escapeModal();
+                     displayGen.escapeModal();
                      scoreBoard.setMatchScore({
                         round,
                         container,
@@ -4283,7 +4288,7 @@ export const tournamentDisplay = function() {
          let highlight_listitem;
          locations.forEach((l, i) => { if (l.luid == displayed_location) highlight_listitem = i; });
 
-         displayFx.locationList(container, locations, highlight_listitem);
+         displayGen.locationList(container, locations, highlight_listitem);
 
          let locationDetails = (evt) => {
             let clicked_location = util.getParent(evt.target, 'location');
@@ -4334,9 +4339,9 @@ export const tournamentDisplay = function() {
                actions.select('.cancel').style('display', 'none');
                actions.select('.del').style('display', 'inline')
                   .on('click', () => { 
-                     displayFx.escapeModal();
+                     displayGen.escapeModal();
                      let message = `${lang.tr('actions.delete_location')}: ${l.name}?`;
-                     displayFx.okCancelMessage(message, deleteLocation, () => displayFx.closeModal());
+                     displayGen.okCancelMessage(message, deleteLocation, () => displayGen.closeModal());
                   });
                actions.select('.done').style('display', 'inline')
                   .on('click', () => {
@@ -4384,7 +4389,7 @@ export const tournamentDisplay = function() {
                   match.source.schedule = {};
                }
             });
-            displayFx.closeModal();
+            displayGen.closeModal();
          }
 
          // TODO: update scheduling tab?
@@ -4429,7 +4434,7 @@ export const tournamentDisplay = function() {
             d3.select('#YT' + container.container.id).style('display', 'none');
             return;
          }
-         let display_order = displayFx.displayTournamentPlayers({ container, tournament, players: t_players, filters, edit: state.edit });
+         let display_order = displayGen.displayTournamentPlayers({ container, tournament, players: t_players, filters, edit: state.edit });
 
          // now add event to all players to display player profile
          let signInState = (evt) => {
@@ -4451,7 +4456,7 @@ export const tournamentDisplay = function() {
                if (clicked_player) {
                   if (clicked_player.signed_in) {
                      if (approved) {
-                        if (penalties) { return displayFx.playerPenalties(clicked_player, saveFx); } else { return cannotSignOut(); }
+                        if (penalties) { return displayGen.playerPenalties(clicked_player, saveFx); } else { return cannotSignOut(); }
                         function saveFx() { saveTournament(tournament); playersTab(); }
                      }
                      // must confirm sign-out
@@ -4471,7 +4476,7 @@ export const tournamentDisplay = function() {
             }
 
             // disallow sign-out of a player who is approved for any event
-            function cannotSignOut() { displayFx.popUpMessage(`<div>${lang.tr('phrases.cannotsignout')}<p>${lang.tr('phrases.approvedplayer')}</div>`); }
+            function cannotSignOut() { displayGen.popUpMessage(`<div>${lang.tr('phrases.cannotsignout')}<p>${lang.tr('phrases.approvedplayer')}</div>`); }
 
             function displayIrregular(player, result) {
                if (state.edit) {
@@ -4518,8 +4523,8 @@ export const tournamentDisplay = function() {
                let changeable = players_approved().indexOf(changed_player.id) >= 0 ? false : true;
                if (!changeable && changed_value) {
                   let message = `<div>${lang.tr('phrases.cannotchangerank')}<p>${lang.tr('phrases.approvedplayer')}</div>`;
-                  displayFx.escapeModal();
-                  displayFx.popUpMessage(message);
+                  displayGen.escapeModal();
+                  displayGen.popUpMessage(message);
                }
                // TODO: in the future will need to modify rank for categories if there are multiple categories in one tournament
                if (attribute == 'rank') { 
@@ -4550,7 +4555,7 @@ export const tournamentDisplay = function() {
                }
             }
 
-            if (!displayFx.disable_keypress && (evt.which == 13 || evt.which == 9)) {
+            if (!displayGen.disable_keypress && (evt.which == 13 || evt.which == 9)) {
                // now move the cursor to the next player's ranking
                let order = evt.target.getAttribute('order');
                let entry_fields = Array.from(container.players.element.querySelectorAll(cls));
@@ -4687,10 +4692,10 @@ export const tournamentDisplay = function() {
          if (!completed_matches.length && dbmatches && dbmatches.length) {
             // if matches array part of tournament object, matches have been imported
             dbmatches.forEach(match => match.outcome = mfx.matchOutcome(match));
-            displayFx.displayTournamentMatches({ tournament, container, completed_matches: dbmatches, filters });
+            displayGen.displayTournamentMatches({ tournament, container, completed_matches: dbmatches, filters });
             calcPlayerPoints({ tournament, matches: dbmatches, container, filters });
          } else {
-            displayFx.displayTournamentMatches({ tournament, container, pending_matches, completed_matches, filters });
+            displayGen.displayTournamentMatches({ tournament, container, pending_matches, completed_matches, filters });
             tournamentPoints(tournament, completed_matches);
          }
 
@@ -4707,12 +4712,12 @@ export const tournamentDisplay = function() {
                }) : undefined;
 
             let scoreSubmitted = (outcome) => {
-               displayFx.escapeFx = undefined;
+               displayGen.escapeFx = undefined;
                // this must happen first as 'e' is modified
                if (e.draw_type == 'R') {
                   scoreRoundRobin(tournament, e, existing_scores, outcome);
                } else {
-                  scoreTreeDraw(e, existing_scores, outcome);
+                  scoreTreeDraw(tournament, e, existing_scores, outcome);
                }
                matchesTab();
             }
@@ -4723,7 +4728,7 @@ export const tournamentDisplay = function() {
                let score_format = match.score_format || e.score_format || {};
                if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
 
-               displayFx.escapeModal();
+               displayGen.escapeModal();
                scoreBoard.setMatchScore({
                   round,
                   container,
@@ -4746,7 +4751,7 @@ export const tournamentDisplay = function() {
                if (match.match.schedule && match.match.schedule.court) {
                   enterMatchScore(e, match);
                } else {
-                  // displayFx.popUpMessage('schedule match');
+                  // displayGen.popUpMessage('schedule match');
                }
             }
          }
@@ -4789,7 +4794,7 @@ export const tournamentDisplay = function() {
                if (!complete) { options.push({ label: lang.tr('draws.changestatus'), key: 'changestatus' }); }
                if (puid) options.push({ label: lang.tr('draws.penalty'), key: 'penalty' });
 
-               displayFx.svgModal({ x: mouse.x, y: mouse.y, options, callback: modifySchedule });
+               displayGen.svgModal({ x: mouse.x, y: mouse.y, options, callback: modifySchedule });
 
                function modifySchedule(choice, index) {
                   if (choice.key == 'changestatus') {
@@ -4801,13 +4806,13 @@ export const tournamentDisplay = function() {
                         { label: lang.tr('schedule.raindelay'),  value: 'raindelay' },
                         { label: lang.tr('schedule.clear'),  value: 'clear' },
                      ];
-                     displayFx.svgModal({ x: mouse.x, y: mouse.y, options: statuses, callback: matchStatus });
+                     displayGen.svgModal({ x: mouse.x, y: mouse.y, options: statuses, callback: matchStatus });
                   } else if (choice.key == 'starttime') {
                      let time_string = match.schedule && (match.schedule.start || match.schedule.time);
-                     displayFx.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setStart })
+                     displayGen.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setStart })
                   } else if (choice.key == 'endtime') {
                      let time_string = match.schedule && match.schedule.end;
-                     displayFx.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setEnd })
+                     displayGen.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setEnd })
                   } else if (choice.key == 'penalty') {
                      let statuses = [
                         { label: lang.tr('penalties.illegalcoaching'), value: 'illegalcoaching' },
@@ -4822,7 +4827,7 @@ export const tournamentDisplay = function() {
                         { label: lang.tr('penalties.latearrival'), value: 'latearrival' },
                         { label: lang.tr('penalties.fail2signout'), value: 'fail2signout' },
                      ];
-                     displayFx.svgModal({ x: mouse.x, y: mouse.y, options: statuses, callback: assessPenalty });
+                     displayGen.svgModal({ x: mouse.x, y: mouse.y, options: statuses, callback: assessPenalty });
                   }
                }
 
@@ -4840,13 +4845,13 @@ export const tournamentDisplay = function() {
                function assessPenalty(penalty, penalty_index, penalty_value) {
                   let tournament_player = tournament.players.reduce((p, s) => s.puid == puid ? s : p);
                   if (!tournament_player.penalties) tournament_player.penalties = [];
-                  displayFx.escapeModal();
+                  displayGen.escapeModal();
                   let penalty_code = `penalties.${penalty.value}`;
                   let message = `
                      ${lang.tr('draws.penalty')}: ${lang.tr(penalty_code)}
                      <p style='color: red'>${tournament_player.first_name} ${tournament_player.last_name}</p>
                   `;
-                  displayFx.okCancelMessage(message, savePenalty, () => displayFx.closeModal());
+                  displayGen.okCancelMessage(message, savePenalty, () => displayGen.closeModal());
                   function savePenalty() {
                      let penalty_event = {
                         penalty,
@@ -4859,7 +4864,7 @@ export const tournamentDisplay = function() {
                      tournament_player.penalties.push(penalty_event);
                      saveTournament(tournament);
                      matchesTab();
-                     displayFx.closeModal();
+                     displayGen.closeModal();
                   }
                }
 
@@ -4873,10 +4878,8 @@ export const tournamentDisplay = function() {
          }
       }
 
-      function eventBroadcastObject(tourny, evt, draw=true) {
-         let draw_type_name = displayFx.genEventName(evt, tfx.isPreRound({ env: fx.fx.env(), e: evt })).type;
-
-         let ebo = { 
+      function eventBroadcastObject(tourny, evt, draw_type_name, options) {
+         return { 
             tournament: {
                name: tourny.name,
                tuid: tourny.tuid,
@@ -4909,16 +4912,9 @@ export const tournamentDisplay = function() {
                score_format: evt.score_format,
                lucky_losers: evt.lucky_losers,
             },
+            draw: evt.draw,
+            options
          }
-
-         if (draw) {
-            ebo.draw = evt.draw;
-            let draw_object = (evt.draw_type == 'R') ? rr_draw : tree_draw;
-            fx.fx.drawOptions({ draw: draw_object });
-            ebo.options = draw_object.options();
-         }
-
-         return ebo;
       }
 
       function deletePublishedEvent(tourny, evt) {
@@ -4931,9 +4927,13 @@ export const tournamentDisplay = function() {
       function broadcastEvent(tourny, evt) {
          evt.up_to_date = true;
          evt.published = new Date().getTime();
-         let ebo = eventBroadcastObject(tourny, evt);
-         let eventCircular = CircularJSON.stringify(ebo);
-         coms.emitTmx({ eventCircular });
+
+         let draw_object = (evt.draw_type == 'R') ? rr_draw : tree_draw;
+         let options = draw_object.options();
+         let draw_type_name = tfx.genEventName(evt, tfx.isPreRound({ env: fx.fx.env(), e: evt })).type;
+
+         publishFx.broadcastEvent(tourny, evt, draw_type_name, options);
+
          saveTournament(tournament);
          enableTournamentOptions();
       }
@@ -4958,7 +4958,7 @@ export const tournamentDisplay = function() {
       function displayDraw({ evt }) { 
          if (!evt.draw) return;
          displayed_draw_event = evt;
-         displayFx.drawRepState(container.player_reps_state.element, displayed_draw_event);
+         displayGen.drawRepState(container.player_reps_state.element, displayed_draw_event);
 
          if (evt.draw.children && evt.draw.children.length) { 
             tree_draw.data(evt.draw);
@@ -4971,7 +4971,7 @@ export const tournamentDisplay = function() {
             let seed_limit = dfx.seedLimit(approved_opponents.length);
             if (evt.draw_type == 'Q') seed_limit = (evt.qualifiers * 2) || seed_limit;
 
-            fx.fx.drawOptions({ draw: tree_draw });
+            fx.drawOptions({ draw: tree_draw });
             tree_draw.options({ names: { seed_number: seeding }, details: { seeding }});
             tree_draw.options({ seeds: { limit: seed_limit } });
 
@@ -4982,7 +4982,7 @@ export const tournamentDisplay = function() {
                .selector(container.draws.element)
                .bracketSize(evt.draw.bracket_size || o.draws.brackets.min_bracket_size);
 
-            fx.fx.drawOptions({ draw: rr_draw });
+            fx.drawOptions({ draw: rr_draw });
             rr_draw();
          }
       };
@@ -5024,29 +5024,42 @@ export const tournamentDisplay = function() {
          if (removed.linkchanges) {
             approvedChanged(removed.qlink);
             if (fx.fx.env().publishing.publish_on_score_entry) broadcastEvent(tournament, removed.qlink);
-            displayFx.drawBroadcastState(container.publish_state.element, removed.qlink);
+            displayGen.drawBroadcastState(container.publish_state.element, removed.qlink);
          }
+      }
+
+      function scoreTreeDraw(tournament, e, existing_scores, outcome) {
+         let result = tfx.scoreTreeDraw(tournament, e, existing_scores, outcome);
+         if (result.error) return displayGen.popUpMessage(lang.tr(result.error));
+         if (result.exit) return;
+
+         if (dfx.drawInfo(e.draw).complete) pushTournament2Cloud();
+         afterScoreUpdate(e);
       }
 
       function scoreRoundRobin(tournament, e, existing_scores, outcome) {
          let result = tfx.scoreRoundRobin(tournament, e, existing_scores, outcome);
-         if (result.error) return displayFx.popUpMessage(lang.tr(result.error));
+         if (result.error) return displayGen.popUpMessage(lang.tr(result.error));
          if (result.exit) return;
          if (result.linkchanges) approvedChanged(result.qlink);
 
          // if event is complete, send tournament to cloud
          if (result.event_complete) pushTournament2Cloud();
 
+         afterScoreUpdate(e);
+      }
+
+      function afterScoreUpdate(e) {
          e.up_to_date = false;
          if (staging.broadcasting()) {
             if (fx.fx.env().livescore) {
                e.up_to_date = true;
                staging.broadcastScore(match);
             }
-            if (fx.fx.env().publishing.publish_on_score_entry) broadcastEvent(tournament, displayed_draw_event);
+            if (fx.fx.env().publishing.publish_on_score_entry) broadcastEvent(tournament, e);
          }
          if (!staging.broadcasting() || !fx.fx.env().publishing.publish_on_score_entry) updateScheduleStatus({ muid: match.muid });
-         displayFx.drawBroadcastState(container.publish_state.element, displayed_draw_event);
+         displayGen.drawBroadcastState(container.publish_state.element, e);
 
          enableDrawActions();
          saveTournament(tournament);
@@ -5105,113 +5118,6 @@ export const tournamentDisplay = function() {
          tfx.logEventChange(displayed_draw_event, { fx: 'qualifier changed', d: { team: outcome.teams[outcome.winner].map(t=>t.id) } });
       }
 
-      function scoreTreeDraw(e, existing_scores, outcome) {
-         if (!outcome) return;
-
-         let qlink = e.draw_type == 'Q' && tfx.findEventByID(tournament, e.links['E']);
-         let qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
-         let node = !existing_scores ? null : dfx.findMatchNodeByTeamPositions(e.draw, outcome.positions);
-         let previous_winner = node && node.match && node.match.winner ? node.match.winner.map(m=>m.id) : undefined;
-         let current_winner = outcome.winner != undefined ? outcome.teams[outcome.winner].map(m=>m.id) : undefined;
-         let active_in_linked = qlink && previous_winner && playerActiveInLinked(qlinkinfo, previous_winner);
-         let qualifier_changed = !previous_winner || !current_winner ? undefined : util.intersection(previous_winner, current_winner).length == 0;
-
-         if (qlink) {
-            if (active_in_linked && (qualifier_changed || (previous_winner && !current_winner))) {
-               return displayFx.popUpMessage(lang.tr('phrases.cannotchangewinner'));
-            } else if (previous_winner && !current_winner) {
-               winnerRemoved({ e, qlink, qlinkinfo, previous_winner, outcome });
-            } else if (qualifier_changed) {
-               qualifierChanged({ e, outcome, qlink, qlinkinfo, previous_winner, current_winner });
-            }
-         }
-
-         if (!existing_scores) {
-            // no existing scores so advance position
-            dfx.advancePosition({ node: e.draw, position: outcome.position });
-         } else if (!outcome.score) {
-            console.log('NO SCORE');
-         } else {
-            let result = dfx.advanceToNode({
-               node,
-               score: outcome.score,
-               complete: outcome.complete,
-               position: outcome.position,
-               score_format: outcome.score_format,
-            });
-
-            if (!outcome.complete && result && !result.advanced) return displayFx.popUpMessage(lang.tr('phrases.matchmustbecomplete'));
-            if (outcome.complete && result && !result.advanced) return displayFx.popUpMessage(lang.tr('phrases.cannotchangewinner'));
-         }
-
-         let info = dfx.drawInfo(e.draw);
-         let finalist_dp = info.final_round.map(m=>m.data.dp);
-         let qualifier_index = finalist_dp.indexOf(outcome.position);
-         let qualified = e.draw_type == 'Q' && qualifier_index >= 0;
-
-         if (e.draw_type == 'Q' && qualified) {
-            tfx.qualifyTeam({ tournament, env: fx.fx.env(), e, team: outcome.teams[outcome.winner], qualifying_position: qualifier_index + 1 });
-         }
-
-         // modifyPositionScore removes winner/loser if match incomplete
-         dfx.modifyPositionScore({ 
-            node: e.draw, 
-            positions: outcome.positions,
-            score: outcome.score, 
-            score_format: outcome.score_format,
-            complete: outcome.complete, 
-            set_scores: outcome.set_scores
-         });
-
-         let puids = outcome.teams.map(t=>t.map(p=>p.puid).join('|'));
-         let findMatch = (e, n) => {
-            let tpuids = n.teams.map(t=>t.map(p=>p.puid).join('|'));
-            let pint = util.intersection(tpuids, puids);
-            return pint.length == 2 ? n : e; 
-         }
-         let match_event = mfx.eventMatches(e, tournament).reduce(findMatch, undefined);
-         if (match_event) {
-            let match = match_event.match;
-
-            match.score = outcome.score;
-            if (outcome.score) match.status = '';
-            match.winner_index = outcome.winner;
-
-            match.muid = match.muid || UUID.new();
-            match.winner = outcome.teams[outcome.winner];
-            match.loser = outcome.teams[1 - outcome.winner];
-            match.date = match.date || new Date().getTime();
-
-            match.players = [].concat(...outcome.teams);
-            match.teams = outcome.teams;
-
-            match.tournament = {
-               name: tournament.name,
-               tuid: tournament.tuid,
-               org: fx.fx.env().org,
-               category: tournament.category,
-               round: match.round_name || match.round
-            };
-
-            e.up_to_date = false;
-            if (staging.broadcasting()) {
-               if (fx.fx.env().livescore) {
-                  e.up_to_date = true;
-                  staging.broadcastScore(match);
-               }
-               if (fx.fx.env().publishing.publish_on_score_entry) broadcastEvent(tournament, displayed_draw_event);
-            }
-            if (!staging.broadcasting() || !fx.fx.env().publishing.publish_on_score_entry) updateScheduleStatus({ muid: match.muid });
-            displayFx.drawBroadcastState(container.publish_state.element, displayed_draw_event);
-         }
-
-         e.active = true;
-         enableDrawActions();
-         saveTournament(tournament);
-         if (dfx.drawInfo(e.draw).complete) pushTournament2Cloud();
-         return true;
-      }
-
       function rrPlayerOrder(d) {
          let bracket = displayed_draw_event.draw.brackets[d.bracket];
          let player = bracket.players.reduce((p, c) => c.draw_position == d.row ? c : p, undefined);
@@ -5235,7 +5141,7 @@ export const tournamentDisplay = function() {
 
                displayed_draw_event.up_to_date = false;
                if (staging.broadcasting() && fx.fx.env().publishing.publish_on_score_entry) broadcastEvent(tournament, displayed_draw_event);
-               displayFx.drawBroadcastState(container.publish_state.element, displayed_draw_event);
+               displayGen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
                saveTournament(tournament);
             }
             cMenu({ selector, coords, options, clickAction })
@@ -5309,7 +5215,7 @@ export const tournamentDisplay = function() {
             displayDraw({ evt: e });
          }
          enableDrawActions();
-         displayFx.drawBroadcastState(container.publish_state.element, e);
+         displayGen.drawBroadcastState(container.publish_state.element, e);
 
          eventList();
          return;
@@ -5350,7 +5256,7 @@ export const tournamentDisplay = function() {
                }) : undefined;
 
             let scoreSubmitted = (outcome) => {
-               displayFx.escapeFx = undefined;
+               displayGen.escapeFx = undefined;
                rr_draw.unHighlightCells();
 
                // this must happen first as 'e' is modified
@@ -5371,7 +5277,7 @@ export const tournamentDisplay = function() {
                let score_format = d.match.score_format || evnt.score_format || {};
                if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
 
-               displayFx.escapeModal();
+               displayGen.escapeModal();
                scoreBoard.setMatchScore({
                   teams,
                   container,
@@ -5406,7 +5312,7 @@ export const tournamentDisplay = function() {
             }
 
             if (fx.fx.env().publishing.publish_on_score_entry) broadcastEvent(tournament, evt);
-            displayFx.drawBroadcastState(container.publish_state.element, evt);
+            displayGen.drawBroadcastState(container.publish_state.element, evt);
             saveTournament(tournament);
          }
 
@@ -5441,7 +5347,7 @@ export const tournamentDisplay = function() {
                   rr_draw.updateBracket(d.bracket);
                   matchesTab();
                } else {
-                  displayFx.okCancelMessage(lang.tr('phrases.cantdelqual'), () => displayFx.closeModal());
+                  displayGen.okCancelMessage(lang.tr('phrases.cantdelqual'), () => displayGen.closeModal());
                }
 
                tfx.logEventChange(displayed_draw_event, { fx: 'match score removed', d: { muid: d.match.muid } });
@@ -5499,9 +5405,9 @@ export const tournamentDisplay = function() {
             }
 
             let scoreSubmitted = (outcome) => {
-               displayFx.escapeFx = undefined;
+               displayGen.escapeFx = undefined;
                // this must happen first as 'e' is modified
-               scoreTreeDraw(e, existing_scores, outcome);
+               scoreTreeDraw(tournament, e, existing_scores, outcome);
 
                tree_draw.unHighlightCells();
                tree_draw.data(e.draw)();
@@ -5515,7 +5421,7 @@ export const tournamentDisplay = function() {
                let score_format = (d.data.match && d.data.match.score_format) || evnt.score_format || {};
                if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
 
-               displayFx.escapeModal();
+               displayGen.escapeModal();
                scoreBoard.setMatchScore({
                   round,
                   container,
@@ -5570,9 +5476,9 @@ export const tournamentDisplay = function() {
             let placement = { bracket: d.bracket, position: d.row };
             let info = rr_draw.info();
             if (info.unfilled_positions.length) {
-               let pobj = displayFx.manualPlayerPosition({ container, position: d.row });
+               let pobj = displayGen.manualPlayerPosition({ container, position: d.row });
                rrPlacePlayer(placement, pobj, info);
-               displayFx.escapeModal();
+               displayGen.escapeModal();
             }
          }
 
@@ -5602,7 +5508,7 @@ export const tournamentDisplay = function() {
                d3.select(pobj.entry_field.element).remove();
                rr_draw.unHighlightCells();
                document.body.style.overflow = null;
-               displayFx.escapeFx = undefined;
+               displayGen.escapeFx = undefined;
             }
 
             pobj.entry_field.element.addEventListener('click', removeEntryField);
@@ -5700,15 +5606,15 @@ export const tournamentDisplay = function() {
                unplaced_teams.forEach(team => team.order = approved_hash.indexOf(teamHash(team)) + 1);
             }
 
-            var pobj = displayFx.manualPlayerPosition({ container, position });
-            displayFx.escapeModal();
+            var pobj = displayGen.manualPlayerPosition({ container, position });
+            displayGen.escapeModal();
 
             var entry_field = d3.select(pobj.entry_field.element);
             function removeEntryField() {
                entry_field.remove();
                tree_draw.unHighlightCells();
                document.body.style.overflow = null;
-               displayFx.escapeFx = undefined;
+               displayGen.escapeFx = undefined;
             }
 
             entry_field.on('click', removeEntryField);
@@ -5866,7 +5772,7 @@ export const tournamentDisplay = function() {
 
                let bod = d3.select('body').node();
                let evt = (d3.event);
-               displayFx.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: clickAction });
+               displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: clickAction });
             }
 
             function assignedRRoptions(coords, placement, cell, draw) {
@@ -6038,7 +5944,7 @@ export const tournamentDisplay = function() {
             }
             let bod = d3.select('body').node();
             let evt = (d3.event);
-            displayFx.svgModal({ x: evt.clientX, y: evt.clientY, options: teams, callback: clickAction });
+            displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options: teams, callback: clickAction });
          }
 
          function findSeedGroup(draw, seed) {
@@ -6075,7 +5981,7 @@ export const tournamentDisplay = function() {
          function assignedPlayerOptions({ selector, position, node, coords, info, draw, seed }) {
             let unfinished = info.unassigned.length; // this should be e.active ?
             if (seed && seed < 3 && unfinished) {
-               displayFx.popUpMessage('Cannot Remove 1st/2nd Seed');
+               displayGen.popUpMessage('Cannot Remove 1st/2nd Seed');
                return;
             }
             let teams = optionNames([node.data.team]);
@@ -6144,13 +6050,13 @@ export const tournamentDisplay = function() {
                } else {
                   if (d.key) {
                      if (d.key == 'swap') {
-                        let swap = displayFx.swapPlayerPosition({ container, position });
+                        let swap = displayGen.swapPlayerPosition({ container, position });
 
-                        displayFx.escapeModal();
+                        displayGen.escapeModal();
                         function removeEntryField() {
                            d3.select(swap.entry_field.element).remove();
                            document.body.style.overflow = null;
-                           displayFx.escapeFx = undefined;
+                           displayGen.escapeFx = undefined;
                         }
 
                         swap.entry_field.element.addEventListener('click', removeEntryField);
@@ -6492,11 +6398,11 @@ export const tournamentDisplay = function() {
                return s;
             });
 
-         let sb = displayFx.scheduleBox({ match, editable: true});
+         let sb = displayGen.scheduleBox({ match, editable: true});
          if (schedule_box) {
             let draggable = match.winner_index != undefined ? 'false' : 'true';
             schedule_box.innerHTML = sb.innerHTML;
-            displayFx.scaleTeams(schedule_box);
+            displayGen.scaleTeams(schedule_box);
             schedule_box.style.background = sb.background;
             schedule_box.setAttribute('draggable', draggable);
             schedule_box.setAttribute('muid', match.muid);
@@ -6508,14 +6414,14 @@ export const tournamentDisplay = function() {
       function addUmpire(match, context) {
          if (!match || !match.schedule || !match.schedule.court) return;
 
-         let uobj = displayFx.entryModal('draws.matchumpire', true);
-         displayFx.escapeModal();
+         let uobj = displayGen.entryModal('draws.matchumpire', true);
+         displayGen.escapeModal();
 
          let entry_modal = d3.select(uobj.entry_modal.element);
          let removeEntryModal = () => {
             entry_modal.remove();
             document.body.style.overflow = null;
-            displayFx.escapeFx = undefined;
+            displayGen.escapeFx = undefined;
          }
 
          entry_modal.on('click', removeEntryModal);
@@ -6641,7 +6547,7 @@ export const tournamentDisplay = function() {
       }
 
       function legacyTournamentOptions() {
-         let legacy = displayFx.legacyTournamentTab(container.tournament.element, tournament);
+         let legacy = displayGen.legacyTournamentTab(container.tournament.element, tournament);
          Object.assign(container, legacy.container);
          legacyTournament(tournament, container);
       }
@@ -6759,7 +6665,7 @@ export const tournamentDisplay = function() {
          if (event_draws) {
             draw_options = tournament.events.map((e, i) => { 
                if (displayed_event && displayed_event == e.euid) selection = i;
-               let edt = displayFx.genEventName(e, tfx.isPreRound({ env: fx.fx.env(), e })).type || '';
+               let edt = tfx.genEventName(e, tfx.isPreRound({ env: fx.fx.env(), e })).type || '';
                return { key: `${e.name} ${edt}`, value: i }
             });
             onChange = genEventDraw;
@@ -6813,7 +6719,7 @@ export const tournamentDisplay = function() {
       function replaceRegisteredPlayers(remote_request, show_notice) {
          if (!state.edit) return;
          let message = `${lang.tr('tournaments.renewlist')}<p><i style='color: red;'>(${lang.tr('phrases.deletereplace')})</i>`;
-         displayFx.okCancelMessage(message, renewList, () => displayFx.closeModal());
+         displayGen.okCancelMessage(message, renewList, () => displayGen.closeModal());
 
          function renewList() {
             tournament.players = [];
@@ -6825,12 +6731,12 @@ export const tournamentDisplay = function() {
 
       function updateRegisteredPlayers(remote_request, show_notice) {
          if (!state.edit) return;
-         let id = show_notice ? displayFx.busy.message(`<p>${lang.tr("refresh.registered")}</p>`) : undefined;
+         let id = show_notice ? displayGen.busy.message(`<p>${lang.tr("refresh.registered")}</p>`) : undefined;
          let done = (registered) => {
             addRegistered(registered);
-            displayFx.busy.done(id);
+            displayGen.busy.done(id);
          }
-         let notConfigured = (err) => { displayFx.busy.done(id); displayFx.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
+         let notConfigured = (err) => { displayGen.busy.done(id); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
          messaging.fetchRegisteredPlayers(tournament.tuid, tournament.category, remote_request).then(done, notConfigured);
       }
 
@@ -6838,8 +6744,8 @@ export const tournamentDisplay = function() {
          if (changed) {
             tournament.saved_locally = false;
             tournament.published = false;
-            displayFx.tournamentPublishState(container.push2cloud_state.element, tournament.published);
-            displayFx.localSaveState(container.localdownload_state.element, tournament.saved_locally);
+            displayGen.tournamentPublishState(container.push2cloud_state.element, tournament.published);
+            displayGen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
          }
          tournament.saved = new Date().getTime();
          db.addTournament(tournament);
@@ -6916,7 +6822,7 @@ export const tournamentDisplay = function() {
 
       if (!rankings.category || !points_date) {
          // calling with no points clear Point Display
-         displayFx.displayPlayerPoints(container);
+         displayGen.displayPlayerPoints(container);
          return;
       }
 
@@ -7017,7 +6923,7 @@ export const tournamentDisplay = function() {
       pointsTabVisible(container, tournament, pts);
 
       if (pts) {
-         displayFx.displayPlayerPoints(container, filtered_points);
+         displayGen.displayPlayerPoints(container, filtered_points);
          let pp = (evt) => playerFx.displayPlayerProfile({ puid: util.getParent(evt.target, 'point_row').getAttribute('puid') }).then(()=>{}, ()=>{});
          util.addEventToClass('point_row', pp, container.points.element)
       }
@@ -7050,9 +6956,9 @@ export const tournamentDisplay = function() {
 
       importFx.loaded.decisions[index] = Object.assign({}, action, { action: 'ignored' }, original, { status: 'completed' });
 
-      displayFx.undoButton(e);
+      displayGen.undoButton(e);
       e.select('.undo').on('click', () => { d3.event.stopPropagation(); undoAction(row); });
-      displayFx.moveToBottom(row);
+      displayGen.moveToBottom(row);
 
       submitEdits();
    }
@@ -7061,9 +6967,9 @@ export const tournamentDisplay = function() {
       searchBox.focus();
       if (importFx.loaded.outstanding.length != Object.keys(importFx.loaded.decisions).length) return false;
       searchBox.active = {};
-      displayFx.submitEdits();
+      displayGen.submitEdits();
 
-      Array.from(displayFx.identify_container.action_message.element.querySelectorAll('button.accept'))
+      Array.from(displayGen.identify_container.action_message.element.querySelectorAll('button.accept'))
          .forEach(elem => elem.addEventListener('click', acceptEdits));
 
       function acceptEdits() {
@@ -7094,13 +7000,13 @@ export const tournamentDisplay = function() {
       let action = importFx.loaded.outstanding[index];
       // let type = (action.status == 'unknown') ? lang.tr('unk') : lang.tr('dup');
 
-      displayFx.ignoreButton(e, action);
-      // displayFx.ignoreButton(e);
+      displayGen.ignoreButton(e, action);
+      // displayGen.ignoreButton(e);
       e.select('.ignore').on('click', () => { d3.event.stopPropagation(); ignorePlayer(row); });
 
       delete importFx.loaded.decisions[index];
       clearActivePlayer();
-      displayFx.moveToTop(row);
+      displayGen.moveToTop(row);
    }
 
    fx.identifyPlayer = identifyPlayer;
@@ -7120,24 +7026,24 @@ export const tournamentDisplay = function() {
             importFx.loaded.decisions[index] = Object.assign({}, { action: 'identified' }, original, player, { status: 'completed' });
          }
 
-         displayFx.markAssigned(e);
+         displayGen.markAssigned(e);
          let row = util.getParent(elem, 'section_row');
          e.select('.undo').on('click', () => { d3.event.stopPropagation(); undoAction(elem); });
-         displayFx.moveToBottom(elem);
+         displayGen.moveToBottom(elem);
          clearActivePlayer();
          submitEdits();
 
          return;
       }
 
-      let container = displayFx.identifyPlayer(player);
-      container.save.element.addEventListener('click', () => { displayFx.closeModal('edit'); });
-      container.cancel.element.addEventListener('click', () => { displayFx.closeModal('edit'); });
+      let container = displayGen.identifyPlayer(player);
+      container.save.element.addEventListener('click', () => { displayGen.closeModal('edit'); });
+      container.cancel.element.addEventListener('click', () => { displayGen.closeModal('edit'); });
    }
 
    function clearActivePlayer() {
       searchBox.active = {};
-      displayFx.clearActivePlayer();
+      displayGen.clearActivePlayer();
       searchBox.focus();
    }
 
@@ -7356,13 +7262,13 @@ export const tournamentDisplay = function() {
 
    fx.createNewTournament = createNewTournament;
    function createNewTournament({ title, tournament_data, callback }) {
-      displayFx.escapeModal();
+      displayGen.escapeModal();
 
       let ouid = fx.fx.env().org && fx.fx.env().org.ouid;
 
       var trny = Object.assign({}, tournament_data);
       if (!trny.ouid) trny.ouid = ouid;
-      var { container } = displayFx.createNewTournament(title, trny);
+      var { container } = displayGen.createNewTournament(title, trny);
 
       var field_order = [ 'name', 'association', 'organization', 'start', 'end', 'judge', 'draws', 'cancel', 'save' ];
 
@@ -7431,7 +7337,7 @@ export const tournamentDisplay = function() {
          if (!valid_start || !valid_end || !trny.name || !validRange() || !trny.category) return;
 
          if (typeof callback == 'function') callback(trny); 
-         displayFx.closeModal();
+         displayGen.closeModal();
       }
 
       let handleSaveKeyDown = (evt) => {
@@ -7536,9 +7442,9 @@ export const tournamentDisplay = function() {
       container.judge.element.addEventListener('keyup', (evt) => defineAttr('judge', evt));
       container.draws.element.addEventListener('keyup', (evt) => defineAttr('draws', evt));
 
-      container.cancel.element.addEventListener('click', () => displayFx.closeModal());
+      container.cancel.element.addEventListener('click', () => displayGen.closeModal());
       container.cancel.element.addEventListener('keydown', handleCancelKeyEvent);
-      container.cancel.element.addEventListener('keyup', (evt) => { if (evt.which == 13) displayFx.closeModal(); });
+      container.cancel.element.addEventListener('keyup', (evt) => { if (evt.which == 13) displayGen.closeModal(); });
       container.save.element.addEventListener('click', saveTrny);
       container.save.element.addEventListener('keydown', handleSaveKeyDown, false);
       container.save.element.addEventListener('keyup', handleSaveKeyUp, false);

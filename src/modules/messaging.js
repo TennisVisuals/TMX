@@ -3,7 +3,7 @@ import { util } from './util';
 import { UUID } from './UUID';
 import { config } from './config';
 import { lang } from './translator';
-import { displayFx } from './displayFx';
+import { displayGen } from './displayGen';
 import { tournamentDisplay } from './tournamentDisplay';
 
 export const messaging = function() {
@@ -78,13 +78,13 @@ export const messaging = function() {
             let fetchFx = s.fx ? util.createFx(s.fx) : undefined;
             if (!fetchFx || typeof fetchFx != 'function') return;
 
-            let obj = displayFx.entryModal('tournaments.id', false, coords);
-            displayFx.escapeModal();
+            let obj = displayGen.entryModal('tournaments.id', false, coords);
+            displayGen.escapeModal();
             let entry_modal = d3.select(obj.entry_modal.element);
             let removeEntryModal = () => {
                entry_modal.remove();
                document.body.style.overflow = null;
-               displayFx.escapeFx = undefined;
+               displayGen.escapeFx = undefined;
             }
 
             obj.search_field.element.addEventListener("keyup", function(e) { 
@@ -347,7 +347,7 @@ export const messaging = function() {
 
          function rankErr(err) {
             let message = `<div style='margin: 1em;'>lang.tr('phrases.notconfigured')</div><div style='margin: 1em;'>Cannot Fetch Rank Lists</div>`;
-            if (messaging.errors) displayFx.popUpMessage(message);
+            if (messaging.errors) displayGen.popUpMessage(message);
             reject();
          }
 
@@ -369,7 +369,7 @@ export const messaging = function() {
       let failed_lists = failures.filter(f=>f).map(f=>f.listname).join(', ');
       // TODO: add to idioms
       let message = `Out-of-date Rank Lists: ${failed_lists}<p>Must be online to update`;
-      let container = displayFx.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+      let container = displayGen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
       */
    }
 
@@ -434,7 +434,7 @@ export const messaging = function() {
             if (!nums.length) return reject('No Tournament ID');
             id = nums[0];
          } else {
-            displayFx.popUpMessage(`<div>${lang.tr('phrases.locallycreated')}</div><p><i>${lang.tr('phrases.noremote')}</i>`, () => resolve({}));
+            displayGen.popUpMessage(`<div>${lang.tr('phrases.locallycreated')}</div><p><i>${lang.tr('phrases.noremote')}</i>`, () => resolve({}));
             return;
          }
 
@@ -516,7 +516,7 @@ export const messaging = function() {
 
    fx.fileNotRecognized = () => {
       let message = `File Not Recognized`;
-      let container = displayFx.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+      let container = displayGen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
    }
 
    fx.loadGoogleMaps = loadGoogleMaps;

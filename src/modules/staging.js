@@ -4,7 +4,7 @@ import { coms } from './coms';
 import { config } from './config';
 import { lang } from './translator';
 import { importFx } from './importFx';
-import { displayFx } from './displayFx';
+import { displayGen } from './displayGen';
 import { tournamentDisplay } from './tournamentDisplay';
 
 export const staging = function() {
@@ -28,11 +28,11 @@ export const staging = function() {
          let okAction = () => db.resetDB(reload);
          let cancelAction = () => {
             clearHistory(); 
-            displayFx.closeModal(); 
+            displayGen.closeModal(); 
             resolve();
          }
          let message = `<div style='margin: 1em;'><h2>${lang.tr('warn')}:</h2><p>${lang.tr('phrases.reset')}</div>`;
-         let container = displayFx.okCancelMessage(message, okAction, cancelAction);
+         let container = displayGen.okCancelMessage(message, okAction, cancelAction);
       });
    }
 
@@ -44,7 +44,7 @@ export const staging = function() {
             config.receiveSettings(json_data);
          }
          if (json_data.directive == 'new version') {
-            displayFx.homeIconState('update');
+            displayGen.homeIconState('update');
             messaging.update = json_data.notice || lang.tr('newversion');
          }
          if (json_data.directive == 'load data' && json_data.content) { importFx.loadJSON(json_data.content); }
@@ -76,10 +76,10 @@ export const staging = function() {
          ${auth_message}
          <p><b>${lang.tr('tournaments.replacelocal')}</b></p>
       `;
-      let cancelAction = () => displayFx.closeModal();
-      let msg = displayFx.actionMessage({ message, actionFx: saveReceivedTournament, action: lang.tr('replace'), cancelAction });
+      let cancelAction = () => displayGen.closeModal();
+      let msg = displayGen.actionMessage({ message, actionFx: saveReceivedTournament, action: lang.tr('replace'), cancelAction });
       function saveReceivedTournament() {
-         displayFx.closeModal();
+         displayGen.closeModal();
          published_tournament.received = new Date().getTime();
          db.addTournament(published_tournament).then(displayTournament, util.logError);
       }
@@ -113,13 +113,13 @@ export const staging = function() {
          config.idiomSelectorOptions(idiom.ioc);
          let a = config.available_idioms[idiom.ioc];
          if (a && a.updated != idiom.updated) {
-            displayFx.escapeModal();
+            displayGen.escapeModal();
             let message = `${lang.tr('phrases.updatedioc')}: ${idiom.name || idiom.ioc}?`;
-            displayFx.okCancelMessage(message, updateLanguageFile, () => displayFx.closeModal());
+            displayGen.okCancelMessage(message, updateLanguageFile, () => displayGen.closeModal());
          }
          function updateLanguageFile() {
             coms.sendKey(`${idiom.ioc}.idiom`);
-            displayFx.closeModal();
+            displayGen.closeModal();
          }
       }
    }
@@ -219,7 +219,7 @@ export const staging = function() {
       };
 
       function found(trny, authorized) {
-         displayFx.escapeModal(() => receive_modal = false);
+         displayGen.escapeModal(() => receive_modal = false);
 
          let euids = trny.events.map(e=>e.euid);
          let exists = euids.indexOf(revt.event.euid) >= 0;
@@ -236,7 +236,7 @@ export const staging = function() {
          `;
 
          let action = exists ? lang.tr('replace') : lang.tr('add');
-         let msg = displayFx.actionMessage({ message, actionFx, action, cancelAction: finish });
+         let msg = displayGen.actionMessage({ message, actionFx, action, cancelAction: finish });
 
          function actionFx() {
             revt.event.draw = revt.draw;
@@ -254,7 +254,7 @@ export const staging = function() {
             if (received_events.length) {
                mergeReceivedEvent();
             } else {
-               displayFx.closeModal();
+               displayGen.closeModal();
                tournamentDisplay.displayTournament({ tuid: revt.tournament.tuid });
             }
          }

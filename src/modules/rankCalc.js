@@ -4,7 +4,7 @@ import { config } from './config';
 import { lang } from './translator';
 import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
-import { displayFx } from './displayFx';
+import { displayGen } from './displayGen';
 
 export const rankCalc = function() {
 
@@ -16,8 +16,8 @@ export const rankCalc = function() {
    rank.pointCalc = pointCalc;
    function pointCalc(selected_date) {
       if (selected_date) {
-         displayFx.showProcessing('Calculating Ranking Points ...');
-         rank.calcAllPlayerPoints(undefined, new Date(selected_date).getTime()).then(d=>displayFx.closeModal());
+         displayGen.showProcessing('Calculating Ranking Points ...');
+         rank.calcAllPlayerPoints(undefined, new Date(selected_date).getTime()).then(d=>displayGen.closeModal());
       }
    }
 
@@ -33,14 +33,14 @@ export const rankCalc = function() {
          player.displayPlayerProfile({ puid }).then(()=>{}, ()=>{});
       }
 
-      displayFx.showProcessing('Calculating Current Rank List ...');
+      displayGen.showProcessing('Calculating Current Rank List ...');
       rank.calculateRankLists(week, year).then(categories => { 
 
          var rankings = { week, year, categories };
-         displayFx.closeModal(); 
+         displayGen.closeModal(); 
 
          if (Object.keys(categories).length) {
-            var container = displayFx.rankLists(categories, week, year);
+            var container = displayGen.rankLists(categories, week, year);
 
             util.addEventToClass('print', pdfList, container.container.element)
             util.addEventToClass('category_csv', exportCategorySpreadsheet, container.container.element)
@@ -54,7 +54,7 @@ export const rankCalc = function() {
                db.addCalcDate(data);
             }, (err) => console.log(err));
          } else {
-            displayFx.showModal(`<h2>${lang.tr('phrases.nopointcalcs')}</h2>`);
+            displayGen.showModal(`<h2>${lang.tr('phrases.nopointcalcs')}</h2>`);
          }
 
          function pdfList(ev) {

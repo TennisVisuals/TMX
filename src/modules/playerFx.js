@@ -7,7 +7,7 @@ import { lang } from './translator';
 import { rankCalc } from './rankCalc';
 import { exportFx } from './exportFx';
 import { searchBox } from './searchBox';
-import { displayFx } from './displayFx';
+import { displayGen } from './displayGen';
 
 export const playerFx = function() {
 
@@ -42,8 +42,8 @@ export const playerFx = function() {
    }
 
    function setActivePlayer(player, club) {
-      displayFx.activePlayer(player, club);
-      Array.from(displayFx.identify_container.action_message.element.querySelectorAll('button.dismiss'))
+      displayGen.activePlayer(player, club);
+      Array.from(displayGen.identify_container.action_message.element.querySelectorAll('button.dismiss'))
          .forEach(elem => elem.addEventListener('click', clearActivePlayer));
    }
 
@@ -61,8 +61,8 @@ export const playerFx = function() {
                if (fx.override) { return resolve(fx.override(player)); }
 
                db.findClub(player.club + '').then(club => {
-                  container = displayFx.playerProfile(fx.displayFx);
-                  container.info.element.innerHTML = displayFx.playerInfo(player, club || {});
+                  container = displayGen.playerProfile(fx.displayFx);
+                  container.info.element.innerHTML = displayGen.playerInfo(player, club || {});
 
                   if (club && club.code) player.club_code = club.code;
                   if (fx.action && typeof fx.actions[fx.action] == 'function') return resolve(fx.actions[fx.action](container, player));
@@ -84,7 +84,7 @@ export const playerFx = function() {
                      });
 
                      let ranking_time_series = player.rankings ? processTimeSeries(player.rankings, 'rankings') : undefined;
-                     displayFx.displayPlayerRankChart(container, ranking_time_series);
+                     displayGen.displayPlayerRankChart(container, ranking_time_series);
                      db.findPlayerMatches(puid).then((matches) => displayMatches(matches), console.log);
 
                      displayPoints(player, club, points, ranking_date);
@@ -92,8 +92,8 @@ export const playerFx = function() {
                });
             } else {
                if (fallback && fx.action && typeof fx.actions[fx.action] == 'function') {
-                  container = displayFx.playerProfile(fx.displayFx);
-                  container.info.element.innerHTML = displayFx.playerInfo(fallback, {});
+                  container = displayGen.playerProfile(fx.displayFx);
+                  container.info.element.innerHTML = displayGen.playerInfo(fallback, {});
                   return resolve(fx.actions[fx.action](container, fallback));
                }
                if (fallback && fx.override) { return resolve(fx.override(fallback)); }
@@ -111,7 +111,7 @@ export const playerFx = function() {
             Object.keys(cpts).forEach(category => {
                if (util.isMember(eligible_categories, category) && cpts[category].length) {
                   let tab = category;
-                  let content = displayFx.playerPoints(cpts[category], lang.tr('rlp') + tab);
+                  let content = displayGen.playerPoints(cpts[category], lang.tr('rlp') + tab);
                   tabdata.push({ tab, content });
                }
             });
@@ -124,11 +124,11 @@ export const playerFx = function() {
 
             let p = [].concat(...orderPoints(valid), ...orderPoints(expired));
             if (p.length) {
-               let content = displayFx.playerPoints(p, lang.tr('arp'), expire_date);
+               let content = displayGen.playerPoints(p, lang.tr('arp'), expire_date);
                tabdata.push({ tab: lang.tr('arp'), content });
             }
 
-            displayFx.tabbedPlayerRankings(tabdata, container);
+            displayGen.tabbedPlayerRankings(tabdata, container);
 
             let dt = (evt) => fx.displayTournament({tuid: util.getParent(evt.target, 'point_click').getAttribute('tuid')});
             Array.from(container.rankings.element.querySelectorAll('.point_click')).forEach(elem => elem.addEventListener('click', dt));
@@ -143,7 +143,7 @@ export const playerFx = function() {
             singles.sort((a, b) => (b.date || 0) - a.date);
             doubles.sort((a, b) => (b.date || 0) - a.date);
 
-            displayFx.tabbedPlayerMatches(puid, singles, doubles, container);
+            displayGen.tabbedPlayerMatches(puid, singles, doubles, container);
 
             // attach function to display player profile when clicked
             util.addEventToClass('player_click', fx.playerClicked, container.matches.element);
@@ -161,7 +161,7 @@ export const playerFx = function() {
                      values: final_rounds,
                   }
                   let season_events = { 'item': { 'click': d => fx.displayTournament({tuid: d.tournament.tuid}) }};
-                  let playerSeason = displayFx.playerSeason(container, data, season_events);
+                  let playerSeason = displayGen.playerSeason(container, data, season_events);
                }
             }
          }
@@ -177,7 +177,7 @@ export const playerFx = function() {
       } else {
          // TODO: for doubles clicking on an id can invoke function which fetches
          // all player matches for one of the team puids, then filter by the other puid
-         // then displayFx.showDoublesMatches() to display all matches that team has played...
+         // then displayGen.showDoublesMatches() to display all matches that team has played...
          console.log('doubles match');
       }
    }
@@ -193,7 +193,7 @@ export const playerFx = function() {
          <p style='text-align: left'><b>MUID:</b> ${muid}</p>
          <p style='text-align: left'><b>TUID:</b> ${tuid}</p>
       `;
-      displayFx.showEdit(html);
+      displayGen.showEdit(html);
    }
 
    fx.scheduledMatchDetails = scheduledMatchDetails;
@@ -329,7 +329,7 @@ export const playerFx = function() {
       let max_year = year - parseInt(ages.to);
       let daterange = { start: `${max_year}-01-01`, end: `${min_year}-12-31` };
 
-      let player_container = displayFx.createNewPlayer(player);
+      let player_container = displayGen.createNewPlayer(player);
       player_container.last_name.element.style.background = player.last_name ? 'white' : 'yellow';
       player_container.first_name.element.style.background = player.first_name ? 'white' : 'yellow';
       player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
@@ -435,7 +435,7 @@ export const playerFx = function() {
          if (!player.club && player_container.club.element.value) player.club_name = player_container.club.element.value;
 
          if (typeof callback == 'function') callback(player); 
-         displayFx.closeModal();
+         displayGen.closeModal();
       }
 
       let handleSaveKeyDown = (evt) => {
@@ -470,9 +470,9 @@ export const playerFx = function() {
       player_container.birth.element.addEventListener('keyup', birthKeyUp);
       player_container.phone.element.addEventListener('keyup', (evt) => defineAttr('phone', evt));
       player_container.email.element.addEventListener('keyup', (evt) => defineAttr('email', evt));
-      player_container.cancel.element.addEventListener('click', () => displayFx.closeModal());
+      player_container.cancel.element.addEventListener('click', () => displayGen.closeModal());
       player_container.cancel.element.addEventListener('keydown', handleCancelKeyEvent);
-      player_container.cancel.element.addEventListener('keyup', (evt) => { if (evt.which == 13) displayFx.closeModal(); });
+      player_container.cancel.element.addEventListener('keyup', (evt) => { if (evt.which == 13) displayGen.closeModal(); });
       player_container.save.element.addEventListener('click', saveNewPlayer);
       player_container.save.element.addEventListener('keydown', handleSaveKeyDown, false);
       player_container.save.element.addEventListener('keyup', handleSaveKeyUp, false);

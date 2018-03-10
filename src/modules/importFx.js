@@ -3,7 +3,7 @@ import { UUID } from './UUID';
 import { util } from './util'
 import { config } from './config'
 import { lang } from './translator';
-import { displayFx } from './displayFx';
+import { displayGen } from './displayGen';
 import { tournamentParser } from './tournamentParser'
 
 export const importFx = function() {
@@ -121,7 +121,7 @@ export const importFx = function() {
 
       function done() {
          // TODO: calculate timeout based on # of imports
-         setTimeout(function() { displayFx.busy.done(id); }, 3000);
+         setTimeout(function() { displayGen.busy.done(id); }, 3000);
       }
    }
 
@@ -133,7 +133,7 @@ export const importFx = function() {
 
    function importClubsCSV(clubs) {
       let callback = () => searchBox.searchSelect('clubs');
-      let id = displayFx.busy.message('<p>Loading Clubs...</p>', callback);
+      let id = displayGen.busy.message('<p>Loading Clubs...</p>', callback);
       clubs.forEach(club => { 
          if (club.courts) {
             let courts = club.courts ? club.courts.split(',') : [0, 0];
@@ -164,20 +164,20 @@ export const importFx = function() {
          if (club.email) club.email = club.email.split(',');
          if (club.notes) delete club.notes;
       });
-      util.performTask(db.addClub, clubs, false).then(() => displayFx.busy.done(id), () => displayFx.busy.done(id));
+      util.performTask(db.addClub, clubs, false).then(() => displayGen.busy.done(id), () => displayGen.busy.done(id));
    }
 
    function importClubsJSON(clubs) {
       let callback = () => searchBox.searchSelect('clubs');
-      let id = displayFx.busy.message('<p>Loading Clubs...</p>', callback);
-      util.performTask(db.addClub, clubs, false).then(() => displayFx.busy.done(id), () => displayFx.busy.done(id));
+      let id = displayGen.busy.message('<p>Loading Clubs...</p>', callback);
+      util.performTask(db.addClub, clubs, false).then(() => displayGen.busy.done(id), () => displayGen.busy.done(id));
    }
 
    function importRankings(rows) {
       return new Promise((resolve, reject) => {
-         let id = displayFx.busy.message('<p>Loading Rankings...</p>');
+         let id = displayGen.busy.message('<p>Loading Rankings...</p>');
          let rank_lists = {};
-         if (!Array.isArray(rows)) return displayFx.busy.done(id);
+         if (!Array.isArray(rows)) return displayGen.busy.done(id);
 
          let categories = util.unique(rows.map(r=>config.legacyCategory(r.category)));
 
@@ -190,7 +190,7 @@ export const importFx = function() {
          util.performTask(db.addCategoryRankings, category_rankings, false).then(done, done);
 
          function done(foo) { 
-            displayFx.busy.done(id); 
+            displayGen.busy.done(id); 
             return resolve();
          }
       });
@@ -198,7 +198,7 @@ export const importFx = function() {
 
    function importTournaments(rows) {
       let callback = () => searchBox.searchSelect('tournaments');
-      let id = displayFx.busy.message('<p>Loading Tournaments...</p>', callback);
+      let id = displayGen.busy.message('<p>Loading Tournaments...</p>', callback);
       let tournaments = [];
       if (!Array.isArray(rows)) rows = [rows];
 
@@ -227,19 +227,19 @@ export const importFx = function() {
       util.performTask(db.addTournament, tournaments, false).then(done, done);
 
       function done(foo) { 
-         setTimeout(function() { displayFx.busy.done(id); }, 2000);
+         setTimeout(function() { displayGen.busy.done(id); }, 2000);
       }
    }
 
    load.addNewTournaments = (trnys) => {
       let callback = () => searchBox.searchSelect('tournaments');
-      let id = displayFx.busy.message('<p>Loading Tournaments...</p>');
+      let id = displayGen.busy.message('<p>Loading Tournaments...</p>');
       console.log(id);
-      util.performTask(db.addTournament, trnys, false).then(done, () => displayFx.busy.done(id));
+      util.performTask(db.addTournament, trnys, false).then(done, () => displayGen.busy.done(id));
 
       function done(foo) {
          console.log('done:', foo);
-         displayFx.busy.done(id);
+         displayGen.busy.done(id);
       }
    }
 
@@ -378,7 +378,7 @@ export const importFx = function() {
       load.loaded.completed = completed;
       load.loaded.outstanding = outstanding;
 
-      let container = displayFx.identifyPlayers(load.loaded.meta.name, outstanding);
+      let container = displayGen.identifyPlayers(load.loaded.meta.name, outstanding);
       let actions_element = d3.select(container.actions.element);
 
       actions_element
@@ -642,11 +642,11 @@ export const importFx = function() {
    }
 
    function loadTask(fx, arr, what = '', callback) {
-      if (displayFx.busy && what) displayFx.busy.message(`<p>Loading ${what}...</p>`);
+      if (displayGen.busy && what) displayGen.busy.message(`<p>Loading ${what}...</p>`);
       util.performTask(fx, Array.isArray(arr) ? arr : [arr], false).then(finish, finish);
 
       function finish(results) { 
-         displayFx.busy.done();
+         displayGen.busy.done();
          if (callback && typeof callback == 'function') callback();
       }
    }
@@ -675,7 +675,7 @@ export const importFx = function() {
 
    function loadPlayerList(arr) { 
       let callback = () => searchBox.searchSelect('players');
-      let id = displayFx.busy.message('<p>Loading Players...</p>', callback);
+      let id = displayGen.busy.message('<p>Loading Players...</p>', callback);
       load.importPlayerList(arr, id); 
    }
 
@@ -695,7 +695,7 @@ export const importFx = function() {
       }
 
       if (workbook_type == 'courthive_imports') {
-         let id = displayFx.busy.message('<p>Loading...</p>', reload);
+         let id = displayGen.busy.message('<p>Loading...</p>', reload);
 
          let players = extractPlayers(workbook);
          let tournaments = extractTournaments(workbook);
@@ -707,7 +707,7 @@ export const importFx = function() {
          let addClubs = () => new Promise((resolve, reject) => util.performTask(db.addClub, clubs, false).then(resolve, resolve));
          let addRankings = () => importRankings(rankings);
 
-         addPlayers().then(addTournaments).then(addRankings).then(addClubs).then(()=>displayFx.busy.done(id));
+         addPlayers().then(addTournaments).then(addRankings).then(addClubs).then(()=>displayGen.busy.done(id));
       }
 
    }
