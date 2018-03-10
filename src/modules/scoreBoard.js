@@ -1,5 +1,3 @@
-import { db } from './db'
-
 import { util } from './util';
 import { UUID } from './UUID';
 import { dd } from './dropdown';
@@ -1043,7 +1041,8 @@ export const scoreBoard = function() {
    }
 
    fx.floatingScoreBoard = ({ teams, flags }) => {
-      let sb_ids = { scoreboard: displayFx.uuid(), }
+      // can't be UUID.new() without 'ch' because many UUIDs are not valid selectors
+      let sb_ids = { scoreboard: `ch${UUID.new()}`, }
 
       let scoreboard = d3.select('body')
          .append('div')
