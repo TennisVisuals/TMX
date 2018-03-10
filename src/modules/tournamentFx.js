@@ -22,9 +22,118 @@ export const tournamentFx = function() {
       return matching_events.length ? matching_events[0] : undefined;
    }
 
-   fx.scoreRoundRobin = (tournament, e, existing_scores, outcome) => {
-      if (!outcome) return;
+   fx.genEventName = (e, pre) => {
+      let types = {
+         'R': lang.tr('draws.roundrobin'),
+         'C': lang.tr('draws.consolation'),
+         'Q': lang.tr('draws.qualification'),
+         'P': lang.tr('pyo'),
+      }
+      let type = pre ? lang.tr('draws.preround'): types[e.draw_type] || lang.tr('draws.maindraw');
+      let name = `${e.name}&nbsp;${type}`;
+      return { type, name }
+   }
+
+   fx.scoreTreeDraw = (tournament, e, existing_scores, outcome) => {
       var result = {};
+      if (!outcome) return result;
+
+      let qlink = e.draw_type == 'Q' && fx.findEventByID(tournament, e.links['E']);
+      let qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
+      let node = !existing_scores ? null : dfx.findMatchNodeByTeamPositions(e.draw, outcome.positions);
+      let previous_winner = node && node.match && node.match.winner ? node.match.winner.map(m=>m.id) : undefined;
+      let current_winner = outcome.winner != undefined ? outcome.teams[outcome.winner].map(m=>m.id) : undefined;
+      let active_in_linked = qlink && previous_winner && playerActiveInLinked(qlinkinfo, previous_winner);
+      let qualifier_changed = !previous_winner || !current_winner ? undefined : util.intersection(previous_winner, current_winner).length == 0;
+
+      if (qlink) {
+         if (active_in_linked && (qualifier_changed || (previous_winner && !current_winner))) {
+            return { error: 'phrases.cannotchangewinner' };
+         } else if (previous_winner && !current_winner) {
+            winnerRemoved({ e, qlink, qlinkinfo, previous_winner, outcome });
+         } else if (qualifier_changed) {
+            qualifierChanged({ e, outcome, qlink, qlinkinfo, previous_winner, current_winner });
+         }
+      }
+
+      if (!existing_scores) {
+         // no existing scores so advance position
+         dfx.advancePosition({ node: e.draw, position: outcome.position });
+      } else if (!outcome.score) {
+         console.log('NO SCORE');
+      } else {
+         let result = dfx.advanceToNode({
+            node,
+            score: outcome.score,
+            complete: outcome.complete,
+            position: outcome.position,
+            score_format: outcome.score_format,
+         });
+
+         if (!outcome.complete && result && !result.advanced) return { error: 'phrases.cannotchangewinner' };
+         if (outcome.complete && result && !result.advanced) return { error: 'phrases.cannotchangewinner' };
+      }
+
+      let info = dfx.drawInfo(e.draw);
+      let finalist_dp = info.final_round.map(m=>m.data.dp);
+      let qualifier_index = finalist_dp.indexOf(outcome.position);
+      let qualified = e.draw_type == 'Q' && qualifier_index >= 0;
+
+      if (e.draw_type == 'Q' && qualified) {
+         fx.qualifyTeam({ tournament, env: fx.fx.env(), e, team: outcome.teams[outcome.winner], qualifying_position: qualifier_index + 1 });
+      }
+
+      // modifyPositionScore removes winner/loser if match incomplete
+      dfx.modifyPositionScore({ 
+         node: e.draw, 
+         positions: outcome.positions,
+         score: outcome.score, 
+         score_format: outcome.score_format,
+         complete: outcome.complete, 
+         set_scores: outcome.set_scores
+      });
+
+      let puids = outcome.teams.map(t=>t.map(p=>p.puid).join('|'));
+      let findMatch = (e, n) => {
+         let tpuids = n.teams.map(t=>t.map(p=>p.puid).join('|'));
+         let pint = util.intersection(tpuids, puids);
+         return pint.length == 2 ? n : e; 
+      }
+      let match_event = mfx.eventMatches(e, tournament).reduce(findMatch, undefined);
+
+      if (!match_event) {
+         return { exit: true };
+      }
+
+      let match = match_event.match;
+
+      match.score = outcome.score;
+      if (outcome.score) match.status = '';
+      match.winner_index = outcome.winner;
+
+      match.muid = match.muid || UUID.new();
+      match.winner = outcome.teams[outcome.winner];
+      match.loser = outcome.teams[1 - outcome.winner];
+      match.date = match.date || new Date().getTime();
+
+      match.players = [].concat(...outcome.teams);
+      match.teams = outcome.teams;
+
+      match.tournament = {
+         name: tournament.name,
+         tuid: tournament.tuid,
+         org: fx.fx.env().org,
+         category: tournament.category,
+         round: match.round_name || match.round
+      };
+
+      e.active = true;
+      return result;
+   }
+
+   fx.scoreRoundRobin = (tournament, e, existing_scores, outcome) => {
+      var result = {};
+      if (!outcome) return result;
 
       var qlink = e.draw_type == 'R' && fx.findEventByID(tournament, e.links['E']);
       var qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
@@ -671,10 +780,7 @@ export const tournamentFx = function() {
 
       // must occur after e.qualified is updated
       let linkchanges = (qlink && player_in_linked);
-      if (linkchanges) {
-         approvedChanged(removed.qlink);
-         fx.setDrawSize(tournament, removed.qlink);
-      }
+      if (linkchanges) fx.setDrawSize(tournament, qlink);
 
       return { linkchanges, qlink }
    }
@@ -698,4 +804,3 @@ export const tournamentFx = function() {
 
    return fx;
 }();
-
