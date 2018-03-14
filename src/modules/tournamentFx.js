@@ -15,11 +15,11 @@ export const tournamentFx = function() {
       legacyCategory: () => console.log('legacy category'),
    }
 
+   fx.settingsLoaded = (env) => { dfx.options(env.drawFx); }
+
    fx.findEventByID = (tournament, id) => {
       if (!tournament || !tournament.events || tournament.events.length < 1) return;
-      // return tournament.events.reduce((p, c) => c.euid == id ? c : p, undefined);
-      let matching_events = tournament.events.filter(f=>f.euid == id);
-      return matching_events.length ? matching_events[0] : undefined;
+      return tournament.events.reduce((p, c) => c.euid == id ? c : p, undefined);
    }
 
    fx.genEventName = (e, pre) => {
