@@ -1605,8 +1605,10 @@ export function drawFx(opts) {
 
    if (opts) keyWalk(opts, o);
 
-   fx.options = setOptions;
-   function setOptions(options) { keyWalk(options, o); }
+   fx.options = (options) => {
+      if (!options) return o;
+      keyWalk(options, o); 
+   }
 
    fx.reverseScore = reverseScore;
    function reverseScore(score, split=' ') {
