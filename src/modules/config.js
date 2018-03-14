@@ -58,7 +58,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.88.117.55',
+      version: '0.9.90.125.59',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -636,6 +636,7 @@ export const config = function() {
       db.initDB().then(checkQueryString).then(envSettings).then(DBReady);
 
       function DBReady() {
+         persistStorage();
          idiomSelector().then(idiomsReady);
          importFx.loadCache();
          if (env.auto_update.players) { updatePlayers(); }
@@ -649,7 +650,10 @@ export const config = function() {
    }
 
    // once the environment variables have been set notify dependents
-   function settingsLoaded() { tournamentDisplay.settingsLoaded(); }
+   function settingsLoaded() {
+      tournamentDisplay.settingsLoaded(env);
+      tournamentFx.settingsLoaded(env);
+   }
 
    fx.receiveSettings = receiveSettings;
    function receiveSettings(data) {
@@ -901,24 +905,25 @@ export const config = function() {
 
       tournamentFx.fx.env = fx.env;
       tournamentFx.fx.legacyCategory = fx.legacyCategory;
+
+      coms.fx.popUpMessage = displayGen.popUpMessage;
    }
 
    fx.init = () => {
+      displayGen.initModals();
+      if (device.isMobile || device.isIDevice) {
+         displayGen.showModal('<h2>Mobile Support Soon!</h2>', false);
+         return;
+      }
+
       // remove config dependence on displayGen so this can be removed
       configufeDependents();
 
       console.log('version:', env.version);
 
-      persistStorage();
       // enableNotifications();
 
-      displayGen.initModals();
       fx.search();
-
-      if (device.isMobile || device.isIDevice) {
-         displayGen.showModal('<h2>Mobile Support Soon!</h2>', false);
-         return;
-      }
 
       staging.init();
       coms.connectSocket();
@@ -1184,7 +1189,7 @@ export const config = function() {
       var tabdata = [];
       if (tabs.players && tabs.players.html) tabdata.push({ tab: lang.tr('pyr'), content: tabs.players.html });
       if (tabs.points && tabs.points.html) tabdata.push({ tab: lang.tr('pts'), content: tabs.points.html });
-      if (tabs.matches && tabs.matches.html) tabdata.push({ tab: lang.tr('mts'), content: tabs.matches.html });
+      if (tabs.matches && tabs.matches.html) tabdata.push({ tab: lang.tr('emts'), content: tabs.matches.html });
 
       var { container } = displayGen.tabbedModal({ tabs, tabdata, title: lang.tr('phrases.exportdata'), save: false });
 
