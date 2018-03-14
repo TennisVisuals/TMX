@@ -226,7 +226,7 @@ export const staging = function() {
 
          let auth_message = authorized ? `<span style='color: green'>${lang.tr('tournaments.auth')}</span>` : lang.tr('tournaments.noauth');
          let message = `
-            <h2>Received Event</h2>
+            <h2>${lang.tr('events.received')}</h2>
             ${revt.event.name} ${draw_types[revt.event.draw_type]}
             <p>
                <b>${lang.tr('tournaments.publishtime')}:</b>
@@ -255,7 +255,7 @@ export const staging = function() {
                mergeReceivedEvent();
             } else {
                displayGen.closeModal();
-               tournamentDisplay.displayTournament({ tuid: revt.tournament.tuid });
+               tournamentDisplay.displayTournament({ tuid: revt.tournament.tuid, editing: true });
             }
          }
       }
