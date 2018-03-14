@@ -2,7 +2,9 @@ import { db } from './modules/db';
 import { theme } from './modules/theme';
 import { playerFx } from './modules/playerFx';
 import { tournamentDisplay } from './modules/tournamentDisplay';
+import { matchObject } from './modules/matchObject';
 
+import { coms } from './modules/coms';
 import { config } from './modules/config';
 
 if (window.attachEvent) {
@@ -39,7 +41,10 @@ var elements = {
 
 function start() {
    db.addDev({db});
+   db.addDev({coms});
    db.addDev({theme});
+   db.addDev({matchObject});
+   db.addDev({config});
 
    playerFx.displayTournament = tournamentDisplay.displayTournament;
 
