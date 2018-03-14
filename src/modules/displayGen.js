@@ -315,7 +315,7 @@ export const displayGen = function() {
          </div>
       `;
       document.getElementById('processingtext').innerHTML = html;
-      id_obj = displayFx.idObj(ids);
+      let id_obj = displayFx.idObj(ids);
       id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
       id_obj.download.element.addEventListener('click', () => gen.closeModal());
    }
@@ -1652,7 +1652,7 @@ export const displayGen = function() {
       if (singles.length) tabdata.push({ tab: lang.tr('h2h'), content: gen.playerHead2Head(singles, puid) });
       let tabs = jsTabs.generate(tabdata);
       let html = `
-         <h2>${lang.tr('mts')}</h2>
+         <h2>${lang.tr('emts')}</h2>
          <div>${tabs}</div>
       `;
       container.matches.element.innerHTML = html;
@@ -3091,7 +3091,7 @@ export const displayGen = function() {
             <div class='cell event_draw_type'>${lang.tr('events.draw_type')}</div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.draw_size")}'><div class='event_icon drawsize_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.opponents")}'><div class='event_icon opponents_header'></div></div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("mts")}'><div class='event_icon matches_header'></div></div>
+            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("emts")}'><div class='event_icon matches_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("sch")}'><div class='event_icon time_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.rank")}'><div class='event_icon rank_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("inout")}'><div class='event_icon inout_header'></div></div>
