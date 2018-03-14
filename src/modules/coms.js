@@ -22,7 +22,6 @@ export const coms = function() {
       receiveIdiomList: () => console.log('receive Idiom List'),
       tmxMessage: () => console.log('tmxMessage'),
       receiveEvent: () => console.log('receiveEvent'),
-      // TODO: add this to init function
       popUpMessage: () => console.log('pop up message'),
    }
 
@@ -72,7 +71,7 @@ export const coms = function() {
       let error = err.phrase ? lang.tr(`phrases.${err.phrase}`) : err.error;
       if (err.error) {
          let message = `${lang.tr('phrases.servererror')}<p>${error}`;
-         let container = popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+         let container = mod.fx.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
       }
    }
 
@@ -100,7 +99,7 @@ export const coms = function() {
          oi.socket.emit('tmx trny evts', { tuid, authorized: true });
       } else {
          let message = `Offline: must be connected to internet`;
-         let container = popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+         let container = mod.fx.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
       }
    }
 
@@ -113,13 +112,13 @@ export const coms = function() {
          }
       } else {
          let message = `Offline: must be connected to internet`;
-         let container = popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+         let container = mod.fx.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
       }
    }
 
    mod.emitTmx = (data) => {
       // TODO: keep this in o so db call unnecessary...?
-      db.findSetting('userUUID').then(sendTMX);
+      db.findSetting('userUUID').then(sendTMX, err => console.log('error:', err));
 
       function sendTMX(uuuid) {
          Object.assign(data, { timestamp: new Date().getTime(), uuuid: uuuid ? uuuid.value : undefined });
