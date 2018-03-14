@@ -57,7 +57,7 @@ export const tournamentDisplay = function() {
    }
 
    let dfx = drawFx();
-   fx.settingsLoaded = () => { dfx.options(fx.fx.env().drawFx); }
+   fx.settingsLoaded = (env) => { dfx.options(env.drawFx); }
 
    fx.options = (values) => {
       if (!values) return o;
@@ -269,7 +269,7 @@ export const tournamentDisplay = function() {
    }
 
    fx.displayTournament = displayTournament;
-   function displayTournament({tuid, selected_tab} = {}) {
+   function displayTournament({tuid, selected_tab, editing} = {}) {
       tuid = tuid || searchBox.active.tournament && searchBox.active.tournament.tuid;
       db.findTournament(tuid).then(tournament => {
          db.findTournamentMatches(tuid).then(matches => go(tournament, matches));
@@ -284,7 +284,7 @@ export const tournamentDisplay = function() {
          }
          if (tournament.accepted) Object.assign(rankings, tournament.accepted);
          displayGen.escapeModal();
-         createTournamentContainer({tournament, dbmatches, selected_tab, display_points: true});
+         createTournamentContainer({tournament, dbmatches, selected_tab, display_points: true, editing});
       }
    }
 
@@ -346,7 +346,8 @@ export const tournamentDisplay = function() {
       return opts;
    }
 
-   function createTournamentContainer({tournament, dbmatches, selected_tab, display_points = false}) {
+   function createTournamentContainer({tournament, dbmatches, selected_tab, display_points = false, editing}) {
+
       // START setup
       let state = {
          edit: false,
@@ -476,7 +477,7 @@ export const tournamentDisplay = function() {
 
       util.addEventToClass(classes.publish_schedule, publishSchedule);
       function publishSchedule() {
-         let schedule = sfx.generateSchedule(tournament);
+         var schedule = sfx.generateSchedule(tournament);
          if (schedule) {
             schedulePublishState();
             coms.emitTmx({ tournamentOOP: schedule });
@@ -484,11 +485,12 @@ export const tournamentDisplay = function() {
 
             // check whether there are published events
             var published_events = tournament.events.reduce((p, c) => c.published || p, false);
-            if (!published_events) {
+            if (published_events) {
+               var scheduled = mfx.scheduledMatches(tournament).scheduled;
                scheduled
                   .reduce((p, c) => util.isMember(p, c.event.euid) ? p : p.concat(c.event.euid), [])
                   .forEach(euid => {
-                     let evt = tfx.findEventByID(euid);
+                     let evt = tfx.findEventByID(tournament, euid);
                      broadcastEvent(tournament, evt)
                      displayGen.drawBroadcastState(container.publish_state.element, evt);
                   });
@@ -522,9 +524,7 @@ export const tournamentDisplay = function() {
          function revoke() {
             coms.revoked = (result) => {
                if (!result.revoked) {
-                  displayGen.okCancelMessage(lang.tr('tournaments.noauth'), () => displayGen.closeModal('processing'));
-               } else {
-                  staging.receiveTournamentRecord(result);
+                  displayGen.okCancelMessage(lang.tr('tournaments.noauth'), cleanUp);
                }
                coms.revoked = undefined;
             }
@@ -537,6 +537,11 @@ export const tournamentDisplay = function() {
             activateEdit();
             displayGen.closeModal('processing');
             finish();
+         }
+
+         function cleanUp() {
+            document.body.style.overflow  = null;
+            displayGen.closeModal('processing')
          }
 
          function finish() {
@@ -556,7 +561,8 @@ export const tournamentDisplay = function() {
                   deactivateEdit();
 
                   let devel = location.pathname.indexOf('devel') >= 0;
-                  let message = `${location.origin}${devel ? '/devel' : ''}/Live/?actionKey=${key_uuid}`;
+                  let plusplus = location.pathname.indexOf('++') >= 0;
+                  let message = `${location.origin}${devel ? '/devel' : ''}/Live${plusplus ? '++' : ''}/?actionKey=${key_uuid}`;
                   console.log(message);
                   finish();
 
@@ -565,7 +571,7 @@ export const tournamentDisplay = function() {
                      <p id='msg'>${lang.tr('phrases.scanQRcode')}</p>
                      <canvas id='qr'></canvas>
                      `;
-                  let msg = displayGen.okCancelMessage(ctext, () => displayGen.closeModal('processing'));
+                  let msg = displayGen.okCancelMessage(ctext, cleanUp);
                   genQUR(message);
                }
                coms.delegated = undefined;
@@ -575,12 +581,14 @@ export const tournamentDisplay = function() {
             if (!tournament.org) tournament.org = fx.fx.env().org;
             let delegationKey = {
                key_uuid,
-               "tournament": CircularJSON.stringify(tournament),
-               "content": {
-                  "onetime": true,
-                  "directive": "delegate",
-                  "content": { "tuid": tournament.tuid }
-               }
+               content: {
+                     "onetime": true,
+                     "directive": "delegate",
+                     "content": {
+                        "tuid": tournament.tuid,
+                        "tournament": CircularJSON.stringify(tournament)
+                     }
+                  }
             }
             coms.emitTmx({ delegationKey });
          }
@@ -1478,12 +1486,14 @@ export const tournamentDisplay = function() {
          tournament.published = new Date().getTime();
          let pushKey = {
             key_uuid,
-            "tournament": CircularJSON.stringify(tournament),
-            "content": {
-               "onetime": true,
-               "directive": "authorize",
-               "content": { "tuid": tournament.tuid }
-            }
+            content: {
+                  "onetime": true,
+                  "directive": "authorize",
+                  "content": {
+                     "tuid": tournament.tuid,
+                     "tournament": CircularJSON.stringify(tournament)
+                  }
+               }
          }
          let ctext = lang.tr('phrases.keycopied');
 
@@ -1593,7 +1603,7 @@ export const tournamentDisplay = function() {
          let same_org = sameOrg(tournament);
          [ 'start_date', 'end_date', 'organization', 'organizers', 'location', 'judge' ].forEach(field=>container[field].element.disabled = !bool);
          let publications = !tournament.events || !tournament.events.length ? false : tournament.events.reduce((p, c) => c.published || p, false);
-         let delegation = tournament.events && tournament.events.length && tournament.events.reduce((p, c) => p || c.draw_created, false);
+         let delegation = publications && tournament.events && tournament.events.length && tournament.events.reduce((p, c) => p || c.draw_created || c.active, false);
          container.delegate.element.style.display = (bool || tournament.delegated) && delegation && same_org ? 'inline' : 'none';
          container.pub_link.element.style.display = bool && publications ? 'inline' : 'none';
          container.push2cloud.element.style.display = bool && same_org ? 'inline' : 'none';
@@ -2202,14 +2212,6 @@ export const tournamentDisplay = function() {
          let pairs = arr.filter(a=>a.value == value);
          return pairs.length ? pairs[0].key : '';
       }
-
-      /*
-      function findEventByID(tournament, id) {
-         if (!tournament.events || tournament.events.length < 1) return;
-         let matching_events = tournament.events.filter(f=>f.euid == id);
-         return matching_events.length ? matching_events[0] : undefined;
-      }
-      */
 
       function determineLinkedDraw(tournament, e, type, linkChanged) {
          if (!tournament.events || tournament.events.length < 1) return;
@@ -3580,7 +3582,7 @@ export const tournamentDisplay = function() {
          filterSearchList();
 
          let courts = courtFx.courtData(tournament);
-         let oop_rounds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+         let oop_rounds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
          let date_options = date_range.map(d => ({ key: calendarFx.localizeDate(d), value: util.formatDate(d) }));
          dd.attachDropDown({ 
@@ -4927,11 +4929,13 @@ export const tournamentDisplay = function() {
       function broadcastEvent(tourny, evt) {
          evt.up_to_date = true;
          evt.published = new Date().getTime();
+         let env = fx.fx.env();
 
          let draw_object = (evt.draw_type == 'R') ? rr_draw : tree_draw;
          let options = draw_object.options();
-         let draw_type_name = tfx.genEventName(evt, tfx.isPreRound({ env: fx.fx.env(), e: evt })).type;
+         let draw_type_name = tfx.genEventName(evt, tfx.isPreRound({ env, e: evt })).type;
 
+         tourny.org = tourny.org || env.org,
          publishFx.broadcastEvent(tourny, evt, draw_type_name, options);
 
          saveTournament(tournament);
@@ -5035,6 +5039,7 @@ export const tournamentDisplay = function() {
 
          if (dfx.drawInfo(e.draw).complete) pushTournament2Cloud();
          afterScoreUpdate(e);
+         return result;
       }
 
       function scoreRoundRobin(tournament, e, existing_scores, outcome) {
@@ -5047,6 +5052,7 @@ export const tournamentDisplay = function() {
          if (result.event_complete) pushTournament2Cloud();
 
          afterScoreUpdate(e);
+         return result;
       }
 
       function afterScoreUpdate(e) {
@@ -6390,6 +6396,7 @@ export const tournamentDisplay = function() {
       }
 
       function updateScheduleBox(match) {
+         console.log('update schedule box:', match);
          if (!match) return;
          let schedule_box = Array.from(document.querySelectorAll('.schedule_box'))
             .reduce((s, el) => {
@@ -6752,6 +6759,8 @@ export const tournamentDisplay = function() {
       }
 
       // if (selected_tab && tab_ref[selected_tab] != undefined) displayTab(rab_ref[selected_tab]);
+
+      if (editing) activateEdit();
 
       return { tournament, container };
    }
