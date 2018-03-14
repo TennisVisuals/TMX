@@ -1,5 +1,4 @@
 import { coms } from './coms';
-import { tournamentFx } from './tournamentFx';
 
 export const publishFx = function() {
    let fx = {};
@@ -15,7 +14,7 @@ export const publishFx = function() {
          tournament: {
             name: tourny.name,
             tuid: tourny.tuid,
-            org: fx.fx.env().org,
+            org: tourny.org,
             start: tourny.start,
             end: tourny.end,
             categories: tourny.categories
