@@ -6,6 +6,7 @@ import { lang } from './translator';
 import { rankCalc } from './rankCalc';
 import { displayGen } from './displayGen';
 import { cleanScore } from './cleanScore';
+import { tournamentFx } from './tournamentFx';
 import { rrDraw, treeDraw, drawFx } from './drawFx';
 
 export const exportFx = function() {
@@ -734,7 +735,7 @@ export const exportFx = function() {
    function drawSheetPageHeader(tournament, logo, type, selected_event, event, info) {
       var evt = event || (tournament.events && tournament.events[selected_event]) || { name: 'Unknown' };
 
-      var event_type = displayGen.genEventName(evt).type;
+      var event_type = tournamentFx.genEventName(evt).type;
       var tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
       // let organizers = tournament.organizers && tournament.organizers != tournament.name ? tournament.organizers : '';
@@ -1160,7 +1161,6 @@ export const exportFx = function() {
          function showPDF(logo) {
             doublesSignInSheet({ tournament, teams, category, gender, event_name, logo, doc_name });
          }
-         console.log('doubles sign-in sheet');
       });
    }
 
