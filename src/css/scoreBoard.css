@@ -74,6 +74,7 @@ body {
 }
 .scoreboard .info .options { background-color: var(--sb-options); }
 .scoreboard .info .options:hover { background-color: var(--sb-options-hover); }
+html.can-touch .scoreboard .info .options:hover { background-color: none; }
 
 .scoreboard .sbox {
    display: flex;

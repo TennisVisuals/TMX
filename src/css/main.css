@@ -345,13 +345,21 @@ html {
 
 .edit_actions { margin-top: 1em; }
 
-button.undo:hover { background: violet }
-button.accept:hover { background: #68FF33 }
-button.add:hover { background: #68FF33 }
-button.ignore:hover { background: cyan }
-button.dismiss:hover { background: #FF0 }
-button.edit-cancel:hover { background: #FF0 }
-button.edit-submit:hover { background: #68FF33 }
+button.undo:hover { background: violet; }
+button.accept:hover { background: #68FF33; }
+button.add:hover { background: #68FF33; }
+button.ignore:hover { background: cyan; }
+button.dismiss:hover { background: #FF0; }
+button.edit-cancel:hover { background: #FF0; }
+button.edit-submit:hover { background: #68FF33; }
+
+html.can-touch button.undo:hover { background: none; }
+html.can-touch button.accept:hover { background: none; }
+html.can-touch button.add:hover { background: none; }
+html.can-touch button.ignore:hover { background: none; }
+html.can-touch button.dismiss:hover { background: none; }
+html.can-touch button.edit-cancel:hover { background: none; }
+html.can-touch button.edit-submit:hover { background: none; }
 
 @media(max-width:1700px) {
     .match { width: 24.9% }
