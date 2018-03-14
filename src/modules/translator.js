@@ -90,6 +90,7 @@ export const lang = function() {
       scr:     'Score',
       pts:     'Points',
       mts:     'Matches',
+      emts:    'Matches',
       mtc:     'Match',
       drw:     'Draw',
       drz:     'Draws',
@@ -376,7 +377,8 @@ export const lang = function() {
          eligible: 'Eligible',
          ineligible: 'Ineligible',
          unavailable: 'Unavailable',
-         wildcard: 'Wildcard'
+         wildcard: 'Wildcard',
+         received: 'Reeived Event'
       },
 
       locations: {
