@@ -37,17 +37,18 @@ export const db = function() {
          });
          /*
          db.db.version(3).stores({ 
-            aliases: "&alias",
-            ignored: "[hash+ioc]",
-            clubs: "&id, &code",
+            // aliases: "&alias",
+            // ignored: "[hash+ioc]",
+            clubs: "&id, code",
             calculations: "&hash, date, type",
             matches: "&muid, *puids, format, date, tournament.category, tournament.tuid",
             points: "[puid+tuid+format+round], puid, tuid, muid, date",
             tournaments: "&tuid, name, start, end, category, cuid",
-            players: "&puid, hash, cuid, &id, [last_name+first_name], last_name, birth",
+            players: "&puid, cuid, &id, [last_name+first_name], last_name, birth",    // remove hash
             rankings: "category",
             settings: "key",
             idioms: "ioc",
+            themes: "&theme",
          });
          */
          db.db.open().then(resolve, reject);
