@@ -4,10 +4,23 @@ import { dd } from './dropdown';
 import { theme } from './theme';
 import { lang } from './translator';
 import { displayFx } from './displayFx';
+import { eventManager } from './eventManager';
 import { floatingEntry } from './floatingEntry';
 
 export const scoreBoard = function() {
    let fx = {};
+
+   let setClicks = {};
+
+   eventManager.register('setClick', 'tap', setClick) ;
+
+   function setClick(elem) {
+      let set_number_element = util.getParent(elem, 'set_number');
+      if (!set_number_element) return;
+      let set = set_number_element.getAttribute('setnum');
+      let muid = util.getParent(elem, 'muid').getAttribute('muid');
+      if (setClicks[muid] && typeof setClicks[muid] == 'function') setClicks[muid](set);
+   }
 
    let stb_divider = '/';
 
@@ -28,7 +41,7 @@ export const scoreBoard = function() {
       util.keyWalk(values, o);
    }
 
-   fx.setMatchScore = ({ sobj, flags, lock, grouped, round, teams, existing_scores, score_format={}, callback }) => {
+   fx.setMatchScore = ({ sobj, muid, flags, lock, grouped, round, teams, existing_scores, score_format={}, callback }) => {
       let floating = !sobj;
       let f = Object.assign({}, o, score_format);
 
@@ -39,8 +52,22 @@ export const scoreBoard = function() {
       var set_scores;
       var action_drawer;
 
-      if (floating) sobj = fx.floatingScoreBoard({ teams, flags });
+      if (floating) sobj = fx.floatingScoreBoard({ muid, teams, flags });
       if (round) sobj.round.element.innerHTML = round;
+
+      if (muid) {
+         setClicks[muid] = (set) => {
+            if (lock) return;
+            if (set_scores.length - set > 1) {
+               set_scores = set_scores.slice(0, set_scores.length - 1);
+               set = set_scores.length - 1;
+               resetActions();
+            }
+            setScoreDisplay({ selected_set: set });
+            displayActions(true);
+            removeWinner();
+         }
+      }
 
       let displayActions = (bool) => {
          let visible = bool && !lock ? true : false;
@@ -66,9 +93,6 @@ export const scoreBoard = function() {
          removeWinner();
          configureScoreSelectors();
 
-         // check whether there is a winner from existing score
-         // irregular winners are not considered when editing existing score because
-         // it is impossible to determine from string score which player retired or defaulted.
          let winner = determineWinner(grouped ? false : true);
          set_number = winner != undefined ? set_scores.length : Math.max(0, set_scores.length - 1);
 
@@ -80,38 +104,34 @@ export const scoreBoard = function() {
                sobj.p1action.ddlb.lock();
                sobj.p2action.ddlb.lock();
                displayActions(true);
-               if (scoreGoal(last_set[0].games, last_set[1].games)) {
-                  set_number += 1;
-               }
+               if (scoreGoal(last_set[0].games, last_set[1].games)) { set_number += 1; }
             } else if (set_scores.live) {
                sobj.p1action.ddlb.setValue(' ');
                sobj.p2action.ddlb.setValue('live');
                sobj.p1action.ddlb.lock();
                sobj.p2action.ddlb.lock();
                displayActions(true);
-               if (scoreGoal(last_set[0].games, last_set[1].games)) {
-                  set_number += 1;
-               }
+               if (scoreGoal(last_set[0].games, last_set[1].games)) { set_number += 1; }
             } else if (set_scores.retired) {
                let retired = existing_scores.winner_index != undefined ? 1 - existing_scores.winner_index : undefined;
-               sobj.p1action.ddlb.setValue(retired == 0 ? 'RET.' : 'winner');
-               sobj.p2action.ddlb.setValue(retired == 1 ? 'RET.' : 'winner');
+               sobj.p1action.ddlb.setValue(retired == 0 ? 'retired' : 'winner');
+               sobj.p2action.ddlb.setValue(retired == 1 ? 'retired' : 'winner');
                sobj.p1action.ddlb.lock();
                sobj.p2action.ddlb.lock();
                displayActions(false);
                setWinner(1 - retired);
             } else if (set_scores.default) {
                let defaulted = existing_scores.winner_index != undefined ? 1 - existing_scores.winner_index : undefined;
-               sobj.p1action.ddlb.setValue(defaulted == 0 ? 'DEF.' : 'winner');
-               sobj.p2action.ddlb.setValue(defaulted == 1 ? 'DEF.' : 'winner');
+               sobj.p1action.ddlb.setValue(defaulted == 0 ? 'defaulted' : 'winner');
+               sobj.p2action.ddlb.setValue(defaulted == 1 ? 'defaulted' : 'winner');
                sobj.p1action.ddlb.lock();
                sobj.p2action.ddlb.lock();
                displayActions(false);
                setWinner(1 - defaulted);
             } else if (set_scores.walkover) {
                let walkedover = existing_scores.winner_index != undefined ? 1 - existing_scores.winner_index : undefined;
-               sobj.p1action.ddlb.setValue(walkedover == 0 ? 'W.O.' : 'winner');
-               sobj.p2action.ddlb.setValue(walkedover == 1 ? 'W.O.' : 'winner');
+               sobj.p1action.ddlb.setValue(walkedover == 0 ? 'walkover' : 'winner');
+               sobj.p2action.ddlb.setValue(walkedover == 1 ? 'walkover' : 'winner');
                sobj.p1action.ddlb.lock();
                sobj.p2action.ddlb.lock();
                displayActions(false);
@@ -125,6 +145,7 @@ export const scoreBoard = function() {
          }
 
          // now populate with any existing score
+         if (set_scores.retired || set_scores.default || set_scores.walkover) { set_number = undefined; }
          setScoreDisplay({ selected_set: set_number, actions: !grouped });
       }
 
@@ -134,8 +155,8 @@ export const scoreBoard = function() {
          if (!lock) {
             sobj.p1action.ddlb.unlock();
             sobj.p2action.ddlb.unlock();
-            sobj.p2action.ddlb.setValue(floating ? ' ' : '');
-            sobj.p1action.ddlb.setValue(floating ? ' ' : '');
+            sobj.p2action.ddlb.setValue(' ');
+            sobj.p1action.ddlb.setValue(' ');
          }
       }
 
@@ -156,16 +177,16 @@ export const scoreBoard = function() {
          setScoreDisplay({ selected_set: set_number });
          sobj.p2action.ddlb.setValue(' ');
          sobj.p1action.ddlb.setValue(' ');
-         if (floating) displayActions(false);
+         // if (floating) displayActions(false);
       }
 
-      function removeScoreBoard(outcome) {
+      function scoringComplete(outcome) {
          if (outcome) {
             outcome.teams = teams;
             outcome.set_scores = set_scores;
             outcome.score_format = f;
-            if (typeof callback == 'function') { callback(outcome); }
          }
+         if (typeof callback == 'function') { callback(outcome); }
          if (floating) {
             document.body.style.overflow = null;
             d3.select(sobj.scoreboard.element).remove();
@@ -175,21 +196,15 @@ export const scoreBoard = function() {
       }
 
       function configureActionButtons() {
-         sobj.cancel.element.addEventListener('click', floating ? () => removeScoreBoard() : initialState , false);
+         sobj.cancel.element.addEventListener('click', floating ? () => scoringComplete() : initialState , false);
          sobj.accept.element.addEventListener('click', acceptScores , false);
          sobj.clear.element.addEventListener('click', clearScores , false);
          sobj.scoring.element.addEventListener('click', toggleScoring , false);
 
          function acceptScores() {
-            let { score, position, positions, complete, winner } = getScore();
-
-            if (score) {
-               if (position) removeScoreBoard({ score, position, positions, complete, winner });
-            } else {
-               removeScoreBoard();
-            }
+            determineWinner();
+            scoringComplete(getScore());
          }
-
          function toggleScoring() {
             if (lock) return;
             if (action_drawer) return;
@@ -369,7 +384,7 @@ export const scoreBoard = function() {
             set_scores = set_scores.slice(0, set_number + 1);
             let w = determineWinner();
             setScoreDisplay({ selected_set: set_number });
-            if (!w) displayActions(false);
+            // if (!w) displayActions(false);
          } else {
             if (tbScore(p1, p2)) tiebreak = true;
             determineWinner();
@@ -389,7 +404,7 @@ export const scoreBoard = function() {
          function getComplement(value) {
             if (value == '') return;
             if (value == f.tiebreaks_at || value == f.tiebreaks_at + 1) tiebreak = true;
-            if (value == f.tiebreaks_at - 1 || value == f.tiebreaks_at) return f.tiebreaks_at + 1;
+            if (value == f.tiebreaks_at - 1 || value == f.tiebreaks_at) return parseInt(f.tiebreaks_at || 0) + 1;
             if (value < f.tiebreaks_at) return f.games_for_set;
             return f.tiebreaks_at;
          }
@@ -493,7 +508,7 @@ export const scoreBoard = function() {
          let sets_won = setsWon();
          // if an equivalent # of sets have been won, no winner
          if (sets_won[0] == sets_won[1] && !live() && !interrupted() && irregularWinner() == undefined) {
-            displayActions(false);
+            // displayActions(false);
             return;
          }
 
@@ -505,7 +520,7 @@ export const scoreBoard = function() {
 
          let winner = sets_won[0] >= needed_to_win ? 0 : sets_won[1] >= needed_to_win ? 1 : undefined;
          if (winner == undefined && !live() && !interrupted() && irregularWinner() == undefined) {
-            displayActions(false);
+            // displayActions(false);
             return;
          }
 
@@ -546,7 +561,7 @@ export const scoreBoard = function() {
          if (set_scores.length == 0) return true;
 
          let winner = determineWinner(actions) != undefined || irregularWinner() != undefined;
-         if (winner && selected_set == set_scores.length) return false;
+         if (winner && (!selected_set || selected_set == set_scores.length)) return false;
          return true;
       }
 
@@ -569,7 +584,7 @@ export const scoreBoard = function() {
 
             sobj.p1action.ddlb.setValue(' ');
             sobj.p2action.ddlb.setValue(' ');
-            displayActions(false);
+            // displayActions(false);
 
             let existing_supertiebreak = existingSuperTiebreak(selected_set);
             if (existing_supertiebreak) {
@@ -601,20 +616,6 @@ export const scoreBoard = function() {
          p2scores = after.map((s, i) => setScore({ setnum: +selected_set + 1 + i, score: s[1] })).join('');
          sobj.p1scores_e.element.innerHTML = p1scores;
          sobj.p2scores_e.element.innerHTML = p2scores;
-
-         let ss = (evt) => setClick(util.getParent(evt.target, 'set_number').getAttribute('setnum'));
-         util.addEventToClass('set_number', ss, sobj.scoreboard.element)
-      }
-
-      function setClick(set) {
-         if (lock) return;
-         if (set_scores.length - set > 1) {
-            set_scores = set_scores.slice(0, set_scores.length - 1);
-            set = set_scores.length - 1;
-            resetActions();
-         }
-         setScoreDisplay({ selected_set: set });
-         removeWinner();
       }
 
       function getScore() {
@@ -688,7 +689,7 @@ export const scoreBoard = function() {
                sobj[which ? 'p2action' : 'p1action'].ddlb.setValue(' ');
             }
             sobj[which ? 'p1action' : 'p2action'].ddlb.setValue(' ');
-            displayActions(false);
+            // displayActions(false);
             unlockScoreboard();
 
             let sets = set_scores.length;
@@ -1023,24 +1024,7 @@ export const scoreBoard = function() {
       return id_obj;
    }
 
-   fx.scoreBoardDisplay = scoreBoardDisplay;
-   function scoreBoardDisplay({ elmnt, teams, flags }) {
-      let sb_ids = { scoreboard: UUID.generate(), }
-
-      let { ids, html } = generateScoreBoard({ teams, flags });
-
-      let scoreboard = d3.select(elmnt)
-         .append('div')
-         .attr('class', 'modal')
-         .attr('id', sb_ids.scoreboard)
-         .html(html);
-
-      Object.assign(ids, sb_ids);
-      let id_obj = displayFx.idObj(ids);
-      return id_obj;
-   }
-
-   fx.floatingScoreBoard = ({ teams, flags }) => {
+   fx.floatingScoreBoard = ({ muid, teams, flags }) => {
       // can't be UUID.new() without 'ch' because many UUIDs are not valid selectors
       let sb_ids = { scoreboard: `ch${UUID.new()}`, }
 
@@ -1049,16 +1033,19 @@ export const scoreBoard = function() {
          .attr('class', 'modal')
          .attr('id', sb_ids.scoreboard);
 
-      let { ids, html } = generateScoreBoard({ teams, flags });
+      let { ids, html } = generateScoreBoard({ muid, teams, flags });
 
       let entry = floatingEntry()
          .selector('#' + sb_ids.scoreboard)
          .events( {'click': () => {
+            setClick(d3.event.target);
             let elems = document.querySelectorAll('li.dd_state');
             Array.from(elems).forEach(elem => { elem.classList.remove("active"); })
          }});
 
       entry(window.innerWidth * .3, window.innerHeight * .4, html);
+
+      scoreboard.on('click', () => d3.select(`#${sb_ids.scoreboard}`).remove());
 
       Object.assign(ids, sb_ids);
       let id_obj = displayFx.idObj(ids);
@@ -1157,8 +1144,8 @@ function setScore({ setnum, score={games:0} }) {
    let tiebreak = score.tiebreak != undefined ? score.tiebreak : score.spacer != undefined ? score.spacer : '';
    let setscore = score.supertiebreak != undefined ? score.supertiebreak : score.games;
    let html = `
-      <div class="set score set_number" setnum="${setnum != undefined ? setnum : ''}">
-         <div class="setscore">${setscore}</div>
+      <div class="set score set_number setClick" setnum="${setnum != undefined ? setnum : ''}">
+         <div class="setscore setClick">${setscore}</div>
          <div class="tbscore" ${score.spacer !== undefined ? 'style="opacity: 0"' : ''}>${tiebreak}</div>
       </div>
    `;
@@ -1233,7 +1220,7 @@ function generateScoreBoard({ muid, teams, flags }) {
    Object.assign(ids, config.ids);
 
    let html = `
-      <div id="${ids.root}" class="scoreboard noselect" muid='${muid}'>
+      <div id="${ids.root}" class="scoreboard noselect muid" muid='${muid}'>
          <div class='scorebox'>
             <div class='info'>
                <span class="info-text">

@@ -8,7 +8,7 @@ import { lang } from './translator';
 import { staging } from './staging';
 import { rankCalc } from './rankCalc';
 import { importFx } from './importFx';
-import { messaging } from './messaging';
+import { fetchFx } from './fetchFx';
 import { searchBox } from './searchBox';
 
 // remove these dependencies by moving fx elsewhere!!
@@ -58,7 +58,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.90.125.59',
+      version: '0.9.94.141.68',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -94,6 +94,7 @@ export const config = function() {
          auto_qualifiers: false,
          fixed_bye_order: false,
          consolation_seeding: false,
+         consolation_alternates: false,
          compressed_draw_formats: true,
          qualifying_bracket_seeding: true,
          consolation_from_elimination: true,
@@ -141,6 +142,10 @@ export const config = function() {
       publishing: {
          require_confirmation: false,
          publish_on_score_entry: true,
+      },
+      schedule: {
+         clubs: true,
+         ioc_codes: false,
       },
       delegation: false,
       messages: [],
@@ -854,13 +859,13 @@ export const config = function() {
             if (env.storage != true ) {
                fx.addMessage({
                   title: 'warn',
-                  notice: 'Data Persistence Not Guaranteed; save locally or publish to server before closing your browser.',
+                  notice: lang.tr('phrases.nopersist'),
                   warning: true
                });
             }
          }, notSupported);
       } else {
-         env.messages.push({ title: 'warn', notice: 'Data Persistence Not Supported', warning: true });
+         env.messages.push({ title: 'warn', notice: lang.tr('phrases.nopersist'), warning: true });
          displayGen.homeIconState('warning');
          notSupported();
       }
@@ -975,7 +980,7 @@ export const config = function() {
       window.addEventListener("resize", function() { setOrientation(); checkVisible(); }, false);
       setOrientation();
 
-      if (env.map_provider == 'google') messaging.loadGoogleMaps();
+      if (env.map_provider == 'google') fetchFx.loadGoogleMaps();
 
       coms.emitTmx({
          event: 'Connection',
@@ -1054,7 +1059,7 @@ export const config = function() {
       let done = () => displayGen.busy.done(id);
       let addNew = (players) => importFx.processPlayers(players).then(done, done);
       let notConfigured = (err) => { done(); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
-      messaging.fetchNewPlayers().then(addNew, notConfigured);
+      fetchFx.fetchNewPlayers().then(addNew, notConfigured);
    }
 
    fx.updateTournaments = updateTournaments;
@@ -1069,9 +1074,9 @@ export const config = function() {
       let mergeTournaments = (trnys) => util.performTask(mergeTournament, trnys, false).then(done, done);
       let notConfigured = (err) => { done(); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       if (merge) {
-         messaging.fetchNewTournaments(merge).then(mergeTournaments, notConfigured);
+         fetchFx.fetchNewTournaments(merge).then(mergeTournaments, notConfigured);
       } else {
-         messaging.fetchNewTournaments().then(addNew, notConfigured);
+         fetchFx.fetchNewTournaments().then(addNew, notConfigured);
       }
 
       function mergeTournament(trny) {
@@ -1094,7 +1099,7 @@ export const config = function() {
       let done = () => displayGen.busy.done(id);
       let addNew = (clubs) => util.performTask(db.addClub, clubs, false).then(done, done);
       let notConfigured = (err) => { done(); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
-      messaging.fetchNewClubs().then(addNew, notConfigured);
+      fetchFx.fetchNewClubs().then(addNew, notConfigured);
    }
 
    function refreshAction() {

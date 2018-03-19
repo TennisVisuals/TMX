@@ -6,7 +6,7 @@ import { lang } from './translator';
 import { displayGen } from './displayGen';
 import { tournamentDisplay } from './tournamentDisplay';
 
-export const messaging = function() {
+export const fetchFx = function() {
    let fx = {
       update: undefined,  // used to store received messages
    }
@@ -162,10 +162,16 @@ export const messaging = function() {
       function mergeTournaments(existing, fetched) {
          existing.start = Math.min(existing.start, fetched.start);
          existing.end = Math.max(existing.end, fetched.end);
-         existing.players = existing.players.concat(...fetched.players);
+         existing.players = mergePlayers(existing.players, fetched.players);
          db.addTournament(existing).then(() => {
             tournamentDisplay.createNewTournament({ tournament_data: existing, title: lang.tr('actions.edit_tournament'), callback: modifyTournament })
          });
+      }
+
+      function mergePlayers(existing, fetched) {
+         let existing_puids = existing.map(e=>e.puid);
+         fetched = fetched.filter(f=>existing_puids.indexOf(f.puid)<0);
+         return existing.concat(...fetched);
       }
    }
 
@@ -347,7 +353,7 @@ export const messaging = function() {
 
          function rankErr(err) {
             let message = `<div style='margin: 1em;'>lang.tr('phrases.notconfigured')</div><div style='margin: 1em;'>Cannot Fetch Rank Lists</div>`;
-            if (messaging.errors) displayGen.popUpMessage(message);
+            if (fx.errors) displayGen.popUpMessage(message);
             reject();
          }
 
@@ -531,4 +537,3 @@ export const messaging = function() {
 
    return fx;
 }();
-

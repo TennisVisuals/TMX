@@ -1,12 +1,11 @@
 import { util } from './util';
-import { UUID } from './UUID';
 import { dd } from './dropdown';
 import { drawFx } from './drawFx';
 import { jsTabs } from './jsTabs';
 import { lang } from './translator';
 import { playerFx } from './playerFx';
 import { displayFx } from './displayFx';
-import { messaging } from './messaging';
+import { fetchFx } from './fetchFx';
 import { searchBox } from './searchBox';
 import { timeSeries } from './timeSeries';
 import { ladderChart } from './ladderChart';
@@ -23,7 +22,6 @@ export const displayGen = function() {
       dragdrop: false,
       onreset: undefined,
       content: undefined,
-      uuid() { return `ch${UUID.new()}`; },
       arrowFx: undefined,
       escapeFx: undefined,
    };
@@ -296,8 +294,8 @@ export const displayGen = function() {
    gen.downloadTemplate = () => {
       if (searchBox.element) searchBox.element.blur();
       let ids = { 
-         download: gen.uuid(), 
-         cancel: gen.uuid(), 
+         download: displayFx.uuid(), 
+         cancel: displayFx.uuid(), 
       }
 
       document.body.style.overflow  = 'hidden';
@@ -335,8 +333,8 @@ export const displayGen = function() {
    gen.actionMessage = ({ message, actionFx, action, cancelAction }) => {
       if (searchBox.element) searchBox.element.blur();
       let ids = { 
-         ok: gen.uuid(), 
-         cancel: gen.uuid(), 
+         ok: displayFx.uuid(), 
+         cancel: displayFx.uuid(), 
       }
 
       document.body.style.overflow  = 'hidden';
@@ -360,13 +358,13 @@ export const displayGen = function() {
    gen.homeContextMessage = (refreshAction, okAction, messages, displayTournament) => {
       if (searchBox.element) searchBox.element.blur();
       let ids = { 
-         ok: gen.uuid(), 
-         refresh: gen.uuid(), 
+         ok: displayFx.uuid(), 
+         refresh: displayFx.uuid(), 
       }
 
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
-      let update = messaging.update ? `<h3>${messaging.update}</h3>` : '';
+      let update = fetchFx.update ? `<h3>${fetchFx.update}</h3>` : '';
       let refresh = update ? `<button id='${ids.refresh}' class='btn btn-medium dismiss'>${lang.tr('actions.refresh')}</button>` : '';
       let message_list = messages && messages.length ? messages.map(formatMessage) : [];
       let message_html = message_list.map(m=>m.html).join('');
@@ -394,7 +392,7 @@ export const displayGen = function() {
       if (update) id_obj.refresh.element.addEventListener('click', refreshAction);
 
       function formatMessage(msg) {
-         let msguid = UUID.generate();
+         let msguid = displayFx.uuid();
          let color = msg.warning ? '#EF8C7E' : msg.authorized || msg.success ? '#D1FBA7' : '#FEF8A7';
          let pointer = msg.inDB ? 'cursor: pointer;' : '';
          let html = `
@@ -408,7 +406,7 @@ export const displayGen = function() {
 
    gen.popUpMessage = (text, callback) => {
       if (searchBox.element) searchBox.element.blur();
-      let ids = { ok: gen.uuid(), }
+      let ids = { ok: displayFx.uuid(), }
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
       let html = `
@@ -520,9 +518,9 @@ export const displayGen = function() {
 
    gen.identifyPlayers = (tournament_name, outstanding) => {
       let ids = {
-         actions: gen.uuid(),
-         active_player: gen.uuid(),
-         action_message: gen.uuid(),
+         actions: displayFx.uuid(),
+         active_player: displayFx.uuid(),
+         action_message: displayFx.uuid(),
       }
       // TODO: make a "tab" where all the completed players can be seen... and edited
       let html = `
@@ -640,9 +638,9 @@ export const displayGen = function() {
    // TODO: this is currently not used...
    gen.playerApproveActions = () => {
       let ids = {
-         cancel: gen.uuid(),
-         promote: gen.uuid(),
-         demote: gen.uuid(),
+         cancel: displayFx.uuid(),
+         promote: displayFx.uuid(),
+         demote: displayFx.uuid(),
       }
       // TODO: lang.tr Approve/Remove
       let html = `
@@ -660,11 +658,11 @@ export const displayGen = function() {
 
    gen.playerAssignmentActions = (container) => {
       let ids = {
-         add: gen.uuid(),
-         cancel: gen.uuid(),
-         signin: gen.uuid(),
-         signout: gen.uuid(),
-         new_player: gen.uuid(),
+         add: displayFx.uuid(),
+         cancel: displayFx.uuid(),
+         signin: displayFx.uuid(),
+         signout: displayFx.uuid(),
+         new_player: displayFx.uuid(),
       }
       let html = `
          <div class="assignment-actions flexcenter">
@@ -1028,14 +1026,14 @@ export const displayGen = function() {
 
    gen.playerProfile = (display) => {
       let ids = {
-         info: gen.uuid(),
-         season: gen.uuid(),
-         actions: gen.uuid(),
-         matches: gen.uuid(),
-         rankings: gen.uuid(),
-         rankchart: gen.uuid(),
-         rankingsdate: gen.uuid(),
-         container: gen.uuid(),
+         info: displayFx.uuid(),
+         season: displayFx.uuid(),
+         actions: displayFx.uuid(),
+         matches: displayFx.uuid(),
+         rankings: displayFx.uuid(),
+         rankchart: displayFx.uuid(),
+         rankingsdate: displayFx.uuid(),
+         container: displayFx.uuid(),
       }
 
       let html = `
@@ -1071,7 +1069,7 @@ export const displayGen = function() {
 
    gen.submitKey = () => {
       let ids = {
-         key: gen.uuid(),
+         key: displayFx.uuid(),
       };
       let html = `
          <div style='min-height: 150px'>
@@ -1084,8 +1082,8 @@ export const displayGen = function() {
 
    gen.existingKeys = () => {
       let ids = {
-         keys: gen.uuid(),
-         select: gen.uuid()
+         keys: displayFx.uuid(),
+         select: displayFx.uuid()
       };
       let html = `
          <div style='min-height: 150px'>
@@ -1099,8 +1097,8 @@ export const displayGen = function() {
 
    gen.keyActions = (keys=[]) => {
       let ids = {
-         container: gen.uuid(),
-         cancel: gen.uuid(),
+         container: displayFx.uuid(),
+         cancel: displayFx.uuid(),
       }
 
       let submit = gen.submitKey();
@@ -1145,10 +1143,10 @@ export const displayGen = function() {
 
    gen.tabbedModal = ({ tabs, tabdata, title, save=true }) => {
       let ids = {
-         save: gen.uuid(),
-         tabs: gen.uuid(),
-         cancel: gen.uuid(),
-         container: gen.uuid(),
+         save: displayFx.uuid(),
+         tabs: displayFx.uuid(),
+         cancel: displayFx.uuid(),
+         container: displayFx.uuid(),
       }
 
       let jtabs = jsTabs.generate(tabdata);
@@ -1234,12 +1232,12 @@ export const displayGen = function() {
 
    gen.drawSettings = () => {
       let ids = {
-         auto_byes: gen.uuid(),
-         compressed_draw_formats: gen.uuid(),
-         fixed_bye_order: gen.uuid(),
-         display_flags: gen.uuid(),
-         court_detail: gen.uuid(),
-         after_matches: gen.uuid(),
+         auto_byes: displayFx.uuid(),
+         compressed_draw_formats: displayFx.uuid(),
+         fixed_bye_order: displayFx.uuid(),
+         display_flags: displayFx.uuid(),
+         court_detail: displayFx.uuid(),
+         after_matches: displayFx.uuid(),
       };
       let ddlb = [];
       let html = `
@@ -1283,7 +1281,7 @@ export const displayGen = function() {
 
    gen.generalSettings = () => {
       let ids = {
-         first_day: gen.uuid(),
+         first_day: displayFx.uuid(),
       };
       let ddlb = [];
       let html = `
@@ -1305,8 +1303,8 @@ export const displayGen = function() {
 
    gen.publishingSettings = () => {
       let ids = {
-         require_confirmation: gen.uuid(),
-         publish_on_score_entry: gen.uuid(),
+         require_confirmation: displayFx.uuid(),
+         publish_on_score_entry: displayFx.uuid(),
       };
       let ddlb = [];
       let html = `
@@ -1345,8 +1343,8 @@ export const displayGen = function() {
       });
 
       let ids = {};
-      keys.forEach(k=>ids[k] = gen.uuid());
-      keys.forEach(k=>ids[`${k}_ddlb`] = gen.uuid());
+      keys.forEach(k=>ids[k] = displayFx.uuid());
+      keys.forEach(k=>ids[`${k}_ddlb`] = displayFx.uuid());
 
       let ddlb = [];
       let settings_keys = keys.map(key => `<div class='setting'>${key}:</div>`).join('');
@@ -1371,7 +1369,7 @@ export const displayGen = function() {
    }
 
    gen.exportRange = ({ label, id_names }) => {
-      let ids = Object.assign({}, ...Object.keys(id_names).map(id => ({ [id_names[id]]: gen.uuid() })));
+      let ids = Object.assign({}, ...Object.keys(id_names).map(id => ({ [id_names[id]]: displayFx.uuid() })));
       let ddlb = [];
 
       let html = `
@@ -1404,20 +1402,20 @@ export const displayGen = function() {
 
    gen.createNewTournament = (title, tournament = {}) => {
       let ids = {
-         name: gen.uuid(),
-         association: gen.uuid(),
-         organization: gen.uuid(),
-         category: gen.uuid(),
-         rank: gen.uuid(),
-         start: gen.uuid(),
-         inout: gen.uuid(),
-         surface: gen.uuid(),
-         end: gen.uuid(),
-         judge: gen.uuid(),
-         draws: gen.uuid(),
+         name: displayFx.uuid(),
+         association: displayFx.uuid(),
+         organization: displayFx.uuid(),
+         category: displayFx.uuid(),
+         rank: displayFx.uuid(),
+         start: displayFx.uuid(),
+         inout: displayFx.uuid(),
+         surface: displayFx.uuid(),
+         end: displayFx.uuid(),
+         judge: displayFx.uuid(),
+         draws: displayFx.uuid(),
 
-         cancel: gen.uuid(),
-         save: gen.uuid(),
+         cancel: displayFx.uuid(),
+         save: displayFx.uuid(),
       }
 
       let start = !tournament.start ? '' : util.formatDate(tournament.start);
@@ -1499,20 +1497,20 @@ export const displayGen = function() {
 
    gen.createNewPlayer = (p) => {
       let ids = {
-         ioc: gen.uuid(),
-         save: gen.uuid(),
-         club: gen.uuid(),
-         city: gen.uuid(),
-         form: gen.uuid(),
-         email: gen.uuid(),
-         birth: gen.uuid(),
-         phone: gen.uuid(),
-         gender: gen.uuid(),
-         cancel: gen.uuid(),
-         birthdate: gen.uuid(),
-         last_name: gen.uuid(),
-         first_name: gen.uuid(),
-         entry_form: gen.uuid(),
+         ioc: displayFx.uuid(),
+         save: displayFx.uuid(),
+         club: displayFx.uuid(),
+         city: displayFx.uuid(),
+         form: displayFx.uuid(),
+         email: displayFx.uuid(),
+         birth: displayFx.uuid(),
+         phone: displayFx.uuid(),
+         gender: displayFx.uuid(),
+         cancel: displayFx.uuid(),
+         birthdate: displayFx.uuid(),
+         last_name: displayFx.uuid(),
+         first_name: displayFx.uuid(),
+         entry_form: displayFx.uuid(),
       }
 
       let html = `
@@ -1666,8 +1664,8 @@ export const displayGen = function() {
 
    gen.tournamentPenalties = (tournament, penalties, saveFx) => {
       let ids = {
-         penalties: gen.uuid(),
-         ok: gen.uuid(),
+         penalties: displayFx.uuid(),
+         ok: displayFx.uuid(),
       }
       let penalty_list = penalties.map((pe, i) => {
          let event_info = `${pe.round || ''}`;
@@ -1712,8 +1710,8 @@ export const displayGen = function() {
 
    gen.playerPenalties = (p, saveFx) => {
       let ids = {
-         penalties: gen.uuid(),
-         ok: gen.uuid(),
+         penalties: displayFx.uuid(),
+         ok: displayFx.uuid(),
       }
 
       gen.escapeModal();
@@ -1743,7 +1741,7 @@ export const displayGen = function() {
          </div>
          `;
       gen.showConfigModal(html);
-      id_obj = displayFx.idObj(ids);
+      let id_obj = displayFx.idObj(ids);
       id_obj.ok.element.addEventListener('click', () => gen.closeModal());
       util.addEventToClass('player_penalty', removePenalty, id_obj.penalties.element);
       function removePenalty(evt) {
@@ -1922,8 +1920,8 @@ export const displayGen = function() {
 
    gen.identifyPlayer = (p) => {
       let ids = {
-         save: gen.uuid(),
-         cancel: gen.uuid(),
+         save: displayFx.uuid(),
+         cancel: displayFx.uuid(),
       }
       let html = `
          <h2>${lang.tr('edt')}</h2>
@@ -1952,14 +1950,14 @@ export const displayGen = function() {
 
    gen.legacyTournamentTab = (elem, tournament) => {
       let ids = {
-         start_date: gen.uuid(),
-         end_date: gen.uuid(),
-         sgl_rank: gen.uuid(),
-         w_sgl_rank: gen.uuid(),
-         dbl_rank: gen.uuid(),
-         w_dbl_rank: gen.uuid(),
-         category: gen.uuid(),
-         w_category: gen.uuid(),
+         start_date: displayFx.uuid(),
+         end_date: displayFx.uuid(),
+         sgl_rank: displayFx.uuid(),
+         w_sgl_rank: displayFx.uuid(),
+         dbl_rank: displayFx.uuid(),
+         w_dbl_rank: displayFx.uuid(),
+         category: displayFx.uuid(),
+         w_category: displayFx.uuid(),
       }
       let html = `
          <div class='flexcenter' style='width: 100%'>
@@ -2011,80 +2009,80 @@ export const displayGen = function() {
    
    gen.tournamentContainer = ({ tournament, tabCallback }) => {
       let ids = {
-         name: gen.uuid(),
-         edit: gen.uuid(),
-         finish: gen.uuid(),
-         draws: gen.uuid(),
-         points: gen.uuid(),
-         matches: gen.uuid(),
-         events: gen.uuid(),
-         select_draw: gen.uuid(),
-         events_actions: gen.uuid(),
-         event_details: gen.uuid(),
-         detail_fields: gen.uuid(),
-         draw_config: gen.uuid(),
-         detail_players: gen.uuid(),
-         courts: gen.uuid(),
-         schedule: gen.uuid(),
-         scheduling: gen.uuid(),
-         unscheduled: gen.uuid(),
-         players: gen.uuid(),
-         schedule_day: gen.uuid(),
-         schedule_tab: gen.uuid(),
-         event_filter: gen.uuid(),
-         round_filter: gen.uuid(),
-         location_filter: gen.uuid(),
-         autoschedule: gen.uuid(),
-         clearschedule: gen.uuid(),
-         container: gen.uuid(),
-         category_filter: gen.uuid(),
-         tournament: gen.uuid(),
-         publish_draw: gen.uuid(),
-         publish_state: gen.uuid(),
-         player_reps: gen.uuid(),
-         player_reps_state: gen.uuid(),
-         recycle: gen.uuid(),
-         start_date: gen.uuid(),
-         end_date: gen.uuid(),
-         organizers: gen.uuid(),
-         organization: gen.uuid(),
-         judge: gen.uuid(),
-         display_id: gen.uuid(),
-         locations: gen.uuid(),
-         locations_actions: gen.uuid(),
-         location: gen.uuid(),
-         location_details: gen.uuid(),
-         location_attributes: gen.uuid(),
-         location_courts: gen.uuid(),
-         points_valid: gen.uuid(),
-         push2cloud: gen.uuid(),
-         push2cloud_state: gen.uuid(),
-         pub_link: gen.uuid(),
-         delegate: gen.uuid(),
-         localdownload: gen.uuid(),
-         localdownload_state: gen.uuid(),
-         export_points: gen.uuid(),
-         export_matches: gen.uuid(),
-         authorize: gen.uuid(),
-         cloudfetch: gen.uuid(),
-         penalty_report: gen.uuid(),
+         name: displayFx.uuid(),
+         edit: displayFx.uuid(),
+         finish: displayFx.uuid(),
+         draws: displayFx.uuid(),
+         points: displayFx.uuid(),
+         matches: displayFx.uuid(),
+         events: displayFx.uuid(),
+         select_draw: displayFx.uuid(),
+         events_actions: displayFx.uuid(),
+         event_details: displayFx.uuid(),
+         detail_fields: displayFx.uuid(),
+         draw_config: displayFx.uuid(),
+         detail_players: displayFx.uuid(),
+         courts: displayFx.uuid(),
+         schedule: displayFx.uuid(),
+         scheduling: displayFx.uuid(),
+         unscheduled: displayFx.uuid(),
+         players: displayFx.uuid(),
+         schedule_day: displayFx.uuid(),
+         schedule_tab: displayFx.uuid(),
+         event_filter: displayFx.uuid(),
+         round_filter: displayFx.uuid(),
+         location_filter: displayFx.uuid(),
+         autoschedule: displayFx.uuid(),
+         clearschedule: displayFx.uuid(),
+         container: displayFx.uuid(),
+         category_filter: displayFx.uuid(),
+         tournament: displayFx.uuid(),
+         publish_draw: displayFx.uuid(),
+         publish_state: displayFx.uuid(),
+         player_reps: displayFx.uuid(),
+         player_reps_state: displayFx.uuid(),
+         recycle: displayFx.uuid(),
+         start_date: displayFx.uuid(),
+         end_date: displayFx.uuid(),
+         organizers: displayFx.uuid(),
+         organization: displayFx.uuid(),
+         judge: displayFx.uuid(),
+         display_id: displayFx.uuid(),
+         locations: displayFx.uuid(),
+         locations_actions: displayFx.uuid(),
+         location: displayFx.uuid(),
+         location_details: displayFx.uuid(),
+         location_attributes: displayFx.uuid(),
+         location_courts: displayFx.uuid(),
+         points_valid: displayFx.uuid(),
+         push2cloud: displayFx.uuid(),
+         push2cloud_state: displayFx.uuid(),
+         pub_link: displayFx.uuid(),
+         delegate: displayFx.uuid(),
+         localdownload: displayFx.uuid(),
+         localdownload_state: displayFx.uuid(),
+         export_points: displayFx.uuid(),
+         export_matches: displayFx.uuid(),
+         authorize: displayFx.uuid(),
+         cloudfetch: displayFx.uuid(),
+         penalty_report: displayFx.uuid(),
       }
 
       let classes = {
-         filter_m: gen.uuid(), // men
-         filter_w: gen.uuid(), // women
-         filter_s: gen.uuid(), // singles
-         filter_d: gen.uuid(), // doubles
-         auto_draw: gen.uuid(),
-         print_draw: gen.uuid(),
-         print_sign_in: gen.uuid(),
-         ranking_order: gen.uuid(),
-         print_draw_order: gen.uuid(),
-         refresh_registrations: gen.uuid(),
-         print_schedule: gen.uuid(),
-         schedule_matches: gen.uuid(),
-         publish_schedule: gen.uuid(),
-         schedule_details: gen.uuid(),
+         filter_m: displayFx.uuid(), // men
+         filter_w: displayFx.uuid(), // women
+         filter_s: displayFx.uuid(), // singles
+         filter_d: displayFx.uuid(), // doubles
+         auto_draw: displayFx.uuid(),
+         print_draw: displayFx.uuid(),
+         print_sign_in: displayFx.uuid(),
+         ranking_order: displayFx.uuid(),
+         print_draw_order: displayFx.uuid(),
+         refresh_registrations: displayFx.uuid(),
+         print_schedule: displayFx.uuid(),
+         schedule_matches: displayFx.uuid(),
+         publish_schedule: displayFx.uuid(),
+         schedule_details: displayFx.uuid(),
       }
 
       let tournament_tab = `
@@ -2437,7 +2435,7 @@ export const displayGen = function() {
    }
 
    function unscheduledTeam(match, last) {
-      let team_id = gen.uuid();
+      let team_id = displayFx.uuid();
       let style = last ? '' : 'border-bottom: 1px solid #E8E9EF;';
       let droptarget = `ondragover="event.preventDefault();"`;
       let draggable = `draggable="true"`;
@@ -2458,186 +2456,9 @@ export const displayGen = function() {
       return html;
    }
 
-   gen.scheduleGrid = ({ element, scheduled, courts=[], oop_rounds=[], editable }) => {
-      function ctuuid(schedule) { return schedule ? `${schedule.luid}|${schedule.index}` : ''; }
-      courts = [].concat(...courts, Array(Math.max(0, 10 - courts.length)).fill(''));
-      let columns = courts.map(court => {
-         let header = `<div class='court_header'>${court.name || ''}</div>`;
-         let court_matches = scheduled.filter(m => m.schedule && ctuuid(m.schedule) == ctuuid(court));
-         let court_times = [];
-         court_matches.forEach(match => {
-            if (match.schedule && match.schedule.oop_round) { court_times[match.schedule.oop_round] = match; }
-         });
-         let boxes = oop_rounds.map(oop_round => {
-            if (court_times[oop_round]) {
-               return gen.scheduleBox({
-                  match: court_times[oop_round],
-                  luid: court.luid,
-                  index: court.index,
-                  court: court.name,
-                  oop_round,
-                  editable
-               });
-            } else {
-               return gen.scheduleBox({
-                  luid: court.luid,
-                  index: court.index,
-                  court: court.name,
-                  oop_round,
-                  editable
-               });
-            }
-         });
-         let boxes_html = boxes.map(b=>b.html).join('');
-         return `<div class='court_schedule'> ${header}${boxes_html} </div> `;
-      });
-
-      let oop_round = oop_rounds.map(slot => {
-         let html = `
-            <div class='oop_round' oop_round='${slot}'>
-               ${slot}
-            </div>
-         `;
-         return html;
-      }).join('');
-
-      let html = `
-         <div class='schedule_scroll_contaienr'>
-            <div class='schedule_grid'>
-               <div class='schedule_slots'><div class='oop_round_header'></div>${oop_round}</div>
-               <div class='tournament_schedule'> ${columns.join('')}</div>
-            </div>
-         </div>
-         `;
-
-      element.innerHTML = html;
-      gen.scaleTeams(element);
-   }
-
-   gen.scaleTeams = (container) => {
-      let scheduled_teams = container.querySelectorAll('.scheduled_team');
-      Array.from(scheduled_teams).forEach(el => util.scaleFont(el));
-   }
-
-   gen.scheduleBox = ({ match={}, luid, index, court, oop_round, editable } = {}) => {
-      let ids = { scorebox: gen.uuid(), }
-      let empty = !Object.keys(match).length;
-      let offgrid = empty && !court;
-      let complete = match.winner_index != undefined;
-      let inprogress = match.status == 'inprogress' || (match.score && match.winner_index == undefined);
-      let conflict = match.scheduling == 'conflict';
-      let timepressure = match.scheduling == 'timepressure';
-      let background = conflict ? '#F5A9A9' : timepressure ? 'lightyellow' : inprogress ? '#CEF6CE' : complete ? '#E0ECF8' : 'white';
-      let droptarget = `ondragover="event.preventDefault();"`;
-      let dragdrop = ' dragdrop';
-      let draggable = editable && !complete && !offgrid && !empty ? ` draggable="true"` : '';
-      let content = offgrid ? '' : !empty ? scheduledMatchHTML(match) : gen.emptyOOPround(editable);
-
-      if (Object.keys(match).length && match.schedule) {
-         if (!luid && match.schedule.luid) luid = match.schedule.luid;
-         if (!index && match.schedule.index) index = match.schedule.index;
-         if (!court && match.schedule.court) court = match.schedule.court;
-         if (!oop_round && match.schedule.oop_round) oop_round = match.schedule.oop_round;
-      }
-
-      let html = `
-         <div id='${ids.scorebox}' 
-            muid='${match.muid || ''}' 
-            luid='${luid}'
-            index='${index}'
-            court='${court}' 
-            oop_round='${oop_round}' 
-            class='schedule_box${dragdrop}' 
-            ${draggable}${droptarget}
-            style='background: ${background};'> ${content}
-         </div>
-      `;
-      return { ids, html, background, innerHTML: content };
-   }
-
-   function scheduledMatchHTML(match) {
-      let winner_index = match.winner_index;
-      let complete = winner_index != undefined;
-
-      let teams = !match.team_players ? [] : match.team_players.map(teamName);
-      let divider = 'vs.';
-
-      let first_team = complete && winner_index == 0 ? `<b>${teams[0]}</b>` : (teams[0] || unknownBlock(0));
-      let second_team = complete && winner_index == 1 ? `<b>${teams[1]}</b>` : (teams[1] || unknownBlock(1));
-      let format = lang.tr(`formats.${match.format || ''}`);
-
-      let score = match.score || '';
-      if (score && winner_index) score = dfx.reverseScore(score);
-
-      let match_status = match.status ? `<div class='match_status'>${match.status}</div>` : '&nbsp;';
-      let category = match.event ? match.event.category : '';
-      let displayed_score = score ? `<div class='match_score'>${score}</div>` : match_status;
-      let status_message = (match.status && match.score && !match.umpire) ? match.status : '';
-      let umpire = match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : status_message;
-      let heading = match.schedule.heading ? `${match.schedule.heading} ` : '';
-      let time_icon = match.schedule.start || match.schedule.end ? `&nbsp;<div class='time_header tiny_icon'></div>` : '';
-      let time_prefix = match.schedule.time_prefix ? `${match.schedule.time_prefix} ` : '';
-      let header = `${heading}${time_prefix}${match.schedule.time || ''}${time_icon}`;
-      let font_sizes = ['1em', '1em'];
-      let html = `
-         <div class='header flexrow'>${header}</div> 
-         <div class='catround'>
-            <div class='category'>${match.gender || ''} ${category}</div>
-            <div class='format'>${format}</div>
-            <div class='round'>${match.round || ''}</div>
-         </div>
-         <div class='scheduled_teams'>
-            <div class='scheduled_team' style='font-size: ${font_sizes[0]}'>${first_team || ''}</div>
-            <div class='divider'>${first_team || second_team ? divider : ''}</div>
-            <div class='scheduled_team' style='font-size: ${font_sizes[1]}'>${second_team || ''}</div>
-            ${displayed_score}${umpire}
-         </div>
-      `;
-      return html;
-
-      function teamName(team) {
-         if (team.length == 1) {
-            var p = match.players[team[0]];
-            if (!p.puid) return potentialBlock(p);
-            var club = p.club_code ? ` (${p.club_code})` : '';
-            var ioc = p.ioc ? ` {${p.ioc}}` : '';
-            return `${p.full_name}${club || ioc}`;
-         } else {
-            return team.map(p=>match.players[p].last_name.toUpperCase()).join('/');
-         }
-      }
-
-      function potentialBlock(p) {
-         let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? 'Qualifier' : '';
-         return `<div puid='${p.puid}' class='player_click cell_player potential'>${last_name}</div>`;
-      }
-
-      function unknownBlock(pindex) {
-         if (!match.potentials) return undefined;
-         let index = match.potentials[pindex] ? pindex : 0;
-         let potentials = match.potentials[index];
-         let blocks = potentials.map(p=>stack(p.map(potentialBlock))).join(`<div class='potential_separator flexcenter'><span>${lang.tr('or')}</span></div>`);
-         return `<div class='flexrow'>${blocks}</div>`;
-
-         function stack(potential_team) { return `<div class='flexcol'>${potential_team.join('')}</div>`; }
-      }
-   }
-
-   gen.opponentSearch = () => `<input class='opponentsearch' style='width: 100%; display: none' placeholder='Opponent Name...'>`;
-
-   gen.emptyOOPround = (editable) => {
-      if (!editable) return '';
-      let html = `
-         <div class='scheduled_teams findmatch' style='width: 100%;'>
-            ${gen.opponentSearch()}
-         </div>
-      `;
-      return html;
-   }
-
    gen.entryModal = (label, mouse, coords) => {
       let su_ids = {
-         entry_modal: gen.uuid(),
+         entry_modal: displayFx.uuid(),
       }
 
       let entry_modal = d3.select('body')
@@ -2660,7 +2481,7 @@ export const displayGen = function() {
 
    function entryModalEntryField(label) {
       let ids = {
-         search_field: gen.uuid(),
+         search_field: displayFx.uuid(),
       }
       let html = `
          <div class="player-entry noselect">
@@ -2673,7 +2494,7 @@ export const displayGen = function() {
 
    gen.swapPlayerPosition = ({ container, bracket, position }) => {
       let mp_ids = {
-         entry_field: gen.uuid(),
+         entry_field: displayFx.uuid(),
       }
 
       let entry_field = d3.select('body')
@@ -2693,7 +2514,7 @@ export const displayGen = function() {
 
    function generateSwapEntry({ position }) {
       let ids = {
-         new_position: gen.uuid(),
+         new_position: displayFx.uuid(),
       }
       let html = `
          <div class="player-entry noselect">
@@ -2706,7 +2527,7 @@ export const displayGen = function() {
 
    gen.manualPlayerPosition = ({ container, position }) => {
       let mp_ids = {
-         entry_field: gen.uuid(),
+         entry_field: displayFx.uuid(),
       }
 
       let entry_field = d3.select('body')
@@ -2726,8 +2547,8 @@ export const displayGen = function() {
 
    function generateEntryField({ position }) {
       let ids = {
-         player_index: gen.uuid(),
-         player_search: gen.uuid(),
+         player_index: displayFx.uuid(),
+         player_search: displayFx.uuid(),
       }
       let html = `
          <div class="player-entry noselect">
@@ -2741,7 +2562,7 @@ export const displayGen = function() {
 
    // SCOREBOARD
    gen.scoreBoard = ({ teams, flags=true }) => {
-      let sb_ids = { scoreboard: gen.uuid(), }
+      let sb_ids = { scoreboard: displayFx.uuid(), }
 
       let scoreboard = d3.select('body')
          .append('div')
@@ -2766,9 +2587,9 @@ export const displayGen = function() {
 
    gen.scoreBoardConfig = () => {
       let cfg_ids = { 
-         config: gen.uuid(),
-         cancel: gen.uuid(),
-         accept: gen.uuid(),
+         config: displayFx.uuid(),
+         cancel: displayFx.uuid(),
+         accept: displayFx.uuid(),
       }
 
       let config = d3.select('body')
@@ -2868,14 +2689,14 @@ export const displayGen = function() {
 
    function scoreBoardConfig() {
       let ids = {
-         edit_scoring: gen.uuid(),
-         bestof: gen.uuid(),
-         setsto: gen.uuid(),
-         tiebreaksat: gen.uuid(),
-         tiebreaksto: gen.uuid(),
-         finalset: gen.uuid(),
-         supertiebreakto: gen.uuid(),
-         stb2: gen.uuid(),
+         edit_scoring: displayFx.uuid(),
+         bestof: displayFx.uuid(),
+         setsto: displayFx.uuid(),
+         tiebreaksat: displayFx.uuid(),
+         tiebreaksto: displayFx.uuid(),
+         finalset: displayFx.uuid(),
+         supertiebreakto: displayFx.uuid(),
+         stb2: displayFx.uuid(),
       }
       let html = `
             <div id='${ids.edit_scoring}' class="scoreboard-config scoreboard-action">
@@ -2910,22 +2731,22 @@ export const displayGen = function() {
 
    function generateScoreBoard({ teams, flags=true }) {
       let ids = {
-         actions: gen.uuid(),
-         scoring: gen.uuid(),
-         round: gen.uuid(),
-         clear: gen.uuid(),
-         accept: gen.uuid(),
-         p1action: gen.uuid(),
-         p2action: gen.uuid(),
-         p1scores: gen.uuid(),
-         p2scores: gen.uuid(),
-         p1scores_e: gen.uuid(),
-         p2scores_e: gen.uuid(),
-         p1selector: gen.uuid(),
-         p2selector: gen.uuid(),
-         p1tiebreak: gen.uuid(),
-         p2tiebreak: gen.uuid(),
-         mstatus: gen.uuid(),
+         actions: displayFx.uuid(),
+         scoring: displayFx.uuid(),
+         round: displayFx.uuid(),
+         clear: displayFx.uuid(),
+         accept: displayFx.uuid(),
+         p1action: displayFx.uuid(),
+         p2action: displayFx.uuid(),
+         p1scores: displayFx.uuid(),
+         p2scores: displayFx.uuid(),
+         p1scores_e: displayFx.uuid(),
+         p2scores_e: displayFx.uuid(),
+         p1selector: displayFx.uuid(),
+         p2selector: displayFx.uuid(),
+         p1tiebreak: displayFx.uuid(),
+         p2tiebreak: displayFx.uuid(),
+         mstatus: displayFx.uuid(),
       }
 
       let config = scoreBoardConfig();
@@ -3162,11 +2983,11 @@ export const displayGen = function() {
 
    gen.displayLocationAttributes = (container, l, edit) => {
       let ids = {
-         abbreviation: gen.uuid(),
-         name: gen.uuid(),
-         address: gen.uuid(),
-         courts: gen.uuid(),
-         identifiers: gen.uuid(),
+         abbreviation: displayFx.uuid(),
+         name: displayFx.uuid(),
+         address: displayFx.uuid(),
+         courts: displayFx.uuid(),
+         identifiers: displayFx.uuid(),
       };
       let html = `
          <div class='attribute_groups'>
@@ -3200,17 +3021,17 @@ export const displayGen = function() {
 
    gen.displayEventDetails = ({ tournament, container, e, genders, inout, surfaces, formats, draw_types, edit }) => {
       let ids = {
-         eligible: gen.uuid(),
-         gender: gen.uuid(),
-         category: gen.uuid(),
-         rank: gen.uuid(),
-         format: gen.uuid(),
-         scoring: gen.uuid(),
-         surface: gen.uuid(),
-         inout: gen.uuid(),
-         draw_type: gen.uuid(),
-         approved_count: gen.uuid(),
-         eligible_count: gen.uuid(),
+         eligible: displayFx.uuid(),
+         gender: displayFx.uuid(),
+         category: displayFx.uuid(),
+         rank: displayFx.uuid(),
+         format: displayFx.uuid(),
+         scoring: displayFx.uuid(),
+         surface: displayFx.uuid(),
+         inout: displayFx.uuid(),
+         draw_type: displayFx.uuid(),
+         approved_count: displayFx.uuid(),
+         eligible_count: displayFx.uuid(),
       }
       let detail_fields = `
             <div class='column'>
@@ -3282,12 +3103,12 @@ export const displayGen = function() {
 
    gen.configTreeDraw = (container, e, options) => {
       let ids = {
-         structure: gen.uuid(),
-         qualification: gen.uuid(),
-         consolation: gen.uuid(),
-         elimination: gen.uuid(),
-         skiprounds: gen.uuid(),
-         feedrounds: gen.uuid(),
+         structure: displayFx.uuid(),
+         qualification: displayFx.uuid(),
+         consolation: displayFx.uuid(),
+         elimination: displayFx.uuid(),
+         skiprounds: displayFx.uuid(),
+         feedrounds: displayFx.uuid(),
       }
 
       // TODO: Skip Rounds / Feed Rounds
@@ -3329,10 +3150,10 @@ export const displayGen = function() {
 
    gen.configRoundRobinDraw = (container, e, options, size_options) => {
       let ids = {
-         brackets: gen.uuid(),
-         bracket_size: gen.uuid(),
-         elimination: gen.uuid(),
-         qualifiers: gen.uuid(),
+         brackets: displayFx.uuid(),
+         bracket_size: displayFx.uuid(),
+         elimination: displayFx.uuid(),
+         qualifiers: displayFx.uuid(),
       }
       let config = `
          <div class='detail_fields'>
@@ -3362,8 +3183,8 @@ export const displayGen = function() {
 
    gen.configQualificationDraw = (container, e, qualcounts) => {
       let ids = {
-         qualifiers: gen.uuid(),
-         elimination: gen.uuid(),
+         qualifiers: displayFx.uuid(),
+         elimination: displayFx.uuid(),
       }
       let config = `
          <div class='detail_fields'>
@@ -3461,11 +3282,11 @@ export const displayGen = function() {
 
    gen.clubList = (clubs) => {
       let ids = {
-         add: gen.uuid(),
-         container: gen.uuid(),
-         players: gen.uuid(),
-         download: gen.uuid(),
-         rank: gen.uuid(),
+         add: displayFx.uuid(),
+         container: displayFx.uuid(),
+         players: displayFx.uuid(),
+         download: displayFx.uuid(),
+         rank: displayFx.uuid(),
       }
             // <div id='${ids.players}' class='club_action'><div class='club_players'></div></div>
             // <div id='${ids.rank}' class='club_action'><div class='club_player_ranks'></div></div>
@@ -3515,12 +3336,12 @@ export const displayGen = function() {
 
    gen.calendarContainer = () => {
       let ids = {
-         container:  gen.uuid(),
-         start:      gen.uuid(),
-         end:        gen.uuid(),
-         category:   gen.uuid(),
-         add:        gen.uuid(),
-         rows:       gen.uuid(),
+         container:  displayFx.uuid(),
+         start:      displayFx.uuid(),
+         end:        displayFx.uuid(),
+         category:   displayFx.uuid(),
+         add:        displayFx.uuid(),
+         rows:       displayFx.uuid(),
       }
 
       env.calstart = ids.start;
@@ -3599,13 +3420,13 @@ export const displayGen = function() {
 
    gen.splashScreen = (components, settings_tabs) => {
       let ids = { 
-         org: gen.uuid(),
-         clubs: gen.uuid(),
-         players: gen.uuid(),
-         settings: gen.uuid(),
-         tournaments: gen.uuid(),
-         importexport: gen.uuid(),
-         keys: gen.uuid(),
+         org: displayFx.uuid(),
+         clubs: displayFx.uuid(),
+         players: displayFx.uuid(),
+         settings: displayFx.uuid(),
+         tournaments: displayFx.uuid(),
+         importexport: displayFx.uuid(),
+         keys: displayFx.uuid(),
       }
 
 
@@ -3637,8 +3458,8 @@ export const displayGen = function() {
 
    gen.importExport = () => {
       let ids = { 
-         template: gen.uuid(),
-         download: gen.uuid(),
+         template: displayFx.uuid(),
+         download: displayFx.uuid(),
       }
       let html = `<div class='dropzone flexcenter container'>
          <div class='flexcol'>
@@ -3661,9 +3482,9 @@ export const displayGen = function() {
 
    gen.playerActions = () => {
       let ids = { 
-         add: gen.uuid(),
-         pointCalc: gen.uuid(),
-         rankCalc: gen.uuid(),
+         add: displayFx.uuid(),
+         pointCalc: displayFx.uuid(),
+         rankCalc: displayFx.uuid(),
       }
       let html = `<div class='flexcenter container'>
 
@@ -3688,8 +3509,8 @@ export const displayGen = function() {
 
    gen.drawPDFmodal = () => {
       let ids = {
-         drawsheet: gen.uuid(),
-         signinsheet: gen.uuid(),
+         drawsheet: displayFx.uuid(),
+         signinsheet: displayFx.uuid(),
       }
       let html = `
          <div class='flexccol'>
@@ -3709,8 +3530,8 @@ export const displayGen = function() {
 
    gen.signInSheetFormat = () => {
       let ids = {
-         singles: gen.uuid(),
-         doubles: gen.uuid(),
+         singles: displayFx.uuid(),
+         doubles: displayFx.uuid(),
       }
       let html = `
          <div class='flexccol'>
@@ -3730,8 +3551,8 @@ export const displayGen = function() {
 
    gen.twoChoices = ({ text, option1, option2 }) => {
       let ids = {
-         option1: gen.uuid(),
-         option2: gen.uuid(),
+         option1: displayFx.uuid(),
+         option2: displayFx.uuid(),
       }
       let html = `
          <div class='flexccol'>
@@ -3751,8 +3572,8 @@ export const displayGen = function() {
 
    gen.autoScheduleConfig = () => {
       let ids = {
-         order: gen.uuid(),
-         round: gen.uuid(),
+         order: displayFx.uuid(),
+         round: displayFx.uuid(),
       }
       let html = `
          <div class='flexccol'>
@@ -3772,10 +3593,10 @@ export const displayGen = function() {
 
    gen.dateConfig = () => {
       let ids = {
-         cancel: gen.uuid(),
-         submit: gen.uuid(),
-         datepicker: gen.uuid(),
-         picked: gen.uuid(),
+         cancel: displayFx.uuid(),
+         submit: displayFx.uuid(),
+         datepicker: displayFx.uuid(),
+         picked: displayFx.uuid(),
       }
       let html = `
          <div class='flexccol'>
@@ -3794,7 +3615,7 @@ export const displayGen = function() {
 
    gen.rankLists = (categories, week, year) => {
       let ids = {
-         container: gen.uuid(),
+         container: displayFx.uuid(),
       }
       let rank_info = `
          <div class='flexrow flexcenter'>
@@ -3987,9 +3808,9 @@ export const displayGen = function() {
 
    gen.scheduleDetails = () => {
       let ids = {
-         cancel: gen.uuid(),
-         submit: gen.uuid(),
-         umpirenotes: gen.uuid(),
+         cancel: displayFx.uuid(),
+         submit: displayFx.uuid(),
+         umpirenotes: displayFx.uuid(),
       }
       let html = `
          <div class='flexccol' style='width: 100%'>
@@ -4010,10 +3831,10 @@ export const displayGen = function() {
 
    gen.playerRepresentatives = () => {
       let ids = {
-         cancel: gen.uuid(),
-         submit: gen.uuid(),
-         player_rep1: gen.uuid(),
-         player_rep2: gen.uuid(),
+         cancel: displayFx.uuid(),
+         submit: displayFx.uuid(),
+         player_rep1: displayFx.uuid(),
+         player_rep2: displayFx.uuid(),
       }
       let html = `
          <div class='flexccol' style='width: 100%'>
@@ -4170,14 +3991,14 @@ export const displayGen = function() {
 
    gen.displayClub = (club, tabdata = []) => {
       let ids = {
-         container: gen.uuid(),
-         map: gen.uuid(),
-         tabs: gen.uuid(),
-         name: gen.uuid(),
-         code: gen.uuid(),
-         edit: gen.uuid(),
-         players: gen.uuid(),
-         ranks: gen.uuid(),
+         container: displayFx.uuid(),
+         map: displayFx.uuid(),
+         tabs: displayFx.uuid(),
+         name: displayFx.uuid(),
+         code: displayFx.uuid(),
+         edit: displayFx.uuid(),
+         players: displayFx.uuid(),
+         ranks: displayFx.uuid(),
       }
       let gps = club.lat && club.long && navigator.onLine;
 

@@ -1,5 +1,13 @@
 /* schedule */
 
+body {
+   --sch-neutral: white;
+   --sch-conflict: #F5A9A9;
+   --sch-warning: lightyellow;
+   --sch-complete: #E0ECF8;
+   --sch-inprogress: #CEF6CE;
+}
+
 .umpire_notes {
    margin-left: 2em;
    margin-right: 2em;
@@ -10,13 +18,8 @@
    resize: none;
 }
 
-.schedule_tab {
-   width: auto;
-}
-
-.schedule_scroll_container {
-   width: auto;
-}
+.schedule_tab { width: auto; }
+.schedule_scroll_container { width: auto; }
 
 .schedule_sheet {
    overflow: scroll;
@@ -38,10 +41,7 @@
    align-items: center;
 }
 
-.schedule_grid {
-   overflow-x: scroll;
-}
-
+.schedule_grid { overflow-x: scroll; }
 .schedule_grid .awesomplete {
    color: white;
    font-size: 12px;
@@ -209,9 +209,14 @@
    align-items: center;
 }
 
-.unscheduled_match:hover {
-   background: #EAEDED;
-}
+.unscheduled_match:hover { background: #EAEDED; }
+html.can-touch .unscheduled_match:hover { background: none; }
+
+.court_schedule .neutral { background: var(--sch-neutral); }
+.court_schedule .complete { background: var(--sch-complete); }
+.court_schedule .conflict { background: var(--sch-conflict); }
+.court_schedule .warning { background: var(--sch-warning); }
+.court_schedule .inprogress { background: var(--sch-inprogress); }
 
 .left_team { 
    width: 30em;
@@ -236,7 +241,7 @@
 }
 
 .potential {
-  white-space: nowrap;
+   white-space: nowrap;
    color: gray;
    font-style: italic;
 }

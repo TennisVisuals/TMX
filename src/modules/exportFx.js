@@ -742,6 +742,7 @@ export const exportFx = function() {
       // var sponsor = tournament.sponsor || organizers ? ` - ${tournament.sponsor || organizers}` : '';
       var sponsor = tournament.sponsor ? ` - ${tournament.sponsor}` : '';
       var tournament_name = `${tournament.name}${sponsor}`;
+      var event_name = `${evt.category + ' ' || ''}${evt.name}`;
 
       var draw_sheet = {
          fontSize: 10,
@@ -759,7 +760,7 @@ export const exportFx = function() {
                               {}, {}, {}, {},
                            ],
                            [
-                              { text: evt.name, colSpan: 2, style: 'subtitle', margin: [0, 0, 0, 0] },
+                              { text: event_name, colSpan: 2, style: 'subtitle', margin: [0, 0, 0, 0] },
                               {},
                               { text: event_type, colSpan: 2, alignment: 'center', style: 'docName', margin: [0, 0, 0, 5] },
                               {}, {},

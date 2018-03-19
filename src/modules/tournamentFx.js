@@ -34,6 +34,19 @@ export const tournamentFx = function() {
       return { type, name }
    }
 
+   fx.pruneMatch = (match) => {
+      delete match.date;
+      delete match.winner;
+      delete match.winner_index;
+      delete match.loser;
+      delete match.score;
+      delete match.set_scores;
+      delete match.teams;
+      delete match.complete;
+      delete match.round_name;
+      delete match.tournament;
+   }
+
    fx.scoreTreeDraw = (tournament, e, existing_scores, outcome) => {
       var result = {};
       if (!outcome) return result;
@@ -60,7 +73,11 @@ export const tournamentFx = function() {
          // no existing scores so advance position
          dfx.advancePosition({ node: e.draw, position: outcome.position });
       } else if (!outcome.score) {
-         console.log('NO SCORE');
+         var possible_to_remove = (!node.ancestor || !node.ancestor.team);
+         if (!possible_to_remove) return { error: 'phrases.cannotchangewinner' };
+         result.deleted_muid = node.match.muid;
+         fx.pruneMatch(node.match);
+         delete node.dp;
       } else {
          let result = dfx.advanceToNode({
             node,
@@ -70,8 +87,7 @@ export const tournamentFx = function() {
             score_format: outcome.score_format,
          });
 
-         if (!outcome.complete && result && !result.advanced) return { error: 'phrases.cannotchangewinner' };
-         if (outcome.complete && result && !result.advanced) return { error: 'phrases.cannotchangewinner' };
+         if (result && !result.advanced) return { error: 'phrases.cannotchangewinner' };
       }
 
       let info = dfx.drawInfo(e.draw);
@@ -122,7 +138,7 @@ export const tournamentFx = function() {
       match.tournament = {
          name: tournament.name,
          tuid: tournament.tuid,
-         org: fx.fx.env().org,
+         org: tournament.org,
          category: tournament.category,
          round: match.round_name || match.round
       };
@@ -143,7 +159,10 @@ export const tournamentFx = function() {
       var winner = match_event.match.winner && match_event.match.winner.filter(f=>f).length;
       var previous_winner = winner ? match_event.match.winner.map(m=>m.id) : undefined;
       var current_winner = outcome.winner != undefined ? outcome.teams[outcome.winner].map(m=>m.id) : undefined;
-      var qualifier_changed = !previous_winner ? undefined : util.intersection(previous_winner, current_winner).length == 0;
+      var qualifier_changed =
+         previous_winner && !current_winner ? true
+         : !previous_winner ? undefined
+         : util.intersection(previous_winner, current_winner).length == 0;
 
       var draw_previously_complete = dfx.drawInfo(e.draw).complete;
       var bracket = e.draw.brackets[match_event.match.bracket];
@@ -166,6 +185,12 @@ export const tournamentFx = function() {
          return { exit: true };
       }
 
+      if (!outcome.score) {
+         result.deleted_muid = match_event.muid;
+         fx.pruneMatch(match_event.match);
+         return result;
+      }
+
       let match = match_event.match;
       match.score = outcome.score;
       if (outcome.score) match.status = '';
@@ -182,7 +207,7 @@ export const tournamentFx = function() {
       match.tournament = {
          name: tournament.name,
          tuid: tournament.tuid,
-         org: fx.fx.env().org,
+         org: tournament.org,
          category: tournament.category,
          round: match.round_name || match.round
       };
@@ -549,6 +574,7 @@ export const tournamentFx = function() {
             let all_loser_ids = [].concat(...completed_matches.map(match => match.match.loser.map(team=>team.id)));
             let losing_players = tournament.players.filter(p=>all_loser_ids.indexOf(p.id) >= 0);
             let no_wins_ids = all_loser_ids.filter(i => winner_ids.indexOf(i) < 0);
+
             let alternate_ids = all_loser_ids.filter(i=>no_wins_ids.indexOf(i) < 0);
             let ep = exitProfiles(completed_matches);
             available_players.forEach(p => {
@@ -559,7 +585,9 @@ export const tournamentFx = function() {
             });
 
             // if building a consolation draw for an elimination event, available players are those who have lost in a linked elimination event...
-            available_players = available_players.filter(p=>no_wins_ids.indexOf(p.id) >= 0 || alternate_ids.indexOf(p.id) >= 0);
+            let alts = fx.fx.env().drawFx.consolation_alternates;
+            available_players = available_players
+               .filter(p=>no_wins_ids.indexOf(p.id) >= 0 || (alts && alternate_ids.indexOf(p.id) >= 0));
          }
       }
 
@@ -583,6 +611,40 @@ export const tournamentFx = function() {
          let team_players = e.teams ? [].concat(...e.teams) : [];
          return { players: available_players.filter(p => team_players.indexOf(p.id) < 0), changed: approved_changed }
       }
+   }
+
+   function exitProfiles(completed_matches) {
+      let event_rounds = {};
+      let exit_profiles = {};
+      completed_matches.forEach(match => {
+         let round = match.round;
+         let loser_id = match.match.loser[0].id;
+         let winner_id = match.match.winner[0].id;
+         if (!event_rounds[loser_id]) event_rounds[loser_id] = []
+         if (!event_rounds[winner_id]) event_rounds[winner_id] = [];
+         event_rounds[loser_id].push(round);
+         event_rounds[winner_id].push(round);
+
+         if (!exit_profiles[loser_id]) exit_profiles[loser_id] = {};
+         exit_profiles[loser_id] = {
+            muid: match.match.muid,
+            exit_round: round,
+            round_name: match.match.round_name,
+            event_rounds: event_rounds[loser_id],
+            winner: {
+               id: winner_id,
+               name: `${match.match.winner[0].first_name} ${match.match.winner[0].last_name}`
+            }
+         };
+      });
+
+      Object.keys(exit_profiles).forEach(ep => {
+         let profile = exit_profiles[ep];
+         profile.winner.event_rounds = event_rounds[profile.winner.id];
+         profile.winner.exit_round = exit_profiles[profile.winner.id] ? exit_profiles[profile.winner.id].exit_round : undefined;
+      });
+
+      return exit_profiles;
    }
 
    fx.orderPlayersByRank = orderPlayersByRank;

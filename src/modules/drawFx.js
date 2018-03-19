@@ -472,10 +472,10 @@ export function roundRobin() {
         .enter().append("g")
          .attr("class", "textrow");
          
-      textrows.selectAll(".label")
+      textrows.selectAll(".rr_label")
          .data(d => d)
         .enter().append("text")
-         .attr("class", "label")
+         .attr("class", "rr_label")
          .attr("text-anchor", textAnchor)
          .attr("font-weight", textWeight)
          .attr("alignment-baseline", "middle")
@@ -1228,9 +1228,9 @@ export function treeDraw() {
          if (d.data.match.schedule) {
             let schedule = d.data.match.schedule;
 
-            let time_string = [schedule.time_prefix || '', schedule.time || ''].join(' ');
+            let time_string = [(schedule.time && schedule.time_prefix) || '', schedule.time || ''].join(' ');
             let schedule_after = o.schedule.after && schedule.after ? `~${schedule.after}` : '';
-            let court_info = !o.schedule.courts ? '' : [schedule.heading || '', schedule.court || '', schedule_after].join(' ');
+            let court_info = !o.schedule.courts ? '' : [schedule.court || '', schedule_after].join(' ');
             return [time_string || '', court_info || ''].join(' ');
          }
       }

@@ -3,6 +3,7 @@ import { theme } from './modules/theme';
 import { playerFx } from './modules/playerFx';
 import { tournamentDisplay } from './modules/tournamentDisplay';
 import { matchObject } from './modules/matchObject';
+import { eventManager } from './modules/eventManager';
 
 import { coms } from './modules/coms';
 import { config } from './modules/config';
@@ -43,8 +44,9 @@ function start() {
    db.addDev({db});
    db.addDev({coms});
    db.addDev({theme});
-   db.addDev({matchObject});
    db.addDev({config});
+   db.addDev({eventManager});
+   db.addDev({matchObject});
 
    playerFx.displayTournament = tournamentDisplay.displayTournament;
 

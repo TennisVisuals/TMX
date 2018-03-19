@@ -2,16 +2,19 @@ import { db } from './db'
 import { util } from './util';
 import { coms } from './coms';
 import { config } from './config';
+import { fetchFx } from './fetchFx';
 import { lang } from './translator';
 import { importFx } from './importFx';
 import { displayGen } from './displayGen';
 import { tournamentDisplay } from './tournamentDisplay';
+import { tournamentFx } from './tournamentFx';
 
 export const staging = function() {
 
    var received_events = [];
 
    let fx = {};
+   let tfx = tournamentFx;
 
    fx.init = () => {
       coms.fx.processDirective = processDirective;
@@ -45,7 +48,7 @@ export const staging = function() {
          }
          if (json_data.directive == 'new version') {
             displayGen.homeIconState('update');
-            messaging.update = json_data.notice || lang.tr('newversion');
+            fetchFx.update = json_data.notice || lang.tr('newversion');
          }
          if (json_data.directive == 'load data' && json_data.content) { importFx.loadJSON(json_data.content); }
          if (json_data.directive == 'reset db' && json_data.content) { resetDB(); }
@@ -224,6 +227,11 @@ export const staging = function() {
          let euids = trny.events.map(e=>e.euid);
          let exists = euids.indexOf(revt.event.euid) >= 0;
 
+         let existing = tfx.findEventByID(trny, revt.event.euid);
+         let equivalent = exists && CircularJSON.stringify(revt.draw) == CircularJSON.stringify(existing.draw);
+
+         if (equivalent) return finish();
+
          let auth_message = authorized ? `<span style='color: green'>${lang.tr('tournaments.auth')}</span>` : lang.tr('tournaments.noauth');
          let message = `
             <h2>${lang.tr('events.received')}</h2>
@@ -239,9 +247,9 @@ export const staging = function() {
          let msg = displayGen.actionMessage({ message, actionFx, action, cancelAction: finish });
 
          function actionFx() {
-            revt.event.draw = revt.draw;
             if (exists) {
-               trny.events = trny.events.map(evt => (evt.euid == revt.event.euid) ? revt.event : evt);
+               Object.assign(existing, revt.event);
+               existing.draw = revt.draw;
             } else {
                trny.events.push(revt.event);
             }

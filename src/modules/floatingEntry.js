@@ -24,8 +24,6 @@ export const floatingEntry = function() {
          .html(html)
 
          .on('click', d => { 
-            // clicking anywhere on the modal (which takes up all screen real estate)
-            // will close it, **except** clicking on the floater
             d3.event.preventDefault(); d3.event.stopPropagation(); 
             if (events.click && typeof events.click == 'function') events.click();
          });
