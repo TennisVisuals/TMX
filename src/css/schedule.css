@@ -245,3 +245,7 @@ html.can-touch .unscheduled_match:hover { background: none; }
    color: gray;
    font-style: italic;
 }
+.trny-oop .timepressure { background: var(--schedule-timepressure); }
+.trny-oop .inprogress { background: var(--schedule-inprogress); }
+.trny-oop .complete { background: var(--schedule-complete); }
+.trny-oop .conflict { background: var(--schedule-conflict); }
