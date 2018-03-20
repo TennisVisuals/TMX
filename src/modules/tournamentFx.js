@@ -369,7 +369,7 @@ export const tournamentFx = function() {
    }
 
    fx.approvedPlayers = ({ tournament, env, e }) => {
-      let approved_players = tournament.players
+      let approved_players = (tournament.players || [])
          .filter(p => e.approved.indexOf(p.id) >= 0)
          // make a copy of player objects to avoid changing originals
          .map(p => Object.assign({}, p));
