@@ -223,7 +223,7 @@ export const scheduleFx = function() {
             index='${index}'
             court='${court}' 
             oop_round='${oop_round}' 
-            class='schedule_box${dragdrop} ${statuscolor}' 
+            class='sb schedule_box${dragdrop} ${statuscolor}' 
             ${draggable}${droptarget}> ${content}
          </div>
       `;
