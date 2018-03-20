@@ -30,7 +30,7 @@ export const rankCalc = function() {
       function dpp(evt) {
          var elem = util.getParent(evt.target, 'player_rank');
          var puid = elem.getAttribute('puid');
-         player.displayPlayerProfile({ puid }).then(()=>{}, ()=>{});
+         playerFx.displayPlayerProfile({ puid }).then(()=>{}, ()=>{});
       }
 
       displayGen.showProcessing('Calculating Current Rank List ...');
