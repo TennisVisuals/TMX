@@ -224,6 +224,8 @@ export const staging = function() {
       function found(trny, authorized) {
          displayGen.escapeModal(() => receive_modal = false);
 
+         if (!trny.events) trny.events = [];
+
          let euids = trny.events.map(e=>e.euid);
          let exists = euids.indexOf(revt.event.euid) >= 0;
 
