@@ -181,13 +181,12 @@ export const db = function() {
       return db.modifyOrAddUnique('points', '[puid+tuid+format+round]', [point_event.puid, point_event.tuid, point_event.format, point_event.round], point_event);
    }
    db.addCategoryRankings = (rankings) => db.modifyOrAddUnique('rankings', 'category', rankings.category, rankings);
+   db.addSetting = (setting) => db.replaceOrAddUnique('settings', 'key', setting.key, setting);
 
    db.replaceOrAddUnique = (tbl, attr, val, item) => new Promise ((resolve, reject) => {
       db.db[tbl].where(attr).equals(val).delete()
          .then(() => { db.addItem(tbl, item).then(resolve, reject) }, (err) => { console.log(err); reject(err) });
    });
-
-   db.addSetting = (setting) => db.replaceOrAddUnique('settings', 'key', setting.key, setting);
 
    db.modify = (tbl, attr, val, fx, params) => new Promise((resolve, reject) => {
       db.db[tbl].where(attr).equals(val)
