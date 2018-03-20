@@ -1,0 +1,125 @@
+.event_icon { 
+   width: 1.2em;
+   height: 0;
+   padding-bottom: 1.2em;
+   background-size: 100%;
+}
+
+.tab_icon { 
+   width: 1.7em;
+   height: 0;
+   padding-bottom: 1.7em;
+   background-size: 100%;
+}
+.tiny_icon { 
+   width: 1em;
+   height: 0;
+   padding-bottom: 1em;
+   background-size: 100%;
+}
+
+.score_header { background-image: url("img/scoreboard.png"); }
+.duration_header { background-image: url("img/duration.png"); }
+.cal_header { background-image: url("img/calendar.png"); }
+.time_header { background-image: url("img/time.png"); }
+.time_header_inactive { background-image: url("img/time_inactive.png"); }
+.opponents_header { background-image: url("img/players.png"); }
+.drawsize_header { background-image: url("img/drawbracket.png"); }
+.matches_header { background-image: url("img/match.png"); }
+.matches_header_inactive { background-image: url("img/match_gray.png"); }
+.status_header { background-image: url("img/status.png"); }
+.rank_header { background-image: url("img/trophy.png"); }
+.category_header { background-image: url("img/category.png"); }
+.category_header_white { background-image: url("img/categorywhite.png"); }
+.published_header { background-image: url("img/publishblack.png"); }
+.inout_header { background-image: url("img/inout.png"); }
+.inout_indoors { background-image: url("img/indoors.png"); }
+.inout_outdoors { background-image: url("img/outdoors.png"); }
+.unpublished { background-image: url("img/publish_black.png"); }
+.reps_incomplete { background-image: url("img/reps_incomplete.png"); }
+.reps_complete { background-image: url("img/reps_complete.png"); }
+.publisheduptodate { background-image: url("img/publishblue.png"); }
+.publishedoutofdate { background-image: url("img/publishyellow.png"); }
+.published { background-image: url("img/publishgreen.png"); }
+.cleardraw { background-image: url("img/recycle.png"); }
+
+.surface_header { background-image: url("img/h_court.png"); }
+.surface_grass { background-image: url("img/court_grass.png"); }
+.surface_clay { background-image: url("img/court_clay.png"); }
+.surface_hard { background-image: url("img/court_hard.png"); }
+.surface_carpet { background-image: url("img/court_carpet.png"); }
+
+.notcreated, .xmark { background-image: url("img/xmark.png"); }
+.drawcreated { background-image: url("img/drawcreated.png"); }
+.drawactive { background-image: url("img/drawactive.png"); }
+
+.complete_header { background-image: url("img/complete.png"); }
+
+.action_icon {
+   width: 2em;
+   height: 0;
+   padding-bottom: 2em;
+   background-size: 100%;
+}
+.action_icon_small {
+   width: 1em;
+   height: 0;
+   padding-bottom: 1em;
+   margin-left: .3em;
+   margin-bottom: .3em;
+   margin-top: .3em;
+   background-size: 100%;
+}
+.ranking_order_inactive { background-image: url("img/rank_gray.png"); opacity: 0; }
+.ranking_order_active { background-image: url("img/rank.png"); opacity: 0; }
+.refresh_registrations { background-image: url("img/refresh_black.png"); opacity: 0; }
+.filter_w_selected { background-image: url("img/w_selected.png"); }
+.filter_m_selected { background-image: url("img/m_selected.png"); }
+.filter_w_gray { background-image: url("img/w_gray.png"); }
+.filter_m_gray { background-image: url("img/m_gray.png"); }
+
+.download { background-image: url("img/dl_gray.png"); }
+.push2cloud { background-image: url("img/ul_gray.png"); }
+.download_outofdate { background-image: url("img/dl_yellow.png"); }
+.push2cloud_outofdate { background-image: url("img/ul_yellow.png"); }
+.download_updated { background-image: url("img/dl_green.png"); }
+.push2cloud_updated { background-image: url("img/ul_green.png"); }
+.trash { background-image: url("img/trash.png"); }
+.penalty { background-image: url("img/penalty.png"); }
+.medical_icon {
+   background-image: url("img/redcross.png");
+   width: 1em;
+   height: 0;
+   padding-bottom: 1em;
+   background-size: 100%;
+}
+.penalty_icon {
+   background-image: url("img/penalty.png");
+   width: 1em;
+   height: 0;
+   padding-bottom: 1em;
+   background-size: 100%;
+} 
+
+.automation_icon {
+   width: 4em;
+   height: 1.5em;
+   padding-bottom: 2em;
+   margin-left: .3em;
+   margin-right: .3em;
+   background-size: 100%;
+}
+.automated_draw_pause { background-image: url("img/draw_manual.png"); }
+.automated_draw_play { background-image: url("img/draw_automated.png"); }
+
+.print { 
+   margin-left: 1em;
+   background-image: url("img/pdf.png"); 
+}
+
+.pdf { background-image: url("img/pdf.png"); }
+.png { background-image: url("img/png.png"); }
+.clipboard {
+   margin-left: .2em;
+   background-image: url("img/clipboard.png");
+}
