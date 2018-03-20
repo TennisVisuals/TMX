@@ -44,6 +44,7 @@
    justify-content: flex-end;
 }
 
+/*
 .action_icon {
    width: 2em;
    height: 0;
@@ -112,6 +113,7 @@
    margin-left: .2em;
    background-image: url("img/clipboard.png");
 }
+*/
 
 .drawdraw {
     display: flex;
@@ -266,8 +268,8 @@
    flex-wrap: wrap;
    -webkit-flex-direction: row;
    flex-direction: row;
-   -webkit-justify-content: space-between;
-   justify-content: space-between;
+   -webkit-justify-content: space-around;
+   justify-content: space-around;
 }
 
 .tournament_attr {
@@ -538,6 +540,7 @@
    width:  5%; 
    text-align: center;
 }
+/*
 .event_icon { 
    width: 1.2em;
    height: 0;
@@ -594,6 +597,7 @@
 .drawactive { background-image: url("img/drawactive.png"); }
 
 .complete_header { background-image: url("img/complete.png"); }
+*/
 
 .events .event:hover { background-color: #EAEDED }
 .events .highlight_listitem { font-weight: bold }
