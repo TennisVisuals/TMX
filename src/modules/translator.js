@@ -359,7 +359,7 @@ export const lang = function() {
          cantrefresh: 'Offline: Cannot Refresh',
          blocked:'Pop-Up Windows are blocked by your browser',
          enablepopups: 'Please enable Pop-Ups for PDF printing',
-         nopersist: 'Warning: Data Persistence not guaranteed'
+         nopersist: 'Data Persistence not guaranteed'
       },
 
       events: {
