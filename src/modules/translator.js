@@ -191,6 +191,7 @@ export const lang = function() {
          fixedbyes: 'Fixed Bye Order',
          courtdetail: 'Court Details',
          firstday: 'Week Starts Monday',
+         draworderscores: 'Scores in Draw Order',
       },
 
       search: {
