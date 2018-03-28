@@ -1,12 +1,15 @@
 import { db } from './modules/db';
+import { coms } from './modules/coms';
+import { util } from './modules/util';
 import { theme } from './modules/theme';
-import { playerFx } from './modules/playerFx';
-import { tournamentDisplay } from './modules/tournamentDisplay';
+import { exportFx } from './modules/exportFx';
+import { scheduleFx } from './modules/scheduleFx';
 import { matchObject } from './modules/matchObject';
 import { eventManager } from './modules/eventManager';
+import { tournamentDisplay } from './modules/tournamentDisplay';
 
-import { coms } from './modules/coms';
 import { config } from './modules/config';
+import { playerFx } from './modules/playerFx';
 
 if (window.attachEvent) {
    window.attachEvent('onload', start);
@@ -42,11 +45,14 @@ var elements = {
 
 function start() {
    db.addDev({db});
+   db.addDev({util});
    db.addDev({coms});
    db.addDev({theme});
    db.addDev({config});
-   db.addDev({eventManager});
+   db.addDev({exportFx});
+   db.addDev({scheduleFx});
    db.addDev({matchObject});
+   db.addDev({eventManager});
 
    playerFx.displayTournament = tournamentDisplay.displayTournament;
 
