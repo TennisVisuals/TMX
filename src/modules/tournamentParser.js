@@ -1,4 +1,5 @@
 import { util } from './util';
+import { config } from './config';
 
 export const tournamentParser = function() {
 
@@ -767,6 +768,7 @@ export const tournamentParser = function() {
    tp.drawResults = (workbook, tuid) => {
       let rows = [];
       let ranks = {};
+      let categories = [];
       tp.setWorkbookProfile({workbook});
 
       let draw_type;
@@ -799,8 +801,7 @@ export const tournamentParser = function() {
          if (tp.profile == 'TP') {
             let number = /\d+/;
             let type = tp.value(sheet['A2']);
-            tournament_category = number.test(type) ? number.exec(type) : undefined;
-            console.log(tournament_category);
+            tournament_category = number.test(type) ? number.exec(type)[0] : undefined;
          }
 
          let processMatch = (match) => {
@@ -823,13 +824,14 @@ export const tournamentParser = function() {
 
             let row = {};
             let tournament = {};
+            tournament.category = tournament_category && config.legacyCategory(tournament_category);
+            if (tournament.category && categories.indexOf(tournament.category) < 0) categories.push(tournament.category);
 
             if (tp.profile == 'HTS') {
                tournament.sid = 'HTS';
                tournament.code = tournament_data.id_turnira;
                tournament.name = tournament_data.name;
                tournament.rank = draw.rank || tournament_rank;
-               tournament.category = config.legacyCategory(tournament_category);
                tournament.draw = tournament_data.draw;
 
                Object.assign(row, { date: tp.dateProcess.HTS(tournament_data.datum_turnir), });
@@ -885,7 +887,7 @@ export const tournamentParser = function() {
       });
 
       if (parsing_errors) alert('Parsing Error: Check Points');
-      return { ranks, rows };
+      return { ranks, rows, categories };
    }
 
    tp.setWorkbookProfile = ({workbook}) => {
