@@ -125,6 +125,14 @@
     color: black;
 }
 
+@media(max-width:767px) {
+   .modal-content {
+       padding: 0em;
+       margin: .5em;
+       margin-right: 1em;
+   }
+}
+
 .modal-menu {
     display: flex;
     height: auto;

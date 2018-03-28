@@ -85,6 +85,11 @@ html {
     -webkit-align-items: center;
 }
 
+@media(max-width:767px) {
+   #content { padding: 0em; }
+   body { margin: 2px; }
+}
+
 .header { margin-bottom: .5em; }
 
 .title { 
