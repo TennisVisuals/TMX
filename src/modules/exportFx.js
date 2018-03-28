@@ -1,7 +1,6 @@
 import { db } from './db'
 import { UUID } from './UUID';
 import { util } from './util';
-import { config } from './config';
 import { lang } from './translator';
 import { rankCalc } from './rankCalc';
 import { displayGen } from './displayGen';
@@ -15,6 +14,10 @@ export const exportFx = function() {
    let o = {
       rows_per_page: 34,
       minimum_empty: 8,
+   }
+
+   exp.fx = {
+      env: () => console.log('environment fx'),
    }
 
    exp.options = (values) => {
@@ -380,7 +383,7 @@ export const exportFx = function() {
       if (team.length == 1) {
          let p = match.players[team[0]];
          let club = p.club_code ? ` (${p.club_code})` : '';
-         let full_name = `${util.normalizeName(p.first_name, false)} ${util.normalizeName(p.last_name, false).toUpperCase()}`; 
+         let full_name = `${util.normalizeName(p.last_name, false).toUpperCase()}, ${util.normalizeName(p.first_name, false)}`; 
          return `${full_name}${club}`;
       } else {
          return team.map(p => util.normalizeName(match.players[p].last_name, false).toUpperCase()).join('/');
@@ -391,8 +394,8 @@ export const exportFx = function() {
       var format = lang.tr(`formats.${match.format || ''}`);
       var category = match.event ? match.event.category : '';
       var time_detail = !match.schedule ? "" : `${match.schedule.time_prefix || ''} ${match.schedule.time || ''}`;
-      var score = match.score;
-      if (score && match.winner == 1) score = drawFx().reverseScore(score);
+      var score = util.containsNumber(match.score) && match.score;
+      if (score && match.winner == 1 && exp.fx.env().schedule.scores_in_draw_order) score = dfx.reverseScore(score);
       var unknowns = [];
 
       var first_team = match.team_players && match.team_players[0] ? teamName(match, match.team_players[0]) : unknownBlock(match, 0);
@@ -414,6 +417,8 @@ export const exportFx = function() {
          spacer: match.spacer || '',
          scoreline: `${score || ''}`,
          spacer: match.spacer || '',
+         colorscore: match.winner_index != undefined ? 'green' : 'black',
+         boldscore: match.winner_index != undefined ? true : false
       }
       var x = ' ';
       var cell = {
@@ -427,7 +432,7 @@ export const exportFx = function() {
                [ { text: display.vs || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
                [ { text: display.second_team || x, style: 'teamName', margin: [0, 0, 0, 0], bold: display.bold2, color: display.color2, italics: display.italics2 }, ],
                [ { text: display.spacer || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
-               [ { text: display.scoreline || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
+               [ { text: display.scoreline || x, style: 'centeredText', margin: [0, 0, 0, 0], bold: display.boldscore, color: display.colorscore }, ],
             ]
          },
          layout: {
@@ -997,7 +1002,8 @@ export const exportFx = function() {
       let image = images[0];
       let player_representatives = evt && evt.player_representatives || []; 
       let event_organizers = tournament && tournament.organizers ? [tournament.organizers] : []; 
-      let timestamp = localizeDate(new Date(), { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      let created = event.draw_created && util.isDate(event.draw_created) ? new Date(event.draw_created) : new Date();
+      let timestamp = localizeDate(created, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       let page_header = drawSheetPageHeader(tournament, logo, 'draw_sheet', selected_event, event);
       let { s1, s2, c1, c2, smin, smax, omin, omax, a1, c3, lda } = getRankedPlayers(evt, info);
 
