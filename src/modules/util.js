@@ -1,4 +1,5 @@
 import { Diacritics } from './Diacritics';
+import { cleanScore } from './cleanScore';
 
 export const util = function() {
    let fx = {};
@@ -45,8 +46,6 @@ export const util = function() {
 
       return [year, month, day].join(separator);
    }
-
-   fx.isDate = (date) => new Date(date) !== "Invalid Date" && !isNaN(new Date(date));
 
    fx.performTask = (fx, data, bulkResults = true) => {
       return new Promise(function(resolve, reject) {
@@ -178,6 +177,7 @@ export const util = function() {
    // Miscellaneous Functions
    fx.zeroPad = (number) => number.toString()[1] ? number : "0" + number;
    fx.numeric = (value) => value && !isNaN(value) ? parseInt(value.toString().trim()) : 0;
+   fx.containsNumber = (value) => /\d/.test(value);
    fx.isMember = (list, m) => list.reduce((p, c) => c == m || p, false);
    fx.unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
    fx.uunique = (arr) => Object.keys(Object.assign({}, ...arr.map(a=>({[a]:true}))));
@@ -259,9 +259,10 @@ export const util = function() {
       return true;
    }
 
-   function isDate(dateArg) {
-      var t = (dateArg instanceof Date) ? dateArg : (new Date(dateArg));
-      return !isNaN(t.valueOf());
+   fx.isDate = (dateArg) => {
+      if (typeof dateArg == 'boolean') return false;
+      var t = (dateArg instanceof Date) ? dateArg : !isNaN(dateArg) ? new Date(dateArg) : false;
+      return t && !isNaN(t.valueOf());
    }
 
    function isValidDateRange(minDate, maxDate) {
@@ -271,7 +272,7 @@ export const util = function() {
    fx.dateUTC = (date) => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 
    fx.dateRange = (startDt, endDt) => {
-       var error = ((isDate(endDt)) && (isDate(startDt)) && isValidDateRange(startDt, endDt)) ? false : true;
+       var error = ((fx.isDate(endDt)) && (fx.isDate(startDt)) && isValidDateRange(startDt, endDt)) ? false : true;
        var between = [];
        if (error) {
           console.log('error occured!!!... Please Enter Valid Dates');
