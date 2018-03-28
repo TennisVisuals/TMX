@@ -4,12 +4,14 @@ import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
 import { dd } from './dropdown';
+import { fetchFx } from './fetchFx';
 import { lang } from './translator';
 import { staging } from './staging';
+import { exportFx } from './exportFx';
 import { rankCalc } from './rankCalc';
 import { importFx } from './importFx';
-import { fetchFx } from './fetchFx';
 import { searchBox } from './searchBox';
+import { scheduleFx } from './scheduleFx';
 
 // remove these dependencies by moving fx elsewhere!!
 import { playerFx } from './playerFx';
@@ -58,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.94.141.71',
+      version: '0.9.97.154.79',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -146,6 +148,7 @@ export const config = function() {
       schedule: {
          clubs: true,
          ioc_codes: false,
+         scores_in_draw_order: false,
       },
       delegation: false,
       messages: [],
@@ -214,6 +217,7 @@ export const config = function() {
          data: false,
          draws: true,
          publishing: true,
+         schedule: true,
       },
       settings: {
          points_table: {
@@ -347,6 +351,7 @@ export const config = function() {
             points: v.points ? displayGen.pointsSettings() : undefined,
             draws: v.draws ? displayGen.drawSettings() : undefined,
             publishing: v.publishing ? displayGen.publishingSettings() : undefined,
+            schedule: v.schedule ? displayGen.scheduleSettings() : undefined,
             data: v.data ? displayGen.externalRequestSettings(external_request_settings) : undefined
          }
 
@@ -357,6 +362,7 @@ export const config = function() {
          if (tabs.points && tabs.points.html) tabdata.push({ tab: lang.tr('settings.points'), content: tabs.points.html });
          if (tabs.draws && tabs.draws.html) tabdata.push({ tab: lang.tr('settings.draws'), content: tabs.draws.html });
          if (tabs.publishing && tabs.publishing.html) tabdata.push({ tab: lang.tr('settings.publishing'), content: tabs.publishing.html });
+         if (tabs.schedule && tabs.schedule.html) tabdata.push({ tab: lang.tr('sch'), content: tabs.schedule.html });
          if (tabs.data && tabs.data.html) tabdata.push({ tab: lang.tr('settings.data'), content: tabs.data.html });
 
          let { container } = displayGen.tabbedModal({ tabs, tabdata, title: lang.tr('set') });
@@ -458,6 +464,12 @@ export const config = function() {
             container.first_day.element.addEventListener('click', firstDay);
             container.first_day.element.checked = env.calendar.first_day;
             function firstDay(evt) { env.calendar.first_day = container.first_day.element.checked ? 1 : 0; }
+         }
+
+         if (v.schedule) {
+            container.scores_in_draw_order.element.addEventListener('click', scoresInDrawOrder);
+            container.scores_in_draw_order.element.checked = env.schedule.scores_in_draw_order;
+            function scoresInDrawOrder(evt) { env.schedule.scores_in_draw_order = container.scores_in_draw_order.element.checked ? true : false; }
          }
 
          function revertSettings() {
@@ -837,7 +849,7 @@ export const config = function() {
          event.preventDefault();
          let reason = event.reason;
          let message = reason && (reason.stack || reason);
-         if (message.indexOf('blocked') > 0) {
+         if (message && message.indexOf('blocked') > 0) {
             displayGen.escapeModal();
             let notice = `<p>${lang.tr('phrases.blocked')}</p><p>${lang.tr('phrases.enablepopups')}</p>`;
             displayGen.okCancelMessage(notice, () => displayGen.closeModal('processing'));
@@ -911,6 +923,8 @@ export const config = function() {
       tournamentFx.fx.env = fx.env;
       tournamentFx.fx.legacyCategory = fx.legacyCategory;
 
+      scheduleFx.fx.env = fx.env;
+      exportFx.fx.env = fx.env;
       coms.fx.popUpMessage = displayGen.popUpMessage;
    }
 
