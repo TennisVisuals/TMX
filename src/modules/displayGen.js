@@ -941,7 +941,7 @@ export const displayGen = function() {
       function matchScore(match) {
          let scr = match.score;
          if (match.winner_index == 1) scr = dfx.reverseScore(scr);
-         return scr.replace(/\-/g, '&#8209;')
+         return (scr && scr.replace(/\-/g, '&#8209;')) || match.score;
       }
 
       let round_icon = `
@@ -1292,6 +1292,28 @@ export const displayGen = function() {
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.firstday')}</label>
                     <input type='checkbox' id="${ids.first_day}">
+                </div>
+             </div>
+         </div>
+
+         </div>
+      `;
+      return { ids, html, ddlb }
+   }
+
+   gen.scheduleSettings = () => {
+      let ids = {
+         scores_in_draw_order: displayFx.uuid(),
+      };
+      let ddlb = [];
+      let html = `
+         <div style='min-height: 150px'>
+         <h2>&nbsp;</h2>
+         <div class='flexcenter' style='width: 100%;'>
+             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.draworderscores')}</label>
+                    <input type='checkbox' id="${ids.scores_in_draw_order}">
                 </div>
              </div>
          </div>
