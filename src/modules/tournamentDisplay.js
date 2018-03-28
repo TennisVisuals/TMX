@@ -1,4 +1,5 @@
 import { db } from './db'
+import { hts } from './hts';
 import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
@@ -6650,7 +6651,7 @@ export const tournamentDisplay = function() {
       let tournament_date = tournament && (tournament.points_date || date || tournament.end);
       let points_date = tournament_date ? new Date(tournament_date) : new Date();
       let tuid = tournament.tuid;
-      let mz = matches.slice();
+      let mz = matches ? matches.slice() : [];
 
       // remove any calculated points or rankings
       mz.forEach(match => match.players.forEach(p => p=playerFx.cleanPlayer(p)));
@@ -6658,7 +6659,7 @@ export const tournamentDisplay = function() {
       let dbl_matches = mz.filter(f=>f.format == 'doubles').length;
 
       // retrieve options from container
-      let rankings = matches.length ? tournamentOpts(undefined, container) : {};
+      let rankings = mz.length ? tournamentOpts(undefined, container) : {};
       let category = rankings.category;
 
       if (!rankings.category || !points_date) {
@@ -6978,7 +6979,7 @@ export const tournamentDisplay = function() {
       if (!rows.length) return;
 
       // TODO: dbmatches and therefore match_groups is not updated when events deleted...
-      console.log(rows, draw_type);
+      // console.log(rows, draw_type);
 
       // exclude pre-round matches
       rows = rows.filter(f=>!f.preround);
@@ -7120,7 +7121,8 @@ export const tournamentDisplay = function() {
       }
 
       function setCategory(value) {
-         if (!value) { setTimeout(function() { container.category.ddlb.selectionBackground('yellow'); }, 200); }
+         // setTimeout(function() { container.category.ddlb.selectionBackground(value ? 'white' : 'yellow'); }, 200);
+         container.category.ddlb.selectionBackground(value ? 'white' : 'yellow');
          trny.category = value;
       }
 
@@ -7407,7 +7409,8 @@ export const tournamentDisplay = function() {
    function drawIsCreated(evt) {
       if (!evt || !evt.draw) return false;
       let info = dfx.drawInfo(evt.draw);
-      return (info.unassigned && !info.unassigned.length) || info.positions_filled;
+      let created = (info.unassigned && !info.unassigned.length) || info.positions_filled;
+      return created ? new Date().getTime() : undefined;
    }
 
    return fx;
