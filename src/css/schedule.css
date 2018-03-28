@@ -113,7 +113,8 @@ body {
    align-items: center;
 }
 .schedule_box .header {
-   font-weight: bold;
+   margin-bottom: .2em;
+   /* font-weight: bold; */
 }
 
 .schedule_box .catround {
@@ -158,6 +159,9 @@ body {
 .schedule_box .match_score {
    margin-top: .1em;
    font-style: italic;
+}
+.schedule_box .complete {
+   font-weight: bold;
 }
 .schedule_box .match_status {
    margin-top: .1em;
