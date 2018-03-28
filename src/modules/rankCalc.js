@@ -99,7 +99,7 @@ export const rankCalc = function() {
          let multiplier = points_table.categories[category][match.format].multiplier;
          let points_row = (mapping && mapping[round]) ?  mapping[round] : undefined;
          let points = points_row && points_row[event_rank] ? points_row[event_rank] * multiplier : 0;
-         if (match.score.toLowerCase().indexOf('abandoned') >= 0) { return 0; }
+         if (match.score && match.score.toLowerCase().indexOf('abandoned') >= 0) { return 0; }
          return points;
       }
       
@@ -185,7 +185,7 @@ export const rankCalc = function() {
             let player = match.players[pindex];
             let name = fullName(player);
             let pp = player_points[match.format];
-            if (match.score.trim() == 'W.O.') {
+            if (match.score && match.score.trim() == 'W.O.') {
                let wow = config.env().points.walkover_wins;
                if (Array.isArray(wow) && wow.indexOf(match.round) < 0) return;
             }
