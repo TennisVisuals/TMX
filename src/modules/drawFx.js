@@ -1376,7 +1376,6 @@ export function treeDraw() {
             if (team || !d.data.match) return '';
 
             if (d.data.match.venue) return d.data.match.venue;
-            if (d.data.match.score && d.data.match.complete == false) return 'Incomplete';
 
             return '';
          }
