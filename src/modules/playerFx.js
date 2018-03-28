@@ -44,7 +44,7 @@ export const playerFx = function() {
    function setActivePlayer(player, club) {
       displayGen.activePlayer(player, club);
       Array.from(displayGen.identify_container.action_message.element.querySelectorAll('button.dismiss'))
-         .forEach(elem => elem.addEventListener('click', clearActivePlayer));
+         .forEach(elem => elem.addEventListener('click', displayGen.clearActivePlayer));
    }
 
    fx.displayPlayerProfile = displayPlayerProfile;
