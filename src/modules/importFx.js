@@ -3,8 +3,11 @@ import { UUID } from './UUID';
 import { util } from './util'
 import { config } from './config'
 import { lang } from './translator';
+import { rankCalc } from './rankCalc';
+import { searchBox } from './searchBox';
 import { displayGen } from './displayGen';
-import { tournamentParser } from './tournamentParser'
+import { tournamentParser } from './tournamentParser';
+import { tournamentDisplay } from './tournamentDisplay';
 
 export const importFx = function() {
    // ****************************** external files ******************************
@@ -245,68 +248,123 @@ export const importFx = function() {
 
    load.findTournament = () => {
       return new Promise((resolve, reject) => {
-         if (load.loaded.meta.old_id) {
-            db.findTournamentByOldID(load.loaded.meta.old_id).then(setTournament, reject);
-         } else if (load.loaded.meta.tuid) {
-            db.findTournament(load.loaded.meta.tuid).then(setTournament, reject);
-         } else {
-            if (load.loaded.tournament.name) load.loaded.meta.name = load.loaded.tournament.name;
-            return resolve();
+         if (load.loaded.tournament.name) load.loaded.meta.name = load.loaded.tournament.name;
+
+         // TODO: search for Tournament by name rather than requiring TournamentID to be entered
+         let obj = displayGen.entryModal('tournaments.id', false, { x: (window.innerWidth / 2) - 100, y: window.innerHeight / 3 });
+         displayGen.escapeModal(() => { newTournament().then(resolve, reject); });
+         let entry_modal = d3.select(obj.entry_modal.element);
+         let removeEntryModal = () => {
+            entry_modal.remove();
+            document.body.style.overflow = null;
+            displayGen.escapeFx = undefined;
+         }
+
+         obj.search_field.element.addEventListener("keyup", function(e) { 
+            if (e.which == 13) {
+               let id = obj.search_field.element.value;
+               if (id) {
+                  removeEntryModal();
+                  db.findTournament(id).then(checkTournament, reject).then(resolve, reject);
+               } else {
+                  removeEntryModal();
+                  tournamentDisplay.createNewTournament({ tournament_data: load.loaded.tournament, title: lang.tr('tournaments.new'), callback: receiveNewTournament })
+                  function receiveNewTournament(tournament) {
+                     if (tournament) {
+                        setTournament(tournament).then(resolve, reject);
+                     } else {
+                        return reject();
+                     }
+                  }
+               }
+            }
+         });
+
+         entry_modal.on('click', () => {
+            removeEntryModal();
+            newTournament().then(resolve, reject);
+         });
+
+         function checkTournament(tournament) {
+            return new Promise((resolve, reject) => {
+               if (tournament) {
+                  setTournament(tournament).then(resolve, reject);
+               } else {
+                  newTournament().then(resolve, reject);
+               }
+            });
+         }
+
+         function newTournament() {
+            return new Promise((resolve, reject) => {
+               tournamentDisplay.createNewTournament({ tournament_data: load.loaded.tournament, title: lang.tr('tournaments.new'), callback: receiveNewTournament });
+
+               function receiveNewTournament(tournament) {
+                  if (tournament) {
+                     setTournament(tournament).then(resolve, reject);
+                  } else {
+                     return reject();
+                  }
+               }
+            });
          }
 
          function setTournament(tournament) {
-            tournament.category = config.legacyCategory(tournament.category);
+            return new Promise((resolve, reject) => {
+               if (!tournament) return reject();
+               tournament.category = config.legacyCategory(tournament.category);
 
-            if (Object.keys(tournament).length) {
-               load.loaded.tournament.sid = 'HTS';
-               load.loaded.meta.tuid = tournament.tuid;
+               if (Object.keys(tournament).length) {
+                  load.loaded.tournament.sid = 'HTS';
+                  load.loaded.meta.tuid = tournament.tuid;
 
-               load.loaded.start = tournament.start;
-               load.loaded.end = tournament.end;
+                  load.loaded.start = tournament.start;
+                  load.loaded.end = tournament.end;
 
-               if (tournament.name) load.loaded.meta.name = tournament.name;
-               if (tournament.accepted && load.loaded.meta.gender && tournament.accepted[load.loaded.meta.gender]) {
+                  if (tournament.name) load.loaded.meta.name = tournament.name;
+                  if (tournament.accepted && load.loaded.meta.gender && tournament.accepted[load.loaded.meta.gender]) {
 
-                  let accepted = tournament.accepted[load.loaded.meta.gender];
-                  load.loaded.accepted = tournament.accepted;
+                     let accepted = tournament.accepted[load.loaded.meta.gender];
+                     load.loaded.accepted = tournament.accepted;
 
-                  load.loaded.meta.rank = +accepted.sgl_rank || +tournament.rank;
-                  load.loaded.meta.dbl_rank = +accepted.dbl_rank;
-                  load.loaded.tournament.rank = load.loaded.meta.rank;
-                  load.loaded.meta.category = config.legacyCategory(accepted.category);
-                  load.loaded.tournament.category = load.loaded.meta.category;
-                  load.loaded.results.ranks = { singles: load.loaded.meta.rank, doubles: load.loaded.meta.dbl_rank };
+                     load.loaded.meta.rank = +accepted.sgl_rank || +tournament.rank;
+                     load.loaded.meta.dbl_rank = +accepted.dbl_rank;
+                     load.loaded.tournament.rank = load.loaded.meta.rank;
+                     load.loaded.meta.category = config.legacyCategory(accepted.category);
+                     load.loaded.tournament.category = load.loaded.meta.category;
+                     load.loaded.results.ranks = { singles: load.loaded.meta.rank, doubles: load.loaded.meta.dbl_rank };
 
-               } else {
-                  if (tournament.rank) {
-                     load.loaded.meta.rank = +tournament.rank;
-                     if (load.loaded.tournament.rank && load.loaded.meta.rank != load.loaded.tournament.rank) {
-                        console.log('RANK MISMATCH', load.loaded.tournament.rang_turnira, load.loaded.meta.rank, load.loaded.tournament);
+                  } else {
+                     if (tournament.rank) {
+                        load.loaded.meta.rank = +tournament.rank;
+                        if (load.loaded.tournament.rank && load.loaded.meta.rank != load.loaded.tournament.rank) {
+                           console.log('RANK MISMATCH', load.loaded.tournament.rang_turnira, load.loaded.meta.rank, load.loaded.tournament);
+                        }
+                        if (!load.loaded.tournament.rank) load.loaded.tournament.rank = +tournament.rank;
                      }
-                     if (!load.loaded.tournament.rank) load.loaded.tournament.rank = +tournament.rank;
-                  }
-                  if (tournament.category) {
-                     load.loaded.meta.category = tournament.category;
-                     if (load.loaded.tournament.category && load.loaded.meta.category != load.loaded.tournament.category) {
-                        console.log('CATEGORY MISMATCH', load.loaded.tournament.category, load.loaded.meta.category, load.loaded.tournament);
+                     if (tournament.category) {
+                        load.loaded.meta.category = tournament.category;
+                        if (load.loaded.tournament.category && load.loaded.meta.category != load.loaded.tournament.category) {
+                           console.log('CATEGORY MISMATCH', load.loaded.tournament.category, load.loaded.meta.category, load.loaded.tournament);
+                        }
+                        if (!load.loaded.tournament.category) load.loaded.tournament.category = tournament.category;
                      }
-                     if (!load.loaded.tournament.category) load.loaded.tournament.category = tournament.category;
                   }
-               }
-               if (tournament.end) {
-                  load.loaded.meta.date = tournament.end;
-                  if (!load.loaded.date) load.loaded.date = new Date(tournament.end);
-               }
+                  if (tournament.end) {
+                     load.loaded.meta.date = tournament.end;
+                     if (!load.loaded.date) load.loaded.date = new Date(tournament.end);
+                  }
 
-               load.loaded.matches.forEach(match => {
-                  match.tournament.name = tournament.name;
-                  match.tournament.start = tournament.start;
-                  match.tournament.end = tournament.end;
-                  match.tournament.tuid = tournament.tuid;
-                  match.tournament.category = tournament.category;
-               });
-            }
-            return resolve();
+                  load.loaded.matches.forEach(match => {
+                     match.tournament.name = tournament.name;
+                     match.tournament.start = tournament.start;
+                     match.tournament.end = tournament.end;
+                     match.tournament.tuid = tournament.tuid;
+                     match.tournament.category = tournament.category;
+                  });
+               }
+               return resolve();
+            });
          }
       });
    }
@@ -386,14 +444,14 @@ export const importFx = function() {
          .on('click', (d, i, elem) => { 
             d3.event.stopPropagation(); 
             let row = util.getParent(elem[i], 'section_row');
-            tournaments.ignorePlayer(row);
+            tournamentDisplay.ignorePlayer(row);
          });
 
       actions_element
          .selectAll('.action_edit')
          .on('click', (d, i, elem) => { 
             d3.event.stopPropagation(); 
-            tournaments.identifyPlayer(elem[i]); 
+            tournamentDisplay.identifyPlayer(elem[i]); 
          });
 
       searchBox.focus();
@@ -430,7 +488,7 @@ export const importFx = function() {
 
             // first exclude and players who are too old for the category
             let valid = action.result.filter(result => {
-               let eligible_categories = rank.eligibleCategories({ birth_day: result.birth, calc_date: load.loaded.date }).categories;
+               let eligible_categories = rankCalc.eligibleCategories({ birth_day: result.birth, calc_date: load.loaded.date }).categories;
                // return eligible_categories.indexOf(load.loaded.tournament.category) >= 0 
                return util.isMember(eligible_categories, load.loaded.tournament.category);
             });
@@ -690,8 +748,8 @@ export const importFx = function() {
 
       if (workbook_type == 'tournament') {
          processWorkbook(workbook);
-         let process = () => load.processPlayers().then(tournaments.processLoadedTournament, identifyPlayers);
-         load.findTournament().then(process, process);
+         let process = () => load.processPlayers().then(tournamentDisplay.processLoadedTournament, identifyPlayers);
+         load.findTournament().then(process, util.logError);
       }
 
       if (workbook_type == 'courthive_imports') {
@@ -814,7 +872,6 @@ export const importFx = function() {
    }
 
    function processWorkbook(workbook) {
-      let tournament_rank;
       tournamentParser.setWorkbookProfile({workbook});
       load.loaded.results = tournamentParser.drawResults(workbook, load.loaded.meta.tuid || load.loaded.meta.old_id);
       load.loaded.matches = load.loaded.results.rows;
@@ -859,7 +916,10 @@ export const importFx = function() {
             load.loaded.tournament.category = config.legacyCategory(load.loaded.tournament.category);
             load.loaded.meta.category = load.loaded.tournament.category;
          } else {
-            load.loaded.tournament = { name: workbook.Sheets[workbook.SheetNames[0]].A1.v };
+            load.loaded.tournament = {
+               name: workbook.Sheets[workbook.SheetNames[0]].A1.v,
+               category: load.loaded.results.categories[0],
+            };
          }
       }
    }
