@@ -11,6 +11,10 @@ export const scheduleFx = function() {
    let mfx = matchFx;
    let dfx = drawFx();
 
+   fx.fx = {
+      env: () => console.log('environment fx'),
+   }
+
    fx.generateSchedule = (tournament) => {
       if (!tournament.schedule) tournament.schedule = {};
 
@@ -242,11 +246,11 @@ export const scheduleFx = function() {
       let format = lang.tr(`formats.${match.format || ''}`);
 
       let score = match.score || '';
-      if (score && winner_index) score = dfx.reverseScore(score);
+      if (score && winner_index && fx.fx.env().schedule.scores_in_draw_order) score = dfx.reverseScore(score);
 
       let match_status = match.status ? `<div class='match_status'>${match.status}</div>` : '&nbsp;';
       let category = match.event ? match.event.category : '';
-      let displayed_score = score ? `<div class='match_score'>${score}</div>` : match_status;
+      let displayed_score = score ? `<div class='match_score${complete ? ' complete' : ''}'>${score}</div>` : match_status;
       let status_message = (match.status && match.score && !match.umpire) ? match.status : '';
       let umpire = match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : status_message;
       let heading = match.schedule.heading ? `${match.schedule.heading} ` : '';
