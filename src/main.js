@@ -1,4 +1,5 @@
 import { db } from './modules/db';
+import { UUID } from './modules/UUID';
 import { coms } from './modules/coms';
 import { util } from './modules/util';
 import { theme } from './modules/theme';
@@ -47,6 +48,7 @@ function start() {
    db.addDev({db});
    db.addDev({util});
    db.addDev({coms});
+   db.addDev({UUID});
    db.addDev({theme});
    db.addDev({config});
    db.addDev({exportFx});
