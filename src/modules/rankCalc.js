@@ -82,12 +82,12 @@ export const rankCalc = function() {
    }
 
    function fullName(player) { return `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; }
-   function calcPoints(match, points_table, category, event_rank) {
+   function calcPoints({ match, points_table, category, event_rank, round_name }) {
       category = config.legacyCategory(category || (match.event && match.event.category), true);
       event_rank = event_rank || (match.event && match.event.rank);
 
-      // TODO: deal with legacy situation...
-      let match_round = match.round_name || match.round;
+      // this handles legacy situation...  TODO: cleanup / standardize
+      let match_round = round_name || match.round_name || match.round;
 
       // draw_positions is total # of draw positions
       let qualifying = match_round && match_round.indexOf('Q') >= 0 && match_round != 'QF' && match_round.indexOf('RR') < 0;
@@ -115,7 +115,8 @@ export const rankCalc = function() {
          date: new Date(match.date).getTime(),
          muid: match.muid, 
          puid: player.puid,
-         round: match.round,
+         round_name: match.round_name,
+         calculated_round_name: match.calculated_round_name,
          gender: player.sex,
          format: match.format,
          rank: match.event ? match.event.rank : match.tournament ? match.tournament.rank : '',
@@ -152,35 +153,42 @@ export const rankCalc = function() {
             'R48': 'R64',
             'R64': 'R128',
             'R96': 'R128',
-            'R128': 'R256'
+            'R128': 'R256',
+            'R256': 'R512',
+            'R512': 'R1024',
          }; 
          let consolation_rounds = ['C1', 'C2', 'C4', 'C8', 'C16', 'C16', 'C32', 'C32', 'C64', 'C64', 'C128', 'C128']; 
          let round_index = ['F', 'SF', 'QF', 'R12', 'R16', 'R24', 'R32', 'R48', 'R64', 'R96', 'R128'].indexOf(match.round_name);
 
+         // insure that any true/false options are boolean not strings
+         util.boolAttrs(points_table.options);
+
          if (!match.consolation) {
-            awardPoints(match, match.winner);
+            let calculated_round_names = points_table.options && points_table.options.calculated_round_names;
+            let round_name = calculated_round_names ? match.calculated_round_name || match.round_name : match.round_name;
+            awardPoints(match, match.winner, round_name);
 
             if (first_round_points) {
-               match.round_name = losing_rounds[match.round_name];
-               awardPoints(match, 1 - match.winner);
+               let losing_round_name = losing_rounds[round_name];
+               awardPoints(match, 1 - match.winner, losing_round_name);
             }
          } else {
             let winner_round = consolation_rounds[round_index]; 
             let loser_round = consolation_rounds[round_index + 1]; 
 
-            match.round_name = winner_round;
-            awardPoints(match, match.winner);
+            let round_name = winner_round;
+            awardPoints(match, match.winner, round_name);
 
             if (first_round_points) {
-               match.round_name = loser_round;
-               awardPoints(match, 1 - match.winner);
+               let round_name = loser_round;
+               awardPoints(match, 1 - match.winner, round_name);
             }
          }
 
       });
 
-      function awardPoints(match, team_index) {
-         let points = calcPoints(match, points_table);
+      function awardPoints(match, team_index, round_name) {
+         let points = calcPoints({ match, points_table, round_name });
          match.team_players[team_index].forEach(pindex => {
             let player = match.players[pindex];
             let name = fullName(player);
@@ -211,7 +219,7 @@ export const rankCalc = function() {
          match.tournament.rank = determineRank(match, rankings);
 
          if (!match.consolation) {
-            let points = calcPoints(match, points_table, category, match.tournament.rank);
+            let points = calcPoints({ match, points_table, category, event_rank: match.tournament.rank });
             match.teams[match.winner].forEach(pindex => {
                if (typeof pindex == 'object') console.log('match.teams objects not indices');
                let player = typeof pindex == 'object' ? pindex : match.players[pindex];
