@@ -86,6 +86,7 @@
 .push2cloud_updated { background-image: url("img/ul_green.png"); }
 .trash { background-image: url("img/trash.png"); }
 .penalty { background-image: url("img/penalty.png"); }
+.tnotes { background-image: url("img/notes.png"); }
 .medical_icon {
    background-image: url("img/redcross.png");
    width: 1em;
