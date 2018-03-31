@@ -3,7 +3,7 @@ import { coms } from './coms';
 export const publishFx = function() {
    let fx = {};
 
-   fx.broadcastEvent = (tourny, evt, draw_type_name, options) => {
+   fx.broadcastEvent = ({ tourny, evt, draw_type_name, options }) => {
       let ebo = eventBroadcastObject(tourny, evt, draw_type_name, options);
       let eventCircular = CircularJSON.stringify(ebo);
       coms.emitTmx({ eventCircular });
