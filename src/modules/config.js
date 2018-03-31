@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.97.154.79',
+      version: '0.9.105.158.86',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -282,7 +282,6 @@ export const config = function() {
    function idiomSelectorOptions(ioc) {
       d3.json('./assets/ioc_codes.json', data => {
          let ioc_idioms = Object.assign({}, ...data.map(d => ({ [d.ioc]: d.name })));
-
          let idioms = Object.keys(fx.available_idioms);
          if (!idioms.length) idioms = lang.options();
          let options = idioms
@@ -295,7 +294,6 @@ export const config = function() {
             .filter(f=>f.title);
          fx.idiom_ddlb.setOptions(options)
          fx.idiom_ddlb.setValue(ioc, 'black');
-         // fx.idiom_ddlb.selectionBackground('black')
       });
    }
 
@@ -340,7 +338,6 @@ export const config = function() {
       db.findAllSettings().then(displaySettings);
 
       function displaySettings(settings) {
-
          let external_request_settings = settings.filter(s=>s.category == 'externalRequest');
 
          let v = o.settings_tabs;
@@ -494,6 +491,7 @@ export const config = function() {
 
             settings.push({ key: 'publishingSettings', settings: env.publishing });
             settings.push({ key: 'drawSettings', settings: env.draws });
+            settings.push({ key: 'scheduleSettings', settings: env.schedule });
             settings.push({ key: 'drawFx', settings: env.drawFx });
             settings.push({ key: 'envSettings', settings: { calendar: { first_day: env.calendar.first_day }} });
 
@@ -737,6 +735,12 @@ export const config = function() {
             if (publishing && publishing.settings) {
                util.boolAttrs(publishing.settings);
                util.keyWalk(publishing.settings, env.publishing);
+            }
+
+            let schedule = getKey('scheduleSettings');
+            if (schedule && schedule.settings) {
+               util.boolAttrs(schedule.settings);
+               util.keyWalk(schedule.settings, env.schedule);
             }
 
             let default_score_format = getKey('defaultScoreFormat');
@@ -1173,21 +1177,24 @@ export const config = function() {
    function displayKeyActions() {
       db.findSetting('keys').then(setting => {
          let actions = displayGen.keyActions(setting && setting.keys); 
+
+         // submit new key
          actions.container.key.element.addEventListener('keyup', keyStroke);
-         function keyStroke(evt) {
-            if (evt.which == 13) {
-               let value = actions.container.key.element.value;
-               if (value) coms.sendKey(value);
-               displayGen.closeModal();
-            }
+         actions.container.submitnewkey.element.addEventListener('click', submitNewKey);
+         function keyStroke(evt) { if (evt.which == 13) submitNewKey }
+         function submitNewKey() {
+            let value = actions.container.key.element.value;
+            if (value) coms.sendKey(value);
+            displayGen.closeModal();
          }
-         if (actions.container.select.element) {
-            actions.container.select.element.addEventListener('click', submitKey);
-         }
+
+         // submit existing key
+         if (actions.container.select.element) actions.container.select.element.addEventListener('click', submitKey);
          function submitKey(value) {
             let selection = actions.container.keys.ddlb.getValue();
             if (selection) coms.sendKey(selection);
          }
+
       });
    }
 
