@@ -62,6 +62,7 @@ export const lang = function() {
    idioms.default = {
       noresults: 'No Results',
       delete:  'Delete',
+      notes:   'Notes',
       merge:   'Merge',
       week:    'Week',
       warn:    'WARNING',
@@ -348,7 +349,7 @@ export const lang = function() {
          pointsvalidfrom: 'Points Valid From',
          linkcopied: 'Link Copied to Clipboard',
          keycopied: 'Key Copied to Clipboard',
-         submitkey: 'Submit Key',
+         submitkey: 'Enter New Key',
          selectkey: 'Select Key',
          deletereplace: 'Delete / Replace',
          weblink: 'Web Link',
