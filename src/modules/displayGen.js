@@ -3,9 +3,10 @@ import { dd } from './dropdown';
 import { drawFx } from './drawFx';
 import { jsTabs } from './jsTabs';
 import { lang } from './translator';
-import { playerFx } from './playerFx';
-import { displayFx } from './displayFx';
 import { fetchFx } from './fetchFx';
+import { playerFx } from './playerFx';
+import { exportFx } from './exportFx';
+import { displayFx } from './displayFx';
 import { searchBox } from './searchBox';
 import { timeSeries } from './timeSeries';
 import { ladderChart } from './ladderChart';
@@ -1070,11 +1071,15 @@ export const displayGen = function() {
    gen.submitKey = () => {
       let ids = {
          key: displayFx.uuid(),
+         submitnewkey: displayFx.uuid(),
       };
       let html = `
          <div style='min-height: 150px'>
          <h2>${lang.tr('phrases.submitkey')}</h2>
-         <input id='${ids.key}' value=''>
+         <div class='flexcenter flexcol'>
+            <input id='${ids.key}' value='' style='text-align: center; width: 25em; margin-bottom: 1em;'>
+            <button id="${ids.submitnewkey}" class="btn btn-medium edit-submit" alt="${lang.tr('sbt')}">${lang.tr('sbt')}</button> 
+         </div>
          </div>
       `;
       return { ids, html }
@@ -1181,7 +1186,7 @@ export const displayGen = function() {
    }
 
    gen.displayImage = (fx, image_url, display_id) => {
-      exp[fx]().then(display);
+      exportFx[fx]().then(display);
 
       function display(image) {
          document.getElementById(display_id).innerHTML = "<img width='200px' src='" + image + "' />";
@@ -2032,6 +2037,7 @@ export const displayGen = function() {
    gen.tournamentContainer = ({ tournament, tabCallback }) => {
       let ids = {
          name: displayFx.uuid(),
+         notes: displayFx.uuid(),
          edit: displayFx.uuid(),
          finish: displayFx.uuid(),
          draws: displayFx.uuid(),
@@ -2088,6 +2094,11 @@ export const displayGen = function() {
          authorize: displayFx.uuid(),
          cloudfetch: displayFx.uuid(),
          penalty_report: displayFx.uuid(),
+         edit_notes: displayFx.uuid(),
+         notes_display: displayFx.uuid(),
+         publish_notes: displayFx.uuid(),
+         notes_publish_state: displayFx.uuid(),
+         tournament_attrs: displayFx.uuid(),
       }
 
       let classes = {
@@ -2111,9 +2122,8 @@ export const displayGen = function() {
          <div id='${ids.tournament}' class='flexcol flexcenter' style='min-height: 10em;'>
             <div class='tournament_options'>
                <div class='options_left'>
-                  <div id='${ids.penalty_report}' class='${gen.info}' label='${lang.tr("ptz")}' style='display: none'>
-                     <div class='penalty action_icon'></div>
-                  </div>
+                  <div id='${ids.penalty_report}' class='${gen.info}' label='${lang.tr("ptz")}' style='display: none'> <div class='penalty action_icon'></div> </div>
+                  <div id='${ids.edit_notes}' class='${gen.info}' label='${lang.tr("notes")}' style='display: none'> <div class='tnotes action_icon'></div> </div>
                </div>
                <div class='options_center'>
                </div>
@@ -2124,10 +2134,13 @@ export const displayGen = function() {
                   <div id='${ids.localdownload}' class='${gen.info}' label='${lang.tr("phrases.export")}' style='display: none;'>
                      <div id='${ids.localdownload_state}' class='download action_icon'></div>
                   </div>
+                  <div id='${ids.publish_notes}' class='${gen.info}' label='${lang.tr("draws.publish")}' style='display: none'>
+                     <div id='${ids.notes_publish_state}' style='margin-left: 1em;' class='unpublished action_icon'></div>
+                  </div>
                </div>
             </div>
 
-            <div class='tournament_attrs'>
+            <div id='${ids.tournament_attrs}' class='tournament_attrs'>
                 <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
                    <div class='tournament_attr'>
                        <label class='calabel'>${lang.tr('start')}:</label>
@@ -2141,33 +2154,38 @@ export const displayGen = function() {
 
                 <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
                    <div class='tournament_attr'>
-                       <label class='calabel'>${lang.tr('signin.organization')}:</label>
-                       <input class='calinput' id="${ids.organization}" disabled>
+                       <label class='attr_label'>${lang.tr('signin.organization')}:</label>
+                       <input class='attr_input' id="${ids.organization}" disabled>
                    </div>
                    <div class='tournament_attr'>
-                       <label class='calabel'>${lang.tr('draws.organizers')}:</label>
-                       <input class='calinput' id="${ids.organizers}" disabled>
+                       <label class='attr_label'>${lang.tr('draws.organizers')}:</label>
+                       <input class='attr_input' id="${ids.organizers}" disabled>
                    </div>
                 </div>
 
                 <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
                    <div class='tournament_attr'>
-                       <label class='calabel'>${lang.tr('signin.place')}:</label>
-                       <input class='calinput' id="${ids.location}" disabled>
+                       <label class='attr_label'>${lang.tr('signin.place')}:</label>
+                       <input class='attr_input' id="${ids.location}" disabled>
                    </div>
          <!--
                    <div class='tournament_attr'>
-                       <label class='calabel'>${lang.tr('signin.id')}:</label>
-                       <input class='calinput' id="${ids.display_id}" disabled>
+                       <label class='attr_label'>${lang.tr('signin.id')}:</label>
+                       <input class='attr_input' id="${ids.display_id}" disabled>
                    </div>
          -->
                    <div class='tournament_attr'>
-                       <label class='calabel'>${lang.tr('signin.judge')}:</label>
-                       <input class='calinput' id="${ids.judge}" disabled>
+                       <label class='attr_label'>${lang.tr('signin.judge')}:</label>
+                       <input class='attr_input' id="${ids.judge}" disabled>
                    </div>
                 </div>
+            </div>
 
-             </div>
+            <div class='tournament_notes'>
+               <textarea id='${ids.notes}' class='tournament_notes_entry'></textarea>
+               <div id='${ids.notes_display}' class='tournament_notes_display'></div>
+            </div>
+
          </div>
       `;
 
