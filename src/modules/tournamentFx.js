@@ -1,8 +1,8 @@
 import { util } from './util';
 import { UUID } from './UUID';
-import { lang } from './translator';
 import { drawFx } from './drawFx';
 import { matchFx } from './matchFx';
+import { lang } from './translator';
 
 export const tournamentFx = function() {
 
@@ -140,7 +140,9 @@ export const tournamentFx = function() {
          tuid: tournament.tuid,
          org: tournament.org,
          category: tournament.category,
-         round: match.round_name || match.round
+         // TODO get rid of round...
+         round: match.round_name || match.round,
+         round_name: match.round_name
       };
 
       e.active = true;
@@ -209,7 +211,9 @@ export const tournamentFx = function() {
          tuid: tournament.tuid,
          org: tournament.org,
          category: tournament.category,
-         round: match.round_name || match.round
+         // TODO get rid of round...
+         round: match.round_name || match.round,
+         round_name: match.round_name
       };
 
       dfx.tallyBracketResults({ bracket });
@@ -377,9 +381,8 @@ export const tournamentFx = function() {
       let seed_limit = dfx.seedLimit(approved_players.length);
 
       // Round Robins must have at least one seed per bracket
-      if (e.draw_type == 'R') { seed_limit = Math.max(seed_limit, e.brackets * 2); }
-      // if (e.draw_type == 'Q') seed_limit = (e.qualifiers * 2) || Math.max(seed_limit, e.qualifiers);
-      if (e.draw_type == 'Q') seed_limit = fx.qualifierSeedLimit({ env, e }) || Math.max(seed_limit, e.qualifiers);
+      if (e.draw_type == 'R') seed_limit = Math.max(seed_limit, e.brackets * 2);
+      if (e.draw_type == 'Q') seed_limit = fx.qualifierSeedLimit({ env, e }) || seed_limit;
       if (e.draw_type == 'C' && !fx.fx.env().drawFx.consolation_seeding) seed_limit = 0;
 
       let ranked_players = approved_players.filter(a=>a.category_ranking).length;
@@ -417,7 +420,6 @@ export const tournamentFx = function() {
             return p;
          });
 
-      // console.log('returning approved:', approved_players.length);
       return approved_players;
    }
 
