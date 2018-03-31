@@ -42,7 +42,11 @@ export const db = function() {
             clubs: "&id, code",
             calculations: "&hash, date, type",
             matches: "&muid, *puids, format, date, tournament.category, tournament.tuid",
-            points: "[puid+tuid+format+round], puid, tuid, muid, date",
+
+            // points: "[puid+tuid+format+round], puid, tuid, muid, date",
+            // also chandge addPointEvent()
+            points: "[puid+euid], puid, tuid, euid, muid, date",
+
             tournaments: "&tuid, name, start, end, category, cuid",
             players: "&puid, cuid, &id, [last_name+first_name], last_name, birth",    // remove hash
             rankings: "category",
@@ -178,7 +182,10 @@ export const db = function() {
    db.addTournament = (tournament) => db.modifyOrAddUnique('tournaments', 'tuid', tournament.tuid, tournament);
    db.addCalcDate = (calculation) => db.modifyOrAddUnique('calculations', 'hash', calculation.hash, calculation);
    db.addPointEvent = (point_event) => {
+      point_event.round = point_event.round_name;
       return db.modifyOrAddUnique('points', '[puid+tuid+format+round]', [point_event.puid, point_event.tuid, point_event.format, point_event.round], point_event);
+      // when database table definition changes:
+      // return db.modifyOrAddUnique('points', '[puid+euid]', [point_event.puid, point_event.tuid, point_event.format, point_event.round], point_event);
    }
    db.addCategoryRankings = (rankings) => db.modifyOrAddUnique('rankings', 'category', rankings.category, rankings);
    db.addSetting = (setting) => db.replaceOrAddUnique('settings', 'key', setting.key, setting);
