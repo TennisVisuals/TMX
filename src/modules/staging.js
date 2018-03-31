@@ -111,7 +111,7 @@ export const staging = function() {
       // set timeout to give first-time initialization a chance to load default language file
       setTimeout(function() { db.findSetting('defaultIdiom').then(findIdiom, (error) => console.log('error:', error)); }, 2000);
 
-      function findIdiom(idiom) { db.findIdiom(idiom.ioc).then(checkIdiom, error=>console.log('error:', error)); }
+      function findIdiom(idiom={}) { db.findIdiom(idiom.ioc).then(checkIdiom, error=>console.log('error:', error)); }
       function checkIdiom(idiom={ ioc: 'gbr', name: 'English' }) {
          config.idiomSelectorOptions(idiom.ioc);
          let a = config.available_idioms[idiom.ioc];
