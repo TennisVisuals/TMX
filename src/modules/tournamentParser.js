@@ -478,7 +478,11 @@ export const tournamentParser = function() {
       let winning_players = preround.players.filter(player => round_winners.indexOf(player.draw_position) >= 0);
       let eliminated_players = preround.players.filter(player => round_winners.indexOf(player.draw_position) < 0);
       preround.matches.forEach((match, match_index) => {
+
+         // TODO: remove this...
          match.round = round_name;
+
+         match.round_name = round_name;
          match.loser_names = [eliminated_players[match_index].full_name];
          match.losers = [eliminated_players[match_index].draw_position - dpo];
          match.winner_names = [winning_players[match_index].full_name];
@@ -516,7 +520,11 @@ export const tournamentParser = function() {
             let draw_positions = players.map(m=>m.draw_position).filter((item, i, s) => s.lastIndexOf(item) == i).length;
             let round_name = index + 2 < rounds.length || index < 3 ? main_draw_rounds[index] : `R${draw_positions}`;
             round_matches.forEach((match, match_index) => {
+
+               // TODO: remove this..
                match.round = draw_type == 'main' ? round_name : `Q${index || ''}`;
+
+               match.round_name = draw_type == 'main' ? round_name : `Q${index || ''}`;
                match.losers = [eliminated_players[match_index]];
                match.loser_names = players.filter(f=>f.draw_position == eliminated_players[match_index]).map(p=>p.full_name);
             });
