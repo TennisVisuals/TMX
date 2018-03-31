@@ -99,8 +99,9 @@ export const matchFx = function() {
          potentials: match.potentials,
 
          // TODO: clear up confusion here...
-         round: match.round_name,
+         // round: match.round_name,
          round_name: match.round_name,
+         calculated_round_name: match.calculated_round_name,
 
          score: match.match.score,
          status: match.match.status,
@@ -129,6 +130,7 @@ export const matchFx = function() {
       if (source) obj.source = match.match;
       return obj;
    }
+
    fx.matchOutcome = matchOutcome;
    function matchOutcome(match, puid) {
       let player_won = null;
@@ -173,22 +175,45 @@ export const matchFx = function() {
    fx.upcomingEventMatches = upcomingEventMatches;
    function upcomingEventMatches(e, tournament) {
       if (!e.draw) return [];
-      let matches = dfx.upcomingMatches(e.draw, roundNames(e));
+      let round_names = roundNames(tournament, e);
+      let matches = dfx.upcomingMatches(e.draw, round_names.names, round_names.calculated_names);
       return checkScheduledMatches(e, tournament, matches);
    }
 
    fx.eventMatches = eventMatches;
    function eventMatches(e, tournament) {
       if (!e.draw) return [];
-      let matches = dfx.matches(e.draw, roundNames(e));
+      let round_names = roundNames(tournament, e);
+      let matches = dfx.matches(e.draw, round_names.names, round_names.calculated_names);
       return checkScheduledMatches(e, tournament, matches);
    }
 
-   function roundNames(e) {
-      if (['E', 'C'].indexOf(e.draw_type) >= 0) return ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R96', 'R128'];
-      if (['Q'].indexOf(e.draw_type) >= 0) return ['Q', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5'];
-      if (['P'].indexOf(e.draw_type) >= 0) return ['PO3'];
-      return [];
+   // NOTE: This function is duplicated but didn't want to introduce circular
+   // dependence with tournamentFx... many of these functions should probably
+   // be moved to tournamentFx
+   function findEventByID(tournament, id) {
+      if (!tournament || !tournament.events || tournament.events.length < 1) return;
+      return tournament.events.reduce((p, c) => c.euid == id ? c : p, undefined);
+   }
+
+   function roundNames(tournament, e) {
+      var names = [];
+      var calculated_names = [];
+      if (['E', 'C'].indexOf(e.draw_type) >= 0) {
+         names = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R96', 'R128', 'R256'];
+      }
+      if (['Q'].indexOf(e.draw_type) >= 0) {
+         names = ['Q', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5'];
+         let qlink = findEventByID(tournament, e.links['E']);
+         if (qlink && qlink.draw) {
+            let info = dfx.drawInfo(qlink.draw);
+            if (info) calculated_names = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R96', 'R128', 'R256', 'R512', 'R1024'].slice(info.depth);
+         }
+      }
+      if (['P'].indexOf(e.draw_type) >= 0) {
+         names = ['PO3'];
+      }
+      return { names, calculated_names };
    }
 
    fx.checkScheduledMatches = checkScheduledMatches;
