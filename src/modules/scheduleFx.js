@@ -52,9 +52,6 @@ export const scheduleFx = function() {
       }
 
       function getOOP() {
-         tournament.schedule.published = new Date().getTime();
-         tournament.schedule.up_to_date = true;
-
          let tournamentOOP = {
             title: lang.tr('phrases.oop_system'),
             umpirenotes: tournament.schedule.umpirenotes,
