@@ -2306,6 +2306,13 @@ export function drawFx(opts) {
       let section_size = qualDrawSize(group_size);
       let sections = Array.from(new Array(qualifiers),(val,i)=>i);
 
+      /*
+      console.log('players:', num_players, 'qualifiers:', qualifiers);
+      console.log('group size:', group_size);
+      console.log('section size:', section_size);
+      console.log('sections:', sections);
+      */
+
       let placements = [];
       let seeded_team_keys = Object.keys(draw.seeded_teams);
 
@@ -2542,7 +2549,7 @@ export function drawFx(opts) {
 
       qualifiers.forEach(team => {
          info = drawInfo(draw);
-         available_positions = info.unassigned.map(u=>u.data.dp);
+         let available_positions = info.unassigned.map(u=>u.data.dp);
          let position = available_positions.pop();
          assignPosition({ node: draw, position, team, qualifier: true });
       });
@@ -2567,6 +2574,7 @@ export function drawFx(opts) {
    function placeSeedGroup({ draw, group_index }) {
       if (!draw.seed_placements || !draw.seeded_teams) return;
       let seed_group = group_index != undefined ? draw.seed_placements[group_index] : nextSeedGroup({ draw });
+
       if (!seed_group) return;
 
       // make a copy so original is not diminshed by pop()
@@ -2575,20 +2583,34 @@ export function drawFx(opts) {
       // pre-round draws place byes before remaining seeds... because all ranked players are seedeed
       if (draw.bye_placements) positions = positions.filter(p=>draw.bye_placements.indexOf(p) < 0);
 
+      let missing_seeds = [];
+
       seed_group.range.forEach(seed => {
          // positions should already be randomized
          let position = positions.pop();
+         let team = draw.seeded_teams[seed];
+
+         if (!team) {
+            seed_group.positions = seed_group.positions.filter(p=>p!=position);
+            missing_seeds.push(seed);
+            return;
+         }
+
          if (draw.brackets) {
             // procesing a round robin
-            let player = draw.seeded_teams[seed][0];
+            let player = team[0];
             player.draw_position = position.position;
             draw.brackets[position.bracket].players.push(player);
          } else {
             // processing a tree draw
-            assignPosition({ node: draw, position, team: draw.seeded_teams[seed] })
+            assignPosition({ node: draw, position, team })
          }
          seed_group.placements.push({ seed, position });
       });
+
+      if (missing_seeds.length) {
+         missing_seeds.forEach(s=>seed_group.range = seed_group.range.filter(r=>r!=s));
+      }
    }
 
    fx.nextSeedGroup = nextSeedGroup;
@@ -2651,7 +2673,7 @@ export function drawFx(opts) {
       let structural_byes = structuralByes(teams, false);
 
       // get draw positions of players in first round of draws with structural byes
-      let first_round = [].concat(...matches.filter(m=>['R12', 'R24', 'R48', 'R96'].indexOf(m.round) >= 0).map(m=>m.players.map(p => p.draw_position)));
+      let first_round = [].concat(...matches.filter(m=>['R12', 'R24', 'R48', 'R96'].indexOf(m.round_name || m.round) >= 0).map(m=>m.players.map(p => p.draw_position)));
 
       if (intersection(structural_byes, first_round).length) {
          // if structural_byes contains a position in a first round match set 'bit_flip' true 
@@ -2664,7 +2686,7 @@ export function drawFx(opts) {
       if (draw_type == 'Q') {
          if ([12, 24, 48, 96].indexOf(teams) >= 0) {
             // TODO: namespace conflict; round here should really be round_name ??
-            let qualifiers = matches.filter(m=>m.round == 'Q');
+            let qualifiers = matches.filter(m=>m.round_name == 'Q' || m.round == 'Q');
             let num_players = unique([].concat(...matches.map(match => match.players)).map(p=>p.draw_position)).length;
             tree = fx.buildQualDraw(num_players, qualifiers.length || 1);
 
@@ -2732,7 +2754,7 @@ export function drawFx(opts) {
          round = matchNodes(tree).filter(n=>teamMatch(n));
       }
 
-      tree.max_round = Math.max(...fx.matches(tree).map(m=>m.round)) - max_round_offset;
+      tree.max_round = Math.max(...fx.matches(tree).map(m=>m.round_name || m.round)) - max_round_offset;
       return tree;
    }
 
@@ -2795,7 +2817,7 @@ export function drawFx(opts) {
    }
 
    fx.upcomingMatches = upcomingMatches;
-   function upcomingMatches(data, round_names=[]) {
+   function upcomingMatches(data, round_names=[], calculated_round_names=[]) {
       if (!data) return [];
       let info = drawInfo(data);
       if (!info) return [];
@@ -2808,19 +2830,24 @@ export function drawFx(opts) {
             .map(node => {
                let round_name = round_names.length ? round_names[node.depth - round_offset] : undefined;
                if (round_name) node.data.round_name = round_name;
+
+               let calculated_round_name = calculated_round_names.length ? calculated_round_names[node.depth - round_offset] : undefined;
+               if (calculated_round_name) node.data.calculated_round_name = calculated_round_name;
+
                if (node.data.match && round_name) node.data.match.round_name = round_name;
                let potentials = node.data.children.filter(c=>!c.team).map(p=>p.children.map(l=>l.team));
                let dependencies = node.data.children.filter(c=>!c.team).map(d=>d.match && d.match.muid);
                let dependent = node.parent && node.parent.data && node.parent.data.match && node.parent.data.match.muid;
                return {
-                  round_name: node.data.round_name,
+                  dependent,
+                  round_name,
+                  potentials,
                   source: node,
+                  dependencies,
                   round: node.height,
+                  calculated_round_name,
                   match: node.data.match,
                   teams: node.data.children.map(c => c.team).filter(f=>f),
-                  potentials,
-                  dependencies,
-                  dependent
                }
             });
          return matches;
@@ -2830,7 +2857,7 @@ export function drawFx(opts) {
    }
 
    fx.matches = matches;
-   function matches(data, round_names=[]) {
+   function matches(data, round_names=[], calculated_round_names=[]) {
       if (!data) return [];
       let info = drawInfo(data);
       if (!info) return [];
@@ -2844,17 +2871,22 @@ export function drawFx(opts) {
             .map(node => {
                let round_name = round_names.length ? round_names[node.depth - round_offset] : undefined;
                if (round_name) node.data.round_name = round_name;
+
+               let calculated_round_name = calculated_round_names.length ? calculated_round_names[node.depth - round_offset] : undefined;
+               if (calculated_round_name) node.data.calculated_round_name = calculated_round_name;
+
                if (node.data.match && round_name) node.data.match.round_name = round_name;
                let dependencies = node.data.children.filter(c=>!c.team).map(d=>d.match.muid);
                let dependent = node.parent && node.parent.data && node.parent.data.match && node.parent.data.match.muid;
                return {
-                  round_name: node.data.round_name,
+                  dependent,
+                  round_name,
+                  dependencies,
                   source: node,
                   round: node.height,
+                  calculated_round_name,
                   match: node.data.match,
-                  teams: node.data.children.map(c => c.team),
-                  dependencies,
-                  dependent
+                  teams: node.data.children.map(c => c.team).filter(f=>f),
                }
             });
          return matches;
@@ -2936,106 +2968,6 @@ export function drawFx(opts) {
       });
 
       return brackets;
-   }
-
-   // UNUSED
-   // function replaced by recreateDrawFromMatches()
-   // only works for complete draws
-   // starts by grouping matches by rounds
-   // assumes round with only one match is final round
-   function buildDrawfromMatchrows(rows, rounds) {
-      rounds = rounds || ['F', 'SF', 'QF', 'R12', 'R16', 'R24', 'R32', 'R48', 'R64', 'R96', 'R128'];
-
-      let tree;
-      let draw = {};
-      let depth = 0;
-
-      let id = (players) => players.map(p=>p.puid).join('');
-      let winners = (match) => match.teams[match.winner].map(p => match.players[p]);
-      let losers = (match) => match.teams[1 - match.winner].map(p => match.players[p]);
-      let drawPosition = (team) => Math.min(...team.map(player => player.draw_position));
-
-      let matchrounds = rounds.map(round => {
-         let matches = rows.filter(match => match.round == round);
-         if (matches.length) return { round, matches };
-      }).filter(f=>f);
-
-      if (!matchrounds.length) return;
-
-      let final_round = matchrounds[0].matches;
-      if (final_round.length == 1) {
-         // if final_round is only 1 match, then normal draw
-         let match = final_round[0];
-         tree = newNode(winners(match));
-         findChildren(tree, match);
-         distributeMatches(matchrounds, 1, tree.children);
-         organizeNode(tree);
-         return tree;
-      }
-
-      function newNode(team) {
-         return { 
-            id: id(team),
-            dp: drawPosition(team),
-            team,
-         }
-      }
-
-      function organizeNode(node) {
-         if (!node || !node.children) return;
-         let c = node.children;
-         if (c.length == 2) {
-            if (c[0].dp > c[1].dp) c.reverse();
-            c.forEach(child => organizeNode(child));
-         }
-      }
-
-      // recursive function which takes index representing round depth
-      function distributeMatches(matchrounds, index, children) {
-         if (!matchrounds[index]) return;
-         let matches = matchrounds[index].matches;
-         matches.forEach(match => {
-            children.forEach((child, i) => { 
-               if (child.id == id(winners(match))) {
-                  findChildren(child, match); 
-                  distributeMatches(matchrounds, index + 1, child.children);
-               }
-            });
-         });
-      }
-
-      function findChildren(branch, match) {
-         branch.match = match;
-         branch.winners = winners(match);
-         branch.children = [
-            newNode(winners(match)),
-            newNode(losers(match)),
-         ];
-      }
-   }
-
-
-   // part of an attempt to reconstruct matches and determine which players had byes
-   // UNUSED
-   function matchLinks(matches) {
-      let players = matchesPlayers(matches);
-      let keys = Object.keys(players);
-      let noWins = (links) => Object.keys(links).filter(l => !links[l].wins.length);
-      // let links = Object.assign({}, ...keys.map(key => { return { [key]: { wins: [], losses: [] } }}));
-      let links = Object.assign({}, ...keys.map(key => ({ [key]: { wins: [], losses: [] } }) ));
-      matches.forEach(match => {
-         let w = match.players[match.teams[match.winner][0]];
-         let l = match.players[match.teams[1 - match.winner][0]];
-         let winner = w.puid || w.hash;
-         let loser = l.puid || l.hash;
-         links[winner].wins.push(loser);
-         links[loser].losses.push(winner);
-      });
-
-      let winner = Object.keys(links).filter(k=>links[k].losses.length == 0)[0];
-      let first_match_losers = noWins(links);
-
-      return links;
    }
 
    fx.tallyBracketResults = tallyBracketResults;
