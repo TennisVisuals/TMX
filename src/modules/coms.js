@@ -4,6 +4,7 @@ import { lang } from './translator';
 export const coms = function() {
 
    let mod = {};
+   var ackRequests = {};
 
    let oi = {
       socket: undefined,
@@ -16,13 +17,13 @@ export const coms = function() {
    }
 
    mod.fx = {
-      processDirective: () => console.log('process directive'),
-      receiveTournament: () => console.log('receive Tournament'),
-      receiveTournamentRecord: () => console.log('receive Tournament Record'),
-      receiveIdiomList: () => console.log('receive Idiom List'),
       tmxMessage: () => console.log('tmxMessage'),
       receiveEvent: () => console.log('receiveEvent'),
       popUpMessage: () => console.log('pop up message'),
+      processDirective: () => console.log('process directive'),
+      receiveIdiomList: () => console.log('receive Idiom List'),
+      receiveTournament: () => console.log('receive Tournament'),
+      receiveTournamentRecord: () => console.log('receive Tournament Record'),
    }
 
    let queue = [];
@@ -51,6 +52,7 @@ export const coms = function() {
       // if (navigator.onLine && !oi.socket) {   
       if (!oi.socket) {   
          oi.socket = io.connect('/match', oi.connectionOptions);
+         oi.socket.on('ack', receiveAcknowledgement);
          oi.socket.on('connect', comsConnect);                                 
          oi.socket.on('disconnect', comsDisconnect);
          oi.socket.on('connect_error', comsError);
@@ -66,6 +68,17 @@ export const coms = function() {
          oi.socket.on('idioms available', mod.fx.receiveIdiomList);
       }
    } 
+
+   function receiveAcknowledgement(msg) {
+      if (msg.uuid && ackRequests[msg.uuid]) {
+         ackRequests[msg.uuid](msg);
+         delete ackRequests[msg.uuid];
+      }
+   }
+
+   mod.requestAcknowledgement = ({ uuid, callback }) => {
+      ackRequests[uuid] = callback;
+   }
 
    function tmxError(err) {
       let error = err.phrase ? lang.tr(`phrases.${err.phrase}`) : err.error;
