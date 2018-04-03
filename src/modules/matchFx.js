@@ -200,14 +200,14 @@ export const matchFx = function() {
       var names = [];
       var calculated_names = [];
       if (['E', 'C'].indexOf(e.draw_type) >= 0) {
-         names = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R96', 'R128', 'R256'];
+         names = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128', 'R256'];
       }
       if (['Q'].indexOf(e.draw_type) >= 0) {
          names = ['Q', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5'];
          let qlink = findEventByID(tournament, e.links['E']);
          if (qlink && qlink.draw) {
             let info = dfx.drawInfo(qlink.draw);
-            if (info) calculated_names = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R96', 'R128', 'R256', 'R512', 'R1024'].slice(info.depth);
+            if (info) calculated_names = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128', 'R256', 'R512', 'R1024'].slice(info.depth);
          }
       }
       if (['P'].indexOf(e.draw_type) >= 0) {
