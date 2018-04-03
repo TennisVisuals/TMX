@@ -30,20 +30,24 @@ export const coms = function() {
    let connected = false;
 
    mod.connected = () => connected;
-   function comsConnect() {  
+   function comsConnect() {
+      console.log('connected');
       connected = true;
       while (queue.length) {
          let message = queue.pop();
          oi.socket.emit(message.header, message.data);
       }
    };
-   function comsDisconnect() { connected = false; };
-   function comsError(err) {  };
+   function comsDisconnect() {
+      console.log('disconnect');
+      connected = false;
+   };
+   function comsError(err) { console.log('coms error:', err); };
 
    mod.versionNotice = (version) => {
       db.findSetting('superUser').then(setting => {
          if (setting && setting.auth && util.string2boolean(setting.auth.versioning)) {
-            coms.emitTmx({ updateVersion: { version, notice: `Version ${version} available` } });
+            coms.emitTmx({ updateVersion: { version, client: 'tmx', notice: `Version ${version} available` } });
          }
       });
    }
