@@ -128,11 +128,13 @@ html {
 .splash_clubs { background-image: url("img/h_court.png"); }
 .splash_upload { background-image: url("img/upload.png"); }
 .splash_download { background-image: url("img/download.png"); }
+.splash_importexport { background-image: url("img/import_export.png"); }
+/* .splash_documentation { background-image: url("img/book.png"); } */
+.splash_documentation { background-image: url("img/docs.png"); }
+.splash_settings { background-image: url("img/settings.png"); }
 .icon_spreadsheet { background-image: url("img/spreadsheet.png"); }
 .icon_csv { background-image: url("img/csv.png"); }
 .icon_json { background-image: url("img/json.png"); }
-.splash_importexport { background-image: url("img/import_export.png"); }
-.splash_settings { background-image: url("img/settings.png"); }
 
 .menuicon { background-image: url("img/menuwhite.png"); }
 .homeicon { background-image: url("img/home.png"); }
