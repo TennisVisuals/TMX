@@ -124,7 +124,7 @@ export const exportFx = function() {
       let genders = match.players.map(p => p.sex).filter(f=>f).filter((item, i, s) => s.lastIndexOf(item) == i);
       let player_gender = () => !genders.length ? '' : genders.length > 1 ? 'Mixed' : genders[0] == 'M' ? 'M' : 'F';
       let draw_gender = !genders.length ? '' : genders.length > 1 ? 'Mixed' : genders[0] == 'M' ? 'Male' : 'Female';
-      let qualifying = match.round.indexOf('Q') == 0 && match.round.indexOf('QF') < 0;
+      let qualifying = match.round_name.indexOf('Q') == 0 && match.round_name.indexOf('QF') < 0;
       let draw_type = match.consolation ? 'Consolation' : qualifying ? 'Qualifying' : 'Main';
 
       return {
@@ -347,7 +347,20 @@ export const exportFx = function() {
    }
 
    exp.printSchedulePDF = ({ tournament, day, courts, matches }) => {
-      getLogo().then(logo => schedulePDF(tournament, day, courts, matches, logo));
+      getLogo().then(logo => {
+         if (courts.length > 8) {
+            let a_courts = courts.slice(0,8);
+            let a_court_names = a_courts.map(c=>c.name);
+            let b_courts = courts.slice(8);
+            let b_court_names = b_courts.map(c=>c.name);
+            let a_matches = matches.filter(f=>a_court_names.indexOf(f.schedule.court) >= 0);
+            let b_matches = matches.filter(f=>b_court_names.indexOf(f.schedule.court) >= 0);
+            schedulePDF({ tournament, day, courts: a_courts, matches: a_matches, logo });
+            schedulePDF({ tournament, day, courts: b_courts, matches: b_matches, landscape: true, logo });
+         } else {
+            schedulePDF({ tournament, day, courts, matches, logo });
+         }
+      });
    }
 
    function xRow(body, widths) {
@@ -382,12 +395,17 @@ export const exportFx = function() {
    function teamName(match, team) {
       if (team.length == 1) {
          let p = match.players[team[0]];
+         if (!p.puid) return potentialBlock(p);
          let club = p.club_code ? ` (${p.club_code})` : '';
          let full_name = `${util.normalizeName(p.last_name, false).toUpperCase()}, ${util.normalizeName(p.first_name, false)}`; 
          return `${full_name}${club}`;
       } else {
          return team.map(p => util.normalizeName(match.players[p].last_name, false).toUpperCase()).join('/');
       }
+   }
+
+   function potentialBlock(p) { 
+      return p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? lang.tr('qualifier') : '';
    }
 
    function scheduleCell(match, lines=false) {
@@ -453,8 +471,6 @@ export const exportFx = function() {
          let index = match.potentials[pindex] ? pindex : 0;
          let potentials = match.potentials[index];
          return potentials.map(p=>p.map(potentialBlock).join('/')).join(` ${lang.tr('or')} `);
-
-         function potentialBlock(p) { return util.normalizeName(p.last_name, false).toUpperCase(); }
       }
 
       function playerColor(match, index) {
@@ -482,11 +498,11 @@ export const exportFx = function() {
       return cell;
    }
 
-   function schedulePDF(tournament, day, courts, matches, logo) {
-
-      let pageOrientation = courts.length < 5 ? 'portrait' : 'landscape';
-      let minimum_columns = courts.length < 5 ? 4 : 8;
+   function schedulePDF({ tournament, day, courts, matches, landscape, logo }) {
+      let pageOrientation = courts.length < 5 && !landscape ? 'portrait' : 'landscape';
       let portrait = pageOrientation == 'portrait';
+
+      let minimum_columns = courts.length < 5 && portrait ? 4 : 8;
       let minimum_rows = portrait ? 6 : 4;
       let team_font_size = portrait ? 10 : 8;
 
