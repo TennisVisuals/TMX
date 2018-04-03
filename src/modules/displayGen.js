@@ -2096,8 +2096,8 @@ export const displayGen = function() {
          penalty_report: displayFx.uuid(),
          edit_notes: displayFx.uuid(),
          notes_display: displayFx.uuid(),
-         publish_notes: displayFx.uuid(),
-         notes_publish_state: displayFx.uuid(),
+         pubTrnyInfo: displayFx.uuid(),
+         pubStateTrnyInfo: displayFx.uuid(),
          tournament_attrs: displayFx.uuid(),
       }
 
@@ -2134,8 +2134,8 @@ export const displayGen = function() {
                   <div id='${ids.localdownload}' class='${gen.info}' label='${lang.tr("phrases.export")}' style='display: none;'>
                      <div id='${ids.localdownload_state}' class='download action_icon'></div>
                   </div>
-                  <div id='${ids.publish_notes}' class='${gen.info}' label='${lang.tr("draws.publish")}' style='display: none'>
-                     <div id='${ids.notes_publish_state}' style='margin-left: 1em;' class='unpublished action_icon'></div>
+                  <div id='${ids.pubTrnyInfo}' class='${gen.info}' label='${lang.tr("draws.publish")}' style='display: none'>
+                     <div id='${ids.pubStateTrnyInfo}' style='margin-left: 1em;' class='unpublished action_icon'></div>
                   </div>
                </div>
             </div>
@@ -2891,6 +2891,11 @@ export const displayGen = function() {
       elem.className = `${publish_state} action_icon`;
    }
 
+   gen.pubStateTrnyInfo = (elem, value) => {
+      let publish_state = value == undefined ? 'unpublished' : value == false ? 'publishedoutofdate' : 'publisheduptodate';
+      elem.className = `${publish_state} action_icon`;
+   }
+
    gen.tournamentPublishState = (elem, value) => {
       let publish_state = value == undefined ? 'push2cloud' : value == false ? 'push2cloud_outofdate' : 'push2cloud_updated';
       elem.className = `${publish_state} action_icon`;
@@ -3465,6 +3470,7 @@ export const displayGen = function() {
          players: displayFx.uuid(),
          settings: displayFx.uuid(),
          tournaments: displayFx.uuid(),
+         documentation: displayFx.uuid(),
          importexport: displayFx.uuid(),
          keys: displayFx.uuid(),
       }
@@ -3477,12 +3483,13 @@ export const displayGen = function() {
       let tournaments = action(components.tournaments, ids.tournaments, lang.tr('trn'), 'splash_tournament');
       let clubs = action(components.clubs, ids.clubs, lang.tr('clb'), 'splash_clubs');
       let importexport = action(components.importexport, ids.importexport, lang.tr('importexport'), 'splash_importexport');
+      let documentation = action(components.documentation, ids.documentation, lang.tr('documentation'), 'splash_documentation');
       let keys = action(components.keys, ids.keys, lang.tr('keys'), 'splash_keys');
 
       let html = `
          <div class='splash_screen'>
             <div class='splash_org flexcenter' id='${ids.org}'></div>
-            <div class='actions container'>${players}${tournaments}${clubs}${settings}${importexport}${keys}</div>
+            <div class='actions container'>${players}${tournaments}${clubs}${settings}${documentation}${importexport}${keys}</div>
          </div>
       `;
 
