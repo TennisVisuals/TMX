@@ -166,6 +166,7 @@ export const lang = function() {
       version: 'Version',
       newversion: 'New Version Available',
       importexport: 'Import / Export',
+      documentation: 'Documentation',
 
       i18n: {
           previousMonth : 'Previous Month',
