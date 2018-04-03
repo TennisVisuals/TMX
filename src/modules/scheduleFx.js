@@ -261,7 +261,7 @@ export const scheduleFx = function() {
          <div class='catround'>
             <div class='category'>${match.gender || ''} ${category}</div>
             <div class='format'>${format}</div>
-            <div class='round'>${match.round || ''}</div>
+            <div class='round'>${match.round_name || ''}</div>
          </div>
          <div class='scheduled_teams'>
             <div class='scheduled_team' style='font-size: ${font_sizes[0]}'>${first_team || ''}</div>
@@ -285,12 +285,12 @@ export const scheduleFx = function() {
       }
 
       function potentialBlock(p) {
-         let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? 'Qualifier' : '';
+         let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? lang.tr('qualifier') : '';
          return `<div puid='${p.puid}' class='player_click cell_player potential'>${last_name}</div>`;
       }
 
       function unknownBlock(pindex) {
-         if (!match.potentials) return undefined;
+         if (!match.potentials) return '';
          let index = match.potentials[pindex] ? pindex : 0;
          let potentials = match.potentials[index];
          let blocks = potentials.map(p=>stack(p.map(potentialBlock))).join(`<div class='potential_separator flexcenter'><span>${lang.tr('or')}</span></div>`);
