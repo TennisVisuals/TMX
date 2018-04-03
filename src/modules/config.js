@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.105.158.86',
+      version: '0.9.107.164.95',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -207,6 +207,7 @@ export const config = function() {
          tournament_search: true,
          club_search: true,
          settings: true,
+         documentation: true,
          importexport: true,
          autodraw: true,
          keys: true
@@ -1154,6 +1155,7 @@ export const config = function() {
       splashEvent(container, 'players', displayPlayers);
       splashEvent(container, 'clubs', displayClubs);
       splashEvent(container, 'settings', editSettings);
+      splashEvent(container, 'documentation', ()=>console.log('documentation'));
       splashEvent(container, 'importexport', displayImportExport);
       splashEvent(container, 'keys', displayKeyActions);
 
@@ -1181,7 +1183,7 @@ export const config = function() {
          // submit new key
          actions.container.key.element.addEventListener('keyup', keyStroke);
          actions.container.submitnewkey.element.addEventListener('click', submitNewKey);
-         function keyStroke(evt) { if (evt.which == 13) submitNewKey }
+         function keyStroke(evt) { if (evt.which == 13) submitNewKey(); }
          function submitNewKey() {
             let value = actions.container.key.element.value;
             if (value) coms.sendKey(value);
