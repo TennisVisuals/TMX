@@ -47,6 +47,59 @@ export const tournamentFx = function() {
       delete match.tournament;
    }
 
+   function playerActiveInLinked(qlinkinfo, plyr) {
+      let advanced_positions = qlinkinfo.match_nodes.filter(n=>n.data.match && n.data.match.players);
+      let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
+      let position_in_linked = [].concat(...qlinkinfo.nodes
+         .filter(n => n.data.team && util.intersection(n.data.team.map(t=>t.id), plyr).length)
+         .map(n => n.data.dp));
+      return util.intersection(active_player_positions, position_in_linked).length;
+   }
+
+   function winnerRemoved({ tournament, e, qlink, qlinkinfo, previous_winner, outcome }) {
+      qlink.approved = qlink.approved.filter(a=>previous_winner.indexOf(a) < 0);
+      if (qlinkinfo) {
+         qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
+         qlinkinfo.nodes.forEach(node => {
+            if (!node.height && node.data.team && util.intersection(node.data.team.map(t=>t.id), previous_winner).length) {
+               node.data.qualifier = true;
+               node.data.team = node.data.team.map(team => ({ bye: undefined, entry: 'Q', qualifier: true, draw_position: outcome.draw_position }) );
+            }
+         });
+      }
+
+      // must occur after team removed from linked draw approved
+      e.qualified = e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0);
+      fx.setDrawSize(tournament, e);
+
+      // must occur after e.qualified is updated
+      // approvedChanged(qlink);
+      // fx.setDrawSize(tournament, qlink);
+      qlink.up_to_date = false;
+   }
+
+   function qualifierChanged({ e, outcome, qlink, qlinkinfo, previous_winner, current_winner }) {
+      // replace qualifier
+      e.qualified = e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0);
+      e.qualified.push(outcome.teams[outcome.winner])
+
+      // modify linked draw
+      qlink.approved = qlink.approved.filter(a=>previous_winner.indexOf(a) < 0);
+      qlink.approved.push(current_winner.join('|'));
+      qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
+      let new_opponent = outcome.teams[outcome.winner].map(p => Object.assign({}, p, { seed: undefined, entry: 'Q' }));
+      qlink.draw.opponents.push(new_opponent);
+      qlinkinfo.nodes.forEach(n => {
+         if (!n.height && util.intersection(n.data.team.map(t=>t.id), previous_winner).length) {
+            let draw_position = n.data.team[0].draw_position;
+            let new_team = new_opponent.map(t => Object.assign({}, t, { draw_position, qualifier: true, entry: 'Q' }));
+            n.data.team = new_team;
+         }
+      });
+
+      tfx.logEventChange(displayed_draw_event, { fx: 'qualifier changed', d: { team: outcome.teams[outcome.winner].map(t=>t.id) } });
+   }
+
    fx.scoreTreeDraw = (tournament, e, existing_scores, outcome) => {
       var result = {};
       if (!outcome) return result;
@@ -63,7 +116,8 @@ export const tournamentFx = function() {
          if (active_in_linked && (qualifier_changed || (previous_winner && !current_winner))) {
             return { error: 'phrases.cannotchangewinner' };
          } else if (previous_winner && !current_winner) {
-            winnerRemoved({ e, qlink, qlinkinfo, previous_winner, outcome });
+            winnerRemoved({ tournament, e, qlink, qlinkinfo, previous_winner, outcome });
+            result.approved_changed = qlink;
          } else if (qualifier_changed) {
             qualifierChanged({ e, outcome, qlink, qlinkinfo, previous_winner, current_winner });
          }
@@ -353,7 +407,7 @@ export const tournamentFx = function() {
 
    fx.teamObj = (e, team, idmap) => {
       let team_players = team.map(id=>idmap[id]).sort(lastNameSort);
-      let team_hash = team_players.map(p=>p.id).sort().join('|');
+      let team_hash = team_players.map(p=>p&&p.id).sort().join('|');
       let subrank = (e.doubles_subrank && e.doubles_subrank[team_hash]) ? e.doubles_subrank[team_hash] : undefined;
       let combined_rank = team_players.map(t=>t.int_order != undefined ? t.int_order : t.category_ranking).reduce((a, b) => (+a || 9999) + (+b || 9999));
       let combined_dbls_rank = team_players.map(t=>t.category_dbls).reduce((a, b) => (+a || 0) + (+b || 0));
