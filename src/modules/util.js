@@ -72,7 +72,7 @@ export const util = function() {
    }
 
    fx.normalizeName = (name, noaccents = true) => {
-      if (!name) { return; }
+      if (!name) { return ''; }
       var particles = ['del', 'de', 'di', 'du', 'van', 'von', 'ten']; 
       if (noaccents) name = fx.replaceDiacritics(name.trim());
       name = name.replace(/\s+/g,' ').trim();
