@@ -484,35 +484,41 @@ export const tournamentDisplay = function() {
 
       util.addEventToClass(classes.publish_schedule, publishSchedule);
       function publishSchedule() {
-         var schedule = sfx.generateSchedule(tournament);
+         if (fx.fx.env().publishing.require_confirmation) {
+            displayGen.okCancelMessage(lang.tr('draws.publish') + '?', pubSched, () => displayGen.closeModal());
+         }
 
-         if (schedule) {
-            let updatePublishState = () => {
-               tournament.schedule.published = new Date().getTime();
-               tournament.schedule.up_to_date = true;
-               schedulePublishState();
-               saveTournament(tournament);
-            }
-            coms.requestAcknowledgement({ uuid: tournament.tuid, callback: updatePublishState });
-            coms.emitTmx({ tournamentOOP: schedule });
-            displayGen.closeModal();
+         function pubSched() {
+            var schedule = sfx.generateSchedule(tournament);
 
-            // check whether there are published events
-            var published_events = tournament.events.reduce((p, c) => c.published || p, false);
-            if (published_events) {
-               var scheduled = mfx.scheduledMatches(tournament).scheduled;
-               scheduled
-                  .reduce((p, c) => util.isMember(p, c.event.euid) ? p : p.concat(c.event.euid), [])
-                  .forEach(euid => {
-                     let evt = tfx.findEventByID(tournament, euid);
-                     broadcastEvent(tournament, evt)
-                     if (evt.euid == displayed_draw_event.euid) {
-                        displayGen.drawBroadcastState(container.publish_state.element, evt);
-                     }
-                  });
+            if (schedule) {
+               let updatePublishState = () => {
+                  tournament.schedule.published = new Date().getTime();
+                  tournament.schedule.up_to_date = true;
+                  schedulePublishState();
+                  saveTournament(tournament);
+               }
+               coms.requestAcknowledgement({ uuid: tournament.tuid, callback: updatePublishState });
+               coms.emitTmx({ tournamentOOP: schedule });
+               displayGen.closeModal();
+
+               // check whether there are published events
+               var published_events = tournament.events.reduce((p, c) => c.published || p, false);
+               if (published_events) {
+                  var scheduled = mfx.scheduledMatches(tournament).scheduled;
+                  scheduled
+                     .reduce((p, c) => util.isMember(p, c.event.euid) ? p : p.concat(c.event.euid), [])
+                     .forEach(euid => {
+                        let evt = tfx.findEventByID(tournament, euid);
+                        broadcastEvent(tournament, evt)
+                        if (evt.euid == displayed_draw_event.euid) {
+                           displayGen.drawBroadcastState(container.publish_state.element, evt);
+                        }
+                     });
+               }
+            } else {
+               return unPublishOOP(tournament);
             }
-         } else {
-            return unPublishOOP(tournament);
          }
       }
 
@@ -4976,7 +4982,7 @@ export const tournamentDisplay = function() {
 
       function scoreTreeDraw(tournament, e, existing_scores, outcome) {
          let result = processResult(tournament, e, tfx.scoreTreeDraw(tournament, e, existing_scores, outcome));
-         if (result.approved_changed) {
+         if (result && result.approved_changed) {
             approvedChanged(result.approved_changed);
             tfx.setDrawSize(tournament, result.approved_changed);
          }
@@ -4989,8 +4995,11 @@ export const tournamentDisplay = function() {
       }
 
       function processResult(tournament, e, result) {
-         if (result.error) return displayGen.popUpMessage(lang.tr(result.error));
-         if (result.exit) return;
+         if (result.error) {
+            displayGen.popUpMessage(lang.tr(result.error));
+            return result;
+         }
+         if (result.exit) return result;
 
          if (result.linkchanges) approvedChanged(result.qlink);
 
@@ -4998,7 +5007,7 @@ export const tournamentDisplay = function() {
             db.deleteMatch(result.deleted_muid);
             updateAfterDelete(e);
          } else {
-            afterScoreUpdate(e);
+            afterScoreUpdate(e, result.muid);
          }
 
          // if event is complete, send tournament to cloud
@@ -5013,7 +5022,7 @@ export const tournamentDisplay = function() {
          afterScoreUpdate(e);
       }
 
-      function afterScoreUpdate(e) {
+      function afterScoreUpdate(e, muid) {
          e.up_to_date = false;
          if (staging.broadcasting()) {
             if (fx.fx.env().livescore) {
@@ -5023,7 +5032,13 @@ export const tournamentDisplay = function() {
             }
             if (fx.fx.env().publishing.publish_on_score_entry) broadcastEvent(tournament, e);
          }
-         if (!staging.broadcasting() || !fx.fx.env().publishing.publish_on_score_entry) updateScheduleStatus({ muid: match.muid });
+         if (!staging.broadcasting() || !fx.fx.env().publishing.publish_on_score_entry) {
+            if (muid) {
+               updateScheduleStatus({ muid });
+            } else {
+               updateScheduleStatus({ euid: e.euid });
+            }
+         }
          if (e.euid == displayed_draw_event.euid) {
             displayGen.drawBroadcastState(container.publish_state.element, e);
          }
@@ -5283,7 +5298,6 @@ export const tournamentDisplay = function() {
          }
 
          function treePositionClick(d) {
-
             if (!d.height && !d.data.bye && !d.data.team) { return placeTreeDrawPlayer(d); }
 
             // don't go any further if the draw is incomplete...
@@ -6305,11 +6319,13 @@ export const tournamentDisplay = function() {
 
          let sb = scheduleFx.scheduleBox({ match, editable: true});
          if (schedule_box) {
-            let draggable = match.winner_index != undefined ? 'false' : 'true';
             schedule_box.innerHTML = sb.innerHTML;
             scheduleFx.scaleTeams(schedule_box);
             schedule_box.style.background = sb.background;
-            schedule_box.setAttribute('draggable', draggable);
+
+            // let draggable = match.winner_index != undefined ? 'false' : 'true';
+            schedule_box.setAttribute('draggable', true);
+
             schedule_box.setAttribute('muid', match.muid);
             scheduleActions({ changed: true });
             saveTournament(tournament);

@@ -10,6 +10,7 @@ import { rrDraw, treeDraw, drawFx } from './drawFx';
 
 export const exportFx = function() {
    let exp = {};
+   let dfx = drawFx();
 
    let o = {
       rows_per_page: 34,

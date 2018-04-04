@@ -176,6 +176,7 @@ export const tournamentFx = function() {
       }
 
       let match = match_event.match;
+      result.muid = match.muid;
 
       match.score = outcome.score;
       if (outcome.score) match.status = '';
@@ -248,6 +249,8 @@ export const tournamentFx = function() {
       }
 
       let match = match_event.match;
+      result.muid = match.muid;
+
       match.score = outcome.score;
       if (outcome.score) match.status = '';
       match.winner_index = outcome.winner;

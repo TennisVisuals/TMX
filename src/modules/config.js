@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.107.164.95',
+      version: '0.9.108.166.98',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -1009,7 +1009,7 @@ export const config = function() {
       });
 
       // used to locate known tournaments in vicinity; auto-fill country
-      if (env.geolocate && window.navigator.onLine) {
+      if (env.geolocate && window.navigator.onLine && window.navigator.geolocation) {
          window.navigator.geolocation.getCurrentPosition(pos => { 
             device.geoposition = pos;
             coms.emitTmx({ 
@@ -1155,7 +1155,7 @@ export const config = function() {
       splashEvent(container, 'players', displayPlayers);
       splashEvent(container, 'clubs', displayClubs);
       splashEvent(container, 'settings', editSettings);
-      splashEvent(container, 'documentation', ()=>console.log('documentation'));
+      splashEvent(container, 'documentation', ()=>window.open('/docs', '_blank'));
       splashEvent(container, 'importexport', displayImportExport);
       splashEvent(container, 'keys', displayKeyActions);
 

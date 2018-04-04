@@ -97,6 +97,7 @@ export const coms = function() {
       if (msg && msg.revoked != undefined && coms.revoked && typeof coms.revoked == 'function') coms.revoked(msg);
    }
 
+   // TODO: change this so that server collects array of events instead of requesting one by one!
    function receiveTournamentEvents(list) { list.forEach(item => oi.socket.emit(item.authorized ? 'tmx_event' : 'noauth_event', item.euid)); }
 
    mod.sendKey = (key) => { mod.emitTmx({ key }); }
