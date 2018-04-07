@@ -846,7 +846,7 @@ export const tournamentFx = function() {
 
       var linkchanges = false;
       if (remove_players) scoped_qualifiers.forEach(qib=>{
-         let result = fx.removeQualifiedPlayer(evt, [qib.id], qlink, qlinkinfo);
+         let result = fx.removeQualifiedPlayer(tournament, evt, [qib.id], qlink, qlinkinfo);
          if (result.linkchanges) linkchanges = true;
       });
       return { remove_players, linkchanges, qlink };
