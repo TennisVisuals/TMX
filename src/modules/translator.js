@@ -297,6 +297,7 @@ export const lang = function() {
       },
 
       phrases: {
+         qualincomplete: 'Qualifying Draw is Incomplete',
          delegate: 'Delegate',
          delegate2mobile: 'Delegate to Mobile',
          revokedelegation: 'Revoke Delegation',
