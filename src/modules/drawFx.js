@@ -574,13 +574,14 @@ export function roundRobin() {
             p1 = puids.indexOf(match.puids[0]);
             p2 = puids.indexOf(match.puids[1]);
          }
+
          chart.addScore(p1, p2, match.score);
       });
       return chart;
    }
 
    chart.addScore = function(a, b, score) {
-      if (!players[a] || !players[b]) return chart;
+      if (!players[a] || !players[b]) { return chart; }
       if (!scores[a]) scores[a] = [];
       if (!scores[b]) scores[b] = [];
       scores[a][b] = score;
@@ -599,10 +600,10 @@ export function roundRobin() {
       return chart;
    }
 
-   chart.addPlayers = function(players) {
-      if (!arguments.length) return players;
-      if (!Array.isArray(players)) return chart;
-      players.forEach(player => chart.addPlayer(player));
+   chart.addPlayers = function(plz) {
+      if (!plz) return players;
+      if (!Array.isArray(plz)) return chart;
+      plz.forEach(player => chart.addPlayer(player));
       return chart;
    }
 
