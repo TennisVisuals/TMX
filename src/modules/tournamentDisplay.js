@@ -486,6 +486,8 @@ export const tournamentDisplay = function() {
       function publishSchedule() {
          if (fx.fx.env().publishing.require_confirmation) {
             displayGen.okCancelMessage(lang.tr('draws.publish') + '?', pubSched, () => displayGen.closeModal());
+         } else {
+            pubSched();
          }
 
          function pubSched() {
@@ -2645,11 +2647,23 @@ export const tournamentDisplay = function() {
 
          if (!linked_info) return;
 
+         let losing_teams = [];
+
+         if (linked_info.draw_type == 'tree' && linked_info.match_nodes) {
+            losing_teams = linked_info.match_nodes.filter(n=>n.data.match && n.data.match.loser).map(n=>n.data.match.loser);
+         } else {
+            if (!linked_info.complete) {
+               displayGen.okCancelMessage(lang.tr('phrases.qualincomplete'), () => displayGen.closeModal());
+               return;
+            }
+            let qualified_ids = linkedQ.qualified.map(q=>q[0].id);
+            let all_losses = linked_info.matches.filter(m=>m.loser).map(n=>n.loser).filter(l=>qualified_ids.indexOf(l[0].id)<0);
+            let lids = util.unique(all_losses.map(l=>l[0].id));
+            losing_teams = linkedQ.draw.opponents.filter(o=>lids.indexOf(o[0].id)>=0);
+         }
+
          // losers from linked draw excluding losers who have already been substituted
-         let losers = !linked_info ? [] : tfx.teamSort(linked_info.match_nodes
-            .filter(n=>n.data.match && n.data.match.loser)
-            .map(n=>n.data.match.loser))
-            .filter(l=>util.intersection(l.map(p=>p.id), competitors).length == 0);
+         let losers = tfx.teamSort(losing_teams).filter(l=>util.intersection(l.map(p=>p.id), competitors).length == 0);
 
          let teams = optionNames(losers, true);
          let clickAction = (d, i) => {
@@ -5223,6 +5237,9 @@ export const tournamentDisplay = function() {
                   callback: scoreSubmitted,
                   flags: fx.fx.env().assets.flags,
                });
+            } else {
+               console.log('missing match data');
+               util.logError({ error: 'missing match data', click: d });
             }
          }
 
@@ -6742,8 +6759,6 @@ export const tournamentDisplay = function() {
 
       // remove any calculated points or rankings
       mz.forEach(match => match.players.forEach(p => p=playerFx.cleanPlayer(p)));
-
-      console.log('mz:', matches);
 
       let dbl_matches = mz.filter(f=>f.format == 'doubles').length;
 
