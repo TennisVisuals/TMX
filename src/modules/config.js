@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.108.166.98',
+      version: '0.9.111.166.102',
       version_check: undefined,
       searchMode: 'firstlast',
       org: {
@@ -934,6 +934,9 @@ export const config = function() {
    }
 
    fx.init = () => {
+
+      db.addDev({coms});
+
       displayGen.initModals();
       if (device.isMobile || device.isIDevice) {
          displayGen.showModal('<h2>Mobile Support Soon!</h2>', false);
@@ -1004,7 +1007,7 @@ export const config = function() {
       coms.emitTmx({
          event: 'Connection',
          notice: window.navigator.userAgent,
-         client: 'tmxv',
+         client: 'tmx',
          version: env.version
       });
 
