@@ -82,6 +82,7 @@ export const scheduleFx = function() {
                or: lang.tr('or')
             }
          }
+         console.log('tournamentOOP:', tournamentOOP)
          return tournamentOOP;
       }
    }
