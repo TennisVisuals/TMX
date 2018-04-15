@@ -1328,6 +1328,33 @@ export const displayGen = function() {
       return { ids, html, ddlb }
    }
 
+   gen.searchSettings = () => {
+      let ids = {
+         lastfirst: displayFx.uuid(),
+         diacritics: displayFx.uuid(),
+      };
+      let ddlb = [];
+      let html = `
+         <div style='min-height: 150px'>
+         <h2>&nbsp;</h2>
+         <div class='flexcenter' style='width: 100%;'>
+             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.lastfirst')}</label>
+                    <input type='checkbox' id="${ids.lastfirst}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.diacritics')}</label>
+                    <input type='checkbox' id="${ids.diacritics}">
+                </div>
+             </div>
+         </div>
+
+         </div>
+      `;
+      return { ids, html, ddlb }
+   }
+
    gen.publishingSettings = () => {
       let ids = {
          require_confirmation: displayFx.uuid(),
