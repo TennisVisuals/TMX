@@ -319,12 +319,12 @@ export const fetchFx = function() {
                let name = (player.first_name + player.last_name).trim();
                player.hash = util.nameHash(name);
                // player.foreign = player.foreign != 'N';
-               player.ioc = player.ioc || (!player.ioc && !player.foreign ? 'CRO' : undefined);
+               // player.ioc = player.ioc || (!player.ioc && !player.foreign ? 'CRO' : undefined);
                // player.represents_ioc = player.represents_ioc != 'N';
                player.residence_permit = player.residence_permit != 'N';
                player.last_name = util.normalizeName(player.last_name, false).trim();
                player.first_name = util.normalizeName(player.first_name, false).trim();
-               player.puid = player.puid || `${player.foreign ? 'INO' : 'CRO'}-${player.cropin}`;
+               // player.puid = player.puid || `${player.foreign ? 'INO' : 'CRO'}-${player.cropin}`;
             });
 
             resolve(players);
@@ -505,10 +505,11 @@ export const fetchFx = function() {
          function updateLocal(dbplayers, players) {
 
             // update players with info from database
+            // TODO: this should not be necessary in the future... remote server should *always* give proper PUID
             players.forEach((player, i) => {
                if (dbplayers[i]) {
-                  player.puid = dbplayers[i].puid;
-                  player.ioc = dbplayers[i].ioc;
+                  player.puid = player.puid || dbplayers[i].puid;
+                  player.ioc = player.ioc || dbplayers[i].ioc;
                   if (!player.ioc && player.country && player.country.length == 3) player.ioc = player.country;
                } else {
                   if (player.country && player.country.length == 3) player.ioc = player.country;
