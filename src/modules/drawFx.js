@@ -1648,10 +1648,18 @@ export function drawFx(opts) {
 
    fx.acceptedDrawSizes = acceptedDrawSizes;
    function acceptedDrawSizes(num_players) {
-      let dsizes = o.compressed_draw_formats ? draw_sizes : standard_draws;
-      let i = 0;
-      while (dsizes[i] < num_players) i += 1;
-      return dsizes[i];
+
+      let d = 0;
+      while (draw_sizes[d] < num_players) d += 1;
+
+      let s = 0;
+      while (standard_draws[s] < num_players) s += 1;
+
+      // if this is a pre-round, return a standard draw size
+      if (num_players <= draw_sizes[d]) return standard_draws[s];
+
+      // otherwise check the settings for desired draw structure
+      return o.compressed_draw_formats ? draw_sizes[d] : standard_draws[s];
    }
 
    fx.qualDrawSize = qualDrawSize;
@@ -2304,7 +2312,7 @@ export function drawFx(opts) {
    function qualifyingBracketSeeding({ draw, num_players, qualifiers, seed_limit }) {
 
       let group_size = Math.ceil(num_players/qualifiers);
-      let section_size = qualDrawSize(group_size);
+      let section_size = o.compressed_draw_formats ? group_size : qualDrawSize(group_size);
       let sections = Array.from(new Array(qualifiers),(val,i)=>i);
 
       /*
@@ -2976,6 +2984,7 @@ export function drawFx(opts) {
       let puids = [];
       let scores = [];
       let plyrz = [];
+      let disqualified = [];
 
       if (bracket) {
          matches = bracket.matches;
@@ -2991,6 +3000,7 @@ export function drawFx(opts) {
          if (match.winner_index != undefined) {
             p1 = puids.indexOf(match.puids[match.winner_index]);
             p2 = puids.indexOf(match.puids[1 - match.winner_index]);
+            if (match.score && disqualifyingScore(match.score)) disqualified.push(match.puids[1 - match.winner_index]);
          } else {
             p1 = puids.indexOf(match.puids[0]);
             p2 = puids.indexOf(match.puids[1]);
@@ -3012,6 +3022,7 @@ export function drawFx(opts) {
          // don't count incomplete matches
          let incomplete = indices(undefined, outcomes);
          let setsWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countSets(scores)[0];
+         let setsLost = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countSets(scores)[1];
          let gamesWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countGames(scores)[0];
          let gamesLost = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countGames(scores)[1];
          let pointsWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countPoints(scores)[1];
@@ -3020,6 +3031,7 @@ export function drawFx(opts) {
             matches_won: occurrences(0, outcomes),
             matches_lost: occurrences(1, outcomes),
             sets_won: !scores[p] ? [] : scores[p].map(setsWon).reduce((a, b) => +a + +b, 0),
+            sets_lost: !scores[p] ? [] : scores[p].map(setsLost).reduce((a, b) => +a + +b, 0),
             games_won: !scores[p] ? [] : scores[p].map(gamesWon).reduce((a, b) => +a + +b, 0),
             games_lost: !scores[p] ? [] : scores[p].map(gamesLost).reduce((a, b) => +a + +b, 0),
             points_won: !scores[p] ? [] : scores[p].map(pointsWon).reduce((a, b) => +a + +b, 0),
@@ -3028,6 +3040,10 @@ export function drawFx(opts) {
          let games_ratio = Math.round(player.results.games_won / player.results.games_lost * 1000)/1000;
          if (isNaN(games_ratio)) games_ratio = 0;
          player.results.games_ratio = games_ratio;
+
+         let sets_ratio = Math.round(player.results.sets_won / player.results.sets_lost * 1000)/1000;
+         if (isNaN(sets_ratio)) sets_ratio = 0;
+         player.results.sets_ratio = sets_ratio;
 
          player.result = `${player.results.matches_won}/${player.results.matches_lost}`;
       });
@@ -3059,6 +3075,12 @@ export function drawFx(opts) {
          let order = match.winner_index == undefined ? '' : puid_order[match.puids[match.winner_index]];
          match.round_name = `RRQ${order || ''}`;
       });
+
+      function disqualifyingScore(score) {
+         let walkedover = /W/.test(score) && /O/.test(score);
+         let defaulted = /DEF/.test(score);
+         return walkedover || defaulted;
+      }
 
       function addScore(a, b, score) {
          if (!plyrz[a] || !plyrz[b]) return;
@@ -3098,9 +3120,6 @@ export function drawFx(opts) {
             let scores = (/\d+[\(\)\-\/]*/.test(set_score)) && divider ? set_score.split(divider).map(s => /\d+/.exec(s)[0]) : undefined;
             if (scores) {
                tally[parseInt(scores[0]) > parseInt(scores[1]) ? 0 : 1] += 1
-            } else {
-               // set score can't be parsed, no winner
-               tally = [0, 0];
             }
          });
          return tally;
@@ -3136,7 +3155,7 @@ export function drawFx(opts) {
          let total_players = Object.keys(plyrz).length;
 
          // order is an array of objects formatted for processing by ties()
-         let order = plyrz.reduce((arr, player, i) => { arr.push({ i, results: player.results }); return arr; }, []);
+         let order = plyrz.reduce((arr, player, i) => { arr.push({ puid: player.puid, i, results: player.results }); return arr; }, []);
          let complete = order.filter(o => total_players - 1 == o.results.matches_won + o.results.matches_lost);
 
          // if not all players have completed their matches, no orders are assigned
@@ -3155,7 +3174,10 @@ export function drawFx(opts) {
 
          return complete;
 
-         function resultHash(p) {return p.results.matches_won * Math.pow(10,7) + p.results.games_ratio * Math.pow(10, 6) + p.results.points_won; }
+         function resultHash(p) {
+            if (disqualified.indexOf(p.puid) >= 0) return 0;
+            return p.results.matches_won * Math.pow(10,10) + p.results.sets_ratio * Math.pow(10,9) + p.results.games_ratio * Math.pow(10, 6) + p.results.points_won;
+         }
       }
    }
 
