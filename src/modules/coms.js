@@ -42,7 +42,7 @@ export const coms = function() {
       console.log('disconnect');
       connected = false;
    };
-   function comsError(err) { console.log('coms error:', err); };
+   function comsError(err) { };
 
    mod.versionNotice = (version) => {
       db.findSetting('superUser').then(setting => {

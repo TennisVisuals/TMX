@@ -4,6 +4,7 @@ import { util } from './modules/util';
 import { theme } from './modules/theme';
 import { exportFx } from './modules/exportFx';
 import { scheduleFx } from './modules/scheduleFx';
+import { searchBox } from './modules/searchBox';
 import { matchObject } from './modules/matchObject';
 import { eventManager } from './modules/eventManager';
 import { tournamentDisplay } from './modules/tournamentDisplay';
@@ -50,6 +51,7 @@ function start() {
    db.addDev({theme});
    db.addDev({config});
    db.addDev({exportFx});
+   db.addDev({searchBox});
    db.addDev({scheduleFx});
    db.addDev({matchObject});
    db.addDev({eventManager});
