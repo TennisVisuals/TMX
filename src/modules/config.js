@@ -60,9 +60,8 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.111.166.102',
+      version: '0.9.116.173.107',
       version_check: undefined,
-      searchMode: 'firstlast',
       org: {
          name: undefined,
          abbr: undefined,
@@ -150,6 +149,10 @@ export const config = function() {
          ioc_codes: false,
          scores_in_draw_order: false,
       },
+      searchbox: {
+         lastfirst: false,
+         diacritics: false,
+      },
       delegation: false,
       messages: [],
       storage: undefined,
@@ -215,6 +218,7 @@ export const config = function() {
       settings_tabs: {
          org: true,
          general: true,
+         search: true,
          data: false,
          draws: true,
          publishing: true,
@@ -347,6 +351,7 @@ export const config = function() {
             org: v.org ? displayGen.orgSettings() : undefined,
             categories: v.categories ? displayGen.categorySettings() : undefined,
             points: v.points ? displayGen.pointsSettings() : undefined,
+            search: v.search ? displayGen.searchSettings() : undefined,
             draws: v.draws ? displayGen.drawSettings() : undefined,
             publishing: v.publishing ? displayGen.publishingSettings() : undefined,
             schedule: v.schedule ? displayGen.scheduleSettings() : undefined,
@@ -356,6 +361,7 @@ export const config = function() {
          let tabdata = [];
          if (tabs.org && tabs.org.html) tabdata.push({ tab: lang.tr('settings.organization'), content: tabs.org.html });
          if (tabs.general && tabs.general.html) tabdata.push({ tab: lang.tr('settings.general'), content: tabs.general.html });
+         if (tabs.search && tabs.search.html) tabdata.push({ tab: lang.tr('settings.search'), content: tabs.search.html });
          if (tabs.categories && tabs.categories.html) tabdata.push({ tab: lang.tr('settings.categories'), content: tabs.categories.html });
          if (tabs.points && tabs.points.html) tabdata.push({ tab: lang.tr('settings.points'), content: tabs.points.html });
          if (tabs.draws && tabs.draws.html) tabdata.push({ tab: lang.tr('settings.draws'), content: tabs.draws.html });
@@ -436,6 +442,22 @@ export const config = function() {
             }
          }
 
+         if (v.search) {
+            container.lastfirst.element.addEventListener('click', searchMode);
+            container.lastfirst.element.checked = util.string2boolean(env.searchbox.lastfirst);
+            function searchMode(evt) {
+               env.searchbox.lastfirst = container.lastfirst.element.checked;
+               searchBox.populateSearch.players();
+            }
+
+            container.diacritics.element.addEventListener('click', supportDiacritics);
+            container.diacritics.element.checked = util.string2boolean(env.searchbox.diacritics);
+            function supportDiacritics(evt) {
+               env.searchbox.diacritics = container.diacritics.element.checked;
+               searchBox.populateSearch.players();
+            }
+         }
+
          if (v.publishing) {
             container.require_confirmation.element.addEventListener('click', requireConfirmation);
             container.require_confirmation.element.checked = util.string2boolean(env.publishing.require_confirmation);
@@ -490,6 +512,7 @@ export const config = function() {
                });
             }
 
+            settings.push({ key: 'searchSettings', settings: env.searchbox });
             settings.push({ key: 'publishingSettings', settings: env.publishing });
             settings.push({ key: 'drawSettings', settings: env.draws });
             settings.push({ key: 'scheduleSettings', settings: env.schedule });
@@ -578,6 +601,8 @@ export const config = function() {
       searchBox.populateSearch = {};
       searchBox.populateSearch.players = function({filtered} = {}) {
          var filter_values = searchBox.typeAhead._list.map(l=>l.value);
+         var noaccents = !env.searchbox.diacritics;
+
          db.findAllPlayers().then(arr => {
             searchBox.searchCount(arr.length);
             searchBox.searchCategory('search_players_total');
@@ -585,17 +610,17 @@ export const config = function() {
             if (filtered) arr = arr.filter(el => filter_values.indexOf(el.puid) >= 0);
 
             let firstlast = arr.map(player => { 
-               let label = util.normalizeName([player.first_name, player.last_name].join(' '));
+               let label = util.normalizeName([player.first_name, player.last_name].join(' '), noaccents);
                if (player.birth) label += ` [${new Date(player.birth).getFullYear()}]`;
                return { value: player.puid, label, }
             });
             let lastfirst = arr.map(player => { 
-               let label = `${util.normalizeName(player.last_name).toUpperCase()} ${util.normalizeName(player.first_name)}`;
+               let label = `${util.normalizeName(player.last_name, noaccents).toUpperCase()} ${util.normalizeName(player.first_name, noaccents)}`;
                if (player.birth) label += ` [${new Date(player.birth).getFullYear()}]`;
                return { value: player.puid, label, }
             });
 
-            if (env.searchMode == 'lastfirst') {
+            if (env.searchbox.lastfirst) {
                searchBox.typeAhead.list = lastfirst;
             } else {
                searchBox.typeAhead.list = firstlast;
@@ -611,9 +636,9 @@ export const config = function() {
 
             function doSomething(choice, index) {
                if (index == 0) {
-                  env.searchMode = 'firstlast';
+                  env.searchbox.lastfirst = false;
                } else if (index == 1) {
-                  env.searchMode = 'lastfirst';
+                  env.searchbox.lastfirst = true;
                }
                searchBox.populateSearch.players({filtered: true});
             }
@@ -730,6 +755,12 @@ export const config = function() {
             if (settings_tabs && settings_tabs.settings) {
                util.boolAttrs(settings_tabs.settings);
                util.keyWalk(settings_tabs.settings, o.settings_tabs);
+            }
+
+            let search = getKey('searchSettings');
+            if (search && search.settings) {
+               util.boolAttrs(search.settings);
+               util.keyWalk(search.settings, env.searchbox);
             }
 
             let publishing = getKey('publishingSettings');
