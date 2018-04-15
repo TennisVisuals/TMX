@@ -286,6 +286,7 @@ export const tournamentFx = function() {
    // TODO: make qualifying_position selectable (popup)
    fx.qualifyTeam = ({ tournament, env, e, team, qualifying_position }) => {
       if (!e.qualified) e.qualified = [];
+
       // TODO: this is a hack
       if (!team) return;
 
@@ -355,7 +356,9 @@ export const tournamentFx = function() {
       }
 
       // assign any previous entry data to players
-      approved.forEach(opponent => opponent.forEach(plyr => { if (entry_data[plyr.id]) plyr.entry = entry_data[plyr.id]; }));
+      approved.forEach(opponent => opponent.forEach(plyr => {
+         if (entry_data[plyr.id]) plyr.entry = entry_data[plyr.id];
+      }));
 
       return approved;
    }
@@ -414,7 +417,10 @@ export const tournamentFx = function() {
       let subrank = (e.doubles_subrank && e.doubles_subrank[team_hash]) ? e.doubles_subrank[team_hash] : undefined;
       let combined_rank = team_players.map(t=>t.int_order != undefined ? t.int_order : t.category_ranking).reduce((a, b) => (+a || 9999) + (+b || 9999));
       let combined_dbls_rank = team_players.map(t=>t.category_dbls).reduce((a, b) => (+a || 0) + (+b || 0));
-      team_players.forEach(p=>p.category_ranking = p.int || p.category_ranking);
+      team_players.forEach(p=>{
+         p.category_ranking = p.int || p.category_ranking;
+         p.rank = p.modified_ranking || p.category_ranking;
+      });
       return { players: team_players, combined_rank, combined_dbls_rank, subrank }
 
       function combinedRank(a, b) {
@@ -443,6 +449,7 @@ export const tournamentFx = function() {
       if (e.draw_type == 'C' && !fx.fx.env().drawFx.consolation_seeding) seed_limit = 0;
 
       let ranked_players = approved_players.filter(a=>a.category_ranking).length;
+
       if (ranked_players < seed_limit) seed_limit = ranked_players;
 
       let linkedQ = fx.findEventByID(tournament, e.links['Q']) || fx.findEventByID(tournament, e.links['R']);
@@ -459,7 +466,6 @@ export const tournamentFx = function() {
 
       approved_players = approved_players
          .map((p, i) => {
-
             let qualifier = qualifier_ids.indexOf(p.id) >= 0;
             let alternate = alternate_ids.indexOf(p.id) >= 0;
             let wildcard = e.wildcards && e.wildcards.indexOf(p.id) >= 0;
@@ -765,7 +771,12 @@ export const tournamentFx = function() {
       return duplicate_puids;
    }
 
-   fx.qualifierSeedLimit = ({ env, e }) => env && env.drawFx.qualifying_bracket_seeding ? (e.qualifiers * 2) : 0;
+   fx.qualifierSeedLimit = ({ env, e }) => {
+      let limit = env && env.drawFx.qualifying_bracket_seeding ? (e.qualifiers * 2) : 0;
+      return Math.min(e.approved.length, limit);
+   }
+
+   // TODO: qualifying_bracket_seeding is only here to identify HTS?
    fx.isPreRound = ({ env, e }) => e.draw_type == 'Q' && e.approved && e.approved.length && e.qualifiers == e.draw_size / 2 && env.drawFx.qualifying_bracket_seeding;
 
    fx.combinedRankSort = (a, b, doubles_rankings) => {
@@ -791,18 +802,38 @@ export const tournamentFx = function() {
    // RR Events
    fx.allBracketsComplete = (evt) => evt.draw.brackets.map(dfx.bracketComplete).reduce((a, b) => a && b);
 
+   function catRankSort(a, b) {
+      return (b[0].category_ranking || 9999) - (a[0].category_ranking || 9999);
+   }
+
    fx.firstQualifiers = (evt) => {
       let opponents = evt.draw.opponents;
       return opponents.filter(o=> {
          if (o[0].order == 1 && o[0].sub_order == undefined) return true;
          if (o[0].order == 1 && o[0].sub_order == 1) return true;
-      });
+      })
+      .sort(catRankSort);
    }
 
    fx.secondQualifiers = (evt) => {
       let opponents = evt.draw.opponents;
-      return opponents.filter(o=>o[0].order == 2 || (o[0].order == 1 && o[0].sub_order == 2))
-         .sort((a, b) => b.category_ranking - a.category_ranking);
+      return opponents.filter(o=> {
+         if (o[0].order == 1 && o[0].sub_order == 2) return true;
+         if (o[0].order == 2 && o[0].sub_order == undefined) return true;
+         if (o[0].order == 2 && o[0].sub_order == 1) return true;
+      })
+      .sort(catRankSort);
+   }
+
+   fx.thirdQualifiers = (evt) => {
+      let opponents = evt.draw.opponents;
+      return opponents.filter(o => {
+            if (o[0].order == 1 && o[0].sub_order == 3) return true;
+            if (o[0].order == 2 && o[0].sub_order == 2) return true;
+            if (o[0].order == 3 && o[0].sub_order == undefined) return true;
+            if (o[0].order == 3 && o[0].sub_order == 1) return true;
+      })
+      .sort(catRankSort);
    }
 
    fx.determineRRqualifiers = (tournament, e) => {
@@ -811,8 +842,8 @@ export const tournamentFx = function() {
       var qualified_teams = fx.firstQualifiers(e);
 
       if (fx.allBracketsComplete(e)) {
-         let qualified_2nd = fx.secondQualifiers(e);
-         while (qualified_teams.length < e.qualifiers && qualified_2nd.length) qualified_teams.push(qualified_2nd.pop());
+         let other_qualifiers = [].concat(...fx.thirdQualifiers(e), ...fx.secondQualifiers(e));
+         while (qualified_teams.length < e.qualifiers && other_qualifiers.length) qualified_teams.push([other_qualifiers.pop()]);
 
          event_complete = true;
       }
