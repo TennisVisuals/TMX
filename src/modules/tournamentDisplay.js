@@ -602,7 +602,7 @@ export const tournamentDisplay = function() {
             };
 
             tournament.pushed2cloud = new Date().getTime();
-            if (!tournament.org) tournament.org = fx.fx.env().org;
+            tournament.org = fx.fx.env().org;
             let delegationKey = {
                key_uuid,
                content: {
@@ -673,7 +673,7 @@ export const tournamentDisplay = function() {
       }
 
       function publishTournamentInfo(tournament) {
-         if (!tournament.org) tournament.org = fx.fx.env().org;
+         tournament.org = fx.fx.env().org;
 
          function updateInfoPubState(result) {
             tournament.pushed2cloud = new Date().getTime();
@@ -693,7 +693,7 @@ export const tournamentDisplay = function() {
       }
 
       function pushTournament2Cloud(tournament) {
-         if (!tournament.org) tournament.org = fx.fx.env().org;
+         tournament.org = fx.fx.env().org;
 
          function updatePushState(result) {
             tournament.pushed2cloud = new Date().getTime();
@@ -2442,7 +2442,7 @@ export const tournamentDisplay = function() {
 
       function setRRQualifiers(e) {
          let min_qualifiers = (e.approved && e.approved.length ? 1 : 0) * e.brackets;
-         let max_qualifiers = min_qualifiers * 2;
+         let max_qualifiers = min_qualifiers * 3;
          let range = d3.range(min_qualifiers, max_qualifiers + 1);
          let options = range.map(c => ({ key: c, value: c }));
          event_config.qualifiers.ddlb.setOptions(options);
@@ -3032,7 +3032,8 @@ export const tournamentDisplay = function() {
             let count = Math.max(2, e.qualifiers);
             count = Math.min(count, seed_limit);
 
-            dfx.placeSeedGroups({ draw: e.draw, count });
+            let preround = tfx.isPreRound({ env: fx.fx.env(), e: displayed_draw_event });
+            if (!preround) dfx.placeSeedGroups({ draw: e.draw, count });
 
             if (e.automated) {
                if (e.draw.max_round && e.draw.max_round == 1) {
@@ -3051,7 +3052,8 @@ export const tournamentDisplay = function() {
                eventBackground(e);
                eventList();
             } else {
-               testLastSeedPosition(e);
+               // only test for bye/qualifier if not a pre-round
+               if (!preround) testLastSeedPosition(e);
             }
          }
 
@@ -3181,7 +3183,7 @@ export const tournamentDisplay = function() {
             'E': () => elimination(),
             'R': () => roundrobin(),
             'C': () => consolation(),
-            'P': () => consolation(),
+            'P': () => consolation(), // playoff
          }
 
          if (drawTypes[e.draw_type] && !e.active) drawTypes[e.draw_type](); 
@@ -4394,6 +4396,20 @@ export const tournamentDisplay = function() {
          }
          let display_order = displayGen.displayTournamentPlayers({ container, tournament, players: t_players, filters, edit: state.edit });
 
+         function tournamentPlayerContext(evt) {
+            // if modifying rankings, disable!
+            if (state.manual_ranking) return;
+            let element = util.getParent(evt.target, 'player_click');
+
+            let puid = element.getAttribute('puid');
+            if (!puid) {
+               console.log('missing puid:', element);
+               return;
+            }
+
+            let clicked_player = tournament.players.reduce((p, c) => { if (c.puid == puid) p = c; return p; }, undefined);
+         }
+
          // now add event to all players to display player profile
          let signInState = (evt) => {
             // if modifying rankings, disable!
@@ -4401,6 +4417,11 @@ export const tournamentDisplay = function() {
 
             let element = util.getParent(evt.target, 'player_click');
             let puid = element.getAttribute('puid');
+            if (!puid) {
+               console.log('missing puid:', element);
+               return;
+            }
+
             let clicked_player = tournament.players.reduce((p, c) => { if (c.puid == puid) p = c; return p; }, undefined);
 
             let medical = playerFx.medical(clicked_player);
@@ -4539,6 +4560,7 @@ export const tournamentDisplay = function() {
          util.addEventToClass('subrank', catchTab, container.players.element, 'keydown');
 
          util.addEventToClass('player_click', signInState, container.players.element);
+         util.addEventToClass('player_click', tournamentPlayerContext, container.players.element, 'contextmenu');
          util.addEventToClass('ranksub', stopPropagation, container.players.element);
          util.addEventToClass('rankentry', stopPropagation, container.players.element);
          util.addEventToClass('manualrank', rankEntryKey, container.players.element, 'keyup');
@@ -5402,8 +5424,8 @@ export const tournamentDisplay = function() {
                   let placements = seed_group.placements.map(p=>p.position);
                   seed_group.positions = seed_group.positions.filter(p=>placements.indexOf(p) >= 0);
                }
-               testLastSeedPosition();
             }
+            testLastSeedPosition();
          }
 
          function placeRRDrawPlayer(d) {
@@ -5509,6 +5531,7 @@ export const tournamentDisplay = function() {
          }
 
          function placeTreeDrawPlayer(d) {
+            console.log('placing tree draw player');
             let draw = e.draw;
             let position = d.data.dp;
             let info = tree_draw.info();
