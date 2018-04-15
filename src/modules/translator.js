@@ -177,6 +177,9 @@ export const lang = function() {
       },
 
       settings: {
+         search: 'Search',
+         diacritics: 'Diacritics',
+         lastfirst: 'Last name, First name',
          organization: 'Organization',
          general: 'General',
          categories: 'Categories',
