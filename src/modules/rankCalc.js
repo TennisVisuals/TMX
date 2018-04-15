@@ -82,9 +82,12 @@ export const rankCalc = function() {
    }
 
    function fullName(player) { return `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; }
-   function calcPoints({ match, points_table, category, event_rank, round_name }) {
+   function calcPoints({ match, points_table, category, event_rank, round_name, calculated }) {
       category = config.legacyCategory(category || (match.event && match.event.category), true);
       event_rank = event_rank || (match.event && match.event.rank);
+      if (calculated && points_table.options && points_table.options.calculated_round_modifier) {
+         event_rank = `${event_rank}${points_table.options.calculated_round_modifier}`;
+      }
 
       // this handles legacy situation...  TODO: cleanup / standardize
       let match_round = round_name || match.round_name || match.round;
@@ -166,11 +169,12 @@ export const rankCalc = function() {
          if (!match.consolation) {
             let calculated_round_names = points_table.options && points_table.options.calculated_round_names;
             let round_name = calculated_round_names ? match.calculated_round_name || match.round_name : match.round_name;
-            awardPoints(match, match.winner, round_name);
+            let calculated = calculated_round_names && match.calculated_round_name;
+            awardPoints(match, match.winner, round_name, calculated);
 
             if (first_round_points) {
                let losing_round_name = losing_rounds[round_name];
-               awardPoints(match, 1 - match.winner, losing_round_name);
+               awardPoints(match, 1 - match.winner, losing_round_name, calculated);
             }
          } else {
             let winner_round = consolation_rounds[round_index]; 
@@ -187,8 +191,8 @@ export const rankCalc = function() {
 
       });
 
-      function awardPoints(match, team_index, round_name) {
-         let points = calcPoints({ match, points_table, round_name });
+      function awardPoints(match, team_index, round_name, calculated) {
+         let points = calcPoints({ match, points_table, round_name, calculated });
          match.team_players[team_index].forEach(pindex => {
             let player = match.players[pindex];
             let name = fullName(player);
@@ -205,6 +209,7 @@ export const rankCalc = function() {
    }
 
    // used for matches which are imported from spreadsheets
+   // TODO: calculated points for spreadsheet imports?  Tennis Europe events in CZ?
    rank.bulkPlayerPoints = ({matches, category, rankings, date, points_table}) => {
       let player_points = { singles: {}, doubles: {} };
 
