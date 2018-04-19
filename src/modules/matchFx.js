@@ -41,7 +41,7 @@ export const matchFx = function() {
       // for Round Robin Draw to be considered qualification it needs to be linked to an Elimination Draw
       let draw_format = evt.draw.brackets ? 'round_robin' : 'tree';
       if (draw_format == 'round_robin' && (!evt.links || !evt.links['E'])) {
-         event_matches.forEach(match => match.round_name = match.round_name.replace('Q', ''));
+         event_matches.forEach(match => { if (match.round_name) match.round_name = match.round_name.replace('Q', '') });
       }
 
       let complete = event_matches
