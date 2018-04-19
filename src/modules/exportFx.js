@@ -848,8 +848,9 @@ export const exportFx = function() {
       let numeric_date = localizeDate(new Date(day), { year: 'numeric', month: 'numeric', day: 'numeric' });
       let start_date = localizeDate(new Date(tournament.start), { year: 'numeric', month: 'numeric', day: 'numeric' });
 
-      let organizers = tournament.organizers && tournament.organizers != tournament.name ? tournament.organizers : '';
-      var sponsor = tournament.sponsor || organizers ? ` - ${tournament.sponsor || organizers}` : '';
+      // let organizers = tournament.organizers && tournament.organizers != tournament.name ? tournament.organizers : '';
+      // var sponsor = tournament.sponsor || organizers ? ` - ${tournament.sponsor || organizers}` : '';
+      var sponsor = tournament.sponsor ? ` - ${tournament.sponsor}` : '';
       var tournament_name = `${tournament.name}${sponsor}`;
 
       let schedule = {
