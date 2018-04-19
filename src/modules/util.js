@@ -7,6 +7,11 @@ export const util = function() {
    fx.replaceDiacritics = (text) => Diacritics.replace(text);
    fx.nameHash = (name) => fx.replaceDiacritics(name.replace(/[-_,.\ ]+/g, "")).toLowerCase();
 
+   fx.parseInt = (value) => {
+      let result = parseInt(value);
+      return isNaN(result) ? undefined : result;
+   }
+
    fx.normalizeScore = (score) => {
       let clean_score = cleanScore.normalize(score);
       if (clean_score) return clean_score.join(' ');
