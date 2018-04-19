@@ -723,8 +723,12 @@ export const tournamentDisplay = function() {
          if (visible) saveTournament(tournament);
       });
       container.notes.element.addEventListener('keyup', () => {
-         tournament.notes = container.notes.element.value;
-         container.notes_display.element.innerHTML = container.notes.element.value;
+         // strip html of unwanted content
+         tournament.notes = sanitizeHtml(container.notes.element.value, {
+           allowedTags: [ 'font', 'b', 'i', 'em', 'strong', 'pre', 'h1', 'h2', 'h3', 'p', 'br' ],
+           allowedAttributes: false
+         });
+         container.notes_display.element.innerHTML = tournament.notes.replace(/\n/g, "<br />");
       });
       container.push2cloud.element.addEventListener('click', () => { if (!tournament.pushed2cloud) pushTournament2Cloud(tournament); });
       container.pubTrnyInfo.element.addEventListener('click', () => publishTournamentInfo(tournament));
@@ -6778,7 +6782,7 @@ export const tournamentDisplay = function() {
       let tuid = tournament.tuid;
 
       // legacy... if match doesn't include round_name, add it
-      matches.forEach(match => { if (!match.round_name) match.round_name = match.round; });
+      if (matches && matches.length) matches.forEach(match => { if (!match.round_name) match.round_name = match.round; });
 
       let mz = matches ? matches.slice() : [];
 
