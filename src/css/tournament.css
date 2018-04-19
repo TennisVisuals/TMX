@@ -289,15 +289,6 @@
 
 .tournament_notes_display {
    width: 100%;
-   display: flex;
-   -webkit-flex-direction: column;
-   flex-direction: column;
-   -webkit-justify-content: flex-start;
-   justify-content: flex-start;
-   -webkit-align-content: flex-start;
-   align-content: flex-start;
-   -webkit-align-items: flex-start;
-   align-items: flex-start;
 }
 
 .tournament_attrs {
