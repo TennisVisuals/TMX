@@ -2793,9 +2793,9 @@ export const tournamentDisplay = function() {
             saveTournament(tournament);
          }
          details.rank.ddlb = new dd.DropDown({ element: details.rank.element, onChange: setRank });
-         let event_rank = e.rank || tournament.rank;
-         if (event_rank) {
-            details.rank.ddlb.setValue(event_rank, 'white');
+         if (tournament.rank && !e.rank) e.rank = tournament.rank;
+         if (e.rank) {
+            details.rank.ddlb.setValue(e.rank, 'white');
          } else {
             details.rank.ddlb.selectionBackground('white');
          }
@@ -3683,6 +3683,8 @@ export const tournamentDisplay = function() {
             match.source.schedule = '';
             match.schedule = {};
             match.source.schedule = {};
+
+            checkConflicts(day_matches);
             saveTournament(tournament);
 
             ({ completed_matches, pending_matches, upcoming_matches } = mfx.tournamentEventMatches({ tournament, source: true }));
@@ -7265,7 +7267,12 @@ export const tournamentDisplay = function() {
       if (tournament_data && tournament_data.category) container.category.ddlb.setValue(tournament_data.category, 'white');
 
       function setRank(value) {
-         if (!value) { setTimeout(function() { container.rank.ddlb.selectionBackground('yellow'); }, 200); }
+         if (value && tournament_data.events && tournament_data.events.length) {
+            tournament_data.events.forEach(e=>{ if (!e.rank) e.rank = value; });
+         } else {
+            // tournament rank is no longer required so no need to notify with yellow
+            // setTimeout(function() { container.rank.ddlb.selectionBackground('yellow'); }, 200);
+         }
          trny.rank = value;
       }
       container.rank.ddlb = new dd.DropDown({ element: container.rank.element, onChange: setRank });
