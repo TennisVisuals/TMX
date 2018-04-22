@@ -413,7 +413,7 @@ export const exportFx = function() {
       var format = lang.tr(`formats.${match.format || ''}`);
       var category = match.event ? match.event.category : '';
       var time_detail = !match.schedule ? "" : `${match.schedule.time_prefix || ''} ${match.schedule.time || ''}`;
-      var score = util.containsNumber(match.score) && match.score;
+      var score = util.containsNumber(match.score) && match.score.indexOf('LIVE') < 0 && match.score;
       if (score && match.winner == 1 && exp.fx.env().schedule.scores_in_draw_order) score = dfx.reverseScore(score);
       var unknowns = [];
 
@@ -651,7 +651,7 @@ export const exportFx = function() {
          draw.width(3000);
 
          draw.options({edit_fields: { display: false }, flags: { display: false }});
-         if (info.draw_positions.length > 16) draw.options({invert_first: true});
+         if (info.draw_positions.length > 8) draw.options({invert_first: true});
 
          draw.options({players: { offset_left: 8, offset_singles: -10, offset_doubles: -60, offset_score: 10 }});
          draw.options({names:  { max_font_size: 40, min_font_size: 40 }});
