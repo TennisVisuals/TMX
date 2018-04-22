@@ -326,10 +326,11 @@ export function roundRobin() {
          if (d.row) return d.y + d.height / 2;
          return d.y + d.height / 1.6;  // because row 0 is smaller...
       }
-      let textAnchor = (d) => d.row && d.attr == 'player' ? 'start' : 'middle';
-      let textColor = (d) => d.row && d.attr == 'player' ? 'black' : 'black';
+      // 0,0 position used for bracket name, if any...
+      let textAnchor = (d) => (d.row && d.attr == 'player') || (!d.row && !d.column) ? 'start' : 'middle';
       let textWeight = (d) => {
          let weight = 'normal';
+         if (!d.row && !d.column) weight = 'bold'; 
          if (d.row && d.attr == 'order') weight = 'bold'; 
          if (d.row && d.attr == 'player' && d.seed && d.seed <= seed_limit) weight = 'bold';
          if (d.row && d.attr == 'player' && d.player && d.player.seed && d.player.seed <= seed_limit) weight = 'bold';
@@ -349,7 +350,8 @@ export function roundRobin() {
 
          return text;
       }
-      let cellColor = (d) => {
+      let textColor = (d) => {
+         if (!d.row && !d.column) return 'blue';
          if (d.row && d.attr == 'score' && d.row != d.mc) {
             let sc = scores[d.row - 1][d.mc - 1];
             let num = sc ? sc.match(/\d+/g) : undefined;
@@ -361,6 +363,10 @@ export function roundRobin() {
       }
       let cellText = (d) => {
          var player = d.row ? players[d.row - 1] : undefined;
+         if (!d.row && !d.column) {
+            console.log('group name:', d);
+            return "GROUP NAME";
+         }
          if (!d.row && d.attr == 'order') return '#';
          if (!d.row && d.attr == 'result') return '+/-';
          if (d.row == 0 && d.column < 6 || d.mc != undefined && d.row == d.mc) return '';
@@ -479,22 +485,24 @@ export function roundRobin() {
          .attr("text-anchor", textAnchor)
          .attr("font-weight", textWeight)
          .attr("alignment-baseline", "middle")
-         .attr("fill", textColor)
          .attr("x", labelX)
          .attr("y", labelY)
          .text(cellText)
          .style("font-size", textSize)
-         .style("fill", cellColor)
+         .style("fill", textColor)
          .on('mouseover', mouseOver)
          .on('mouseout', mouseOut)
          .on('click', clickEvent)
          .on('contextmenu', handleContextClick);
 
       function textSize(d) {
+         let group_name = !d.row && !d.column;
+         let width_multiplier = 13;
          let ctl = this.getComputedTextLength();
-         let size = Math.round(d.width * 13 / ctl); 
+         let size = Math.round(d.width * width_multiplier / ctl); 
          if (size > o.names.max_font_size) size = o.names.max_font_size;
          if (size < o.names.min_font_size) size = o.names.min_font_size;
+         if (group_name) size = o.names.max_font_size;
          return size + "px"; 
       }
    }
@@ -689,6 +697,7 @@ export function roundRobin() {
                height: rowHeight(row),
                bracket: o.bracket_index,
             }
+            if (!row && !column) cell.group_name = 'GROUP NAME';
             if (column.mc != undefined) cell.mc = column.mc + 1;
             if (cell.attr == 'player') cell.player = gridPlayer(cell);
             if (cell.attr == 'player' && !cell.player) checkBye(cell);
