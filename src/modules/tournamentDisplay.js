@@ -33,12 +33,6 @@ export const tournamentDisplay = function() {
    let tfx = tournamentFx;
 
    let o = {
-      draws: {
-         brackets: {
-            min_bracket_size: 4,
-            max_bracket_size: 5,
-         },
-      },
       sign_in: { rapid: true, },
       byes_with_unseeded: true,
       focus: { place_player: undefined }
@@ -505,6 +499,7 @@ export const tournamentDisplay = function() {
                displayGen.closeModal();
 
                // check whether there are published events
+               /*
                var published_events = tournament.events.reduce((p, c) => c.published || p, false);
                if (published_events) {
                   var scheduled = mfx.scheduledMatches(tournament).scheduled;
@@ -518,6 +513,7 @@ export const tournamentDisplay = function() {
                         }
                      });
                }
+               */
             } else {
                return unPublishOOP(tournament);
             }
@@ -1718,8 +1714,10 @@ export const tournamentDisplay = function() {
          [ 'start_date', 'end_date', 'organization', 'organizers', 'location', 'judge' ].forEach(field=>container[field].element.disabled = !bool);
          let publications = !tournament.events || !tournament.events.length ? false : tournament.events.reduce((p, c) => c.published || p, false);
          let delegation = publications && tournament.events && tournament.events.length && tournament.events.reduce((p, c) => p || c.draw_created || c.active, false);
-         container.delegate.element.style.display = (bool || tournament.delegated) && delegation && same_org ? 'inline' : 'none';
-         container.pub_link.element.style.display = bool && publications ? 'inline' : 'none';
+         // container.delegate.element.style.display = (bool || tournament.delegated) && delegation && same_org ? 'inline' : 'none';
+         container.delegate.element.style.display = 'none';
+         // container.pub_link.element.style.display = bool && publications ? 'inline' : 'none';
+         container.pub_link.element.style.display = 'none';
          container.edit_notes.element.style.display = bool && same_org ? 'inline' : 'none';
          container.push2cloud.element.style.display = bool && same_org ? 'inline' : 'none';
          container.pubTrnyInfo.element.style.display = bool && same_org ? 'inline' : 'none';
@@ -2401,8 +2399,9 @@ export const tournamentDisplay = function() {
 
       function roundRobinDrawBracketOptions(e) {
          let opponents = e.approved.length;
-         let lower_range = o.draws.brackets.min_bracket_size;
-         let upper_range = o.draws.brackets.max_bracket_size;
+         var bracket_sizes = fx.fx.env().draws.rr_draw.brackets;
+         let lower_range = bracket_sizes.min_bracket_size;
+         let upper_range = bracket_sizes.max_bracket_size;
          e.bracket_size = e.bracket_size || lower_range;
          if (opponents < e.bracket_size && e.bracket_size > lower_range) {
             e.bracket_size -= 1;
@@ -2549,6 +2548,7 @@ export const tournamentDisplay = function() {
             let setBracketSize = (value) => {
                e.bracket_size = +value;
                e.brackets = Math.ceil(e.approved.length / e.bracket_size);
+               e.qualifiers = e.brackets;
                event_config.brackets.ddlb.setValue(e.brackets, 'white');
                setRRQualifiers(e);
                e.regenerate = true;
@@ -4903,8 +4903,9 @@ export const tournamentDisplay = function() {
       }
 
       function deletePublishedEvent(tourny, evt) {
+         let ouid = tourny.org && tourny.org.ouid;
          let event_matches = !evt.draw ? [] : dfx.matches(evt.draw).map(m=>({ muid: m.match.muid, tuid: tourny.tuid }));; 
-         let deleteRequest = { euid: evt.euid, tuid: tourny.tuid, matches: event_matches };
+         let deleteRequest = { ouid, euid: evt.euid, tuid: tourny.tuid, matches: event_matches };
          if (!deleteRequest || !deleteRequest.euid) return;
          coms.emitTmx({deleteRequest});
       }
@@ -4969,10 +4970,11 @@ export const tournamentDisplay = function() {
 
             tree_draw(); 
          } else if (evt.draw.brackets && evt.draw.brackets.length) {
+            var bracket_sizes = fx.fx.env().draws.rr_draw.brackets;
             rr_draw
                .data(evt.draw)
                .selector(container.draws.element)
-               .bracketSize(evt.draw.bracket_size || o.draws.brackets.min_bracket_size);
+               .bracketSize(evt.draw.bracket_size || bracket_sizes.min_bracket_size);
 
             fx.drawOptions({ draw: rr_draw });
             rr_draw();

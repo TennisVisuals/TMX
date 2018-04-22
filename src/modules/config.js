@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.116.175.112',
+      version: '0.9.116.181.114',
       version_check: undefined,
       org: {
          name: undefined,
@@ -128,7 +128,11 @@ export const config = function() {
             minimums: {
                singles: 3,
                doubles: 3
-            }
+            },
+            brackets: {
+               min_bracket_size: 4,
+               max_bracket_size: 5,
+            },
          },
       },
       default_score_format: {
