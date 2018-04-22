@@ -199,7 +199,7 @@ export const rankCalc = function() {
             let pp = player_points[match.format];
             if (match.score && match.score.trim() == 'W.O.') {
                let wow = config.env().points.walkover_wins;
-               if (Array.isArray(wow) && wow.indexOf(match.round) < 0) return;
+               if (Array.isArray(wow) && wow.indexOf(match.round_name) < 0) return;
             }
             if (!pp[name] || points > pp[name].points) { pp[name] = pointData(match, player, name, points); }
          });
