@@ -4313,7 +4313,7 @@ export const displayGen = function() {
    }
 
    function matchPenalties(players, puid, muid) {
-      let penalty_players = players.filter(p=>p.penalties && p.penalties.length);
+      let penalty_players = !players ? [] : players.filter(p=>p.penalties && p.penalties.length);
       let match_penalties = penalty_players.filter(p=>p.penalties.filter(f=>f.muid == muid).length);
       return match_penalties.filter(p=>p.puid == puid).length;
    }
