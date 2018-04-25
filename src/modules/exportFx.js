@@ -347,7 +347,7 @@ export const exportFx = function() {
       });
    }
 
-   exp.printSchedulePDF = ({ tournament, day, courts, matches }) => {
+   exp.printSchedulePDF = ({ tournament, day, courts, matches, save }) => {
       getLogo().then(logo => {
          if (courts.length > 8) {
             let a_courts = courts.slice(0,8);
@@ -356,10 +356,10 @@ export const exportFx = function() {
             let b_court_names = b_courts.map(c=>c.name);
             let a_matches = matches.filter(f=>a_court_names.indexOf(f.schedule.court) >= 0);
             let b_matches = matches.filter(f=>b_court_names.indexOf(f.schedule.court) >= 0);
-            schedulePDF({ tournament, day, courts: a_courts, matches: a_matches, logo });
-            schedulePDF({ tournament, day, courts: b_courts, matches: b_matches, landscape: true, logo });
+            schedulePDF({ tournament, day, courts: a_courts, matches: a_matches, logo, save });
+            schedulePDF({ tournament, day, courts: b_courts, matches: b_matches, landscape: true, logo, save });
          } else {
-            schedulePDF({ tournament, day, courts, matches, logo });
+            schedulePDF({ tournament, day, courts, matches, logo, save });
          }
       });
    }
@@ -499,7 +499,7 @@ export const exportFx = function() {
       return cell;
    }
 
-   function schedulePDF({ tournament, day, courts, matches, landscape, logo }) {
+   function schedulePDF({ tournament, day, courts, matches, landscape, logo, save }) {
       let pageOrientation = courts.length < 5 && !landscape ? 'portrait' : 'landscape';
       let portrait = pageOrientation == 'portrait';
 
@@ -617,16 +617,20 @@ export const exportFx = function() {
          }
       };
 
-      return exp.openPDF(docDefinition);
+      if (save) {
+         exp.savePDF(docDefinition, 'schedule.pdf');
+      } else {
+         exp.openPDF(docDefinition);
+      }
    }
 
-   exp.printDrawPDF = (tournament, data, options, selected_event, event) => {
+   exp.printDrawPDF = ({ tournament, data, options, selected_event, event, save }) => {
       let info = drawFx().drawInfo(data);
-      if (info.draw_type == 'tree') return exp.treeDrawPDF({ tournament, data, options, selected_event, info, event });
-      if (info.draw_type == 'roundrobin') return exp.rrDrawPDF({ tournament, data, options, selected_event, info, event });
+      if (info.draw_type == 'tree') return exp.treeDrawPDF({ tournament, data, options, selected_event, info, event, save });
+      if (info.draw_type == 'roundrobin') return exp.rrDrawPDF({ tournament, data, options, selected_event, info, event, save });
    }
 
-   exp.treeDrawPDF = ({ tournament, data, options, selected_event, info, event }) => {
+   exp.treeDrawPDF = ({ tournament, data, options, selected_event, info, event, save }) => {
       return new Promise((resolve, reject) => {
 
          d3.selectAll('#hidden').remove();
@@ -708,14 +712,14 @@ export const exportFx = function() {
          getLogo().then(showPDF);
 
          function showPDF(logo) {
-            exp.SVGasURI(element).then(image => drawSheet({ tournament, images: [image], logo, selected_event, event, info }), reject).then(cleanUp, cleanUp);;
+            exp.SVGasURI(element).then(image => drawSheet({ tournament, images: [image], logo, selected_event, event, info, save }), reject).then(cleanUp, cleanUp);;
          }
       });
    }
 
    function cleanUp() { d3.selectAll('#hidden').remove(); }
 
-   exp.rrDrawPDF = ({ tournament, data, options, selected_event, info, event }) => {
+   exp.rrDrawPDF = ({ tournament, data, options, selected_event, info, event, save }) => {
       return new Promise((resolve, reject) => {
 
          d3.selectAll('#hidden').remove();
@@ -749,7 +753,7 @@ export const exportFx = function() {
 
          function showPDF(logo) {
             let bracket_svgs = Array.from(element.querySelectorAll('svg'));
-            Promise.all(bracket_svgs.map(exp.SVGasURI)).then(images => drawSheet({ tournament, images, logo, selected_event, event, info }), reject).then(cleanUp, cleanUp);
+            Promise.all(bracket_svgs.map(exp.SVGasURI)).then(images => drawSheet({ tournament, images, logo, selected_event, event, info, save }), reject).then(cleanUp, cleanUp);
          }
       });
    }
@@ -1015,7 +1019,7 @@ export const exportFx = function() {
       function entryObject(p) { return { text: `${p.full_name} [${p.entry}]` }; }
    }
 
-   function drawSheet({ tournament={}, images, logo, selected_event, event, info }) {
+   function drawSheet({ tournament={}, images, logo, selected_event, event, info, save }) {
       let evt = event || (tournament.events && tournament.events[selected_eent]);
       let image = images[0];
       let player_representatives = evt && evt.player_representatives || []; 
@@ -1176,28 +1180,35 @@ export const exportFx = function() {
          }
       };
 
-      return exp.openPDF(docDefinition);
+      if (save) {
+         let draw_type = '';
+         if (event.draw_type == 'E') draw_type = lang.tr('draws.elimination');
+         if (event.draw_type == 'R') draw_type = lang.tr('draws.roundrobin');
+         if (event.draw_type == 'C') draw_type = lang.tr('draws.consolation');
+         if (event.draw_type == 'Q') draw_type = lang.tr('draws.qualification');
+         if (event.draw_type == 'P') draw_type = lang.tr('pyo');
+         let filename = `${event.name}${draw_type ? ' ' + draw_type : '' } Draw Sheet.pdf`;
+         exp.savePDF(docDefinition, filename);
+      } else {
+         exp.openPDF(docDefinition);
+      }
    }
 
-   exp.doublesSignInPDF = ({ tournament, teams, category, gender, event_name, doc_name }) => {
+   exp.doublesSignInPDF = ({ tournament, teams, category, gender, event_name, doc_name='courthive', save }) => {
       return new Promise((resolve, reject) => {
          getLogo().then(showPDF);
-
          function showPDF(logo) {
-            doublesSignInSheet({ tournament, teams, category, gender, event_name, logo, doc_name });
+            doublesSignInSheet({ tournament, teams, category, gender, event_name, logo, doc_name, save });
          }
       });
    }
 
-   exp.orderedPlayersPDF = ({ tournament, players, category, gender, event_name, doc_name, extra_pages }) => {
+   exp.orderedPlayersPDF = ({ tournament, players, category, gender, event_name, doc_name='courthive', extra_pages, save }) => {
       return new Promise((resolve, reject) => {
-
          getLogo().then(showPDF);
-
          function showPDF(logo) {
-            signInSheet({ tournament, players, category, gender, event_name, logo, doc_name, extra_pages });
+            signInSheet({ tournament, players, category, gender, event_name, logo, doc_name, extra_pages, save });
          }
-
       });
    }
 
@@ -1224,7 +1235,7 @@ export const exportFx = function() {
       });
    }
 
-   function doublesSignInSheet({ tournament={}, teams=[], players=[], category, gender, event_name='', logo, doc_name }) {
+   function doublesSignInSheet({ tournament={}, teams=[], players=[], category, gender, event_name='', logo, doc_name, save }) {
 
       let date = util.formatDate(tournament.start);
       let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
@@ -1412,12 +1423,14 @@ export const exportFx = function() {
          }
       };
 
-      let filename = `${event_name} Sign In Sheet.pdf`;
-      // exp.savePDF(docDefinition, filename);
-      return exp.openPDF(docDefinition);
+      if (save) {
+         let filename = `${doc_name}.pdf`;
+         exp.savePDF(docDefinition, filename);
+      } else {
+         exp.openPDF(docDefinition);
+      }
    }
-   function signInSheet({ tournament={}, players, category, gender, event_name='', logo, doc_name, extra_pages=true }) {
-
+   function signInSheet({ tournament={}, players, category, gender, event_name='', logo, doc_name='courthive', extra_pages=true, save }) {
       let date = util.formatDate(tournament.start);
       let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
@@ -1599,9 +1612,12 @@ export const exportFx = function() {
          }
       };
 
-      let filename = `${event_name} Sign In Sheet.pdf`;
-      // exp.savePDF(docDefinition, filename);
-      return exp.openPDF(docDefinition);
+      if (save) {
+         let filename = `${doc_name}.pdf`;
+         exp.savePDF(docDefinition, filename);
+      } else {
+         exp.openPDF(docDefinition);
+      }
    }
 
    // https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript
