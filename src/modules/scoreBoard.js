@@ -53,7 +53,7 @@ export const scoreBoard = function() {
       var action_drawer;
 
       if (floating) sobj = fx.floatingScoreBoard({ muid, teams, flags });
-      if (round) sobj.round.element.innerHTML = round;
+      if (round) sobj.round_name.element.innerHTML = round;
 
       if (muid) {
          setClicks[muid] = (set) => {
@@ -84,7 +84,6 @@ export const scoreBoard = function() {
       initialState();
 
       // SUPPORTING FUNCTIONS
-
       function initialState() {
          set_scores = existing_scores || [];
          action_drawer = false;
@@ -134,7 +133,7 @@ export const scoreBoard = function() {
                sobj.p2action.ddlb.setValue(walkedover == 1 ? 'walkover' : 'winner');
                sobj.p1action.ddlb.lock();
                sobj.p2action.ddlb.lock();
-               displayActions(false);
+               displayActions(true);
                setWinner(1 - walkedover);
             } else {
                displayActions(false);
@@ -177,7 +176,7 @@ export const scoreBoard = function() {
          setScoreDisplay({ selected_set: set_number });
          sobj.p2action.ddlb.setValue(' ');
          sobj.p1action.ddlb.setValue(' ');
-         // if (floating) displayActions(false);
+         // if (floating) { displayActions(true); }
       }
 
       function scoringComplete(outcome) {
@@ -224,7 +223,6 @@ export const scoreBoard = function() {
             }
          }
       }
-
 
       function configureScoreSelectors() {
          let options = [ { key: '-', value: '' }, ];
@@ -337,12 +335,10 @@ export const scoreBoard = function() {
       function scoreGoal(s1, s2) {
          let score_diff = Math.abs(s1 - s2);
          // any valid winning score that does not indicate a tiebreak
-         // return score_diff >= 2 && (s1 >= f.games_for_set || s2 >= f.games_for_set);
          return score_diff >= 2 && (s1 >= f.tiebreaks_at || s2 >= f.tiebreaks_at);
       }
 
       function tbScore(s1, s2) {
-         // return (s1 == f.games_for_set + 1 && s2 == f.games_for_set) || (s1 == f.games_for_set && s2 == f.games_for_set + 1);
          return (s1 == f.tiebreaks_at + 1 && s2 == f.tiebreaks_at) || (s1 == f.tiebreaks_at && s2 == f.tiebreaks_at + 1);
       }
 
@@ -558,6 +554,7 @@ export const scoreBoard = function() {
       function gameEdit(selected_set, tiebreak, actions) {
          if (tiebreak) return false;
          if (ddlb_lock) return false;
+         if (selected_set == undefined) return false;
          if (set_scores.length == 0) return true;
 
          let winner = determineWinner(actions) != undefined || irregularWinner() != undefined;
@@ -723,7 +720,6 @@ export const scoreBoard = function() {
                sobj[winner ? 'p2action' : 'p1action'].ddlb.unlock();
                sobj[winner ? 'p1action' : 'p2action'].ddlb.lock();
             } else {
-
                // if tiebreak enable both entry fields
                sobj.p1tiebreak.element.disabled=false;
                sobj.p2tiebreak.element.disabled=false;
@@ -969,7 +965,7 @@ export const scoreBoard = function() {
 
       function setsTo(value) {
          f.games_for_set = parseInt(value);
-         f.tiebreaks_at = value;
+         f.tiebreaks_at = parseInt(value);
          let tbat_options = [
             {key: `${value-1}-${value-1}`, value: value - 1},
             {key: `${value}-${value}`, value: value},
@@ -1025,8 +1021,7 @@ export const scoreBoard = function() {
    }
 
    fx.floatingScoreBoard = ({ muid, teams, flags }) => {
-      // can't be UUID.new() without 'ch' because many UUIDs are not valid selectors
-      let sb_ids = { scoreboard: `ch${UUID.new()}`, }
+      let sb_ids = { scoreboard: displayFx.uuid(), }
 
       let scoreboard = d3.select('body')
          .append('div')
@@ -1052,80 +1047,79 @@ export const scoreBoard = function() {
       return id_obj;
    }
 
-   return fx;
-}();
+   fx.scoreBoardConfig = () => {
+      let cfg_ids = { 
+         config: displayFx.uuid(),
+         cancel: displayFx.uuid(),
+         accept: displayFx.uuid(),
+      }
 
-// SCOREBOARD
-function scoreBoardConfigHTML() {
-   let cfg_ids = { 
-      config: UUID.generate(),
-      cancel: UUID.generate(),
-      accept: UUID.generate(),
-   }
+      let config = d3.select('body')
+         .append('div')
+         .attr('class', 'modal')
+         .attr('id', cfg_ids.config);
 
-   let config = d3.select('body')
-      .append('div')
-      .attr('class', 'modal')
-      .attr('id', cfg_ids.config);
+      let { ids, html } = scoreBoardConfig();
 
-   let { ids, html } = scoreBoardConfig();
+      let entry = floatingEntry()
+         .selector('#' + cfg_ids.config)
+         .events( {'click': () => {
+            let elems = document.querySelectorAll('li.dd_state');
+            Array.from(elems).forEach(elem => { elem.classList.remove("active"); })
+         }});
 
-   let entry = floatingEntry()
-      .selector('#' + cfg_ids.config)
-      .events( {'click': () => {
-         let elems = document.querySelectorAll('li.dd_state');
-         Array.from(elems).forEach(elem => { elem.classList.remove("active"); })
-      }});
-
-   html = `
-      <div class='scoreboard noselect flexcenter' style='background: #000; min-width: 320px; height: 180px;'>
-         ${html}
-         <div class="accept-config scoreboard-action">
-            <div class="edit flexcol">
-               <div class="frame">
-                  <div class="scoreboard-actions">
-                     <button id='${cfg_ids.cancel}' class='btn dismiss'>${lang.tr('actions.cancel')}</button>
-                     <button id='${cfg_ids.accept}' class='btn accept'>${lang.tr('apt')}</button>
+      html = `
+         <div class='scoreboard noselect flexcenter' style='background: #000; min-width: 320px; height: 180px;'>
+            ${html}
+            <div class="accept-config scoreboard-action">
+               <div class="edit flexcol">
+                  <div class="frame">
+                     <div class="scoreboard-actions">
+                        <button id='${cfg_ids.cancel}' class='btn dismiss'>${lang.tr('actions.cancel')}</button>
+                        <button id='${cfg_ids.accept}' class='btn accept'>${lang.tr('apt')}</button>
+                     </div>
                   </div>
                </div>
             </div>
          </div>
-      </div>
-   `;
+      `;
 
-   entry(window.innerWidth * .3, window.innerHeight * .4, html);
+      entry(window.innerWidth * .3, window.innerHeight * .4, html);
 
-   let target = config.select('.scoreboard-config');
-   target
-      .style('display', 'flex')
-      .style('height', '100px')
-      .style('overflow', 'visible')
-      .style('width', '100%')
-      .style('padding', '.2em');
-   target.select('.edit')
-      .style('display', 'flex')
-      .style('width', '100%');
+      let target = config.select('.scoreboard-config');
+      target
+         .style('display', 'flex')
+         .style('height', '100px')
+         .style('overflow', 'visible')
+         .style('width', '100%')
+         .style('padding', '.2em');
+      target.select('.edit')
+         .style('display', 'flex')
+         .style('width', '100%');
 
-   target = config.select('.accept-config');
-   target
-      .style('display', 'flex')
-      .style('height', '50px')
-      .style('overflow', 'visible')
-      .style('width', '100%')
-      .style('padding', '.2em');
-   target.select('.edit')
-      .style('display', 'flex')
-      .style('width', '100%');
+      target = config.select('.accept-config');
+      target
+         .style('display', 'flex')
+         .style('height', '50px')
+         .style('overflow', 'visible')
+         .style('width', '100%')
+         .style('padding', '.2em');
+      target.select('.edit')
+         .style('display', 'flex')
+         .style('width', '100%');
 
-   Object.assign(ids, cfg_ids);
-   let id_obj = displayFx.idObj(ids);
-   return id_obj;
-}
+      Object.assign(ids, cfg_ids);
+      let id_obj = displayFx.idObj(ids);
+      return id_obj;
+   }
+   return fx;
+}();
 
 function scoreboardTeam({ team, index=0, flags }) {
    if (!team[index]) return '';
    let first_name = team[index].first_name;
    let last_name = team[index].last_name;
+   if (team[index].seed) last_name += ` [${team[index].seed}]`;
    let ioc = team[index].ioc && team[index].ioc.length == 3 ? team[index].ioc.toUpperCase() : 'spacer';
    let ioc_flag = flags ? `<img onerror="this.style.visibility='hidden'" width="25px" src="${flags}/${ioc}.png">` : '';
 
@@ -1199,7 +1193,6 @@ function generateScoreBoard({ muid, teams, flags }) {
       root: UUID.generate(),
       actions: UUID.generate(),
       scoring: UUID.generate(),
-      round: UUID.generate(),
       clear: UUID.generate(),
       cancel: UUID.generate(),
       accept: UUID.generate(),
@@ -1207,6 +1200,7 @@ function generateScoreBoard({ muid, teams, flags }) {
       p2action: UUID.generate(),
       p1scores: UUID.generate(),
       p2scores: UUID.generate(),
+      round_name: UUID.generate(),
       p1scores_e: UUID.generate(),
       p2scores_e: UUID.generate(),
       p1selector: UUID.generate(),
@@ -1224,7 +1218,7 @@ function generateScoreBoard({ muid, teams, flags }) {
          <div class='scorebox'>
             <div class='info'>
                <span class="info-text">
-                  <span class="round_name" id='${ids.round}'></span>
+                  <span class="round_name" id='${ids.round_name}'></span>
                   <span class="court"></span>
                </span>
                <div id='${ids.scoring}' class='options'>-</div>
