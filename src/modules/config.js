@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.116.181.114',
+      version: '0.9.124.191.120',
       version_check: undefined,
       org: {
          name: undefined,
@@ -144,6 +144,9 @@ export const config = function() {
          tiebreak_to: 7,
          tiebreaks_at: 6
       },
+      printing: {
+         save_pdfs: false
+      },
       publishing: {
          require_confirmation: false,
          publish_on_score_entry: true,
@@ -221,6 +224,7 @@ export const config = function() {
       },
       settings_tabs: {
          org: true,
+         printing: true,
          general: true,
          search: true,
          data: false,
@@ -353,6 +357,7 @@ export const config = function() {
          let tabs = {
             general: v.general ? displayGen.generalSettings() : undefined,
             org: v.org ? displayGen.orgSettings() : undefined,
+            printing: v.printing ? displayGen.printingSettings() : undefined,
             categories: v.categories ? displayGen.categorySettings() : undefined,
             points: v.points ? displayGen.pointsSettings() : undefined,
             search: v.search ? displayGen.searchSettings() : undefined,
@@ -370,6 +375,7 @@ export const config = function() {
          if (tabs.points && tabs.points.html) tabdata.push({ tab: lang.tr('settings.points'), content: tabs.points.html });
          if (tabs.draws && tabs.draws.html) tabdata.push({ tab: lang.tr('settings.draws'), content: tabs.draws.html });
          if (tabs.publishing && tabs.publishing.html) tabdata.push({ tab: lang.tr('settings.publishing'), content: tabs.publishing.html });
+         if (tabs.printing && tabs.printing.html) tabdata.push({ tab: lang.tr('settings.printing'), content: tabs.printing.html });
          if (tabs.schedule && tabs.schedule.html) tabdata.push({ tab: lang.tr('sch'), content: tabs.schedule.html });
          if (tabs.data && tabs.data.html) tabdata.push({ tab: lang.tr('settings.data'), content: tabs.data.html });
 
@@ -484,6 +490,12 @@ export const config = function() {
             }
          }
 
+         if (v.printing) {
+            container.save_pdfs.element.addEventListener('click', savePDFs);
+            container.save_pdfs.element.checked = env.printing.save_pdfs;
+            function savePDFs(evt) { env.printing.save_pdfs = container.save_pdfs.element.checked ? 1 : 0; }
+         }
+
          if (v.general) {
             container.first_day.element.addEventListener('click', firstDay);
             container.first_day.element.checked = env.calendar.first_day;
@@ -518,6 +530,7 @@ export const config = function() {
 
             settings.push({ key: 'searchSettings', settings: env.searchbox });
             settings.push({ key: 'publishingSettings', settings: env.publishing });
+            settings.push({ key: 'printingSettings', settings: env.printing });
             settings.push({ key: 'drawSettings', settings: env.draws });
             settings.push({ key: 'scheduleSettings', settings: env.schedule });
             settings.push({ key: 'drawFx', settings: env.drawFx });
@@ -771,6 +784,12 @@ export const config = function() {
             if (publishing && publishing.settings) {
                util.boolAttrs(publishing.settings);
                util.keyWalk(publishing.settings, env.publishing);
+            }
+
+            let printing = getKey('printingSettings');
+            if (printing && printing.settings) {
+               util.boolAttrs(printing.settings);
+               util.keyWalk(printing.settings, env.printing);
             }
 
             let schedule = getKey('scheduleSettings');
