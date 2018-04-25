@@ -192,6 +192,7 @@ export const rankCalc = function() {
       });
 
       function awardPoints(match, team_index, round_name, calculated) {
+         if (team_index == undefined) return;
          let points = calcPoints({ match, points_table, round_name, calculated });
          match.team_players[team_index].forEach(pindex => {
             let player = match.players[pindex];
