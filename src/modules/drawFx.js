@@ -23,6 +23,7 @@ export function rrDraw() {
 
       score_cells: {
          color: 'white',
+         live_color: '#A9F5A9',
          highlight_color: 'lightblue',
       },
 
@@ -60,12 +61,13 @@ export function rrDraw() {
    var data = { brackets: [] };
 
    var events = {
-      'score':    { 'click': null, 'mouseover': highlightCell, 'mouseout': unHighlightCells, 'contextmenu': null },
-      'player':   { 'click': null, 'mouseover': null, 'mouseout': unHighlightPlayer, 'contextmenu': null },
-      'info':     { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
-      'order':    { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
-      'result':   { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
-      'sizing':   { 'width': null, },  // optional functions for sizeToFit
+      'score'        : { 'click': null, 'mouseover': highlightCell, 'mouseout': unHighlightCells, 'contextmenu': null },
+      'player'       : { 'click': null, 'mouseover': null, 'mouseout': unHighlightPlayer, 'contextmenu': null },
+      'info'         : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
+      'order'        : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
+      'result'       : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
+      'draw_position': { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
+      'sizing'       : { 'width': null, },  // optional functions for sizeToFit
    };
 
    function chart(opts) {
@@ -83,6 +85,7 @@ export function rrDraw() {
       data.brackets.forEach((bracket, i) => {
 
          bracket_charts[i] = roundRobin()
+            .bracketName(bracket.name)
             .bracketIndex(i)
             .events(events)
             .selector(`#${o.id}_${i}`)
@@ -118,6 +121,7 @@ export function rrDraw() {
       if (reset) bracket_charts[bracket_index].reset();
 
       bracket_charts[bracket_index]
+         .bracketName(data.brackets[bracket_index].name)
          .addPlayers(data.brackets[bracket_index].players)
          .addMatches(data.brackets[bracket_index].matches)
          .addByes(data.brackets[bracket_index].byes)
@@ -166,7 +170,9 @@ export function rrDraw() {
 
    chart.unHighlightCells = unHighlightCells;
    function unHighlightCells() {
-      Array.from(root.node().querySelectorAll('.rr_score')).forEach(e=>e.style.fill = o.score_cells.color)
+      Array.from(root.node().querySelectorAll('.rr_score')).forEach(e => {
+         e.style.fill = (e.classList.contains('LIVE')) ? o.score_cells.live_color : o.score_cells.color;
+      });
    }
 
    chart.highlightCell = highlightCell;
@@ -213,6 +219,7 @@ export function rrDraw() {
 export function roundRobin() {
    var o = {
       selector: undefined,
+      bracket_name: undefined,
       bracket_index: undefined,
 
       cleanup: true,      // first remove all svg from root
@@ -227,6 +234,7 @@ export function roundRobin() {
 
       cells: {
          bye: '#fcf4ed',
+         live: '#A9F5A9',
          invalid: 'gray',
       },
 
@@ -268,12 +276,13 @@ export function roundRobin() {
    var matches = [];
 
    var events = {
-      'score':    { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
-      'player':   { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
-      'info':     { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
-      'order':    { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
-      'result':   { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
-      'sizing' :  { 'width': null, },  // optional functions for sizeToFit
+      'score'        : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
+      'player'       : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
+      'info'         : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
+      'order'        : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
+      'result'       : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
+      'draw_position': { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
+      'sizing'       : { 'width': null, },  // optional functions for sizeToFit
    };
 
    var intersection = (a, b) => a.filter(n => b.indexOf(n) !== -1).filter((e, i, c) => c.indexOf(e) === i);
@@ -297,6 +306,7 @@ export function roundRobin() {
          o.height = o.height || Math.max(window.innerHeight, o.minHeight || 0);
       }
 
+      let point_order_differences = players.reduce((p, c) => c.order != c.points_order ? true : p, false);
 
       let playerHeight = o.height / o.bracket.positions + 1;
       if (playerHeight < o.minPlayerHeight) {
@@ -318,6 +328,10 @@ export function roundRobin() {
          if (!d.row && d.column < 3) return 'none';
          if (d.mc != undefined && d.row == d.mc) return o.cells.invalid;
          if (d.attr == 'score' && d.players.filter(p=>p).length < 2) return o.cells.bye;
+         if (d.row && d.row != d.mc && d.attr == 'score') {
+            let sc = scores[d.row - 1][d.mc - 1];
+            if (sc && sc.indexOf('LIVE') >= 0) return o.cells.live;
+         }
          return 'white';
       }
       let cellStroke = (d) => (d.row || d.column > 2) ? 'black' : 'none';
@@ -363,11 +377,8 @@ export function roundRobin() {
       }
       let cellText = (d) => {
          var player = d.row ? players[d.row - 1] : undefined;
-         if (!d.row && !d.column) {
-            console.log('group name:', d);
-            return "GROUP NAME";
-         }
-         if (!d.row && d.attr == 'order') return '#';
+         if (!d.row && !d.column && d.group_name) { return d.group_name; }
+         if (!d.row && d.attr == 'order') { return `#${point_order_differences ? ':p' : ''}`; }
          if (!d.row && d.attr == 'result') return '+/-';
          if (d.row == 0 && d.column < 6 || d.mc != undefined && d.row == d.mc) return '';
 
@@ -384,7 +395,12 @@ export function roundRobin() {
          }
 
          if (d.row && player && player[d.attr]) {
-            if (d.attr == 'order' && player.sub_order) return `${player[d.attr]}-${player.sub_order}`;
+            if (d.attr == 'order') {
+               let order = player[d.attr];
+               if (player.sub_order) order += `-${player.sub_order}`;
+               if (player.points_order && point_order_differences) order += `:${player.points_order}`;
+               return order;
+            }
             if (d.attr == 'club_code') return player.club_code;
             if (d.attr == 'result') return player.result || '0/0';
 
@@ -419,13 +435,17 @@ export function roundRobin() {
          let base_class = `rr${o.bracket_index != undefined ? o.bracket_index : ''}_${d.attr}`;
          let specific_class = `${base_class}_${d.row}${column}`;
 
+         let sc = d.row && d.row != d.mc && scores[d.row - 1][d.mc - 1];
+         let live_score = sc && sc.indexOf('LIVE') >= 0;
+         let score_class = live_score ? 'LIVE' : '';
+
          // don't return additional clases for player cells when row < 1
          if (d.attr == 'player' && !d.row) return 'cell';
 
          if (d.attr == 'score' && d.players && d.players.filter(p=>p).length < 2) return 'cell bye_cell';
 
          // don't return additional classes for score cells when same player
-         return (d.attr == 'score' && d.row == d.column - 2) ? 'cell' : `cell rr_${d.attr} ${base_class} ${specific_class}`;
+         return (d.attr == 'score' && d.row == d.column - 2) ? 'cell' : `cell rr_${d.attr} ${base_class} ${specific_class} ${score_class}`;
       }
 
       let handleContextClick = (d) => {
@@ -521,6 +541,12 @@ export function roundRobin() {
       o.selector = value;
       return chart;
    };
+
+   chart.bracketName = function(value) {
+      if (!arguments.length) { return o.bracket_name; }
+      o.bracket_name = value;
+      return chart;
+   }
 
    chart.bracketIndex = function(value) {
       if (!arguments.length) { return o.bracket_index; }
@@ -687,7 +713,7 @@ export function roundRobin() {
 
       for (let row=0; row <= o.bracket.positions; row++) {
          let x = xstart;
-         data.push(columns.map((column, i) => { 
+         data.push(columns.map((column, i) => {
             // attr definition handles special case: 1st row cells = player last names
             let attr = !row && column.attr == 'score' ? 'player' : column.attr;
             let cell = { 
@@ -697,7 +723,7 @@ export function roundRobin() {
                height: rowHeight(row),
                bracket: o.bracket_index,
             }
-            if (!row && !column) cell.group_name = 'GROUP NAME';
+            if (!row && !i) { cell.group_name = o.bracket_name || `GROUP ${o.bracket_index + 1}`; }
             if (column.mc != undefined) cell.mc = column.mc + 1;
             if (cell.attr == 'player') cell.player = gridPlayer(cell);
             if (cell.attr == 'player' && !cell.player) checkBye(cell);
@@ -858,14 +884,14 @@ export function treeDraw() {
    let data = {};
 
    let events = {
-      'position': { 'mouseover': highlightCell, 'mouseout': unHighlightCell, 'click': null, 'contextmenu': null },
-      'player1' : { 'mouseover': highlightCell, 'mouseout': unHighlightCell, 'click': null, 'contextmenu': null },
-      'player2' : { 'mouseover': highlightCell, 'mouseout': unHighlightCell, 'click': null, 'contextmenu': null },
-      'p1club'  : { 'mouseover': highlightCell, 'mouseout': unHighlightCell, 'click': null, 'contextmenu': null },
-      'p2club'  : { 'mouseover': highlightCell, 'mouseout': unHighlightCell, 'click': null, 'contextmenu': null },
-      'score'   : { 'mouseover': null, 'mouseout': null, 'click': null, 'contextmenu': null },
+      'position' : { 'mouseover': highlightCell, 'mouseout': unHighlightCell, 'click': null, 'contextmenu': null },
+      'player1'  : { 'mouseover': highlightCell, 'mouseout': unHighlightCell, 'click': null, 'contextmenu': null },
+      'player2'  : { 'mouseover': highlightCell, 'mouseout': unHighlightCell, 'click': null, 'contextmenu': null },
+      'p1club'   : { 'mouseover': highlightCell, 'mouseout': unHighlightCell, 'click': null, 'contextmenu': null },
+      'p2club'   : { 'mouseover': highlightCell, 'mouseout': unHighlightCell, 'click': null, 'contextmenu': null },
+      'score'    : { 'mouseover': null, 'mouseout': null, 'click': null, 'contextmenu': null },
       'umpire'   : { 'mouseover': null, 'mouseout': null, 'click': null, 'contextmenu': null },
-      'sizing'  : { 'width': null, },  // optional functions for sizeToFit
+      'sizing'   : { 'width': null, },  // optional functions for sizeToFit
    };
 
    function chart(opts) {
@@ -2991,8 +3017,9 @@ export function drawFx(opts) {
    fx.tallyBracketResults = tallyBracketResults;
    function tallyBracketResults({ players, matches, bracket }) {
       let puids = [];
-      let scores = [];
       let plyrz = [];
+      let scores = [];
+      let score_format;
       let disqualified = [];
 
       if (bracket) {
@@ -3015,6 +3042,8 @@ export function drawFx(opts) {
             p2 = puids.indexOf(match.puids[1]);
          }
          addScore(p1, p2, match.score);
+
+         if (!score_format && match.score_format) score_format = match.score_format;
       });
 
       if (!scores.length) return;
@@ -3030,11 +3059,11 @@ export function drawFx(opts) {
 
          // don't count incomplete matches
          let incomplete = indices(undefined, outcomes);
-         let setsWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countSets(scores)[0];
-         let setsLost = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countSets(scores)[1];
-         let gamesWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countGames(scores)[0];
-         let gamesLost = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countGames(scores)[1];
-         let pointsWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countPoints(scores)[1];
+         let setsWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countSets(scores, outcomes[i])[0];
+         let setsLost = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countSets(scores, outcomes[i])[1];
+         let gamesWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countGames(scores, outcomes[i])[0];
+         let gamesLost = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countGames(scores, outcomes[i])[1];
+         let pointsWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countPoints(scores, outcomes[i])[1];
 
          player.results = {
             matches_won: occurrences(0, outcomes),
@@ -3062,12 +3091,24 @@ export function drawFx(opts) {
       if (order) {
          let ro_list = order.map(o=>o.rank_order);
          order.forEach(o => { 
+
+            // add hash values to player results
+            plyrz[o.i].results.ratio_hash = o.ratio_hash;
+
+            // calculate order for advancement
             if (o != undefined && o.rank_order != undefined) {
                plyrz[o.i].order = o.rank_order;
                if (occurrences(o.rank_order, ro_list) > 1 && plyrz[o.i].sub_order == undefined) plyrz[o.i].sub_order = 0;
             } else {
                delete plyrz[o.i].sub_order;
                plyrz[o.i].order = undefined;
+            }
+
+            // calculate order for awarding points
+            if (o != undefined && o.points_order != undefined) {
+               plyrz[o.i].points_order = o.points_order;
+            } else {
+               plyrz[o.i].points_order = undefined;
             }
          });
       } else {
@@ -3078,18 +3119,17 @@ export function drawFx(opts) {
       }
 
       // create an object mapping puid to order
-      let puid_order = plyrz.reduce((o, p) => { o[p.puid] = p.order; return o}, {});
+      let puid_order = plyrz.reduce((o, p) => { o[p.puid] = p.points_order; return o}, {});
 
       matches.forEach(match => {
          let order = match.winner_index == undefined ? '' : puid_order[match.puids[match.winner_index]];
          match.round_name = `RRQ${order || ''}`;
       });
 
-      function disqualifyingScore(score) {
-         let walkedover = /W/.test(score) && /O/.test(score);
-         let defaulted = /DEF/.test(score);
-         return walkedover || defaulted;
-      }
+      function walkedOver(score) { return /W/.test(score) && /O/.test(score); }
+      function defaulted(score) { return /DEF/.test(score); }
+      function retired(score) { return /RET/.test(score); }
+      function disqualifyingScore(score) { return walkedOver(score) || defaulted(score); }
 
       function addScore(a, b, score) {
          if (!plyrz[a] || !plyrz[b]) return;
@@ -3113,7 +3153,11 @@ export function drawFx(opts) {
          if (match.winner_index != undefined) return puids.indexOf(match.puids[match.winner_index]);
 
          // otherwise determine winner by tally of sets
+         // this should *only* be used if draw is being reconstructed from matches...
          let score = scores[p][o];
+
+         if (score && (score.toLowerCase().indexOf('int') >= 0 || score.toLowerCase().indexOf('live') >= 0)) return;
+
          if (!score) return;
          let tally = countSets(score);
          if (tally[0] > tally[1]) return 0;
@@ -3121,43 +3165,81 @@ export function drawFx(opts) {
          return;
       }
 
-      function countSets(score) {
-         let tally = [0, 0];
-         let set_scores = score.split(' ');
-         set_scores.forEach(set_score => {
-            let divider = set_score.indexOf('-') > 0 ? '-' : set_score.indexOf('/') > 0 ? '/' : undefined;
-            let scores = (/\d+[\(\)\-\/]*/.test(set_score)) && divider ? set_score.split(divider).map(s => /\d+/.exec(s)[0]) : undefined;
-            if (scores) {
-               tally[parseInt(scores[0]) > parseInt(scores[1]) ? 0 : 1] += 1
-            }
-         });
-         return tally;
+      function countSets(score, winner) {
+         let sets_tally = [0, 0];
+         if (disqualifyingScore(score)) {
+            if (winner != undefined && score_format && score_format.sets_to_win) sets_tally[winner] = score_format.sets_to_win;
+         } else {
+            let set_scores = score.split(' ');
+            set_scores.forEach(set_score => {
+               let divider = set_score.indexOf('-') > 0 ? '-' : set_score.indexOf('/') > 0 ? '/' : undefined;
+               let scores = (/\d+[\(\)\-\/]*/.test(set_score)) && divider ? set_score.split(divider).map(s => /\d+/.exec(s)[0]) : undefined;
+               if (scores) {
+                  sets_tally[parseInt(scores[0]) > parseInt(scores[1]) ? 0 : 1] += 1
+               }
+            });
+         }
+         if (retired(score) && winner != undefined && score_format && score_format.sets_to_win) {
+            // if the loser has sets_to_win then last set was incomplete and needs to be subtracted from loser
+            if (sets_tally[1 - winner] == score_format.sets_to_win) sets_tally[1 - winner] -= 1;
+            sets_tally[winner] = score_format.sets_to_win;
+         }
+         return sets_tally;
       }
 
       function countPoints(score) {
-         let tally = [0, 0];
+         let points_tally = [0, 0];
          let set_scores = score.split(' ');
          set_scores.forEach(set_score => {
             let scores = (/\d+\/\d+/.test(set_score)) ? set_score.split('/').map(s=>/\d+/.exec(s)[0]) : [0, 0];
             if (scores) {
-               tally[0] += parseInt(scores[0]);
-               tally[1] += parseInt(scores[1]);
+               points_tally[0] += parseInt(scores[0]);
+               points_tally[1] += parseInt(scores[1]);
             }
          });
-         return tally;
+         return points_tally;
       }
 
-      function countGames(score) {
-         let tally = [0, 0];
-         let set_scores = score.split(' ');
-         set_scores.forEach(set_score => {
-            let scores = (/\d+[\(\)\-\/]*/.test(set_score)) && set_score.indexOf('-') > 0 ? set_score.split('-').map(s => /\d+/.exec(s)[0]) : undefined;
-            if (scores) {
-               tally[0] += parseInt(scores[0]);
-               tally[1] += parseInt(scores[1]);
+      function countGames(score, winner) {
+         let games_tally = [[], []];
+         if (disqualifyingScore(score)) {
+            if (winner != undefined && score_format && score_format.sets_to_win && score_format.games_for_set) {
+               games_tally[winner].push(score_format.sets_to_win * score_format.games_for_set);
             }
-         });
-         return tally;
+         } else {
+            let set_scores = score.split(' ');
+            set_scores.forEach(set_score => {
+               let scores = (/\d+[\(\)\-\/]*/.test(set_score)) && set_score.indexOf('-') > 0 ? set_score.split('-').map(s => /\d+/.exec(s)[0]) : undefined;
+               if (scores) {
+                  games_tally[0].push(parseInt(scores[0]));
+                  games_tally[1].push(parseInt(scores[1]));
+               }
+            });
+         }
+         if (retired(score) && winner != undefined && score_format && score_format.sets_to_win && score_format.games_for_set) {
+            let sets_tally = countSets(score, winner);
+            let total_sets = sets_tally.reduce((a, b)=>a+b,0);
+            let loser_lead_set = games_tally.map(g => g[winner] <= g[1-winner]).reduce((a, b) => a+b, 0);
+            // if sets where loser lead > awarded sets, adjust last game to winner
+            if (loser_lead_set > sets_tally[1-winner]) {
+               let tallied_games = games_tally[winner].length;
+               let complement = getComplement(score_format, games_tally[1-winner][tallied_games - 1]);
+               if (complement) games_tally[winner][tallied_games - 1] = complement;
+            }
+            // if the total # of sets is less than games_tally[x].length award games_for_set to winner
+            if (total_sets > games_tally[winner].length) {
+               games_tally[winner].push(score_format.games_for_set);
+            }
+         }
+         return [games_tally[0].reduce((a, b) => a+b, 0), games_tally[1].reduce((a, b) => a+b, 0)];
+      }
+
+      function getComplement(score_format, value) {
+         if (!score_format || value == '') return;
+         if (value == score_format.tiebreaks_at || value == score_format.tiebreaks_at + 1) tiebreak = true;
+         if (value == score_format.tiebreaks_at - 1 || value == score_format.tiebreaks_at) return parseInt(score_format.tiebreaks_at || 0) + 1;
+         if (value < score_format.tiebreaks_at) return score_format.games_for_set;
+         return score_format.tiebreaks_at;
       }
 
       function determineOrder(plyrz) {
@@ -3170,21 +3252,38 @@ export function drawFx(opts) {
          // if not all players have completed their matches, no orders are assigned
          if (total_players != complete.length) return;
 
-         complete.forEach(p => p.hash = resultHash(p));
-         complete.sort((a, b) => b.hash - a.hash);
-         let hash_order = unique(complete.map(c=>c.hash));
-         complete.forEach(p => p.hash_order = hash_order.indexOf(p.hash) + 1);
+         complete.forEach(p => p.order_hash = orderHash(p));
+         complete.forEach(p => p.ratio_hash = ratioHash(p));
 
+         complete.sort((a, b) => b.order_hash - a.order_hash);
+         let hash_order = unique(complete.map(c=>c.order_hash));
+         complete.forEach(p => p.hash_order = hash_order.indexOf(p.order_hash) + 1);
+
+         // now account for equivalent hash_order
          let rank_order = 0;
          complete.forEach((p, i) => {
-            if (p.hash_order != rank_order) rank_order = i + 1;
+            if (p.order_hash != rank_order) rank_order = i + 1;
             p.rank_order = rank_order;
+         });
+
+         complete.sort((a, b) => b.ratio_hash - a.ratio_hash);
+         let ratio_order = unique(complete.map(c=>c.ratio_hash));
+         complete.forEach(p => p.ratio_order = ratio_order.indexOf(p.ratio_hash) + 1);
+
+         // now account for equivalent ratio_order
+         let points_order = 0;
+         complete.forEach((p, i) => {
+            if (p.order_hash != points_order) points_order = i + 1;
+            p.points_order = points_order;
          });
 
          return complete;
 
-         function resultHash(p) {
+         function orderHash(p) {
             if (disqualified.indexOf(p.puid) >= 0) return 0;
+            return ratioHash(p);
+         }
+         function ratioHash(p) {
             return p.results.matches_won * Math.pow(10,10) + p.results.sets_ratio * Math.pow(10,9) + p.results.games_ratio * Math.pow(10, 6) + p.results.points_won;
          }
       }
