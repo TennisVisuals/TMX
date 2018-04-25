@@ -207,7 +207,6 @@ export const scheduleFx = function() {
       let statuscolor = conflict ? 'conflict' : timepressure ? 'warning' : inprogress ? 'inprogress' : complete ? 'complete' : 'neutral';
       let droptarget = `ondragover="event.preventDefault();"`;
       let dragdrop = ' dragdrop';
-      // let draggable = editable && !complete && !offgrid && !empty ? ` draggable="true"` : '';
       let draggable = editable && !offgrid && !empty ? ` draggable="true"` : '';
       let content = offgrid ? '' : !empty ? scheduledMatchHTML(match, options) : fx.emptyOOPround(editable);
 
