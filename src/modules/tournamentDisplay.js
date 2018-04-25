@@ -248,7 +248,7 @@ export const tournamentDisplay = function() {
                   }
 
                   function unpublishTournament(tuid) {
-                     let deleteEventsRequest = { tuid };
+                     let deleteEventsRequest = { tuid, ouid: tournament_data.org.ouid };
                      coms.emitTmx({ deleteEventsRequest })
                      displayGen.closeModal();
                      if (tournament_data.events) {
@@ -1782,8 +1782,16 @@ export const tournamentDisplay = function() {
                printPDF();
             }
 
-            function printPDF() { exportFx.printDrawPDF(tournament, data, options, selected_event, displayed_draw_event); }
-
+            function printPDF() {
+               exportFx.printDrawPDF({
+                  data,
+                  options,
+                  tournament,
+                  selected_event,
+                  event: displayed_draw_event,
+                  save: fx.fx.env().printing.save_pdfs
+               });
+            }
          } else {
             printDrawOrder(displayed_draw_event);
          }
@@ -1800,7 +1808,13 @@ export const tournamentDisplay = function() {
 
          let print_matches = all_matches.filter(f=>f.schedule && f.schedule.day == displayed_schedule_day && court_names.indexOf(f.schedule.court) >= 0);
          
-         exportFx.printSchedulePDF({ tournament, day: displayed_schedule_day, courts, matches: print_matches });
+         exportFx.printSchedulePDF({
+            courts,
+            tournament,
+            day: displayed_schedule_day,
+            matches: print_matches,
+            save: fx.fx.env().printing.save_pdfs
+         });
       }
 
       function printDrawOrder(evt) {
@@ -1816,14 +1830,26 @@ export const tournamentDisplay = function() {
                   .filter(player=>player.signed_in);
             } else {
                let teams = tfx.approvedTeams({ tournament, evt }).map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));;
-               return exportFx.doublesSignInPDF({ tournament, teams });
+               return exportFx.doublesSignInPDF({
+                  tournament,
+                  teams,
+                  save: fx.fx.env().printing.save_pdfs,
+                  doc_name: `${lang.tr('dbl')} ${lang.tr('print.signin')}`
+               });
             }
 
             if (t_players && t_players.length) {
                t_players = tfx.orderPlayersByRank(t_players, category);
 
                // configured for listing players by Position in draw "Draw Order"
-               exportFx.orderedPlayersPDF({ tournament, players: t_players, event_name: evt.name, doc_name: lang.tr('mdo'), extra_pages: false })
+               exportFx.orderedPlayersPDF({
+                  tournament,
+                  players: t_players,
+                  event_name: evt.name,
+                  doc_name: lang.tr('mdo'),
+                  extra_pages: false,
+                  save: fx.fx.env().printing.save_pdfs
+               });
             }
          }
       }
@@ -1836,7 +1862,11 @@ export const tournamentDisplay = function() {
 
          if (!t_players.length) {
             // if there are no players who have not signed in, print a blank doubles sign-in sheet
-            exportFx.doublesSignInPDF({ tournament });
+            exportFx.doublesSignInPDF({
+               tournament,
+               save: fx.fx.env().printing.save_pdfs,
+               doc_name: `${lang.tr('dbl')} ${lang.tr('print.signin')}`
+            });
             return;
          }
 
@@ -1845,11 +1875,20 @@ export const tournamentDisplay = function() {
          sisobj.singles.element.addEventListener('click', () => {
             t_players = tfx.orderPlayersByRank(t_players, tournament.category);
             // default configuration is ordered Sign-In List
-            exportFx.orderedPlayersPDF({ tournament, players: t_players })
+            exportFx.orderedPlayersPDF({
+               tournament,
+               players: t_players,
+               save: fx.fx.env().printing.save_pdfs,
+               doc_name: `${lang.tr('sgl')} ${lang.tr('print.signin')}`
+            });
             displayGen.closeModal();
          });
          sisobj.doubles.element.addEventListener('click', () => {
-            exportFx.doublesSignInPDF({ tournament });
+            exportFx.doublesSignInPDF({
+               tournament,
+               save: fx.fx.env().printing.save_pdfs,
+               doc_name: `${lang.tr('dbl')} ${lang.tr('print.signin')}`
+            });
             displayGen.closeModal();
          });
       }
@@ -2085,7 +2124,7 @@ export const tournamentDisplay = function() {
          displayGen.escapeModal();
 
          function unPublishAll() {
-            let deleteEventsRequest = { tuid: tournament.tuid };
+            let deleteEventsRequest = { tuid: tournament.tuid, ouid: tournament.org.ouid };
             coms.emitTmx({ deleteEventsRequest })
             displayGen.closeModal();
             tournament.events.forEach(evt => {
@@ -2861,9 +2900,9 @@ export const tournamentDisplay = function() {
 
          let displayScoring = (scoring_format) => details.scoring.element.innerHTML = scoring_format;
          let changeScoring = () => {
-            if (state.edit && !e.active) {
+            if (state.edit) {
                document.body.style.overflow  = 'hidden';
-               let cfg_obj = displayGen.scoreBoardConfig();
+               let cfg_obj = scoreBoard.scoreBoardConfig();
                let sb_config = d3.select(cfg_obj.config.element);
 
                let f = fx.fx.env().default_score_format;
@@ -3222,6 +3261,7 @@ export const tournamentDisplay = function() {
 
          let linkedQ = tfx.findEventByID(tournament, e.links['Q']) || tfx.findEventByID(tournament, e.links['R']);
          let qualifier_ids = linkedQ && linkedQ.qualified ? linkedQ.qualified.map(teamHash) : [];
+         let qualifier_data = linkedQ && linkedQ.qualified ? Object.assign({}, ...linkedQ.qualified.map(q=>({[teamHash(q)]: q[0]}))) : {};
 
          // TODO: make this configurable
          let alternate_ids = (e.draw_type == 'C') ? eligible_players.filter(el => el.alternate).filter(f=>f).map(el=>el.id) : [];
@@ -3244,7 +3284,8 @@ export const tournamentDisplay = function() {
             // TODO: make this work for doubles...
             approved.forEach(p => { 
                if (qualifier_ids.length && qualifier_ids.indexOf(p.id) >= 0) {
-                  p.full_name = `<div style='color: green'>${p.full_name}&nbsp;<span class='player_seed'>[Q]</span></div>`; 
+                  let order = qualifier_data[p.id] && qualifier_data[p.id].order;
+                  p.full_name = `<div style='color: green'>${p.full_name}&nbsp;<span class='player_seed'>[Q${order || ''}]</span></div>`; 
                } else if (e.wildcards && e.wildcards.indexOf(p.id) >= 0) {
                   p.full_name = `<div style='color: green'>${p.full_name}&nbsp;<span class='player_seed'>[WC]</span></div>`; 
                } else if (e.luckylosers && e.luckylosers.indexOf(p.id) >= 0) {
@@ -3649,7 +3690,7 @@ export const tournamentDisplay = function() {
             if (muid) {
                target.setAttribute('muid', muid);
                target.setAttribute('draggable', 'true');
-               let sb = scheduleFx.scheduleBox({ match, editable: true});
+               let sb = scheduleFx.scheduleBox({ match, editable: true, options: fx.fx.env().schedule });
                target.innerHTML = sb.innerHTML;
                target.style.background = sb.background;
                scheduleFx.scaleTeams(target);
@@ -4164,25 +4205,23 @@ export const tournamentDisplay = function() {
                   // this must happen first as 'e' is modified
                   let result = (e.draw_type == 'R') ? scoreRoundRobin(tournament, e, existing_scores, outcome) : scoreTreeDraw(tournament, e, existing_scores, outcome);
 
-                  if (result) {
+                  if (result && !result.error) {
                      match.winner_index = outcome.winner;
                      match.score = outcome.score;
                      if (outcome.score) match.status = '';
                      match.score_format = outcome.score_format;
-                  }
 
-                  updateScheduleBox(match);
+                     updateScheduleBox(match);
 
-                  // now update matches to show new matches resulting from completion
-                  filterDayMatches();
+                     // now update matches to show new matches resulting from completion
+                     filterDayMatches();
 
-                  let dependent = match.dependent ? day_matches.reduce((p, c) => c.muid == match.dependent ? c : p, undefined) : undefined;
-                  updateScheduleBox(dependent);
+                     let dependent = match.dependent ? day_matches.reduce((p, c) => c.muid == match.dependent ? c : p, undefined) : undefined;
+                     updateScheduleBox(dependent);
 
-                  displayPending();
-                  filterSearchList();
+                     displayPending();
+                     filterSearchList();
 
-                  if (result) {
                      e.up_to_date = false;
                      if (fx.fx.env().publishing.publish_on_score_entry) {
                         broadcastEvent(tournament, e);
@@ -5170,6 +5209,9 @@ export const tournamentDisplay = function() {
             },
             'result': {
                'click': RRplayerStats,
+            },
+            'draw_position': {
+               'click': RRgroupName,
             }
          });
 
@@ -5200,6 +5242,38 @@ export const tournamentDisplay = function() {
             if (state.edit) {
                let player = displayed_draw_event.draw.brackets[d.bracket].players.reduce((p, c) => c.draw_position == d.row ? c : p, undefined);
                console.log(player.results);
+            }
+         }
+
+         function RRgroupName(d) {
+            if (state.edit && !d.row && !d.column) {
+               let bracket = e.draw.brackets[d.bracket];
+
+               let rr_name_obj = displayGen.entryModal('nm', true);
+               displayGen.escapeModal();
+
+               let entry_modal = d3.select(rr_name_obj.entry_modal.element);
+
+               let removeEntryModal = () => {
+                  entry_modal.remove();
+                  document.body.style.overflow = null;
+                  displayGen.escapeFx = undefined;
+               }
+
+               entry_modal.on('click', removeEntryModal);
+               rr_name_obj.search_field.element.addEventListener("keyup", function(e) { 
+                  if (e.which == 13) {
+                     submitRRname(rr_name_obj.search_field.element.value);
+                     removeEntryModal();
+                  }
+               });
+
+               function submitRRname(name) {
+                  bracket.name = name;
+                  rr_draw.data(e.draw);
+                  rr_draw.updateBracket(d.bracket);
+                  saveTournament(tournament);
+               }
             }
          }
 
@@ -6365,7 +6439,7 @@ export const tournamentDisplay = function() {
                return s;
             });
 
-         let sb = scheduleFx.scheduleBox({ match, editable: true});
+         let sb = scheduleFx.scheduleBox({ match, editable: true, options: fx.fx.env().schedule });
          if (schedule_box) {
             schedule_box.innerHTML = sb.innerHTML;
             scheduleFx.scaleTeams(schedule_box);
@@ -7539,7 +7613,10 @@ export const tournamentDisplay = function() {
       let lastName = (player) => player.last_name.toUpperCase();
       return teams.map(team => {
          let seed = team[0].seed && !luckyloser ? ` [${team[0].seed}]` : '';
+
+         // draw_order is order in ranked list of event players
          let draw_order = seed ? '' : team[0].draw_order && !luckyloser ? ` (${team[0].draw_order})` : '';
+
          let lucky = luckyloser ? ' [LL]' : '';
          if (team.length == 1) {
             let first_name = util.normalizeName(team[0].first_name, false);
