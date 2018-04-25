@@ -579,64 +579,6 @@
    width:  5%; 
    text-align: center;
 }
-/*
-.event_icon { 
-   width: 1.2em;
-   height: 0;
-   padding-bottom: 1.2em;
-   background-size: 100%;
-}
-
-.tab_icon { 
-   width: 1.7em;
-   height: 0;
-   padding-bottom: 1.7em;
-   background-size: 100%;
-}
-.tiny_icon { 
-   width: 1em;
-   height: 0;
-   padding-bottom: 1em;
-   background-size: 100%;
-}
-
-.score_header { background-image: url("img/scoreboard.png"); }
-.duration_header { background-image: url("img/duration.png"); }
-.cal_header { background-image: url("img/calendar.png"); }
-.time_header { background-image: url("img/time.png"); }
-.time_header_inactive { background-image: url("img/time_inactive.png"); }
-.opponents_header { background-image: url("img/players.png"); }
-.drawsize_header { background-image: url("img/drawbracket.png"); }
-.matches_header { background-image: url("img/match.png"); }
-.matches_header_inactive { background-image: url("img/match_gray.png"); }
-.status_header { background-image: url("img/status.png"); }
-.rank_header { background-image: url("img/trophy.png"); }
-.category_header { background-image: url("img/category.png"); }
-.category_header_white { background-image: url("img/categorywhite.png"); }
-.published_header { background-image: url("img/publishblack.png"); }
-.inout_header { background-image: url("img/inout.png"); }
-.inout_indoors { background-image: url("img/indoors.png"); }
-.inout_outdoors { background-image: url("img/outdoors.png"); }
-.unpublished { background-image: url("img/publish_black.png"); }
-.reps_incomplete { background-image: url("img/reps_incomplete.png"); }
-.reps_complete { background-image: url("img/reps_complete.png"); }
-.publisheduptodate { background-image: url("img/publishblue.png"); }
-.publishedoutofdate { background-image: url("img/publishyellow.png"); }
-.published { background-image: url("img/publishgreen.png"); }
-.cleardraw { background-image: url("img/recycle.png"); }
-
-.surface_header { background-image: url("img/h_court.png"); }
-.surface_grass { background-image: url("img/court_grass.png"); }
-.surface_clay { background-image: url("img/court_clay.png"); }
-.surface_hard { background-image: url("img/court_hard.png"); }
-.surface_carpet { background-image: url("img/court_carpet.png"); }
-
-.notcreated, .xmark { background-image: url("img/xmark.png"); }
-.drawcreated { background-image: url("img/drawcreated.png"); }
-.drawactive { background-image: url("img/drawactive.png"); }
-
-.complete_header { background-image: url("img/complete.png"); }
-*/
 
 .events .event:hover { background-color: #EAEDED }
 .events .highlight_listitem { font-weight: bold }
