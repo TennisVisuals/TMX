@@ -1382,6 +1382,28 @@ export const displayGen = function() {
       return { ids, html, ddlb }
    }
 
+   gen.printingSettings = () => {
+      let ids = {
+         save_pdfs: displayFx.uuid(),
+      };
+      let ddlb = [];
+      let html = `
+         <div style='min-height: 150px'>
+         <h2>&nbsp;</h2>
+         <div class='flexcenter' style='width: 100%;'>
+             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.savepdfs')}</label>
+                    <input type='checkbox' id="${ids.save_pdfs}">
+                </div>
+             </div>
+         </div>
+
+         </div>
+      `;
+      return { ids, html, ddlb }
+   }
+
    gen.externalRequestSettings = (settings) => {
       let category_keys = gen.fx.settings.categories.externalRequest;
       
@@ -2627,279 +2649,6 @@ export const displayGen = function() {
       return { ids, html };
    }
 
-   // SCOREBOARD
-   gen.scoreBoard = ({ teams, flags=true }) => {
-      let sb_ids = { scoreboard: displayFx.uuid(), }
-
-      let scoreboard = d3.select('body')
-         .append('div')
-         .attr('class', 'modal')
-         .attr('id', sb_ids.scoreboard);
-
-      let { ids, html } = generateScoreBoard({ teams, flags });
-
-      let entry = floatingEntry()
-         .selector('#' + sb_ids.scoreboard)
-         .events( {'click': () => {
-            let elems = document.querySelectorAll('li.dd_state');
-            Array.from(elems).forEach(elem => { elem.classList.remove("active"); })
-         }});
-
-      entry(window.innerWidth * .3, window.innerHeight * .4, html);
-
-      Object.assign(ids, sb_ids);
-      let id_obj = displayFx.idObj(ids);
-      return id_obj;
-   }
-
-   gen.scoreBoardConfig = () => {
-      let cfg_ids = { 
-         config: displayFx.uuid(),
-         cancel: displayFx.uuid(),
-         accept: displayFx.uuid(),
-      }
-
-      let config = d3.select('body')
-         .append('div')
-         .attr('class', 'modal')
-         .attr('id', cfg_ids.config);
-
-      let { ids, html } = scoreBoardConfig();
-
-      let entry = floatingEntry()
-         .selector('#' + cfg_ids.config)
-         .events( {'click': () => {
-            let elems = document.querySelectorAll('li.dd_state');
-            Array.from(elems).forEach(elem => { elem.classList.remove("active"); })
-         }});
-
-      html = `
-         <div class='scoreboard noselect flexcenter' style='background: #000; min-width: 320px; height: 180px;'>
-            ${html}
-            <div class="accept-config scoreboard-action">
-               <div class="edit flexcol">
-                  <div class="frame">
-                     <div class="scoreboard-actions">
-                        <button id='${cfg_ids.cancel}' class='btn dismiss'>${lang.tr('actions.cancel')}</button>
-                        <button id='${cfg_ids.accept}' class='btn accept'>${lang.tr('apt')}</button>
-                     </div>
-                  </div>
-               </div>
-            </div>
-         </div>
-      `;
-
-      entry(window.innerWidth * .3, window.innerHeight * .4, html);
-
-      let target = config.select('.scoreboard-config');
-      target
-         .style('display', 'flex')
-         .style('height', '100px')
-         .style('overflow', 'visible')
-         .style('width', '100%')
-         .style('padding', '.2em');
-      target.select('.edit')
-         .style('display', 'flex')
-         .style('width', '100%');
-
-      target = config.select('.accept-config');
-      target
-         .style('display', 'flex')
-         .style('height', '50px')
-         .style('overflow', 'visible')
-         .style('width', '100%')
-         .style('padding', '.2em');
-      target.select('.edit')
-         .style('display', 'flex')
-         .style('width', '100%');
-
-      Object.assign(ids, cfg_ids);
-      let id_obj = displayFx.idObj(ids);
-      return id_obj;
-   }
-
-   function scoreboardTeam({ team, index=0, flags=true }) {
-      if (!team[index]) return '';
-      let first_name = team[index].first_name;
-      let last_name = team[index].last_name;
-      let ioc = team[index].ioc && team[index].ioc.length == 3 ? team[index].ioc.toUpperCase() : 'spacer';
-      let ioc_flag = flags ? `<img onerror="this.style.visibility='hidden'" width="25px" src="${gen.fx.env().assets.flags}${ioc}.png">` : '';
-
-      // Alternatives:
-      // onerror="this.style.display='none'"
-      // onerror="this.src='fallback-img.jpg'"
-           //  <span class="pad"><img onerror="this.style.visibility='hidden'" width="25px" src="./assets/flags/${ioc}.png"></span>
-
-      let html = `
-         <div class="team_player">
-            <span class="pad">${ioc_flag}</span>
-            <span class="pad">${first_name}</span>
-            <span class="last-name pad">${last_name}</span>
-            <span class="pad"></span>
-         </div>
-      `;
-      return html;
-   }
-
-   gen.setScore = setScore;
-   function setScore({ setnum, score={games:0} }) {
-      let tiebreak = score.tiebreak != undefined ? score.tiebreak : score.spacer != undefined ? score.spacer : '';
-      let setscore = score.supertiebreak != undefined ? score.supertiebreak : score.games;
-      let html = `
-         <div class="set score set_number" setnum="${setnum != undefined ? setnum : ''}">
-            <div class="setscore">${setscore}</div>
-            <div class="tbscore" ${score.spacer !== undefined ? 'style="opacity: 0"' : ''}>${tiebreak}</div>
-         </div>
-      `;
-      return html;
-   }
-
-   function scoreBoardConfig() {
-      let ids = {
-         edit_scoring: displayFx.uuid(),
-         bestof: displayFx.uuid(),
-         setsto: displayFx.uuid(),
-         tiebreaksat: displayFx.uuid(),
-         tiebreaksto: displayFx.uuid(),
-         finalset: displayFx.uuid(),
-         supertiebreakto: displayFx.uuid(),
-         stb2: displayFx.uuid(),
-      }
-      let html = `
-            <div id='${ids.edit_scoring}' class="scoreboard-config scoreboard-action">
-               <div class="edit configure flexrow">
-                  <div class='flexcol' style='width: 25%'>
-                     <div style='text-align: right'>Best of:</div>
-                     <div style='text-align: right'>TB at:</div>
-                     <div style='text-align: right'>Final Set:</div>
-                  </div>
-                  <div class='flexcol' style='width: 25%'>
-                     <div id="${ids.bestof}" class="score-selector"></div>
-                     <div id="${ids.tiebreaksat}" class="score-selector"></div>
-                     <div id="${ids.finalset}" class="score-selector"></div>
-                  </div>
-                  <div class='flexcol' style='width: 25%'>
-                     <div style='text-align: right'>Sets to:</div>
-                     <div style='text-align: right'>TB to:</div>
-                     <div id='${ids.stb2}' style='text-align: right'>To:</div>
-                  </div>
-                  <div class='flexcol' style='width: 25%'>
-                     <div id="${ids.setsto}" class="score-selector"></div>
-                     <div id="${ids.tiebreaksto}" class="score-selector"></div>
-                     <div id="${ids.supertiebreakto}" class="score-selector"></div>
-                  </div>
-
-               </div>
-            </div>
-      `;
-
-      return { ids, html }
-   }
-
-   function generateScoreBoard({ teams, flags=true }) {
-      let ids = {
-         actions: displayFx.uuid(),
-         scoring: displayFx.uuid(),
-         round: displayFx.uuid(),
-         clear: displayFx.uuid(),
-         accept: displayFx.uuid(),
-         p1action: displayFx.uuid(),
-         p2action: displayFx.uuid(),
-         p1scores: displayFx.uuid(),
-         p2scores: displayFx.uuid(),
-         p1scores_e: displayFx.uuid(),
-         p2scores_e: displayFx.uuid(),
-         p1selector: displayFx.uuid(),
-         p2selector: displayFx.uuid(),
-         p1tiebreak: displayFx.uuid(),
-         p2tiebreak: displayFx.uuid(),
-         mstatus: displayFx.uuid(),
-      }
-
-      let config = scoreBoardConfig();
-      Object.assign(ids, config.ids);
-
-      let html = `
-         <div class="scoreboard noselect">
-            <div class='scorebox'>
-               <div class='info'>
-                  <span class="info-text">
-                     <span class="round" id='${ids.round}'></span>
-                     <span class="court"></span>
-                  </span>
-                  <!-- <div id='${ids.scoring}'><img class='scoring_icon' src='./icons/edit_white.png'></div> -->
-                  <div id='${ids.scoring}'>-</div>
-               </div>
-               <div class='sbox'>
-                  <div class='sbcol'> 
-                     <div class="opponent opponent0">
-                        <div class="opponent-name">
-                           <div class="name-detail">
-                              ${scoreboardTeam({ team: teams[0], index: 0, flags })}
-                              ${scoreboardTeam({ team: teams[0], index: 1, flags })}
-                           </div>
-                        </div>
-                     </div>
-               
-                     <div class="opponent">
-                        <div class="opponent-name">
-                           <div class="name-detail">
-                              ${scoreboardTeam({ team: teams[1], index: 0, flags })}
-                              ${scoreboardTeam({ team: teams[1], index: 1, flags })}
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-
-                  <div class='sbcol'> 
-                     <div class="opponent opponent0">
-                        <div id="${ids.p1scores}" class="opponent-scores"></div>
-                        <div id="${ids.p1selector}" class="score-selector"></div>
-                        <div class="score-selector tbinput"> <input id="${ids.p1tiebreak}"> </div>
-                        <div id="${ids.p1scores_e}" class="opponent-scores"></div>
-                     </div>
-               
-                     <div class="opponent">
-                        <div id="${ids.p2scores}" class="opponent-scores"></div>
-                        <div id="${ids.p2selector}" class="score-selector"></div>
-                        <div class="score-selector tbinput"> <input id="${ids.p2tiebreak}"> </div>
-                        <div id="${ids.p2scores_e}" class="opponent-scores"></div>
-                     </div>
-                  </div>
-
-                  <div class='sbcol'>
-                     <div class="opponent opponent0">
-                        <div id="${ids.p1action}" class="score-action"></div>
-                     </div>
-                     <div class="opponent">
-                        <div id="${ids.p2action}" class="score-action"></div>
-                     </div>
-                  </div>
-               </div>
-               <div class='info'>
-               </div>
-            </div>
-
-            ${config.html}
-
-            <div id='${ids.actions}' class="scoreboard-action">
-               <div class="edit flexcol">
-                  <div class="frame">
-                     <div class="scoreboard-actions">
-                        <button id='${ids.clear}' class='btn dismiss'>${lang.tr('clr')}</button>
-                        <button id='${ids.accept}' class='btn accept'>${lang.tr('apt')}</button>
-                     </div>
-                  </div>
-               </div>
-            </div>
-
-         </div>
-      `;
-
-      return { ids, html };
-   }
-   // END SCOREBOARD
-
    gen.homeIconState = (value) => {
       let class_name = 'icon15 homeicon';
       if (value == 'update') class_name += '_update';
@@ -3082,7 +2831,7 @@ export const displayGen = function() {
                </div>
                <div class='location_attribute'>
                   <div class='loclabel'>${lang.tr('locations.identifiers')}:</div>
-                  <input id='${ids.identifiers}' class='locvalue_short'>
+                  <input id='${ids.identifiers}' placeholder='1, 2, 3, 4' class='locvalue_short'>
                </div>
             </div>
          </div>
