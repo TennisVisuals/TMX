@@ -438,6 +438,7 @@ export const tournamentFx = function() {
    }
 
    function playerCopy(p) {
+      if (!p) return {};
       let player = {
          id: p.id,
          sex: p.sex,
@@ -500,6 +501,7 @@ export const tournamentFx = function() {
 
             // TODO: implement qualifier in approvedTeams?
 
+            // draw_order is order in ranked list of event players
             p.draw_order = i + 1;
             p.seed = (seeding && i < seed_limit) ? i + 1 : undefined;
 
@@ -828,7 +830,10 @@ export const tournamentFx = function() {
    // RR Events
    fx.allBracketsComplete = (evt) => evt.draw.brackets.map(dfx.bracketComplete).reduce((a, b) => a && b);
 
-   function catRankSort(a, b) {
+   function rrQualSort(a, b) {
+      if (!b[0].category_ranking && !a[0].category_ranking && b[0].results.ratio_hash && a[0].results.ratio_hash) {
+         return a[0].ratio_hash - b[0].ratio_hash;
+      }
       return (b[0].category_ranking || 9999) - (a[0].category_ranking || 9999);
    }
 
@@ -838,17 +843,18 @@ export const tournamentFx = function() {
          if (o[0].order == 1 && o[0].sub_order == undefined) return true;
          if (o[0].order == 1 && o[0].sub_order == 1) return true;
       })
-      .sort(catRankSort);
+      .sort(rrQualSort);
    }
 
    fx.secondQualifiers = (evt) => {
       let opponents = evt.draw.opponents;
-      return opponents.filter(o=> {
+      let ordered_opponents = opponents.filter(o=> {
          if (o[0].order == 1 && o[0].sub_order == 2) return true;
          if (o[0].order == 2 && o[0].sub_order == undefined) return true;
          if (o[0].order == 2 && o[0].sub_order == 1) return true;
       })
-      .sort(catRankSort);
+      .sort(rrQualSort);
+      return ordered_opponents;
    }
 
    fx.thirdQualifiers = (evt) => {
@@ -859,7 +865,7 @@ export const tournamentFx = function() {
             if (o[0].order == 3 && o[0].sub_order == undefined) return true;
             if (o[0].order == 3 && o[0].sub_order == 1) return true;
       })
-      .sort(catRankSort);
+      .sort(rrQualSort);
    }
 
    fx.determineRRqualifiers = (tournament, e) => {
