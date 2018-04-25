@@ -187,6 +187,8 @@ export const lang = function() {
          draws: 'Draws',
          data: 'Data',
          publishing: 'Publishing',
+         printing: 'Printing',
+         savepdfs: 'Save PDFs',
          compresseddraws: 'Compressed Draw Formats',
          countryflags: 'Country Flags Displayed',
          requireconfirm: 'Require Confirmation',
