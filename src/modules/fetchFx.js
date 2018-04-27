@@ -110,7 +110,6 @@ export const fetchFx = function() {
          let players = fetched.players.filter(p=>p);
          delete fetched.players;
 
-         db.addDev({fetched, players});
          addTournamentPlayers(players).then(addTournament, util.logError);
 
          function addTournament(players) {
@@ -292,7 +291,6 @@ export const fetchFx = function() {
             let increment_url = params.increment == 'false' ? false : true;
             let request_url = params.url;
             if (increment_url) request_url += max_id;
-            // let request_object = { [params.type]: params.url + max_id };
             let request_object = { [params.type]: request_url };
             let request = JSON.stringify(request_object);
             function responseHandler(result) {
@@ -308,6 +306,8 @@ export const fetchFx = function() {
             ajax('/api/match/request', request, 'POST', responseHandler);
          }
 
+         // TODO: PUID generation should occur on the remote server, not in this script!
+         // nameHash should be elminated...
          function normalizePlayers(players) {
             players.forEach(player => {
                let rtp_date = new Date(player.right_to_play_until);
@@ -318,13 +318,13 @@ export const fetchFx = function() {
                player.birth = (birth_date != 'Invalid Date') ? birth_date.getTime() : undefined;
                let name = (player.first_name + player.last_name).trim();
                player.hash = util.nameHash(name);
-               // player.foreign = player.foreign != 'N';
-               // player.ioc = player.ioc || (!player.ioc && !player.foreign ? 'CRO' : undefined);
+               let foreign = player.foreign != 'N';
+               player.ioc = player.ioc || (!player.ioc && !foreign ? 'CRO' : undefined);
                // player.represents_ioc = player.represents_ioc != 'N';
                player.residence_permit = player.residence_permit != 'N';
                player.last_name = util.normalizeName(player.last_name, false).trim();
                player.first_name = util.normalizeName(player.first_name, false).trim();
-               // player.puid = player.puid || `${player.foreign ? 'INO' : 'CRO'}-${player.cropin}`;
+               player.puid = player.puid || `${player.foreign ? 'INO' : 'CRO'}-${player.cropin}`;
             });
 
             resolve(players);
