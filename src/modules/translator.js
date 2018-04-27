@@ -292,6 +292,7 @@ export const lang = function() {
          received: 'Received Tournament Record',
          publishtime: 'Publish Time',
          replacelocal: 'Replace Local Copy?',
+         unpublish: 'Unpublish Tournament?',
       },
 
       ddlb: {
