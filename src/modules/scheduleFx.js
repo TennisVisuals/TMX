@@ -46,9 +46,32 @@ export const scheduleFx = function() {
             }
          });
          Object.keys(courts).forEach(key => {
-            courts[key].matches = courts[key].matches.sort((a, b) => a.schedule.oop_round > b.schedule.oop_round);
+            courts[key].matches = courts[key].matches
+               .sort((a, b) => a.schedule.oop_round > b.schedule.oop_round)
+               .map(matchScheduleObject);
          });
          return courts;
+      }
+
+      function matchScheduleObject(match) {
+         let mso = {
+            event: match.event,
+            format: match.format,
+            gender: match.gender,
+            muid: match.muid,
+            players: match.players,
+            puids: match.puids,
+            teams: match.teams,
+            team_players: match.team_players,
+            round_name: match.round_name,
+            potentials: match.potentials,
+            schedule: match.schedule,
+            score: match.score,
+            status: match.status,
+            umpire: match.umpire,
+            winner_index: match.winner_index
+         }
+         return mso;
       }
 
       function getOOP() {
@@ -82,7 +105,6 @@ export const scheduleFx = function() {
                or: lang.tr('or')
             }
          }
-         console.log('tournamentOOP:', tournamentOOP)
          return tournamentOOP;
       }
    }
