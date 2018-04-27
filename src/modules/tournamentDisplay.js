@@ -248,8 +248,12 @@ export const tournamentDisplay = function() {
                   }
 
                   function unpublishTournament(tuid) {
-                     let deleteEventsRequest = { tuid, ouid: tournament_data.org.ouid };
-                     coms.emitTmx({ deleteEventsRequest })
+                     let org = fx.fx.env().org;
+                     let ouid = (org && org.ouid) || (tournament_data && tournament_data.org && tournament_data.org.ouid);
+                     if (!ouid) return;
+
+                     let deleteTournamentEvents = { tuid, ouid, delete_tournament: true };
+                     coms.emitTmx({ deleteTournamentEvents })
                      displayGen.closeModal();
                      if (tournament_data.events) {
                         tournament_data.events.forEach(evt => {
@@ -257,7 +261,7 @@ export const tournamentDisplay = function() {
                            evt.up_to_date = false;
                         });
                      }
-                     coms.emitTmx({ deleteOOP: { tuid }});
+                     coms.emitTmx({ deleteOOP: { tuid, ouid }});
                   }
                }
             }
@@ -466,14 +470,23 @@ export const tournamentDisplay = function() {
       }
 
       function unPublishOOP(tournament) {
-         if (!tournament.schedule) tournament.schedule = {};
-         tournament.schedule.published = false
-         tournament.schedule.up_to_date = false;
-         saveTournament(tournament);
-         coms.emitTmx({ deleteOOP: { tuid: tournament.tuid } });
-         schedulePublishState();
-         scheduleActions();
+         let org = fx.fx.env().org;
+         let ouid = org && org.ouid;
+         if (!ouid || !tournament.tuid) return;
+
+         coms.emitTmx({ deleteOOP: { tuid: tournament.tuid, ouid } });
          displayGen.closeModal();
+
+         coms.requestAcknowledgement({ uuid: `oop:${tournament.tuid}`, callback: changePublishState });
+
+         function changePublishState() {
+            if (!tournament.schedule) tournament.schedule = {};
+            tournament.schedule.published = false
+            tournament.schedule.up_to_date = false;
+            saveTournament(tournament);
+            schedulePublishState();
+            scheduleActions();
+         }
       }
 
       util.addEventToClass(classes.publish_schedule, publishSchedule);
@@ -654,18 +667,19 @@ export const tournamentDisplay = function() {
       }
 
       function unpublishTournamentInfo(tournament) {
-         function updateInfoPubState(result) {
-            tournament.infoPublished = undefined;
-            displayGen.pubStateTrnyInfo(container.pubStateTrnyInfo.element, tournament.infoPublished);
-            saveTournament(tournament, false);
+         displayGen.okCancelMessage(lang.tr('tournaments.unpublish'), unPublishTournament, () => displayGen.closeModal());
+
+         function unPublishTournament() {
+            function updateInfoPubState(result) {
+               tournament.infoPublished = undefined;
+               displayGen.pubStateTrnyInfo(container.pubStateTrnyInfo.element, tournament.infoPublished);
+               saveTournament(tournament, false);
+            }
+            coms.requestAcknowledgement({ uuid: tournament.tuid, callback: updateInfoPubState });
+            let deleteTournamentEvents = { tuid: tournament.tuid, ouid: tournament.org.ouid, delete_tournament: true };
+            coms.emitTmx({ deleteTournamentEvents })
+            displayGen.closeModal();
          }
-         coms.requestAcknowledgement({ uuid: tournament.tuid, callback: updateInfoPubState });
-         var unpublishTrnyInfo = {
-            version: fx.fx.env().version,
-            tuid: tournament.tuid,
-            tournament: CircularJSON.stringify(tournament)
-         };
-         coms.emitTmx({unpublishTrnyInfo});
       }
 
       function publishTournamentInfo(tournament) {
@@ -710,7 +724,7 @@ export const tournamentDisplay = function() {
       displayGen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
 
       container.notes.element.value = tournament.notes || '';
-      container.notes_display.element.innerHTML = container.notes.element.value;
+      container.notes_display.element.innerHTML = container.notes.element.value.replace(/\n/g, "<br />");
 
       container.edit_notes.element.addEventListener('click', () => {
          let visible = container.notes.element.style.display == 'inline';
@@ -721,7 +735,7 @@ export const tournamentDisplay = function() {
       container.notes.element.addEventListener('keyup', () => {
          // strip html of unwanted content
          tournament.notes = sanitizeHtml(container.notes.element.value, {
-           allowedTags: [ 'font', 'b', 'i', 'em', 'strong', 'pre', 'h1', 'h2', 'h3', 'p', 'br' ],
+           allowedTags: [ 'font', 'b', 'i', 'em', 'strong', 'pre', 'h1', 'h2', 'h3', 'p', 'br', 'center', 'div', 'span' ],
            allowedAttributes: false
          });
          container.notes_display.element.innerHTML = tournament.notes.replace(/\n/g, "<br />");
@@ -2124,8 +2138,8 @@ export const tournamentDisplay = function() {
          displayGen.escapeModal();
 
          function unPublishAll() {
-            let deleteEventsRequest = { tuid: tournament.tuid, ouid: tournament.org.ouid };
-            coms.emitTmx({ deleteEventsRequest })
+            let deleteTournamentEvents = { tuid: tournament.tuid, ouid: tournament.org.ouid };
+            coms.emitTmx({ deleteTournamentEvents })
             displayGen.closeModal();
             tournament.events.forEach(evt => {
                evt.published = false;
