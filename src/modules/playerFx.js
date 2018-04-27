@@ -196,6 +196,7 @@ export const playerFx = function() {
       displayGen.showEdit(html);
    }
 
+   // TODO: NOT USED??
    fx.scheduledMatchDetails = scheduledMatchDetails;
    function scheduledMatchDetails(match) {
       let genders = [];
@@ -212,9 +213,30 @@ export const playerFx = function() {
       return { teams, team_puids, genders };
    }
 
-
    // cleanPlayer removes all calculated Points and calculated Rankings
    fx.cleanPlayer = (player) => Object.assign({}, ...Object.keys(player).filter(key => ['points', 'rankings'].indexOf(key) < 0).map(key => { return { [key]: player[key] }}));
+
+   fx.playerCopy = (p) => {
+      if (!p) return {};
+      let player = {
+         id: p.id,
+         sex: p.sex,
+         ioc: p.ioc,
+         int: p.int,
+         puid: p.puid,
+         seed: p.seed,
+         rank: p.rank,
+         rankings: p.rankings,
+         club_code: p.club_code,
+         full_name: p.full_name,
+         last_name: p.last_name,
+         first_name: p.first_name,
+         draw_position: p.draw_position,
+         category_ranking: p.category_ranking,
+         modified_ranking: p.modified_ranking,
+      }
+      return player;
+   }
 
    fx.replacePlayer = (match, old_player, new_player) => {
       match.puids = match.puids.map(puid => (puid != old_player.puid) ? puid : new_player.puid);
@@ -224,6 +246,8 @@ export const playerFx = function() {
 
    fx.playerProfileLadderPNG = (filename = 'ladder.png') => exportFx.saveSVGasPNG('.itemCalendar', filename);
 
+   // TODO: not used?
+   // perhaps an example to extract ladder adn export as pdf?
    fx.playerProfilePDF = () => {
       let svg = d3.select('.itemCalendar');
       if (!svg.node()) return;
