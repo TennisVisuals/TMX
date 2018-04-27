@@ -3,6 +3,7 @@ import { UUID } from './UUID';
 import { drawFx } from './drawFx';
 import { matchFx } from './matchFx';
 import { lang } from './translator';
+import { playerFx } from './playerFx';
 
 export const tournamentFx = function() {
 
@@ -353,7 +354,7 @@ export const tournamentFx = function() {
          approved = fx.approvedPlayers({ tournament, env, e }).map(p=>[p]);
       } else {
          approved = fx.approvedTeams({ tournament, e }).map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));;
-         // approved = fx.approvedTeams({ tournament, e }).map(team => team.players.map(player => Object.assign(playerCopy(player), { seed: team.seed })));;
+         // approved = fx.approvedTeams({ tournament, e }).map(team => team.players.map(player => Object.assign(playerFx.playerCopy(player), { seed: team.seed })));;
       }
 
       // assign any previous entry data to players
@@ -414,7 +415,7 @@ export const tournamentFx = function() {
 
    fx.teamObj = (e, team, idmap) => {
       // let team_players = team.map(id=>idmap[id]).sort(lastNameSort);
-      let team_players = team.map(id=>playerCopy(idmap[id])).sort(lastNameSort);
+      let team_players = team.map(id=>playerFx.playerCopy(idmap[id])).sort(lastNameSort);
       let team_hash = team_players.map(p=>p&&p.id).sort().join('|');
       let subrank = (e.doubles_subrank && e.doubles_subrank[team_hash]) ? e.doubles_subrank[team_hash] : undefined;
       let combined_rank = team_players.map(t=>t.int_order != undefined ? t.int_order : t.category_ranking).reduce((a, b) => (+a || 9999) + (+b || 9999));
@@ -437,36 +438,12 @@ export const tournamentFx = function() {
       }
    }
 
-   function playerCopy(p) {
-      if (!p) return {};
-      let player = {
-         id: p.id,
-         sex: p.sex,
-         ioc: p.ioc,
-         int: p.int,
-         puid: p.puid,
-         seed: p.seed,
-         rank: p.rank,
-         rankings: p.rankings,
-         // result: p.result,
-         // results: p.results,
-         club_code: p.club_code,
-         full_name: p.full_name,
-         last_name: p.last_name,
-         first_name: p.first_name,
-         draw_position: p.draw_position,
-         category_ranking: p.category_ranking,
-         modified_ranking: p.modified_ranking,
-      }
-      return player;
-   }
-
    fx.approvedPlayers = ({ tournament, env, e }) => {
       let approved_players = (tournament.players || [])
          .filter(p => e.approved.indexOf(p.id) >= 0)
          // make a copy of player objects to avoid changing originals
          // .map(p => Object.assign({}, p));
-         .map(playerCopy);
+         .map(playerFx.playerCopy);
 
       let seed_limit = dfx.seedLimit(approved_players.length);
 
