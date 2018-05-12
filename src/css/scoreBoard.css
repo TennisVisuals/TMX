@@ -17,9 +17,21 @@ body {
 }
 
 .completed_icon {
+   background-image: url("img/completed.png");
    width: 1.5em;
    height: 1.5em;
 }
+
+.scoreboard .info .fav {
+    margin: 0px;
+    width: 16px;
+    height: 16px;
+    background: url('./img/favoff.png');
+}
+.scoreboard .info .fav:hover {
+    background: url('./img/favhover.png')
+}
+.scoreboard .info .fav.active { background: url('./img/favon.png') }
 
 .scoreboard {
    display: flex;
@@ -60,7 +72,7 @@ body {
 .scoreboard .info span { padding-top: 3px }
 .scoreboard .info button { float: right }
 
-.scoreboard .info .round_name { margin-left: .5em; }
+.scoreboard .info .round_name, .scoreboard .info .court { margin-left: .5em; }
 .scoreboard .info div {
     float: right;
     width: 1.5em;
@@ -229,7 +241,7 @@ html.can-touch .scoreboard .info .options:hover { background-color: none; }
 }
 
 .scoreboard .scoreboard-action .configure {
-   margin-bottom: .5em;
+   padding-bottom: .6em;
 }
 
 .scoreboard .scoreboard-actions {
