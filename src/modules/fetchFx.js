@@ -262,8 +262,8 @@ export const fetchFx = function() {
          function normalizeTournaments(trnys) {
             let ouid = config.env().org && config.env().org.ouid;
             trnys.forEach(t => {
-               t.start = new Date(t.start).getTime();
-               t.end = new Date(t.end).getTime();
+               t.start = util.validDate(t.start) ? new Date(t.start).getTime() : undefined;
+               t.end = util.validDate(t.end) ? new Date(t.end).getTime() : (t.start || undefined);
                if (!t.ouid) t.ouid = ouid;
 
                // TODO: This needs to be a configured SID (Site ID?) and not config.env().org (HTS)
@@ -324,7 +324,7 @@ export const fetchFx = function() {
                player.residence_permit = player.residence_permit != 'N';
                player.last_name = util.normalizeName(player.last_name, false).trim();
                player.first_name = util.normalizeName(player.first_name, false).trim();
-               player.puid = player.puid || `${player.foreign ? 'INO' : 'CRO'}-${player.cropin}`;
+               player.puid = player.puid || `${player.foreign == 'Y' ? 'INO' : 'CRO'}-${player.cropin}`;
             });
 
             resolve(players);
