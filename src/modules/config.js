@@ -43,7 +43,7 @@ export const config = function() {
          queryString[pair[0]].push(pair[1]);
        }
      } 
-     clearHistory();
+     util.clearHistory();
    })();
 
    function checkQueryString() {
@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.127.197.123',
+      version: '0.9.141.242.158',
       version_check: undefined,
       org: {
          name: undefined,
@@ -130,7 +130,8 @@ export const config = function() {
                doubles: 3
             },
             brackets: {
-               min_bracket_size: 4,
+               min_bracket_size: 3,
+               default_bracket_size: 4,
                max_bracket_size: 5,
             },
          },
@@ -150,11 +151,13 @@ export const config = function() {
       publishing: {
          require_confirmation: false,
          publish_on_score_entry: true,
+         publish_draw_creation: false,
       },
       schedule: {
          clubs: true,
          ioc_codes: false,
          scores_in_draw_order: false,
+         max_matches_per_court: 14
       },
       searchbox: {
          lastfirst: false,
@@ -259,8 +262,6 @@ export const config = function() {
          userInterface: [ 'defaultIdiom', ],
       },
    };
-
-   function clearHistory() { history.pushState('', document.title, window.location.pathname); }
 
    function idiomLimit(opts) {
       var ioc_opts = opts.map(o=>`<div class='flag_opt' ioc='${o.value}' title='${o.title}'>${o.key}</div>`).join('');
@@ -488,6 +489,10 @@ export const config = function() {
                   container.require_confirmation.element.checked = false;
                }
             }
+
+            container.publish_draw_creation.element.addEventListener('click', publishDrawCreation);
+            container.publish_draw_creation.element.checked = util.string2boolean(env.publishing.publish_draw_creation);
+            function publishDrawCreation(evt) { env.publishing.publish_draw_creation = container.publish_draw_creation.element.checked; }
          }
 
          if (v.printing) {
@@ -759,13 +764,6 @@ export const config = function() {
             if (draws && draws.settings) {
                util.boolAttrs(draws.settings);
                util.keyWalk(draws.settings, env.draws);
-            }
-
-            // TODO: all keys need to replace 'treeDraw' with 'drawSettings'
-            let td = getKey('treeDraw');
-            if (td) {
-               util.boolAttrs(td.options);
-               env.draws.tree_draw = Object.assign(env.draws.tree_draw, td.options);
             }
 
             let settings_tabs = getKey('settingsTabs');
@@ -1060,7 +1058,6 @@ export const config = function() {
 
       coms.emitTmx({
          event: 'Connection',
-         notice: window.navigator.userAgent,
          client: 'tmx',
          version: env.version
       });
@@ -1131,7 +1128,8 @@ export const config = function() {
 
    function updatePlayers() {
       if (!navigator.onLine) return;
-      let id = displayGen.busy.message(`<p>${lang.tr('refresh.players')}...</p>`, searchBox.updateSearch);
+      let updateSearch = () => setTimeout(function() { searchBox.updateSearch(); }, 1000);
+      let id = displayGen.busy.message(`<p>${lang.tr('refresh.players')}...</p>`, updateSearch);
       let done = () => displayGen.busy.done(id);
       let addNew = (players) => importFx.processPlayers(players).then(done, done);
       let notConfigured = (err) => { done(); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
