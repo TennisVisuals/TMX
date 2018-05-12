@@ -183,7 +183,7 @@ export const tournamentFx = function() {
       if (outcome.score) match.status = '';
       match.winner_index = outcome.winner;
 
-      match.muid = match.muid || UUID.new();
+      match.muid = match.muid || UUID.idGen();
       match.winner = outcome.teams[outcome.winner];
       match.loser = outcome.teams[1 - outcome.winner];
       match.date = match.date || new Date().getTime();
@@ -257,7 +257,7 @@ export const tournamentFx = function() {
       match.winner_index = outcome.winner;
       match.score_format = outcome.score_format;
 
-      match.muid = match.muid || UUID.new();
+      match.muid = match.muid || UUID.idGen();
       match.winner = [match.players[outcome.winner]];
       match.loser = [match.players[1 - outcome.winner]];
       match.date = match.date || new Date().getTime();
@@ -269,12 +269,10 @@ export const tournamentFx = function() {
          tuid: tournament.tuid,
          org: tournament.org,
          category: tournament.category,
-         // TODO get rid of round...
-         round: match.round_name || match.round,
          round_name: match.round_name
       };
 
-      dfx.tallyBracketResults({ bracket });
+      dfx.tallyBracketResults({ bracket, reset: true });
       if (outcome.complete && dfx.bracketComplete(bracket)) {
          let q_result = fx.determineRRqualifiers(tournament, e);
          result = Object.assign(result, q_result);
@@ -621,7 +619,7 @@ export const tournamentFx = function() {
          .filter(p => unavailable_ids.indexOf(p.id) < 0);
 
       let completed_matches = e.links && e.links['E'] ?  mfx.eventMatches(fx.findEventByID(tournament, e.links['E']), tournament).filter(m=>m.match.winner) : [];
-      if (e.draw_type == 'P' && (!e.links['E'] || !completed_matches.length)) return [];
+      if (e.draw_type == 'P' && (!e.links['E'] || !completed_matches.length)) return { players: [] };
 
       if (e.draw_type == 'P') {
          let ep = exitProfiles(completed_matches);
@@ -638,7 +636,7 @@ export const tournamentFx = function() {
             let qualifier_ids = linkedQ.qualified.map(q=>q[0].id);
             available_players = available_players.filter(p=>qualifier_ids.indexOf(p.id) < 0);
          } else {
-            if (!e.links['E'] || !completed_matches.length) return [];
+            if (!e.links['E'] || !completed_matches.length) return { players: [] };
 
             let winner_ids = [].concat(...completed_matches.map(match => match.match.winner.map(team=>team.id)));
             let all_loser_ids = [].concat(...completed_matches.map(match => match.match.loser.map(team=>team.id)));
@@ -809,7 +807,7 @@ export const tournamentFx = function() {
 
    function rrQualSort(a, b) {
       if (!b[0].category_ranking && !a[0].category_ranking && b[0].results.ratio_hash && a[0].results.ratio_hash) {
-         return a[0].ratio_hash - b[0].ratio_hash;
+         return a[0].results.ratio_hash - b[0].results.ratio_hash;
       }
       return (b[0].category_ranking || 9999) - (a[0].category_ranking || 9999);
    }
