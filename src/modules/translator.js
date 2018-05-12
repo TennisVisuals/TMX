@@ -92,6 +92,8 @@ export const lang = function() {
       pts:     'Points',
       mts:     'Matches',
       emts:    'Matches',
+      ests:    'Sets',
+      egms:    'Games',
       mtc:     'Match',
       drw:     'Draw',
       drz:     'Draws',
@@ -193,6 +195,7 @@ export const lang = function() {
          countryflags: 'Country Flags Displayed',
          requireconfirm: 'Require Confirmation',
          publishonscore: 'Publish when score entered',
+         publishdrawcreation: 'Publish as draw created',
          matchesbefore: 'Matches Before Count',
          automatedbyes: 'Automatic Bye Placement',
          fixedbyes: 'Fixed Bye Order',
@@ -214,6 +217,15 @@ export const lang = function() {
          singles: 'Singles',
          doubles: 'Doubles',
          team: 'Team',
+      },
+
+      scoring_format: {
+         bestof: 'Best of',
+         tbat: 'TB at',
+         finalset: 'Final Set',
+         setsto: 'Sets to',
+         tbto: 'TB to',
+         superto: 'To'
       },
 
       draws: {
@@ -476,6 +488,7 @@ export const lang = function() {
          publish: 'Publish Schedule',
          unpublish: 'Unpublish Schedule',
          timing: 'Timing',
+         vs: 'vs.'
       },
       
       refresh: {
