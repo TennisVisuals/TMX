@@ -11,9 +11,7 @@ export const scheduleFx = function() {
    let mfx = matchFx;
    let dfx = drawFx();
 
-   fx.fx = {
-      env: () => console.log('environment fx'),
-   }
+   fx.fx = {};
 
    fx.generateSchedule = (tournament) => {
       if (!tournament.schedule) tournament.schedule = {};
@@ -258,14 +256,15 @@ export const scheduleFx = function() {
       let complete = winner_index != undefined;
 
       let teams = !match.team_players ? [] : match.team_players.map(teamName);
-      let divider = 'vs.';
+      let divider = lang.tr('schedule.vs');
 
       let first_team = complete && winner_index == 0 ? `<b>${teams[0]}</b>` : (teams[0] || unknownBlock(0));
       let second_team = complete && winner_index == 1 ? `<b>${teams[1]}</b>` : (teams[1] || unknownBlock(1));
       let format = lang.tr(`formats.${match.format || ''}`);
 
       let score = match.score || '';
-      if (score && winner_index && fx.fx.env().schedule.scores_in_draw_order) score = dfx.reverseScore(score);
+      let reverse_scores = fx.fx.env && fx.fx.env().schedule && fx.fx.env().schedule.scores_in_reverse_draw_order;
+      if (score && winner_index && reverse_scores) score = dfx.reverseScore(score);
 
       let match_status = match.status ? `<div class='match_status'>${match.status}</div>` : '&nbsp;';
       let category = match.event ? match.event.category : '';
@@ -278,12 +277,14 @@ export const scheduleFx = function() {
       let time_prefix = match.schedule.time_prefix ? `${match.schedule.time_prefix} ` : '';
       let header = time_icon || `${heading}${time_prefix}${match.schedule.time || ''}`;
       let font_sizes = ['1em', '1em'];
+      let round_name = match.round_name || '';
+      if (match.consolation) round_name = `C-${round_name}`;
       let html = `
          <div class='header flexrow'>${header}</div> 
          <div class='catround'>
             <div class='category'>${match.gender || ''} ${category}</div>
             <div class='format'>${format}</div>
-            <div class='round'>${match.round_name || ''}</div>
+            <div class='round'>${round_name}</div>
          </div>
          <div class='scheduled_teams'>
             <div class='scheduled_team' style='font-size: ${font_sizes[0]}'>${first_team || ''}</div>
