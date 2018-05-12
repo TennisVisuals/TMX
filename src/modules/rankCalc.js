@@ -188,7 +188,6 @@ export const rankCalc = function() {
                awardPoints(match, 1 - match.winner, round_name);
             }
          }
-
       });
 
       function awardPoints(match, team_index, round_name, calculated) {
