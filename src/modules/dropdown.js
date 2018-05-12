@@ -14,7 +14,7 @@ export const dd = function() {
    }
 
    fx.DropDown = DropDown;
-   function DropDown({ element, onChange, css_class, style, id, locked, max, maxFx, value_attribute=true }) {
+   function DropDown({ element, onChange, css_class, id, locked, max, maxFx, value_attribute=true }) {
       this.id = id;
       this.val = '';
       this.max = max;
@@ -25,7 +25,6 @@ export const dd = function() {
       this.bordercolor = '';
       this.labelcolor = '#000';
       this.class = css_class;
-      this.style = style || {}
       this.value_attribute = value_attribute;
       this.list = this.el.querySelector(".dd_state");
       this.options = this.el.querySelector(".options");
@@ -96,8 +95,6 @@ export const dd = function() {
            addClick(obj);
            addOptClicks(obj);
        },
-       getStyle(attr, value) { if (this.style) return this.style[attr]; },
-       setStyle(attr, value) { if (attr && value) this.style[attr] = value; },
        getValue() { return this.val; },
        setId(id) { this.id = id; },
        getId() { return this.id; },
