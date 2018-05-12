@@ -41,6 +41,8 @@ export const playerFx = function() {
       });
    }
 
+   fx.clearEntry = (teams = []) => teams.forEach(team => team.forEach(player => player.entry = undefined));
+
    function setActivePlayer(player, club) {
       displayGen.activePlayer(player, club);
       Array.from(displayGen.identify_container.action_message.element.querySelectorAll('button.dismiss'))
@@ -502,5 +504,99 @@ export const playerFx = function() {
       player_container.save.element.addEventListener('keyup', handleSaveKeyUp, false);
    }
 
+   fx.editPlayer = editPlayer;
+   function editPlayer({player_data={}, category, callback, date=new Date()} = {}) {
+      let player = {
+         first_name: player_data.first_name,
+         last_name: player_data.last_name,
+         ioc: player_data.ioc,
+      }
+
+      let player_container = displayGen.editPlayer(player);
+      player_container.last_name.element.style.background = player.last_name ? 'white' : 'yellow';
+      player_container.first_name.element.style.background = player.first_name ? 'white' : 'yellow';
+      player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
+
+      let field_order = [ 'last_name', 'first_name', 'ioc' ];
+
+      player_container.last_name.element.focus();
+      let nextFieldFocus = (field) => {
+         let next_field = field_order.indexOf(field) + 1;
+         if (next_field == field_order.length) next_field = 0;
+         player_container[field_order[next_field]].element.focus(); 
+      }
+
+      // IOC Awesomplete
+      d3.json('./assets/ioc_codes.json', data => {
+         let list = data.map(d => ({ label: d.name, value: d.ioc }));
+         player_container.ioc.typeAhead = new Awesomplete(player_container.ioc.element, { list });
+
+         let selection_flag = false;
+         let selectComplete = (c) => { 
+            selection_flag = true; 
+            player.ioc = c.text.value; 
+            player_container.ioc.element.value = c.text.label;
+            player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
+         }
+         player_container.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
+         player_container.ioc.element.addEventListener('keydown', catchTab , false);
+         player_container.ioc.element.addEventListener('keyup', catchTab , false);
+         player_container.ioc.element.addEventListener("keyup", function(evt) { 
+            // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
+            if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
+               if (player_container.ioc.typeAhead.suggestions && player_container.ioc.typeAhead.suggestions.length) {
+                  player_container.ioc.typeAhead.next();
+                  player_container.ioc.typeAhead.select(0);
+               } else {
+                  player_container.ioc.element.value = '';
+                  player_container.ioc.element.style.background = 'yellow';
+               }
+               nextFieldFocus(evt.shiftKey ? 'first_name' : 'ioc');
+            }
+            selection_flag = false;
+         });
+      });
+
+      let defineAttr = (attr, evt, required, elem) => {
+         player[attr] = elem ? elem.value : evt? evt.target.value : undefined;
+         if (required) player_container[attr].element.style.background = player[attr] ? 'white' : 'yellow';
+         if ((!evt || evt.which == 13 || evt.which == 9) && (!required || (required && player[attr]))) return nextFieldFocus(attr);
+      }
+
+      let saveNewPlayer = () => { 
+         if (!player.first_name || !player.last_name || !player.ioc) return;
+         player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
+
+         if (typeof callback == 'function') callback(player); 
+         displayGen.closeModal();
+      }
+
+      let handleSaveKeyDown = (evt) => {
+         evt.preventDefault();
+         if (evt.which == 9) nextFieldFocus(evt.shiftKey ? 'email' : 'save'); 
+      }
+
+      let handleSaveKeyUp = (evt) => {
+         catchTab(evt); 
+         if (evt.which == 13) saveNewPlayer();
+      }
+
+      let handleCancelKeyEvent = (evt) => {
+         evt.preventDefault()
+         if (evt.which == 9) nextFieldFocus(evt.shiftKey ? 'phone' : 'cancel');
+      }
+
+      player_container.last_name.element.addEventListener('keydown', (evt) => { if (evt.shiftKey && evt.which == 9) nextFieldFocus('email'); });
+      player_container.last_name.element.addEventListener('keyup', (evt) => defineAttr('last_name', evt, true));
+      player_container.first_name.element.addEventListener('keyup', (evt) => defineAttr('first_name', evt, true));
+      player_container.cancel.element.addEventListener('click', () => displayGen.closeModal());
+      player_container.cancel.element.addEventListener('keydown', handleCancelKeyEvent);
+      player_container.cancel.element.addEventListener('keyup', (evt) => { if (evt.which == 13) displayGen.closeModal(); });
+      player_container.save.element.addEventListener('click', saveNewPlayer);
+      player_container.save.element.addEventListener('keydown', handleSaveKeyDown, false);
+      player_container.save.element.addEventListener('keyup', handleSaveKeyUp, false);
+   }
+
    return fx;
+
 }();
