@@ -41,7 +41,7 @@ export const scoreBoard = function() {
       util.keyWalk(values, o);
    }
 
-   fx.setMatchScore = ({ sobj, muid, flags, lock, grouped, round, teams, existing_scores, score_format={}, callback }) => {
+   fx.setMatchScore = ({ sobj, muid, flags, lock, grouped, round_name, teams, existing_scores, score_format={}, match, callback }) => {
       let floating = !sobj;
       let f = Object.assign({}, o, score_format);
 
@@ -53,7 +53,10 @@ export const scoreBoard = function() {
       var action_drawer;
 
       if (floating) sobj = fx.floatingScoreBoard({ muid, teams, flags });
-      if (round) sobj.round_name.element.innerHTML = round;
+      if (round_name) sobj.round_name.element.innerHTML = round_name;
+      sobj.details.element.innerHTML = matchStatus(match);
+      sobj.scoring.element.style.display = lock ? 'none' : 'inline';
+      sobj.favorite.element.style.display = lock ? 'inline' : 'none';
 
       if (muid) {
          setClicks[muid] = (set) => {
@@ -73,7 +76,7 @@ export const scoreBoard = function() {
          let visible = bool && !lock ? true : false;
          action_drawer = visible;
          displayFx.toggleVisible({ elem: sobj.actions.element, type: 'edit', height: 50, visible });
-         sobj.scoring.element.style.display = action_drawer ? 'none' : 'inline';
+         sobj.scoring.element.style.display = action_drawer || lock ? 'none' : 'inline';
          sobj.edit_scoring.element.style.display = action_drawer ? 'none' : 'inline';
       }
 
@@ -95,7 +98,7 @@ export const scoreBoard = function() {
          let winner = determineWinner(grouped ? false : true);
          set_number = winner != undefined ? set_scores.length : Math.max(0, set_scores.length - 1);
 
-         if (existing_scores && (existing_scores.length || existing_scores.walkover)) {
+         if (existing_scores && (existing_scores.length || existing_scores.walkover || existing_scores.default)) {
             let last_set = set_scores.length ? set_scores[set_scores.length - 1] : undefined;
             if (set_scores.interrupted) {
                sobj.p1action.ddlb.setValue(' ');
@@ -343,6 +346,12 @@ export const scoreBoard = function() {
       }
 
       function scoreChange(which, value) {
+         if (value == '') {
+            sobj.p1selector.ddlb.setValue('');
+            sobj.p2selector.ddlb.setValue('');
+            set_scores[set_number] = [{ games: 0 }, { games: 0 }];
+            return;
+         }
          if (interrupted() || live()) resetActions();
          let tiebreak = false;
          resetTiebreak();
@@ -398,7 +407,7 @@ export const scoreBoard = function() {
          }
 
          function getComplement(value) {
-            if (value == '') return;
+            if (value == '') return '';
             if (value == f.tiebreaks_at || value == f.tiebreaks_at + 1) tiebreak = true;
             if (value == f.tiebreaks_at - 1 || value == f.tiebreaks_at) return parseInt(f.tiebreaks_at || 0) + 1;
             if (value < f.tiebreaks_at) return f.games_for_set;
@@ -1010,7 +1019,13 @@ export const scoreBoard = function() {
          .remove();
 
       function matchHTML(d) {
-         let { ids, html } = generateScoreBoard({ muid: d.match.muid, teams: d.teams, flags });
+         let { ids, html } = generateScoreBoard({
+            flags,
+            teams: d.teams,
+            match: d.match,
+            muid: d.match.muid,
+            round_name: d.match.round_name
+         });
          all_ids[d.match.muid] = ids;
          ids.scoreboard = d.match.muid;
          return html;
@@ -1148,22 +1163,22 @@ function setScore({ setnum, score={games:0} }) {
 
 function scoreBoardConfig() {
    let ids = {
-      edit_scoring: UUID.generate(),
-      bestof: UUID.generate(),
-      setsto: UUID.generate(),
-      tiebreaksat: UUID.generate(),
-      tiebreaksto: UUID.generate(),
-      finalset: UUID.generate(),
-      supertiebreakto: UUID.generate(),
-      stb2: UUID.generate(),
+      edit_scoring: UUID.idGen(),
+      bestof: UUID.idGen(),
+      setsto: UUID.idGen(),
+      tiebreaksat: UUID.idGen(),
+      tiebreaksto: UUID.idGen(),
+      finalset: UUID.idGen(),
+      supertiebreakto: UUID.idGen(),
+      stb2: UUID.idGen(),
    }
    let html = `
          <div id='${ids.edit_scoring}' class="scoreboard-config scoreboard-action">
             <div class="edit configure sb_flexrow">
                <div class='flexcol' style='width: 25%'>
-                  <div style='text-align: right'>Best of:</div>
-                  <div style='text-align: right'>TB at:</div>
-                  <div style='text-align: right'>Final Set:</div>
+                  <div style='text-align: right'>${lang.tr('scoring_format.bestof')}</div>
+                  <div style='text-align: right'>${lang.tr('scoring_format.tbat')}</div>
+                  <div style='text-align: right'>${lang.tr('scoring_format.finalset')}</div>
                </div>
                <div class='flexcol' style='width: 25%'>
                   <div id="${ids.bestof}" class="score-selector"></div>
@@ -1171,9 +1186,9 @@ function scoreBoardConfig() {
                   <div id="${ids.finalset}" class="score-selector"></div>
                </div>
                <div class='flexcol' style='width: 25%'>
-                  <div style='text-align: right'>Sets to:</div>
-                  <div style='text-align: right'>TB to:</div>
-                  <div id='${ids.stb2}' style='text-align: right'>To:</div>
+                  <div style='text-align: right'>${lang.tr('scoring_format.setsto')}</div>
+                  <div style='text-align: right'>${lang.tr('scoring_format.tbto')}</div>
+                  <div id='${ids.stb2}' style='text-align: right'>${lang.tr('scoring_format.superto')}</div>
                </div>
                <div class='flexcol' style='width: 25%'>
                   <div id="${ids.setsto}" class="score-selector"></div>
@@ -1188,26 +1203,27 @@ function scoreBoardConfig() {
    return { ids, html }
 }
 
-function generateScoreBoard({ muid, teams, flags }) {
+function generateScoreBoard({ muid, teams, flags, round_name, match }) {
    let ids = {
-      root: UUID.generate(),
-      actions: UUID.generate(),
-      scoring: UUID.generate(),
-      clear: UUID.generate(),
-      cancel: UUID.generate(),
-      accept: UUID.generate(),
-      p1action: UUID.generate(),
-      p2action: UUID.generate(),
-      p1scores: UUID.generate(),
-      p2scores: UUID.generate(),
-      round_name: UUID.generate(),
-      p1scores_e: UUID.generate(),
-      p2scores_e: UUID.generate(),
-      p1selector: UUID.generate(),
-      p2selector: UUID.generate(),
-      p1tiebreak: UUID.generate(),
-      p2tiebreak: UUID.generate(),
-      mstatus: UUID.generate(),
+      root: UUID.idGen(),
+      actions: UUID.idGen(),
+      favorite: UUID.idGen(),
+      scoring: UUID.idGen(),
+      clear: UUID.idGen(),
+      cancel: UUID.idGen(),
+      accept: UUID.idGen(),
+      p1action: UUID.idGen(),
+      p2action: UUID.idGen(),
+      p1scores: UUID.idGen(),
+      p2scores: UUID.idGen(),
+      round_name: UUID.idGen(),
+      p1scores_e: UUID.idGen(),
+      p2scores_e: UUID.idGen(),
+      p1selector: UUID.idGen(),
+      p2selector: UUID.idGen(),
+      p1tiebreak: UUID.idGen(),
+      p2tiebreak: UUID.idGen(),
+      details: UUID.idGen(),
    }
 
    let config = scoreBoardConfig();
@@ -1218,10 +1234,10 @@ function generateScoreBoard({ muid, teams, flags }) {
          <div class='scorebox'>
             <div class='info'>
                <span class="info-text">
-                  <span class="round_name" id='${ids.round_name}'></span>
-                  <span class="court"></span>
+                  <span class="round_name" id='${ids.round_name}'>${round_name || ''}</span>
                </span>
-               <div id='${ids.scoring}' class='options'>-</div>
+               <div id='${ids.favorite}' class='fav' style='display: none'></div>
+               <div id='${ids.scoring}' class='options' style='display: none'>-</div>
             </div>
             <div class='sbox'>
                <div class='sbcol flexgrow'> 
@@ -1275,7 +1291,10 @@ function generateScoreBoard({ muid, teams, flags }) {
                </div>
 
             </div>
-            <div class='info'>
+            <div class="info">
+               <span class="info-text">
+                  <span id="${ids.details}" class="court">${matchStatus(match)}</span>
+               </span>
             </div>
          </div>
 
@@ -1297,4 +1316,34 @@ function generateScoreBoard({ muid, teams, flags }) {
    `;
 
    return { ids, html };
+}
+
+function matchStatus(match) {
+   if (!match) return '';
+   if (match.status) return status;
+   if (!match.schedule) return '';
+
+   let today = new Date();
+   let mday = new Date(match.schedule.day);
+   let match_is_today = mday.getDay() == today.getDay() && mday.getMonth() == today.getMonth() && mday.getYear() == today.getYear();
+
+   let duration = matchDuration(match.schedule);
+   if (duration) return `Duration ${duration}`;
+
+   let time = `${match.schedule.time_prefix || ''}${match.schedule.time || ''}`;
+   let notice = `${match.schedule.court || ''}${time ? ' / ' + time : ''}`;
+
+   return (match.winner_index == undefined) ? notice : '';
+}
+
+function matchDuration(schedule) {
+   if (!schedule.start || !schedule.end) return '';
+
+   let seconds = timeSeconds(schedule.end) - timeSeconds(schedule.start);
+   return util.HHMMSS(seconds, { pad_hours: false, display_seconds: false });
+}
+
+function timeSeconds(time) {
+   let split = time.split(':');
+   return (split[0] * 60 * 60) + (split[1] * 60);
 }
