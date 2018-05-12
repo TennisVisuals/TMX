@@ -30,7 +30,7 @@ export const staging = function() {
          let reload = () => window.location.replace(window.location.pathname);
          let okAction = () => db.resetDB(reload);
          let cancelAction = () => {
-            clearHistory(); 
+            util.clearHistory(); 
             displayGen.closeModal(); 
             resolve();
          }
@@ -72,10 +72,12 @@ export const staging = function() {
    function receiveTournament({ record, authorized }) {
       let published_tournament = CircularJSON.parse(record);
       let auth_message = authorized ? `<span style='color: green'>${lang.tr('tournaments.auth')}</span>` : lang.tr('tournaments.noauth');
+      let publishtime = !published_tournament.pushed2cloud ? '' :
+         `<p><b>${lang.tr('tournaments.publishtime')}:</b><br>${new Date(published_tournament.pushed2cloud)}</p>`;
       let message = `
          <h2>${lang.tr('tournaments.received')}</h2>
          ${published_tournament.name}
-         <p><b>${lang.tr('tournaments.publishtime')}:</b><br>${new Date(published_tournament.published).toGMTString()}</p>
+         ${publishtime}
          ${auth_message}
          <p><b>${lang.tr('tournaments.replacelocal')}</b></p>
       `;
