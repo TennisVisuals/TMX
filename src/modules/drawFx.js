@@ -394,6 +394,11 @@ export function roundRobin() {
             return (players[d.row - 1].seed <= seed_limit) ? players[d.row - 1].seed : '';
          }
 
+         if (d.row && d.attr == 'draw_position') {
+            let draw_order = d.row + (players.length * d.bracket);
+            return draw_order;
+         }
+
          if (d.row && player && player[d.attr]) {
             if (d.attr == 'order') {
                let order = player[d.attr];
@@ -420,7 +425,7 @@ export function roundRobin() {
          if (d.row && d.attr == 'score' && d.row != d.mc) {
             let sc = scores[d.row - 1][d.mc - 1];
             let num = sc ? sc.match(/\d+/g) : undefined;
-            if (sc && !num) {
+            if (sc && !num && d.match.loaer) {
                let indicator = d.match.loser[0].draw_position == d.row ? '-' : '+';
                sc += ` (${indicator})`;
             }
@@ -1682,7 +1687,7 @@ export function drawFx(opts) {
    }
 
    fx.acceptedDrawSizes = acceptedDrawSizes;
-   function acceptedDrawSizes(num_players) {
+   function acceptedDrawSizes(num_players, qualifying_draw) {
 
       let d = 0;
       while (draw_sizes[d] < num_players) d += 1;
@@ -1691,7 +1696,7 @@ export function drawFx(opts) {
       while (standard_draws[s] < num_players) s += 1;
 
       // if this is a pre-round, return a standard draw size
-      if (num_players <= draw_sizes[d]) return standard_draws[s];
+      if (qualifying_draw && num_players <= draw_sizes[d]) return standard_draws[s];
 
       // otherwise check the settings for desired draw structure
       return o.compressed_draw_formats ? draw_sizes[d] : standard_draws[s];
@@ -1700,8 +1705,8 @@ export function drawFx(opts) {
    fx.qualDrawSize = qualDrawSize;
    function qualDrawSize(num_players) {
       let i = 0;
-      while (draw_sizes[i] < num_players) i += 1;
-      return draw_sizes[i];
+      while (standard_draws[i] < num_players) i += 1;
+      return standard_draws[i];
    }
 
    fx.treeDrawMatchOrder = treeDrawMatchOrder;
@@ -2347,15 +2352,8 @@ export function drawFx(opts) {
    function qualifyingBracketSeeding({ draw, num_players, qualifiers, seed_limit }) {
 
       let group_size = Math.ceil(num_players/qualifiers);
-      let section_size = o.compressed_draw_formats ? group_size : qualDrawSize(group_size);
+      let section_size = qualDrawSize(group_size);
       let sections = Array.from(new Array(qualifiers),(val,i)=>i);
-
-      /*
-      console.log('players:', num_players, 'qualifiers:', qualifiers);
-      console.log('group size:', group_size);
-      console.log('section size:', section_size);
-      console.log('sections:', sections);
-      */
 
       let placements = [];
       let seeded_team_keys = Object.keys(draw.seeded_teams);
@@ -2394,11 +2392,11 @@ export function drawFx(opts) {
    }
 
    fx.validSeedPlacements = validSeedPlacements;
-   function validSeedPlacements({ num_players, random_sort=false, seed_limit }) {
+   function validSeedPlacements({ num_players, random_sort=false, seed_limit, qualifying_draw }) {
 
       let i = 1;
       let placements = [];
-      let draw_size = acceptedDrawSizes(num_players);
+      let draw_size = acceptedDrawSizes(num_players, qualifying_draw);
       seed_limit = seed_limit || seedLimit(num_players || draw_size);
 
       // range of player positions
@@ -3015,7 +3013,7 @@ export function drawFx(opts) {
    }
 
    fx.tallyBracketResults = tallyBracketResults;
-   function tallyBracketResults({ players, matches, bracket }) {
+   function tallyBracketResults({ players, matches, bracket, reset }) {
       let puids = [];
       let plyrz = [];
       let scores = [];
@@ -3051,6 +3049,9 @@ export function drawFx(opts) {
       // tally all matches played/won for each player
       plyrz.forEach((player, p) => {
 
+         // reset occurs when a score has been changed
+         if (reset) player.sub_order = undefined;
+
          // get list of keys of matches played; only for length
          let opponents = !scores[p] ? [] : Object.keys(scores[p]);
 
@@ -3082,6 +3083,10 @@ export function drawFx(opts) {
          let sets_ratio = Math.round(player.results.sets_won / player.results.sets_lost * 1000)/1000;
          if (isNaN(sets_ratio)) sets_ratio = 0;
          player.results.sets_ratio = sets_ratio;
+
+         let matches_ratio = Math.round(player.results.matches_won / player.results.matches_lost * 1000)/1000;
+         if (isNaN(matches_ratio)) matches_ratio = 0;
+         player.results.matches_ratio = matches_ratio;
 
          player.result = `${player.results.matches_won}/${player.results.matches_lost}`;
       });
@@ -3261,8 +3266,12 @@ export function drawFx(opts) {
 
          // now account for equivalent hash_order
          let rank_order = 0;
+         let rank_hash = undefined;
          complete.forEach((p, i) => {
-            if (p.order_hash != rank_order) rank_order = i + 1;
+            if (p.order_hash != rank_hash) {
+               rank_order = i + 1;
+               rank_hash = p.order_hash;
+            }
             p.rank_order = rank_order;
          });
 
@@ -3271,9 +3280,15 @@ export function drawFx(opts) {
          complete.forEach(p => p.ratio_order = ratio_order.indexOf(p.ratio_hash) + 1);
 
          // now account for equivalent ratio_order
+         // points_order is used for awarding points and may differ from
+         // rank_order if a player unable to advance due to walkover
          let points_order = 0;
+         let ratio_hash = undefined;
          complete.forEach((p, i) => {
-            if (p.order_hash != points_order) points_order = i + 1;
+            if (p.ratio_hash != ratio_hash) {
+               points_order = i + 1;
+               ratio_hash = p.ratio_hash;
+            }
             p.points_order = points_order;
          });
 
