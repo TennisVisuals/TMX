@@ -2,6 +2,7 @@ import { db } from './db'
 import { UUID } from './UUID';
 import { util } from './util';
 import { lang } from './translator';
+import { importFx } from './importFx';
 import { rankCalc } from './rankCalc';
 import { displayGen } from './displayGen';
 import { cleanScore } from './cleanScore';
@@ -237,13 +238,9 @@ export const exportFx = function() {
       })
    }
 
-   exp.downloadPlayers = (group_size = 200) => {
+   exp.downloadPlayers = (cursor = 0, group_size = 200) => {
       db.findAllPlayers().then(players => {
-         let cursor = 0;
-         while (cursor < players.length) {
-            exp.downloadJSON('players.json', players.slice(cursor, cursor + group_size));
-            cursor += group_size;
-         }
+         exp.downloadJSON('players.json', players.slice(cursor, cursor + group_size));
       });
    }
 
@@ -1750,7 +1747,7 @@ export const exportFx = function() {
 
    /*************************** Spreadheet Export ****************************/
    exp.saveWorkbook = (filename = 'export.xlsx') => {
-      let wbout = XLSX.write(load.loaded.workbook, {bookType:'xlsx', bookSST:true, type: 'binary'});
+      let wbout = XLSX.write(importFx.loaded.workbook, {bookType:'xlsx', bookSST:true, type: 'binary'});
       let blob = new Blob([s2ab(wbout)],{type:"application/octet-stream"});
       exp.saveBlob(blob, filename);
    }
