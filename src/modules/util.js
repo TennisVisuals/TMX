@@ -4,6 +4,22 @@ import { cleanScore } from './cleanScore';
 export const util = function() {
    let fx = {};
 
+   fx.clearHistory = () => { history.pushState('', document.title, window.location.pathname); }
+
+   fx.HHMMSS = (s, format) => {
+      var sec_num = parseInt(s, 10); // don't forget the second param
+      var hours   = Math.floor(sec_num / 3600);
+      var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+      var seconds = sec_num - (hours * 3600) - (minutes * 60);
+
+      let display_seconds = !format || (format && format.display_seconds);
+      let pad_hours = !format || (format && format.pad_hours);
+      if (hours   < 10 && pad_hours) {hours   = "0"+hours;}
+      if (minutes < 10) {minutes = "0"+minutes;}
+      if (seconds < 10) {seconds = "0"+seconds;}
+      return display_seconds ? hours+':'+minutes+':'+seconds : hours+':'+minutes;
+   }
+
    fx.replaceDiacritics = (text) => Diacritics.replace(text);
    fx.nameHash = (name) => fx.replaceDiacritics(name.replace(/[-_,.\ ]+/g, "")).toLowerCase();
 
