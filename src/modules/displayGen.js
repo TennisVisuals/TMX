@@ -1235,6 +1235,13 @@ export const displayGen = function() {
       return { ids, html, ddlb }
    }
 
+   gen.eventsSettings = () => {
+      let ids = {};
+      let ddlb = [];
+      let html = ``;
+      return { ids, html, ddlb }
+   }
+
    gen.drawSettings = () => {
       let ids = {
          auto_byes: displayFx.uuid(),
@@ -1359,6 +1366,7 @@ export const displayGen = function() {
       let ids = {
          require_confirmation: displayFx.uuid(),
          publish_on_score_entry: displayFx.uuid(),
+         publish_draw_creation: displayFx.uuid(),
       };
       let ddlb = [];
       let html = `
@@ -1373,6 +1381,10 @@ export const displayGen = function() {
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.publishonscore')}</label>
                     <input type='checkbox' id="${ids.publish_on_score_entry}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.publishdrawcreation')}</label>
+                    <input type='checkbox' id="${ids.publish_draw_creation}">
                 </div>
              </div>
          </div>
@@ -1616,7 +1628,7 @@ export const displayGen = function() {
                         <input id='${ids.birth}' value='${p.birth || ''}' placeholder='YYYY-MM-DD'>
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
-                        <input id='${ids.ioc}' value='${p.country || ''}'>
+                        <input id='${ids.ioc}' value='${p.ioc || ''}'>
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.city}' value='${p.city || ''}'>
@@ -1629,6 +1641,51 @@ export const displayGen = function() {
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.email}' value='${p.email || ''}'>
+                     </div>
+                  </div>
+               </div>
+               <div class='edit_actions'>
+                  <button id="${ids.cancel}" class="btn btn-medium edit-cancel" alt="${lang.tr('actions.cancel')}">${lang.tr('ccl')}</button> 
+                  <button id="${ids.save}" class="btn btn-medium edit-submit" alt="${lang.tr('sbt')}">${lang.tr('sbt')}</button> 
+               </div>
+            </div>
+         </div>
+      `;
+      gen.showConfigModal(html, 'visible');
+      let id_obj = displayFx.idObj(ids);
+      dd.attachDropDown({ id: ids.gender, options: getGenders() });
+      return id_obj;
+   }
+
+   gen.editPlayer = (p) => {
+      let ids = {
+         ioc: displayFx.uuid(),
+         save: displayFx.uuid(),
+         form: displayFx.uuid(),
+         cancel: displayFx.uuid(),
+         last_name: displayFx.uuid(),
+         first_name: displayFx.uuid(),
+         entry_form: displayFx.uuid(),
+      }
+
+      let html = `
+         <div class='add_player' style='margin: 2em'>
+            <div id='${ids.form}' class='add_player_form'>
+               <div class='flexrow'>
+                  <div class='flexcol playerattrs'>
+                     <div class='playerattr'>${lang.tr('lnm')}:</div>
+                     <div class='playerattr'>${lang.tr('fnm')}:</div>
+                     <div class='playerattr'>${lang.tr('cnt')}:</div>
+                  </div>
+                  <div id='${ids.entry_form}' class='flexcol'>
+                     <div class='flexjustifystart playerattrvalue'>
+                        <input id='${ids.last_name}' value='${p.last_name || ''}'>
+                     </div>
+                     <div class='flexjustifystart playerattrvalue'>
+                        <input id='${ids.first_name}' value='${p.first_name || ''}'>
+                     </div>
+                     <div class='flexjustifystart playerattrvalue'>
+                        <input id='${ids.ioc}' value='${p.ioc || ''}'>
                      </div>
                   </div>
                </div>
@@ -1866,7 +1923,7 @@ export const displayGen = function() {
       let genSection = (notice, arr) => {
          let m = arr.filter(f=>f.sex == 'M');
          let w = arr.filter(f=>f.sex == 'W');
-         let u = arr.filter(f=>f.sex == undefined);
+         let u = arr.filter(f=>['M', 'W'].indexOf(f.sex) < 0);
 
          html += `<div class='signin-section'>${lang.tr(notice)}</div>`;
          html += tpHeader(additional_attributes);
@@ -2545,12 +2602,70 @@ export const displayGen = function() {
       return html;
    }
 
-   gen.entryModal = (label, mouse, coords) => {
-      let su_ids = {
-         entry_modal: displayFx.uuid(),
-      }
+   gen.roundRobinResults = (results) => {
+      let notInfinity = (value) => value == 'Infinity' ? '' : value;
+      let html = `
+         <table>
+            <tr><th></th><th>Won</th><th>Lost</th><th>Ratio</th></tr>
+            <tr>
+               <td>${lang.tr('emts')}</td>
+               <td style='color: lightyellow' align='center'>${results.matches_won}</td>
+               <td style='color: lightyellow' align='center'>${results.matches_lost}</td>
+               <td style='color: lightyellow' align='center'>${notInfinity(results.matches_ratio)}</td>
+            </tr>
+            <tr>
+               <td>${lang.tr('ests')}</td>
+               <td style='color: lightyellow' align='center'>${results.sets_won}</td>
+               <td style='color: lightyellow' align='center'>${results.sets_lost}</td>
+               <td style='color: lightyellow' align='center'>${notInfinity(results.sets_ratio)}</td>
+            </tr>
+            <tr>
+               <td>${lang.tr('egms')}</td>
+               <td style='color: lightyellow' align='center'>${results.games_won}</td>
+               <td style='color: lightyellow' align='center'>${results.games_lost}</td>
+               <td style='color: lightyellow' align='center'>${notInfinity(results.games_ratio)}</td>
+            </tr>
+         </table>
+      `;
+      return html;
+   }
 
-      let entry_modal = d3.select('body')
+   gen.floatingModal = ({ label, mouse, coords, content }) => {
+      let su_ids = { floating_modal: displayFx.uuid(), }
+
+      d3.select('body')
+         .append('div')
+         .attr('class', 'modal')
+         .attr('id', su_ids.floating_modal);
+
+      let srcn = mouse ? d3.mouse(document.body) : coords ? [coords.x, coords.y] : [window.innerWidth / 2, 200];
+      let { ids, html } = floatingModalDisplay(label, content);
+      let entry = floatingEntry().selector('#' + su_ids.floating_modal)
+      entry(srcn[0], srcn[1] - window.scrollY, html);
+
+      Object.assign(ids, su_ids);
+      let id_obj = displayFx.idObj(ids);
+
+      id_obj.floating_modal.element.addEventListener('click', () => gen.closeModal());
+
+      return id_obj;
+   }
+
+   function floatingModalDisplay(label, content) {
+      let ids = {};
+      let html = `
+         <div class="player-entry noselect">
+            <div class="player-position">${label}</div>
+            <div class="player-position">${content}</div> </div>
+         </div>
+      `;
+      return { ids, html };
+   }
+
+   gen.entryModal = (label, mouse, coords) => {
+      let su_ids = { entry_modal: displayFx.uuid(), }
+
+      d3.select('body')
          .append('div')
          .attr('class', 'modal')
          .attr('id', su_ids.entry_modal);
@@ -2562,16 +2677,12 @@ export const displayGen = function() {
 
       Object.assign(ids, su_ids);
       let id_obj = displayFx.idObj(ids);
-
       id_obj.search_field.element.focus();
-
       return id_obj;
    }
 
    function entryModalEntryField(label) {
-      let ids = {
-         search_field: displayFx.uuid(),
-      }
+      let ids = { search_field: displayFx.uuid(), }
       let html = `
          <div class="player-entry noselect">
             <div class="player-position">${lang.tr(label)}</div>
@@ -2774,7 +2885,7 @@ export const displayGen = function() {
          <div class='event event_row${highlight}${warning}' index='${i}'>
             <div class='event_data'>${e.category}</div>
             <div class='event_name'>${e.name}</div>
-            <div class='event_draw_type'>${e.draw_type}</div>
+            <div class='event_draw_type'>${e.draw_type_name}</div>
             <div class='event_data flexcenter'>${e.draw_size}</div>
             <div class='event_data flexcenter'>${e.opponents}</div>
             <div class='event_data flexcenter'>${e.total_matches || 0}</div>
@@ -2783,7 +2894,7 @@ export const displayGen = function() {
             <div class='event_data flexcenter'><div class='event_icon ${inout_icons[e.inout]}'></div></div>
             <div class='event_data flexcenter'><div class='event_icon ${surface_icons[e.surface[0]]}'></div></div>
             <div class='event_data flexcenter ${gen.info}' label='${created_label}'><div class='event_icon ${created_state}'></div></div>
-            <div class='event_data flexcenter ${gen.info}' label='${publish_label}'><div class='event_icon ${publish_state}'></div></div>
+            <div class='event_data flexcenter ${gen.info} pubstate' label='${publish_label}'><div class='event_icon ${publish_state}'></div></div>
          </div>
       `;
 
