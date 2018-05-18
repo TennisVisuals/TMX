@@ -839,8 +839,10 @@ export const displayGen = function() {
       }
 
       function unknownBlock(pindex, side) {
+         if (!match.potentials) return '';
          var index = match.potentials[pindex] ? pindex : 0;
          var potentials = match.potentials[index];
+         if (!potentials) return '';
          var blocks = potentials.map(p=>stack(p.map(b=>potentialBlock(b, side)))).join(`<div class='potential_separator flexcenter'><span>${lang.tr('or')}</span></div>`);
          return `<div class='potential_${side}'>${blocks}</div>`;
 
@@ -1247,6 +1249,7 @@ export const displayGen = function() {
          auto_byes: displayFx.uuid(),
          compressed_draw_formats: displayFx.uuid(),
          fixed_bye_order: displayFx.uuid(),
+         ll_all_rounds: displayFx.uuid(),
          display_flags: displayFx.uuid(),
          court_detail: displayFx.uuid(),
          after_matches: displayFx.uuid(),
@@ -1268,6 +1271,10 @@ export const displayGen = function() {
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.fixedbyes')}:</label>
                     <input type='checkbox' id="${ids.fixed_bye_order}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.llallrounds')}:</label>
+                    <input type='checkbox' id="${ids.ll_all_rounds}">
                 </div>
              </div>
              <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
@@ -1316,6 +1323,7 @@ export const displayGen = function() {
    gen.scheduleSettings = () => {
       let ids = {
          scores_in_draw_order: displayFx.uuid(),
+         completed_matches_in_search: displayFx.uuid(),
       };
       let ddlb = [];
       let html = `
@@ -1326,6 +1334,10 @@ export const displayGen = function() {
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.draworderscores')}</label>
                     <input type='checkbox' id="${ids.scores_in_draw_order}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.schedulecompleted')}</label>
+                    <input type='checkbox' id="${ids.completed_matches_in_search}">
                 </div>
              </div>
          </div>
@@ -2835,7 +2847,7 @@ export const displayGen = function() {
       return html;
    }
 
-   gen.eventList = (container, events, highlight_listitem) => {
+   gen.eventList = (container, events, highlight_euid) => {
       let display = events && events.length;
       let html = !display ? '' : `
          <div class='event_row events_header'>
@@ -2853,13 +2865,13 @@ export const displayGen = function() {
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("draws.published")}'><div class='event_icon published_header'></div></div>
          </div>
       `;
-      if (display) html += events.map((e, i) => eventRow(e, i, highlight_listitem)).join('');
+      if (display) html += events.map((e, i) => eventRow(e, i, highlight_euid)).join('');
       d3.select(container.events.element).style('display', display ? 'flex' : 'none').html(html);
       d3.select('#ET' + container.container.id).style('display', 'flex');
    }
 
-   function eventRow(e, i, highlight_listitem) {
-      let highlight = highlight_listitem != undefined && highlight_listitem == i ? ' highlight_listitem' : '';
+   function eventRow(e, i, highlight_euid) {
+      let highlight = highlight_euid != undefined && highlight_euid == e.euid ? ' highlight_listitem' : '';
       let warning = e.warning ? ' listitem_warning' : '';
       let created = e.active ? 'blue' : e.draw_created ? 'green' : 'black';
       let created_state = e.active ? 'drawactive' : e.draw_created ? 'drawcreated' : 'notcreated';
@@ -2882,7 +2894,7 @@ export const displayGen = function() {
       let created_label = created_labels[created_state];
 
       let html = `
-         <div class='event event_row${highlight}${warning}' index='${i}'>
+         <div class='event event_row${highlight}${warning}' index='${i}' euid='${e.euid}'>
             <div class='event_data'>${e.category}</div>
             <div class='event_name'>${e.name}</div>
             <div class='event_draw_type'>${e.draw_type_name}</div>
@@ -3325,7 +3337,8 @@ export const displayGen = function() {
    }
 
    function calendarRow(tournament) {
-      let category = gen.fx.legacyCategory(tournament.category, true);
+      let categories = gen.fx.legacyCategory(tournament.category, true);
+      if (tournament.categories && tournament.categories.length) categories = tournament.categories.map(c=>`<span>${c}</span>`).join('');
       let background = new Date().getTime() > tournament.end ? 'calendar_past' : 'calendar_future';
       let received = tournament.received ? 'tournament_received' : '';
       let actual_rankings = '';
@@ -3342,7 +3355,7 @@ export const displayGen = function() {
          <div tuid='${tournament.tuid}' class='calendar_click calendar_row calendar_highlight ${background} ${received}'>
             <span class='dates' style='overflow: hidden'> ${displayDate(tournament.start)}&nbsp;/ ${displayDate(tournament.end)} </span>
             <div class='name ctxclk'>${tournament.name}</div>
-            <div class='category'>${category || ''}</div>
+            <div class='category flexcol'>${categories || ''}</div>
             <div class='rank'>${tournament.rank || ''}</div>
             <!-- <div class='actual'>${actual_rankings}</div> -->
             <!-- <div class='draws'>${tournament.draws || ''}</div> -->
@@ -3745,11 +3758,17 @@ export const displayGen = function() {
          cancel: displayFx.uuid(),
          submit: displayFx.uuid(),
          umpirenotes: displayFx.uuid(),
+         notice: displayFx.uuid(),
       }
       let html = `
          <div class='flexccol' style='width: 100%'>
             <h2>${lang.tr('phrases.oop_system')}</h2>
             <div class='flexcol reps' style='width: 100%'>
+               <span>${lang.tr('schedule.notice')}</span>
+               <textarea id='${ids.notice}' class='umpire_notes' wrap='soft' maxlength='180'></textarea>
+            </div>
+            <div class='flexcol reps' style='width: 100%'>
+               <span>${lang.tr('schedule.umpirenotes')}</span>
                <textarea id='${ids.umpirenotes}' class='umpire_notes' wrap='soft' maxlength='180'></textarea>
             </div>
             <div class='config_actions'>
@@ -4078,7 +4097,10 @@ export const displayGen = function() {
       let calc_date = tournament_date ? new Date(tournament_date) : new Date();
       let points_table = gen.fx.pointsTable({calc_date});
       let categories = [{key: '-', value: ''}];
-      return !points_table.categories ? categories : categories.concat(...Object.keys(points_table.categories).map(r => ({ key: r, value: r })));
+      return !points_table.categories ? categories : categories
+         .concat(...Object.keys(points_table.categories)
+         .map(r => ({ key: r, value: r })));
+         // .map(r => ({ key: gen.fx.legacyCategory(r, true), value: r })));
    }
 
    function getGenders() {
