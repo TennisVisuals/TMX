@@ -1,5 +1,4 @@
 import { lang } from './translator';
-import { playerFx } from './playerFx';
 
 export const searchBox = function() {
 
@@ -9,10 +8,12 @@ export const searchBox = function() {
       active: {}, // keeps track of most recent search
       category: 0,
       default_category: undefined,
+      propagate_empty: false,    // pass on enter when empty field
       category_switching: true,
       irregular_search_list: false,
 
       element_id: undefined,
+      search_select_id: undefined,
       meta_element_id: undefined,
       count_element_id: undefined,
       category_element_id: undefined,
@@ -21,6 +22,7 @@ export const searchBox = function() {
       meta_element: undefined,
       count_element: undefined,
       category_element: undefined,
+      search_select_element: undefined,
 
       // stub for function to invoke when no suggestions
       noSuggestions: undefined,
@@ -31,7 +33,11 @@ export const searchBox = function() {
       metaClick: {},
    }
 
-   searchBox.reset = () => searchBox.active = {};
+   searchBox.resetFx = [];
+   searchBox.reset = () => {
+      searchBox.active = {};
+      searchBox.resetFx.forEach(f => { if (typeof f == 'function') f(); });
+   }
    searchBox.setSearchCategory = (notice) => {
       if (!searchBox.element) return;
       let searchtype = `search.${searchBox.category}`;
@@ -39,10 +45,7 @@ export const searchBox = function() {
       searchBox.element.setAttribute('placeholder', placeholder);
    }
    searchBox.normalFunction = ({ stateFunction=searchBox.setSearchCategory } = {}) => {
-      // TODO: these two actions should be defined in configuration
-      playerFx.action = undefined;
-      delete playerFx.override;
-      delete playerFx.displayFx;
+      searchBox.resetFx.forEach(f => { if (typeof f == 'function') f(); });
 
       searchBox.category_switching = true;
       if (searchBox.irregular_search_list) {
@@ -56,10 +59,12 @@ export const searchBox = function() {
    searchBox.searchCategory = (class_name) => { if (searchBox.category_element) searchBox.category_element.className = `icon15 ${class_name}`; }
    searchBox.updateSearch = (category) => { 
       if (!searchBox.populateSearch) return;
-      searchBox.populateSearch[category || searchBox.category || searchBox.default_category](); 
+      category = category || searchBox.category || searchBox.default_category; 
+      if (searchBox.populateSearch[category] && typeof searchBox.populateSearch[category] == 'function') searchBox.populateSearch[category](); 
    }
    searchBox.nextSearchCategory = (next) => {
       if (!searchBox.category_switching) return;
+      if (!searchBox.populateSearch) return;
 
       searchBox.reset();
       let categories = Object.keys(searchBox.populateSearch);
@@ -85,14 +90,15 @@ export const searchBox = function() {
       if (searchBox.count_element_id) searchBox.count_element = document.getElementById(searchBox.count_element_id);
       if (searchBox.category_element_id) searchBox.category_element = document.getElementById(searchBox.category_element_id);
       if (searchBox.meta_element_id) searchBox.meta_element = document.getElementById(searchBox.meta_element_id);
+      if (searchBox.search_select_id) searchBox.search_select_element = document.getElementById(searchBox.search_select_id);
 
       searchBox.typeAhead = new Awesomplete(searchBox.element, { list: [], maxItems: 20, minChars: 3 });
-      searchBox.element.addEventListener("awesomplete-selectcomplete", function(e) { selection_flag = true; searchBox.search(this.value); }, false);
+      searchBox.element.addEventListener("awesomplete-selectcomplete", selectionComplete, false);
       searchBox.element.addEventListener('keydown', catchTab , false);
       searchBox.element.addEventListener("keyup", function(e) { 
          e.stopPropagation();
          // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
-         if (e.which == 13 && !selection_flag) {
+         if (e.target.value && e.which == 13 && !selection_flag) {
             if (searchBox.typeAhead.suggestions && searchBox.typeAhead.suggestions.length) {
                searchBox.typeAhead.next();
                searchBox.typeAhead.select(0);
@@ -109,8 +115,15 @@ export const searchBox = function() {
       searchBox.nextSearchCategory();
 
       if (searchBox.meta_element) searchBox.meta_element.addEventListener('click', () => clickMeta());
-      document.getElementById('search_select').addEventListener('click', () => searchBox.searchSelect());
+      if (searchBox.search_select_element) searchBox.search_select_element.addEventListener('click', () => searchBox.searchSelect());
       searchBox.focus();
+   }
+
+   function selectionComplete(e) {
+      selection_flag = true;
+      searchBox.search(e.target.value);
+      searchBox.typeAhead.suggestions = [];
+      e.target.value = null;
    }
 
    function clickMeta() {
@@ -122,10 +135,12 @@ export const searchBox = function() {
    }
 
    searchBox.search = (uuid) => {
-      if (!uuid) return;
+      if (!searchBox.propagate_empty && !uuid) return;
       searchBox.element.value = '';
-      if (!searchBox.searchType) return;
-      searchBox.searchType[searchBox.category](uuid);
+      let category = searchBox.category || searchBox.default_category; 
+      if (!category) return;
+      if (!searchBox.searchType || !searchBox.searchType[category] || typeof searchBox.searchType[category] != 'function') return;
+      searchBox.searchType[category](uuid);
    }
 
    searchBox.searchSelect = (category) => {
