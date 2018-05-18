@@ -39,7 +39,7 @@ export const UUID = function() {
 
   self.new = () => formatUuid(getRandomValuesFunc());
 
-  self.idGen = () => `_${self.generate()}`;
+  self.idGen = () => `u_${self.generate()}`;
   self.generate = function() {
     var d0 = Math.random()*0xffffffff|0;
     var d1 = Math.random()*0xffffffff|0;
