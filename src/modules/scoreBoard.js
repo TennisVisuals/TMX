@@ -1011,7 +1011,6 @@ export const scoreBoard = function() {
       sbz.enter()
          .append('div')
          .attr('class', 'match')
-         .attr('id', (d) => d.match.muid)
         .merge(sbz)
          .html(matchHTML)
 
@@ -1205,7 +1204,7 @@ function scoreBoardConfig() {
 
 function generateScoreBoard({ muid, teams, flags, round_name, match }) {
    let ids = {
-      root: UUID.idGen(),
+      root: muid ? `u_${muid}` : UUID.idGen(),
       actions: UUID.idGen(),
       favorite: UUID.idGen(),
       scoring: UUID.idGen(),
@@ -1230,13 +1229,13 @@ function generateScoreBoard({ muid, teams, flags, round_name, match }) {
    Object.assign(ids, config.ids);
 
    let html = `
-      <div id="${ids.root}" class="scoreboard noselect muid" muid='${muid}'>
+      <div id="${ids.root}" class="scoreboard noselect muid ${ids.root}" muid='${muid}'>
          <div class='scorebox'>
             <div class='info'>
                <span class="info-text">
                   <span class="round_name" id='${ids.round_name}'>${round_name || ''}</span>
                </span>
-               <div id='${ids.favorite}' class='fav' style='display: none'></div>
+               <div id='${ids.favorite}' class='fav favoriteMatch' style='display: none'></div>
                <div id='${ids.scoring}' class='options' style='display: none'>-</div>
             </div>
             <div class='sbox'>
