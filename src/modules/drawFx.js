@@ -2877,7 +2877,7 @@ export function drawFx(opts) {
                if (calculated_round_name) node.data.calculated_round_name = calculated_round_name;
 
                if (node.data.match && round_name) node.data.match.round_name = round_name;
-               let potentials = node.data.children.filter(c=>!c.team).map(p=>p.children.map(l=>l.team));
+               let potentials = node.data.children.filter(c=>!c.team).map(p=>p.children ? p.children.map(l=>l.team) : undefined).filter(f=>f);
                let dependencies = node.data.children.filter(c=>!c.team).map(d=>d.match && d.match.muid);
                let dependent = node.parent && node.parent.data && node.parent.data.match && node.parent.data.match.muid;
                return {
