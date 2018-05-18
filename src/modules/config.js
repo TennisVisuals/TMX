@@ -7,6 +7,7 @@ import { dd } from './dropdown';
 import { fetchFx } from './fetchFx';
 import { lang } from './translator';
 import { staging } from './staging';
+import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
 import { rankCalc } from './rankCalc';
 import { importFx } from './importFx';
@@ -14,7 +15,6 @@ import { searchBox } from './searchBox';
 import { scheduleFx } from './scheduleFx';
 
 // remove these dependencies by moving fx elsewhere!!
-import { playerFx } from './playerFx';
 import { displayGen } from './displayGen';
 import { tournamentFx } from './tournamentFx';
 import { tournamentDisplay } from './tournamentDisplay';
@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.141.242.158',
+      version: '0.9.152.264.172',
       version_check: undefined,
       org: {
          name: undefined,
@@ -92,6 +92,7 @@ export const config = function() {
       points: { walkover_wins: ['F'] },
       drawFx: {
          auto_byes: true,
+         ll_all_rounds: false,
          auto_qualifiers: false,
          fixed_bye_order: false,
          consolation_seeding: false,
@@ -157,6 +158,7 @@ export const config = function() {
          clubs: true,
          ioc_codes: false,
          scores_in_draw_order: false,
+         completed_matches_in_search: false,
          max_matches_per_court: 14
       },
       searchbox: {
@@ -428,6 +430,10 @@ export const config = function() {
             container.compressed_draw_formats.element.checked = util.string2boolean(env.drawFx.compressed_draw_formats);
             function compressedDrawFormats(evt) { env.drawFx.compressed_draw_formats = container.compressed_draw_formats.element.checked; }
 
+            container.ll_all_rounds.element.addEventListener('click', llAllRounds);
+            container.ll_all_rounds.element.checked = util.string2boolean(env.drawFx.ll_all_rounds);
+            function llAllRounds(evt) { env.drawFx.ll_all_rounds = container.ll_all_rounds.element.checked; }
+
             container.display_flags.element.addEventListener('click', displayFlags);
             container.display_flags.element.checked = util.string2boolean(env.draws.tree_draw.flags.display);
             function displayFlags(evt) { env.draws.tree_draw.flags.display = container.display_flags.element.checked; }
@@ -511,6 +517,10 @@ export const config = function() {
             container.scores_in_draw_order.element.addEventListener('click', scoresInDrawOrder);
             container.scores_in_draw_order.element.checked = env.schedule.scores_in_draw_order;
             function scoresInDrawOrder(evt) { env.schedule.scores_in_draw_order = container.scores_in_draw_order.element.checked ? true : false; }
+
+            container.completed_matches_in_search.element.addEventListener('click', scheduleCompleted);
+            container.completed_matches_in_search.element.checked = env.schedule.completed_matches_in_search;
+            function scheduleCompleted(evt) { env.schedule.completed_matches_in_search = container.completed_matches_in_search.element.checked ? true : false; }
          }
 
          function revertSettings() {
@@ -592,9 +602,12 @@ export const config = function() {
       searchBox.element_id = 'searchinput';
       searchBox.meta_element_id = 'searchmeta';
       searchBox.count_element_id = 'searchcount';
+      searchBox.seatch_select_id = 'search_select';
       searchBox.category_element_id = 'searchcategory';
       searchBox.default_category = 'players';
       searchBox.setSearchCategory();
+
+      searchBox.resetFx.push(playerFx.resetPlayerAction);
 
       searchBox.metaClick = {
          tournaments() { tournamentDisplay.displayCalendar(); },
@@ -986,8 +999,6 @@ export const config = function() {
    }
 
    fx.init = () => {
-
-      db.addDev({coms});
 
       displayGen.initModals();
       if (device.isMobile || device.isIDevice) {
