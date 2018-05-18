@@ -26,6 +26,12 @@ export const playerFx = function() {
       pointsTable: () => console.log('points table'),
    }
 
+   fx.resetPlayerAction = () => {
+      fx.action = undefined;
+      fx.override = undefined;
+      fx.displayFx = undefined;
+   }
+
    function catchTab(evt) { if (evt.which == 9) { evt.preventDefault(); } }
 
    /* points expire after one year */
@@ -47,6 +53,23 @@ export const playerFx = function() {
       displayGen.activePlayer(player, club);
       Array.from(displayGen.identify_container.action_message.element.querySelectorAll('button.dismiss'))
          .forEach(elem => elem.addEventListener('click', displayGen.clearActivePlayer));
+   }
+
+   fx.eligibleForCategory = ({ calc_date, age_category, player }) => {
+      if (!calc_date) return false;
+      if (!age_category) return true;
+      let points_table = fx.fx.pointsTable({calc_date});
+      let categories = points_table && points_table.categories;
+      if (!categories) return true;
+      if (!categories[age_category]) return false;
+      let ages = categories[age_category].ages;
+      if (!ages) return false;
+      let year = calc_date.getFullYear();
+      let min_year = year - parseInt(ages.from);
+      let max_year = year - parseInt(ages.to);
+      let birth_year = new Date(player.birth).getFullYear();
+      if (birth_year <= min_year && birth_year >= max_year) return true;
+      return false;
    }
 
    fx.displayPlayerProfile = displayPlayerProfile;
