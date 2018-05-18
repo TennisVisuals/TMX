@@ -29,6 +29,30 @@ export const displayFx = function() {
       }
    }
 
+   // https://24ways.org/2010/calculating-color-contrast/
+   fx.hexContrastYIQ = (hexcolor) => {
+      var r = parseInt(hexcolor.substr(1,2),16);
+      var g = parseInt(hexcolor.substr(3,2),16);
+      var b = parseInt(hexcolor.substr(5,2),16);
+      return fx.rgbContrastYIQ({ r, g, b });
+   }
+
+   fx.rgbContrastYIQ = ({ r, g, b }) => {
+      var yiq = ((r*299)+(g*587)+(b*114))/1000;
+      return (yiq >= 128) ? 'black' : 'white';
+   }
+
+   fx.parseRGBA = (rgbastring) => {
+      if (!rgbastring) return;
+      let extract = rgbastring.match(/\((.*?)\)/);
+      if (extract && extract.length == 2) {
+         let values = extract[1].split(',');
+         if (values.length == 3 || values.length == 4) {
+            return { r: values[0], g: values[1], b: values[2], a: values[3] }
+         }
+      } 
+   }
+
    return fx;
  
 }();
