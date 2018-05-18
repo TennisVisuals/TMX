@@ -346,6 +346,7 @@ export const exportFx = function() {
 
    exp.printSchedulePDF = ({ tournament, day, courts, matches, save }) => {
       getLogo().then(logo => {
+         console.log('courts:', courts.length);
          if (courts.length > 8) {
             let a_courts = courts.slice(0,8);
             let a_court_names = a_courts.map(c=>c.name);
@@ -468,6 +469,7 @@ export const exportFx = function() {
          unknowns.push(pindex);
          let index = match.potentials[pindex] ? pindex : 0;
          let potentials = match.potentials[index];
+         if (!potentials) return '';
          return potentials.map(p=>p.map(potentialBlock).join('/')).join(` ${lang.tr('or')} `);
       }
 
@@ -553,7 +555,7 @@ export const exportFx = function() {
             }
          },
 
-         footer: schedulePageFooter(tournament),
+         footer: schedulePageFooter(tournament, day),
 
          styles: {
             docTitle: {
@@ -576,6 +578,12 @@ export const exportFx = function() {
             tableData: {
                fontSize: 9,
                bold: true
+            },
+            headerNotice: {
+               fontSize: 9,
+               bold: true,
+               italics: true,
+               color: 'red'
             },
             teamName: {
                alignment: 'center',
@@ -854,6 +862,9 @@ export const exportFx = function() {
       var sponsor = tournament.sponsor ? ` - ${tournament.sponsor}` : '';
       var tournament_name = `${tournament.name}${sponsor}`;
 
+      var header_notice = (tournament.schedule && tournament.schedule.notice) || '';
+      if (tournament.schedule && tournament.schedule.notices && tournament.schedule.notices[day]) header_notice = tournament.schedule.notices[day];
+
       let schedule = {
          margin: [ 20, 10, 20, 10 ],
          fontSize: 10,
@@ -912,8 +923,7 @@ export const exportFx = function() {
                [ 
                   { text: tournament_id, style: 'tableData' },
                   { text: tournament.organization || '', style: 'tableData' },
-                  // { text: tournament.location || '', style: 'tableData' },
-                  {},
+                  { colSpan: 3, text: header_notice, style: 'headerNotice' },
                   {},
                   {},
                   { text: tournament.judge || '', style: 'tableDatat', alignment: 'right', },
@@ -933,10 +943,11 @@ export const exportFx = function() {
       return schedule;
    }
 
-   function schedulePageFooter(tournament) {
+   function schedulePageFooter(tournament, day) {
       let timestamp = localizeDate(new Date(), { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
       let umpirenotes = tournament.schedule && tournament.schedule.umpirenotes;
+      if (tournament.schedule && tournament.schedule.notes && tournament.schedule.notes[day]) umpirenotes = tournament.schedule.notes[day];
 
       let footer = {
          margin: [ 10, 0, 10, 0 ],
