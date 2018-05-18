@@ -198,10 +198,12 @@ export const lang = function() {
          publishdrawcreation: 'Publish as draw created',
          matchesbefore: 'Matches Before Count',
          automatedbyes: 'Automatic Bye Placement',
+         llallrounds: 'LL from All Qualifying Rounds',
          fixedbyes: 'Fixed Bye Order',
          courtdetail: 'Court Details',
          firstday: 'Week Starts Monday',
          draworderscores: 'Scores in Draw Order',
+         schedulecompleted: 'Schedule Completed Matches',
       },
 
       search: {
@@ -401,7 +403,8 @@ export const lang = function() {
          ineligible: 'Ineligible',
          unavailable: 'Unavailable',
          wildcard: 'Wildcard',
-         received: 'Reeived Event'
+         received: 'Reeived Event',
+         toggle: 'Toggle Publish State?'
       },
 
       locations: {
@@ -488,7 +491,10 @@ export const lang = function() {
          publish: 'Publish Schedule',
          unpublish: 'Unpublish Schedule',
          timing: 'Timing',
-         vs: 'vs.'
+         vs: 'vs.',
+         umpirenotes: 'Umpire Notes (PDF Footer)',
+         notice: 'Schedule Notice (PDF Header)',
+         opponentname: 'Opponent Name'
       },
       
       refresh: {
