@@ -17,10 +17,14 @@ export const matchFx = function() {
       var pending_matches = [];
       var upcoming_matches = [];
 
+      // don't sort tournament.events ... sort map of tournament draw types
       function drawTypeSort(draw_type) { return ['R', 'Q'].indexOf(draw_type) >= 0 ? 0 : 1; }
-      var ordered_events = tournament.events.sort((a, b) => drawTypeSort(a.draw_type) - drawTypeSort(b.draw_type));
+      var ordered_events = tournament.events
+         .map((e, index) => ({ draw_type: e.draw_type, index }))
+         .sort((a, b) => drawTypeSort(a.draw_type) - drawTypeSort(b.draw_type));
 
-      ordered_events.forEach(e => {
+      ordered_events.forEach(oe => {
+         let e = tournament.events[oe.index];
          let { complete, incomplete, upcoming } = eventMatchStorageObjects(tournament, e, source);
 
          completed_matches = completed_matches.concat(...complete);
@@ -98,9 +102,7 @@ export const matchFx = function() {
          // potential opponents for upcoming matches
          potentials: match.potentials,
 
-         // TODO: clear up confusion here...
-         // round: match.round_name,
-         round_name: match.round_name,
+         round_name: match.round_name || match.match.round_name,
          calculated_round_name: match.calculated_round_name,
 
          score: match.match.score,
@@ -239,6 +241,14 @@ export const matchFx = function() {
       });
 
       return matches;
+   }
+
+   fx.getLuckyLosers = (tournament, evnt, all_rounds) => {
+      let completed_matches = fx.eventMatches(evnt, tournament).filter(m=>m.match.winner);
+      if (!all_rounds && evnt.draw_type == 'Q') completed_matches = completed_matches.filter(m=>m.match.round_name == 'Q');
+      let all_loser_ids = [].concat(...completed_matches.map(match => match.match.loser.map(team=>team.id)));
+      let losing_players = tournament.players.filter(p=>all_loser_ids.indexOf(p.id) >= 0);
+      return losing_players;
    }
 
    function addMUIDs(e) {
