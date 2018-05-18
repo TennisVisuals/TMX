@@ -138,9 +138,12 @@ export const fetchFx = function() {
                   function searchResult(existing) {
                      if (existing) {
                         player = Object.assign(player, existing);
+                        player.first_name = util.normalizeName(player.first_name, false);
+                        player.last_name = util.normalizeName(player.last_name, false);
+
                         resolve(player);
                      } else {
-                        player.puid = UUID.generate();
+                        player.puid = player.puid || UUID.generate();
 
                         let new_player = Object.assign({}, player);
                         delete new_player.registration_time;
@@ -149,6 +152,10 @@ export const fetchFx = function() {
                         delete new_player.alternate;
                         delete new_player.category_ranking;
                         delete new_player.category_dbls;
+
+                        player.first_name = util.normalizeName(player.first_name, false);
+                        player.last_name = util.normalizeName(player.last_name, false);
+
                         db.addPlayer(new_player);
                         resolve(player);
                      }
