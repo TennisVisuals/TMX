@@ -50,6 +50,7 @@ function start() {
    db.addDev({UUID});
    db.addDev({theme});
    db.addDev({config});
+   db.addDev({playerFx});
    db.addDev({exportFx});
    db.addDev({searchBox});
    db.addDev({scheduleFx});
