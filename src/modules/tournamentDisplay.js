@@ -2416,6 +2416,7 @@ export const tournamentDisplay = function() {
             'E': ['E'],
             'C': ['C'],
             'P': ['P'],
+            'R': ['Q'],
          }
 
          let linkType = (type) => types[type].filter(t=>e.links[t]);
@@ -2443,8 +2444,7 @@ export const tournamentDisplay = function() {
          }
          function hasLinkType(v, typ) {
             let kys = ((v.links && Object.keys(v.links)) || []).filter(k=>v.links[k]);
-            return util.intersection(kys, types[typ]).length > 0;
-            // return kys.indexOf(typ) >= 0;
+            return types[typ] && util.intersection(kys, types[typ]).length > 0;
          }
 
          let setLink = (value) => {
