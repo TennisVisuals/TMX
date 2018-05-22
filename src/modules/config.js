@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.152.264.172',
+      version: '0.9.153.265.175',
       version_check: undefined,
       org: {
          name: undefined,
@@ -602,7 +602,7 @@ export const config = function() {
       searchBox.element_id = 'searchinput';
       searchBox.meta_element_id = 'searchmeta';
       searchBox.count_element_id = 'searchcount';
-      searchBox.seatch_select_id = 'search_select';
+      searchBox.search_select_id = 'search_select';
       searchBox.category_element_id = 'searchcategory';
       searchBox.default_category = 'players';
       searchBox.setSearchCategory();
