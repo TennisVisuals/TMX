@@ -3064,7 +3064,8 @@ export function drawFx(opts) {
          let setsLost = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countSets(scores, outcomes[i])[1];
          let gamesWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countGames(scores, outcomes[i])[0];
          let gamesLost = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countGames(scores, outcomes[i])[1];
-         let pointsWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countPoints(scores, outcomes[i])[1];
+         let pointsWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countPoints(scores, outcomes[i])[0];
+         let pointsLost = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countPoints(scores, outcomes[i])[1];
 
          player.results = {
             matches_won: occurrences(0, outcomes),
@@ -3074,19 +3075,24 @@ export function drawFx(opts) {
             games_won: !scores[p] ? [] : scores[p].map(gamesWon).reduce((a, b) => +a + +b, 0),
             games_lost: !scores[p] ? [] : scores[p].map(gamesLost).reduce((a, b) => +a + +b, 0),
             points_won: !scores[p] ? [] : scores[p].map(pointsWon).reduce((a, b) => +a + +b, 0),
+            points_lost: !scores[p] ? [] : scores[p].map(pointsLost).reduce((a, b) => +a + +b, 0),
          }
+
+         let points_ratio = Math.round(player.results.points_won / player.results.points_lost * 1000)/1000;
+         if (isNaN(points_ratio)) points_ratio = 0;
+         player.results.points_ratio = points_ratio;
 
          let games_ratio = Math.round(player.results.games_won / player.results.games_lost * 1000)/1000;
          if (isNaN(games_ratio)) games_ratio = 0;
          player.results.games_ratio = games_ratio;
 
-         let sets_ratio = Math.round(player.results.sets_won / player.results.sets_lost * 1000)/1000;
-         if (isNaN(sets_ratio)) sets_ratio = 0;
-         player.results.sets_ratio = sets_ratio;
-
          let matches_ratio = Math.round(player.results.matches_won / player.results.matches_lost * 1000)/1000;
          if (isNaN(matches_ratio)) matches_ratio = 0;
          player.results.matches_ratio = matches_ratio;
+
+         let sets_ratio = Math.round(player.results.sets_won / player.results.sets_lost * 1000)/1000;
+         if (isNaN(sets_ratio)) sets_ratio = 0;
+         player.results.sets_ratio = sets_ratio;
 
          player.result = `${player.results.matches_won}/${player.results.matches_lost}`;
       });
@@ -3299,7 +3305,7 @@ export function drawFx(opts) {
             return ratioHash(p);
          }
          function ratioHash(p) {
-            return p.results.matches_won * Math.pow(10,10) + p.results.sets_ratio * Math.pow(10,9) + p.results.games_ratio * Math.pow(10, 6) + p.results.points_won;
+            return p.results.matches_won * Math.pow(10,13) + p.results.sets_ratio * Math.pow(10,12) + p.results.games_ratio * Math.pow(10, 8) + p.results.points_ratio * Math.pow(10, 3);
          }
       }
    }
