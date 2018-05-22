@@ -2637,6 +2637,12 @@ export const displayGen = function() {
                <td style='color: lightyellow' align='center'>${results.games_lost}</td>
                <td style='color: lightyellow' align='center'>${notInfinity(results.games_ratio)}</td>
             </tr>
+            <tr>
+               <td>${lang.tr('epts')}</td>
+               <td style='color: lightyellow' align='center'>${results.points_won}</td>
+               <td style='color: lightyellow' align='center'>${results.points_lost}</td>
+               <td style='color: lightyellow' align='center'>${notInfinity(results.points_ratio)}</td>
+            </tr>
          </table>
       `;
       return html;
