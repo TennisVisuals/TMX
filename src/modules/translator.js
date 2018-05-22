@@ -94,6 +94,7 @@ export const lang = function() {
       emts:    'Matches',
       ests:    'Sets',
       egms:    'Games',
+      epts:    'Points',
       mtc:     'Match',
       drw:     'Draw',
       drz:     'Draws',
