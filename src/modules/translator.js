@@ -62,6 +62,7 @@ export const lang = function() {
    idioms.default = {
       noresults: 'No Results',
       delete:  'Delete',
+      continue: 'Do you wish to continue?',
       notes:   'Notes',
       merge:   'Merge',
       week:    'Week',
@@ -318,6 +319,7 @@ export const lang = function() {
       },
 
       phrases: {
+         changeapproved: 'Changing Approved will reset the draw and clear the schedule.',
          qualincomplete: 'Qualifying Draw is Incomplete',
          delegate: 'Delegate',
          delegate2mobile: 'Delegate to Mobile',
