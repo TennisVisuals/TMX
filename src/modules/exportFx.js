@@ -346,7 +346,6 @@ export const exportFx = function() {
 
    exp.printSchedulePDF = ({ tournament, day, courts, matches, save }) => {
       getLogo().then(logo => {
-         console.log('courts:', courts.length);
          if (courts.length > 8) {
             let a_courts = courts.slice(0,8);
             let a_court_names = a_courts.map(c=>c.name);
@@ -944,7 +943,9 @@ export const exportFx = function() {
    }
 
    function schedulePageFooter(tournament, day) {
-      let timestamp = localizeDate(new Date(), { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      let schedule_published = tournament.schedule && tournament.schedule.published;
+      let pub_date = schedule_published ? new Date(schedule_published) : new Date();
+      let timestamp = localizeDate(pub_date, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
       let umpirenotes = tournament.schedule && tournament.schedule.umpirenotes;
       if (tournament.schedule && tournament.schedule.notes && tournament.schedule.notes[day]) umpirenotes = tournament.schedule.notes[day];

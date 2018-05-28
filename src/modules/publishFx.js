@@ -40,7 +40,7 @@ export const publishFx = function() {
             qualifiers: evt.qualifiers,
             score_format: evt.score_format,
             lucky_losers: evt.lucky_losers,
-            published: new Date().getTime(),
+            published: evt.published || new Date().getTime(),
             name: evt.broadcast_name || evt.name,
          },
          draw: evt.draw,
