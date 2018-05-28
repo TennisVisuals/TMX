@@ -1,3 +1,5 @@
+import { db } from './db';
+
 import { util } from './util';
 import { UUID } from './UUID';
 import { drawFx } from './drawFx';
@@ -59,7 +61,7 @@ export const tournamentFx = function() {
 
    function winnerRemoved({ tournament, e, qlink, qlinkinfo, previous_winner, outcome }) {
       if (qlink) {
-         qlink.approved = qlink.approved.filter(a=>previous_winner.indexOf(a) < 0);
+         qlink.approved = q.link.approved ? qlink.approved.filter(a=>previous_winner.indexOf(a) < 0): [];
          qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
          if (qlinkinfo) {
             qlinkinfo.nodes.forEach(node => {
@@ -72,7 +74,7 @@ export const tournamentFx = function() {
       }
 
       // must occur after team removed from linked draw approved
-      e.qualified = e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0);
+      e.qualified = e.qualified ? e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0) : [];
       fx.setDrawSize(tournament, e);
 
       // must occur after e.qualified is updated
@@ -353,8 +355,10 @@ export const tournamentFx = function() {
       if (e.format == 'S') { 
          approved = fx.approvedPlayers({ tournament, env, e }).map(p=>[p]);
       } else {
-         approved = fx.approvedTeams({ tournament, e }).map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));;
-         // approved = fx.approvedTeams({ tournament, e }).map(team => team.players.map(player => Object.assign(playerFx.playerCopy(player), { seed: team.seed })));;
+         approved = fx.approvedTeams({ tournament, e })
+            .map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));;
+         // approved = fx.approvedTeams({ tournament, e })
+         // .map(team => team.players.map(player => Object.assign(playerFx.playerCopy(player), { seed: team.seed })));;
       }
 
       // assign any previous entry data to players
@@ -386,8 +390,10 @@ export const tournamentFx = function() {
       if (!e.wildcards) e.wildcards = [];
       if (!e.luckylosers) e.luckylosers = [];
 
-      let idmap = fx.idMap(tournament, e).idmap;
-      let approved = e.approved ? e.approved.map(t=>fx.teamObj(e, t, idmap)).sort(fx.combinedRankSort) : [];
+      let idm = fx.idMap(tournament, e);
+      let idmap = idm.idmap;
+      let offset = idm.offset;
+      let approved = e.approved ? e.approved.map(t=>fx.teamObj(e, t, idmap, offset)).sort(fx.combinedRankSort) : [];
 
       let seed_limit = dfx.seedLimit(approved.length);
       let seeding = fx.rankedTeams(approved);
@@ -401,30 +407,36 @@ export const tournamentFx = function() {
       return approved;
    }
 
-   // create object to find players by id; make a copy of player objects to avoid changing originals
+   /*
+    * @param tournament {obj}    tournament object
+    * @param e          {obj}    event object
+    */
    fx.idMap = (tournament, e) => {
+      let offset = 0;
       let players = tournament.players;
-      let idmap = Object.assign({}, ...players.map(p => { return { [p.id]: Object.assign({}, p) }}));
+      let idmap = Object.assign({}, ...players.map(p => { return { [p.id]: p }}));
 
       let teams = e.teams || [];
       let eligible = fx.eligiblePlayers(tournament, e);
       let eligible_players = eligible.players || [];
-      if (teams.length || eligible_players.length) {
+      if (e.category && tournament.int_rankings && tournament.int_rankings[e.category]) {
+         offset = tournament.int_rankings[e.category];
+      } else if (teams.length || eligible_players.length) {
          let pids = [].concat(...(e.teams || []), ...eligible_players.map(p=>p.id));
          let possible = players.filter(p=>pids.indexOf(p.id)>=0);
-         let int_order = possible.map(o=>o.int).filter(i=>parseInt(i || 0)).sort();
-         pids.forEach(a=>{ if (parseInt(idmap[a].int || 0)) idmap[a].int_order = 0 - 1 - int_order.indexOf(idmap[a].int); });
+         let int_ranks = possible.map(o=>parseInt(o.int, 0)).filter(i=>parseInt(i || 0)).sort();
+         offset = int_ranks.length ? Math.max(...int_ranks) + 1 : 0;
       }
 
-      return { idmap, changed: eligible.changed };
+      return { idmap, offset, changed: eligible.changed };
    }
 
-   fx.teamObj = (e, team, idmap) => {
-      // let team_players = team.map(id=>idmap[id]).sort(lastNameSort);
+   fx.teamObj = (e, team, idmap, offset=0) => {
       let team_players = team.map(id=>playerFx.playerCopy(idmap[id])).sort(lastNameSort);
       let team_hash = team_players.map(p=>p&&p.id).sort().join('|');
       let subrank = (e.doubles_subrank && e.doubles_subrank[team_hash]) ? e.doubles_subrank[team_hash] : undefined;
-      let combined_rank = team_players.map(t=>t.int_order != undefined ? t.int_order : t.category_ranking).reduce((a, b) => (+a || 9999) + (+b || 9999));
+      let team_rankings = team_players.map(t => (t.int && parseInt(t.int)) ? parseInt(t.int) : offset + t.category_ranking);
+      let combined_rank = team_rankings.reduce((a, b) => (+a || 9999) + (+b || 9999));
       let combined_dbls_rank = team_players.map(t=>t.category_dbls).reduce((a, b) => (+a || 0) + (+b || 0));
       team_players.forEach(p=>{
          p.category_ranking = util.parseInt(p.int) || p.category_ranking;
