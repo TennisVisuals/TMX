@@ -99,6 +99,7 @@ gulp.task('concat-lib', ['uglify-lib'], function() {
       'node_modules/moment/min/moment.min.js',
       'node_modules/sanitize-html/dist/sanitize-html.min.js',
 
+      'src/external/quill.min.js',
       'src/external/d3.superformula.min.js',
       'src/external/bundle.min.js',
    ])
