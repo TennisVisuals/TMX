@@ -1036,6 +1036,46 @@ export function treeDraw() {
           .style("shape-rendering", "geometricPrecision")
           .attr("d", elbow);
 
+      let d3Line = d3.line()
+         .x(d => invert_first ? d.x : d.x + round_width - seeding - club_codes)
+         .y(d => d.y);
+
+      function lineX(x) { return invert_first ? x - seeding - club_codes : x; }
+      function lineY(y) { return y; }
+
+      if (left_column_offset) {
+         let lines = [ {p: [{x: lineX(0), y: lineY(0)}, {x: lineX(0), y: lineY(draw_height)}], w: o.lines.stroke_width, c: 'black' } ];
+         if (seeding) {
+            let line = {
+               p: [{x: lineX(seeding), y: lineY(0)}, {x: lineX(seeding), y: lineY(draw_height)}], 
+               w: o.lines.stroke_width, c: 'black'
+            };
+            lines.push(line);
+         }
+
+         svg.selectAll('.line')
+            .data(lines)
+           .enter().append('path')
+            .attr('d', d => d3Line(d.p))
+            .attr('stroke-width', d => d.w)
+            .attr('stroke', d => d.c)
+            .style("shape-rendering", "crispEdges");
+      }
+
+      /*
+      // placeholder for rounds detail line R16, QF, SF, F ...
+      if (false) {
+         let rounds_data = [ {p: [{x: 0, y: 0}, {x: draw_width, y: 0}], w: o.lines.stroke_width, c: 'black' } ];
+         svg.selectAll('.rounds_line')
+            .data(rounds_data)
+           .enter().append('path')
+            .attr('d', d => d3Line(d.p))
+            .attr('stroke-width', d => d.w)
+            .attr('stroke', d => d.c)
+            .style("shape-rendering", "crispEdges");
+      }
+      */
+
       let node = svg.selectAll(".node")
           .data(nodes)
         .enter().append("g")
@@ -1090,34 +1130,6 @@ export function treeDraw() {
          d3.select(node.node().parentNode).select('rect').attr('fill', 'blue');
 
          if (typeof events.position.contextmenu == 'function') events.position.contextmenu(d);
-      }
-
-      let d3Line = d3.line()
-         .x(d => invert_first ? d.x : d.x + round_width - seeding - club_codes)
-         .y(d => d.y);
-
-      function lineX(x) { return invert_first ? x - seeding - club_codes : x; }
-      function lineY(y) { return y; }
-
-      if (left_column_offset) {
-         let lines = [{
-             p: [{x: lineX(0), y: lineY(0)}, {x: lineX(0), y: lineY(draw_height)}], w: o.lines.stroke_width, c: 'black'
-         }];
-         if (seeding) {
-            let line = {
-               p: [{x: lineX(seeding), y: lineY(0)}, {x: lineX(seeding), y: lineY(draw_height)}], 
-               w: o.lines.stroke_width, c: 'black'
-            };
-            lines.push(line);
-         }
-
-         svg.selectAll('.line')
-            .data(lines)
-           .enter().append('path')
-            .attr('d', d => d3Line(d.p))
-            .attr('stroke-width', d => d.w)
-            .attr('stroke', d => d.c)
-            .style("shape-rendering", "crispEdges");
       }
 
       if (o.details.draw_positions) {
