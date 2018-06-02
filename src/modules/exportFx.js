@@ -639,8 +639,7 @@ export const exportFx = function() {
       var qr_dim = svg_width / 6.7;
 
       return new Promise((resolve, reject) => {
-
-         d3.selectAll('#hidden').remove();
+         cleanUp();
 
          d3.select('body')
             .append('div').attr('id', 'hidden')
@@ -718,31 +717,35 @@ export const exportFx = function() {
 
          // if event published add QR code
          if (event && event.published && tournament.org && tournament.org.abbr) {
-            var ht = draw.height();
-            var xx = new QRious({
-               level: 'H',
-               size: qr_dim,
-               value: `https://courtHive.com/Live/${tournament.org.abbr}`
-            });
-            var qdu = xx.toDataURL();
-
-            images.push({ src: qdu, x: qr_dim * -1, y: qr_dim * -1 });
+            images.push(getQRuri({ abbr: tournament.org.abbr, qr_dim, x_offset: -1, y_offset: -1 }));
          }
 
          getLogo().then(logo => showPDF(logo, images));
 
          function showPDF(logo, images) {
-            exp.SVGasURI(element, images, svg_height).then(image => drawSheet({ tournament, images: [image], logo, selected_event, event, info, save }), reject).then(cleanUp, cleanUp);;
+            exp.SVGasURI(element, images, svg_height)
+               .then(src => drawSheet({ tournament, images: [{src, pct: 100}], logo, selected_event, event, info, save }), reject)
+               .then(cleanUp, cleanUp);;
          }
       });
+   }
+
+   function getQRuri({ abbr, qr_dim, x_offset=1, y_offset=1 }) {
+         var xx = new QRious({
+            level: 'H',
+            size: qr_dim,
+            value: `https://courtHive.com/Live/${abbr}`
+         });
+         var qdu = xx.toDataURL();
+
+         return { src: qdu, x: qr_dim * x_offset, y: qr_dim * y_offset };
    }
 
    function cleanUp() { d3.selectAll('#hidden').remove(); }
 
    exp.rrDrawPDF = ({ tournament, data, options, selected_event, info, event, save }) => {
       return new Promise((resolve, reject) => {
-
-         d3.selectAll('#hidden').remove();
+         cleanUp();
 
          d3.select('body')
             .append('div').attr('id', 'hidden')
@@ -773,7 +776,16 @@ export const exportFx = function() {
 
          function showPDF(logo) {
             let bracket_svgs = Array.from(element.querySelectorAll('svg'));
-            Promise.all(bracket_svgs.map(exp.SVGasURI)).then(images => drawSheet({ tournament, images, logo, selected_event, event, info, save }), reject).then(cleanUp, cleanUp);
+            Promise.all(bracket_svgs.map(element => exp.SVGasURI(element)))
+               .then(uris => {
+                  let images = uris.map(src => ({ src, pct: 100 }));
+                  if (event && event.published && tournament.org && tournament.org.abbr) {
+                     var qruri = getQRuri({ abbr: tournament.org.abbr, qr_dim: 500 });
+                     images.push({ src: qruri.src, pct: 20 });
+                  }
+                  drawSheet({ tournament, images, logo, selected_event, event, info, save });
+               }, reject)
+               .then(cleanUp, cleanUp);
          }
       });
    }
@@ -1150,7 +1162,7 @@ export const exportFx = function() {
          }
 		}
 
-      let body_images = images.map(image => ({ image: image, width: 560, }));
+      let body_images = images.map(image => ({ image: image.src, width: (image.pct ? image.pct / 100 : 1) * 560, }));
       let content = [page_header, ' '].concat(body_images);
 
       var docDefinition = {
