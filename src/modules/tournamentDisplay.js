@@ -696,10 +696,12 @@ export const tournamentDisplay = function() {
                tournament.infoPublished = undefined;
                displayGen.pubStateTrnyInfo(container.pubStateTrnyInfo.element, tournament.infoPublished);
                displayGen.drawBroadcastState(container.publish_state.element);
-               tournament.events.forEach(evt => {
-                  evt.published = false;
-                  evt.up_to_date = false;
-               });
+               if (tournament.events) {
+                  tournament.events.forEach(evt => {
+                     evt.published = false;
+                     evt.up_to_date = false;
+                  });
+               }
                if (tournament.schedule) {
                   tournament.schedule.published = false;
                   tournament.schedule.up_to_date = false;
@@ -5197,7 +5199,7 @@ export const tournamentDisplay = function() {
 
       function displayDraw({ evt }) { 
          if (!evt.draw) return;
-         displayGen.drawRepState(container.player_reps_state.element, displayed_draw_event);
+         if (displayed_draw_event) displayGen.drawRepState(container.player_reps_state.element, displayed_draw_event);
 
          if (evt.draw.children && evt.draw.children.length) { 
             tree_draw.data(evt.draw);

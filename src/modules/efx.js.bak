@@ -1046,6 +1046,7 @@ export const exportFx = function() {
 
    function drawSheet({ tournament={}, images, logo, selected_event, event, info, save }) {
       let evt = event || (tournament.events && tournament.events[selected_eent]);
+      // let image = images[0];
       let player_representatives = evt && evt.player_representatives || []; 
       let event_organizers = tournament && tournament.organizers ? [tournament.organizers] : []; 
       let created = event.draw_created && util.isDate(event.draw_created) ? new Date(event.draw_created) : new Date();

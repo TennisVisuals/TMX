@@ -2812,6 +2812,7 @@ export const displayGen = function() {
    }
 
    gen.drawRepState = (elem, evt) => {
+      if (!evt) return;
       let r = evt.player_representatives;
       let rep_count = r ? r.filter(f=>f).length : 0;
       let player_reps_state = rep_count > 0 ? 'reps_complete' : 'reps_incomplete';

@@ -392,6 +392,8 @@ export const tournamentFx = function() {
 
       let idm = fx.idMap(tournament, e);
       let idmap = idm.idmap;
+      if (!idmap) return [];
+
       let offset = idm.offset;
       let approved = e.approved ? e.approved.map(t=>fx.teamObj(e, t, idmap, offset)).sort(fx.combinedRankSort) : [];
 
@@ -414,6 +416,7 @@ export const tournamentFx = function() {
    fx.idMap = (tournament, e) => {
       let offset = 0;
       let players = tournament.players;
+      if (!players) return {};
       let idmap = Object.assign({}, ...players.map(p => { return { [p.id]: p }}));
 
       let teams = e.teams || [];
@@ -683,7 +686,7 @@ export const tournamentFx = function() {
          }
       }
 
-      let existing_approved = e.approved.map(a=>a).sort().join('/');
+      let existing_approved = e.approved ? e.approved.map(a=>a).sort().join('/') : [];
 
       if (e.format == 'S') {
          e.approved = tournament.players
@@ -696,7 +699,7 @@ export const tournamentFx = function() {
          // from both e.approved and e.teams
       }
 
-      let new_approved = e.approved.map(a=>a).sort().join('/');
+      let new_approved = e.approved ? e.approved.map(a=>a).sort().join('/') : [];
       approved_changed = existing_approved != new_approved;
 
       if (e.format == 'S') {

@@ -269,7 +269,7 @@ export const playerFx = function() {
       return match;
    }
 
-   fx.playerProfileLadderPNG = (filename = 'ladder.png') => exportFx.saveSVGasPNG('.itemCalendar', filename);
+   fx.playerProfileLadderPNG = (filename = 'ladder.png') => exportFx.saveSVGasPNG({ selector: '.itemCalendar', filename });
 
    // TODO: not used?
    // perhaps an example to extract ladder adn export as pdf?
@@ -279,7 +279,7 @@ export const playerFx = function() {
 
       let svgString = exportFx.getSVGString(svg.node());
 
-      exportFx.svgString2DataURL(svgString).then(generate);
+      exportFx.svgString2DataURL({ svg_string }).then(generate);
 
       function generate(image) {
 
