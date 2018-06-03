@@ -201,6 +201,8 @@ export const lang = function() {
          matchesbefore: 'Matches Before Count',
          automatedbyes: 'Automatic Bye Placement',
          llallrounds: 'LL from All Qualifying Rounds',
+         separate_by_ioc: 'Auto Separate Players by Country',
+         separate_by_club: 'Auto Separate Players by Club',
          fixedbyes: 'Fixed Bye Order',
          courtdetail: 'Court Details',
          firstday: 'Week Starts Monday',
