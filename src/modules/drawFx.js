@@ -425,7 +425,7 @@ export function roundRobin() {
          if (d.row && d.attr == 'score' && d.row != d.mc) {
             let sc = scores[d.row - 1][d.mc - 1];
             let num = sc ? sc.match(/\d+/g) : undefined;
-            if (sc && !num && d.match.loaer) {
+            if (sc && !num && d.match.loser) {
                let indicator = d.match.loser[0].draw_position == d.row ? '-' : '+';
                sc += ` (${indicator})`;
             }
@@ -1652,7 +1652,8 @@ export function drawFx(opts) {
          "13": [["0", ".125"], [1, ".375"], [0, ".625"], [1, ".875"]],
          "17": [["1", ".0625"], [0, ".1875"], [1, ".3125"], [0, ".4325"], [1, ".5625"], [0, ".6875"], [1, ".8125"], [0, ".9375"] ],
          "25": [["0", ".0625"], [1, ".1875"], [0, ".3125"], [1, ".4325"], [0, ".5625"], [1, ".6875"], [0, ".8125"], [1, ".9375"] ]
-      }
+      },
+      separation: { ioc: false, club_code: false }
    }
 
    if (opts) keyWalk(opts, o);
@@ -2552,9 +2553,79 @@ export function drawFx(opts) {
       });
    }
 
-   fx.rrUnseededPlacements = rrUnseedPlacements;
-   function rrUnseedPlacements({ draw }) {
+   function unplacedTeams(draw) {
+      let placements = draw.unseeded_placements ? [].concat(...draw.unseeded_placements.map(p=>p.team.map(m=>m.id))) : [];
+      return draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
+   }
 
+   fx.rrUnseededPlacements = rrUnseededPlacements;
+   function rrUnseededPlacements({ draw }) {
+      if (o.separation.ioc || o.separation.club_code) {
+         randomRRunseededSeparation({ draw });
+      } else {
+         randomRRunseededDistribution({ draw });
+      }
+   }
+
+   function randomRRunseededSeparation({ draw }) {
+      let exit = false;
+      let unfilled_positions = fx.drawInfo(draw).unfilled_positions;
+      if (!draw.unseeded_placements) draw.unseeded_placements = [];
+
+      /**
+       * for each unfilled_position find the ioc/club_code of all other players in the
+       * bracket, then get array of all unplaced players who don't share the same ioc/club_code,
+       * then random pop from this group to make assignment...
+       * if there are no unplaced players with different ioc, then random pop from all unplaced players
+       */
+
+      while (unfilled_positions.length && !exit) {
+         let position = randomPop(unfilled_positions);
+         let iocs = bracketIOCs(draw.brackets[position.bracket]);
+         let clubs = bracketClubs(draw.brackets[position.bracket]);
+         let unplaced_teams = unplacedTeams(draw);
+
+         let ioc_club_diff = unplaced_teams.filter(team => iocs.indexOf(team[0].ioc) < 0 && clubs.indexOf(team[0].club_code) < 0);
+         let ioc_diff = unplaced_teams.filter(team => iocs.indexOf(team[0].ioc) < 0);
+         let club_diff = unplaced_teams.filter(team => clubs.indexOf(team[0].club_code) < 0);
+
+         if (o.separation.ioc && o.separation.club_code && ioc_club_diff.length) {
+            let team = randomPop(ioc_club_diff);
+            placeTeam(team, position);
+         } else if (o.separation.ioc && ioc_diff.length) {
+            let team = randomPop(ioc_diff);
+            placeTeam(team, position);
+         } else if (o.separation.club_code && club_diff.length) {
+            let team = randomPop(club_diff);
+            placeTeam(team, position);
+         } else if (unplaced_teams.length)  {
+            let team = randomPop(unplaced_teams);
+            placeTeam(team, position);
+         } else {
+            console.log('ERROR');
+            exit = true;
+         }
+      }
+
+      function placeTeam(team, position) {
+         let player = team[0];
+         player.draw_position = position.position;
+         draw.brackets[position.bracket].players.push(player);
+         draw.unseeded_placements.push({ team, position });
+      }
+
+      function bracketIOCs(bracket) {
+         if (!bracket || !bracket.players) return [];
+         return bracket.players.map(player => player.ioc);
+      }
+
+      function bracketClubs(bracket) {
+         if (!bracket || !bracket.players) return [];
+         return bracket.players.map(player => player.club_code);
+      }
+   }
+
+   function randomRRunseededDistribution({ draw }) {
       let unfilled_positions = fx.drawInfo(draw).unfilled_positions;
 
       draw.unseeded_placements = draw.unseeded_teams.map(team => {
@@ -2694,11 +2765,91 @@ export function drawFx(opts) {
    fx.placeUnseededTeams = placeUnseededTeams;
    function placeUnseededTeams({ draw }) {
       if (!draw.unseeded_teams) return;
+      if (o.separation.ioc || o.separation.club_code) {
+         randomUnseededSeparation({ draw });
+      } else {
+         randomUnseededDistribution({ draw });
+      }
+   }
+
+   function randomUnseededDistribution({ draw }) {
       let unfilled_positions = drawInfo(draw).unassigned.map(u=>u.data.dp);;
       unfilled_positions.forEach(position => {
          let team = randomPop(draw.unseeded_teams);
          assignPosition({ node: draw, position, team });
       });
+   }
+
+   function randomUnseededSeparation({ draw }) {
+      let exit = false;
+      let unplaced_teams = unplacedTeams(draw);
+      let draw_info = drawInfo(draw);
+      let unfilled_positions = draw_info.unassigned.map(u=>u.data.dp);
+      let pairs = draw_info.unassigned
+         .map(u=>u.parent.children.map(c=>c.data.dp))
+         .reduce((p, c) => p.map(x=>x[0]).indexOf(c[0]) < 0 ? p.concat([c]) : p, []);
+
+      let iocs = draw.unseeded_teams.map(team => team[0].ioc);
+      let club_codes = draw.unseeded_teams.map(team => team[0].club_code);
+
+      // first group all players by ioc and club_code 
+      let ioc_count = o.separation.ioc ? sortedAttributeCount(iocs) : [];
+      // if all players from the same country or only one "foreign" player, ignore ioc
+      if (ioc_count.length && ioc_count[0].count + 1 >= unplaced_teams.length) ioc_count = [];
+      let cc_count = o.separation.club_code ? sortedAttributeCount(club_codes) : [];
+
+      if (!ioc_count.length && !cc_count.length) return randomUnseededDistribution({ draw });
+      while (unplaced_teams.length && !exit) {
+         // make sure that all pairs still have empty slots
+         pairs = pairs.filter(pair => intersection(pair, unfilled_positions).length);
+         // copy pairs for group distribution
+         let pairs_copy = pairs.map(p=>p);
+
+         let group = nextGroup();
+         let teams = unplaced_teams.filter(team => team[0][group.key] == group.group.attr);
+         unplaced_teams = unplaced_teams.filter(team => team[0][group.key] != group.group.attr);
+
+         teams.forEach(team => {
+            let position;
+            if (pairs_copy.length) {
+               let pair = randomPop(pairs_copy);
+               let positions = intersection(pair, unfilled_positions);
+               position = randomPop(positions);
+               unfilled_positions = unfilled_positions.filter(p=>p!=position);
+            } else {
+               position = randomPop(unfilled_positions);
+            }
+            assignPosition({ node: draw, position, team });
+         });
+      }
+
+      function nextGroup() {
+         let key, group;
+         // return groupings starting with the largest
+         if (!ioc_count.length) {
+            group = cc_count.shift();
+            key = 'club_code';
+         } else if (!cc_count.length) {
+            group = ioc_count.shift();
+            key = "ioc";
+         } else {
+            if (ioc_count[0].count >= cc_count[0].count) {
+               group = ioc_count.shift();
+               key = "ioc";
+            } else {
+               key = 'club_code';
+               group = cc_count.shift();
+            }
+         }
+         return { key, group };
+      }
+   }
+
+   function sortedAttributeCount(attrs) {
+      let attr_count = attrs.reduce((a, c)=>{a[c]++?0:a[c]=1;return a},{})
+      return Object.keys(attr_count)
+         .map(attr => ({ attr, count: attr_count[attr]}) )
+         .sort((a, b) => b.count - a.count);
    }
 
    function passFail(array, conditionFx) {
