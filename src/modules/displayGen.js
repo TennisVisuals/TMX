@@ -1249,6 +1249,8 @@ export const displayGen = function() {
          auto_byes: displayFx.uuid(),
          compressed_draw_formats: displayFx.uuid(),
          fixed_bye_order: displayFx.uuid(),
+         separate_by_ioc: displayFx.uuid(),
+         separate_by_club: displayFx.uuid(),
          ll_all_rounds: displayFx.uuid(),
          display_flags: displayFx.uuid(),
          court_detail: displayFx.uuid(),
@@ -1272,9 +1274,19 @@ export const displayGen = function() {
                     <label class='calabel'>${lang.tr('settings.fixedbyes')}:</label>
                     <input type='checkbox' id="${ids.fixed_bye_order}">
                 </div>
+             </div>
+             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.llallrounds')}:</label>
                     <input type='checkbox' id="${ids.ll_all_rounds}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.separate_by_ioc')}:</label>
+                    <input type='checkbox' id="${ids.separate_by_ioc}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.separate_by_club')}:</label>
+                    <input type='checkbox' id="${ids.separate_by_club}">
                 </div>
              </div>
              <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
