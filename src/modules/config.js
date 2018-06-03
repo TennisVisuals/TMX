@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.158.271.183',
+      version: '0.9.160.271.185',
       version_check: undefined,
       org: {
          name: undefined,
@@ -111,7 +111,8 @@ export const config = function() {
             "13": [["0", ".125"], [1, ".375"], [0, ".625"], [1, ".875"]],
             "17": [["1", ".0625"], [0, ".1875"], [1, ".3125"], [0, ".4325"], [1, ".5625"], [0, ".6875"], [1, ".8125"], [0, ".9375"] ],
             "25": [["0", ".0625"], [1, ".1875"], [0, ".3125"], [1, ".4325"], [0, ".5625"], [1, ".6875"], [0, ".8125"], [1, ".9375"] ]
-         }
+         },
+         separation: { ioc: false, club_code: false }
       },
       draws: {
          tree_draw: {
@@ -433,6 +434,14 @@ export const config = function() {
             container.ll_all_rounds.element.addEventListener('click', llAllRounds);
             container.ll_all_rounds.element.checked = util.string2boolean(env.drawFx.ll_all_rounds);
             function llAllRounds(evt) { env.drawFx.ll_all_rounds = container.ll_all_rounds.element.checked; }
+
+            container.separate_by_ioc.element.addEventListener('click', separateIOCs);
+            container.separate_by_ioc.element.checked = util.string2boolean(env.drawFx.separation.ioc);
+            function separateIOCs(evt) { env.drawFx.separation.ioc = container.separate_by_ioc.element.checked; }
+
+            container.separate_by_club.element.addEventListener('click', separateClubs);
+            container.separate_by_club.element.checked = util.string2boolean(env.drawFx.separation.club_code);
+            function separateClubs(evt) { env.drawFx.separation.club_code = container.separate_by_club.element.checked; }
 
             container.display_flags.element.addEventListener('click', displayFlags);
             container.display_flags.element.checked = util.string2boolean(env.draws.tree_draw.flags.display);
