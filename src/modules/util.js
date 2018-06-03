@@ -212,6 +212,7 @@ export const util = function() {
    fx.arrayMap = (array) => new Map([...new Set(array)].map( x => [x, array.filter(y => y === x).length]));
    fx.arrayCount = (array) => array.reduce((r,k) => { r[k] = ++r[k] || 1; return r},{});
    fx.occurrences = (val, arr) => arr.reduce((r,val) => { r[val] = 1+r[val] || 1; return r},{})[val] || 0;
+   fx.intanceCount = (values) => values.reduce((a, c)=>{a[c]++?0:a[c]=1;return a},{});
    fx.indices = (val, arr) => arr.reduce((a, e, i) => { if (e === val) a.push(i); return a; }, []) 
    fx.randomPop = (array) => array.length ? array.splice(Math.floor(Math.random()*array.length), 1)[0] : undefined;
 
