@@ -59,6 +59,7 @@ export const tournamentDisplay = function() {
    }
 
    let dfx = drawFx();
+   db.addDev({dfx});
    fx.settingsLoaded = (env) => { dfx.options(env.drawFx); }
 
    fx.options = (values) => {
@@ -2568,7 +2569,7 @@ export const tournamentDisplay = function() {
          let lower_range = bracket_sizes.min_bracket_size;
          let upper_range = Math.min(bracket_sizes.max_bracket_size, opponents);
 
-         e.bracket_size = (e.bracket_size && validBracketSize(opponents, e.bracket_size)) ? e.bracket_size : lower_range;
+         e.bracket_size = (e.bracket_size && validBracketSize(opponents, e.bracket_size)) ? e.bracket_size : (bracket_sizes.default_bracket_size || lower_range);
 
          let size_range = util.range(lower_range, upper_range + 1).filter(v=>validBracketSize(opponents, v));
          let size_options = size_range.map(c => ({ key: c, value: c }));
