@@ -61,7 +61,7 @@ export const tournamentFx = function() {
 
    function winnerRemoved({ tournament, e, qlink, qlinkinfo, previous_winner, outcome }) {
       if (qlink) {
-         qlink.approved = q.link.approved ? qlink.approved.filter(a=>previous_winner.indexOf(a) < 0): [];
+         qlink.approved = qlink.approved ? qlink.approved.filter(a=>previous_winner.indexOf(a) < 0): [];
          qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
          if (qlinkinfo) {
             qlinkinfo.nodes.forEach(node => {
@@ -107,6 +107,11 @@ export const tournamentFx = function() {
       fx.logEventChange(e, { fx: 'qualifier changed', d: { team: outcome.teams[outcome.winner].map(t=>t.id) } });
    }
 
+   fx.safeScoreTreeDraw = (tournament, e, existing_scores, outcome) => {
+      try { return fx.scoreTreeDraw(tournament, e, existing_scores, outcome); }
+      catch (err) { tfx.logEventError(e, err, 'tournamentFx.scoreTreeDraw'); }
+   }
+
    fx.scoreTreeDraw = (tournament, e, existing_scores, outcome) => {
       var result = {};
       if (!outcome) return result;
@@ -124,8 +129,10 @@ export const tournamentFx = function() {
       } else if (previous_winner && !current_winner) {
          winnerRemoved({ tournament, e, qlink, qlinkinfo, previous_winner, outcome });
          if (qlink) result.approved_changed = qlink;
+         result.winner_removed = true;
       } else if (qualifier_changed) {
          qualifierChanged({ e, outcome, qlink, qlinkinfo, previous_winner, current_winner });
+         result.qualifier_changed = true;
       }
 
       if (!existing_scores) {
@@ -154,7 +161,8 @@ export const tournamentFx = function() {
       let qualifier_index = finalist_dp.indexOf(outcome.position);
       let qualified = e.draw_type == 'Q' && qualifier_index >= 0;
 
-      if (e.draw_type == 'Q' && qualified) {
+      if (qualified) {
+         result.qualified = true;
          fx.qualifyTeam({ tournament, env: fx.fx.env(), e, team: outcome.teams[outcome.winner], qualifying_position: qualifier_index + 1 });
       }
 
@@ -186,6 +194,7 @@ export const tournamentFx = function() {
       match.score = outcome.score;
       if (outcome.score) match.status = '';
       match.winner_index = outcome.winner;
+      match.score_format = outcome.score_format;
 
       match.muid = match.muid || UUID.idGen();
       match.winner = outcome.teams[outcome.winner];
@@ -207,6 +216,11 @@ export const tournamentFx = function() {
 
       e.active = true;
       return result;
+   }
+
+   fx.safeScoreRoundRobin = (tournament, e, existing_scores, outcome) => {
+      try { return fx.scoreRoundRobin(tournament, e, existing_scores, outcome); }
+      catch (err) { tfx.logEventError(e, err, 'tournamentFx.scoreRoundRobin'); }
    }
 
    fx.scoreRoundRobin = (tournament, e, existing_scores, outcome) => {
@@ -474,7 +488,7 @@ export const tournamentFx = function() {
 
       let ranked_players = approved_players.filter(a=>a.category_ranking).length;
 
-      if (ranked_players < seed_limit) seed_limit = ranked_players;
+      if (!e.gem_seeding && ranked_players < seed_limit) seed_limit = ranked_players;
 
       let linkedQ = fx.findEventByID(tournament, e.links['Q']) || fx.findEventByID(tournament, e.links['R']);
       let qualifier_ids = linkedQ && linkedQ.qualified ? linkedQ.qualified.map(teamHash) : [];
@@ -507,6 +521,18 @@ export const tournamentFx = function() {
             p.first_name = util.normalizeName(p.first_name, false);
             return p;
          });
+
+      if (e.gem_seeding) {
+         let linkedQ = fx.findEventByID(tournament, e.links['Q']) || fx.findEventByID(tournament, e.links['R']);
+         if (!linkedQ || !linkedQ.qualified || !linkedQ.draw) return;
+         let qualifier_ids = linkedQ.qualified.map(q=>q[0].id);
+         let teams = linkedQ.draw.opponents.filter(t=>e.draw_type == 'C' ? qualifier_ids.indexOf(t[0].id) < 0 : qualifier_ids.indexOf(t[0].id) >= 0);
+         let ratios = Object.assign({}, ...teams.map(t=>({ [t[0].puid]: t[0].results && t[0].results.ratio_hash })) );
+         approved_players.forEach(o=>o.gem_ratio = ratios[o.puid]);
+         approved_players
+            .sort((a, b) => (b.gem_ratio || 0) > (a.gem_ratio || 0))
+            .forEach((p, i) => { p.seed = (i < seed_limit) ? i + 1 : undefined; });
+      }
 
       return approved_players;
    }
@@ -661,7 +687,8 @@ export const tournamentFx = function() {
          if (qualifying_consolation) {
             // if building a consolation draw for a qualifying event, available players are thos who didn't qualify
             let qualifier_ids = linkedQ.qualified.map(q=>q[0].id);
-            available_players = available_players.filter(p=>qualifier_ids.indexOf(p.id) < 0);
+            let available_ids = linkedQ.approved.filter(id=>qualifier_ids.indexOf(id) < 0);
+            available_players = available_players.filter(p=>available_ids.indexOf(p.id) >= 0);
          } else {
             if (!e.links['E'] || !completed_matches.length) return { players: [] };
 
@@ -780,7 +807,6 @@ export const tournamentFx = function() {
       } else {
          return [];
       }
-
    }
 
    fx.playerSort = (players) => {
