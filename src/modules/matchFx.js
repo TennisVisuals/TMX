@@ -264,6 +264,7 @@ export const matchFx = function() {
             if (node.children && !dfx.byeTeams(node)) {
                if (!node.data.match) node.data.match = {};
                if (!node.data.match.muid) node.data.match.muid = UUID.new();
+               if (!node.data.match.euid) node.data.match.euid = e.euid;
             }
          });
       }
