@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.160.271.185',
+      version: '0.9.162.276.189',
       version_check: undefined,
       org: {
          name: undefined,
@@ -115,6 +115,10 @@ export const config = function() {
          separation: { ioc: false, club_code: false }
       },
       draws: {
+         gem_seeding: false,
+         settings: {
+            separation: true
+         },
          tree_draw: {
             flags: { display: true },
             schedule: {
