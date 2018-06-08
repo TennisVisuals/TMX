@@ -235,6 +235,7 @@ export const lang = function() {
       },
 
       draws: {
+         gemseeding: 'GEM Seeding',
          feedin: 'Feed-in',
          standard: 'Standard',
          structure: 'Structure',
@@ -408,7 +409,7 @@ export const lang = function() {
          ineligible: 'Ineligible',
          unavailable: 'Unavailable',
          wildcard: 'Wildcard',
-         received: 'Reeived Event',
+         received: 'Received Event(s)',
          toggle: 'Toggle Publish State?'
       },
 
