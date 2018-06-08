@@ -59,7 +59,6 @@ export const tournamentDisplay = function() {
    }
 
    let dfx = drawFx();
-   db.addDev({dfx});
    fx.settingsLoaded = (env) => { dfx.options(env.drawFx); }
 
    fx.options = (values) => {
@@ -357,7 +356,8 @@ export const tournamentDisplay = function() {
 
       // START setup
       let state = {
-         edit: false,
+         // edit: false,
+         edit: editing,
          manual_ranking: false,
       }
 
@@ -413,6 +413,7 @@ export const tournamentDisplay = function() {
       tree_draw.selector(container.draws.element);
 
       util.addEventToClass(classes.auto_draw, toggleAutoDraw);
+      util.addEventToClass(classes.gem_seeding, toggleGemSeeding);
 
       attachFilterToggles(classes, updateFilters);
       util.addEventToClass(classes.ranking_order, () => enableManualRankings());
@@ -618,7 +619,7 @@ export const tournamentDisplay = function() {
 
                   let devel = location.pathname.indexOf('devel') >= 0;
                   let plusplus = location.pathname.indexOf('++') >= 0;
-                  let message = `${location.origin}${devel ? '/devel' : ''}/Live${plusplus ? '++' : ''}/?actionKey=${key_uuid}`;
+                  let message = `${location.origin}${devel ? '/devel' : ''}/Ref${plusplus ? '++' : ''}/?actionKey=${key_uuid}`;
                   console.log(message);
                   finish();
 
@@ -708,6 +709,7 @@ export const tournamentDisplay = function() {
                   tournament.schedule.up_to_date = false;
                   schedulePublishState();
                }
+               enableTournamentOptions();
                saveTournament(tournament, false);
             }
             coms.requestAcknowledgement({ uuid: tournament.tuid, callback: updateInfoPubState });
@@ -1490,7 +1492,14 @@ export const tournamentDisplay = function() {
 
       function autoDrawSetting() {
          let elem = document.querySelector('.' + classes.auto_draw);
+         if (!elem) return;
          return Array.from(elem.firstChild.classList).indexOf('automated_draw_play') >= 0 ? true : false;
+      }
+
+      function gemSeedingSetting() {
+         let elem = document.querySelector('.' + classes.gem_seeding);
+         if (!elem) return;
+         return Array.from(elem.firstChild.classList).indexOf('gem_active') >= 0 ? true : false;
       }
 
       function toggleAutoDraw(auto) {
@@ -1524,6 +1533,39 @@ export const tournamentDisplay = function() {
             eventList(true);
          }
       }
+
+      function toggleGemSeeding(active) {
+         let e = tfx.findEventByID(tournament, displayed_event);
+         let seeding_active = gemSeedingSetting();
+         let toggleGemActive = () => {
+            // toggle the two possible options
+            let elem = document.querySelector('.' + classes.gem_seeding);
+            elem.firstChild.classList.toggle('gem_inactive');
+            elem.firstChild.classList.toggle('gem_active');
+            saveTournament(tournament);
+         }
+
+         if ((active == true && seeding_active) || (active == false && !seeding_active)) return;
+
+         // if not true/false it may be MouseEvent, so needs to be explicit
+         if (active == true || active == false) {
+            toggleGemActive();
+            return;
+         }
+
+         if (!state.edit || (e && e.active)) return;
+
+         toggleGemActive();
+
+         if (e) {
+            e.gem_seeding = !e.gem_seeding;
+            e.regenerate = 'gem seeding';
+            e.draw_created = false;
+            eventBackground(e);
+            eventList(true);
+         }
+      }
+
       function filteredTabs() {
          playersTab();
          matchesTab();
@@ -1639,6 +1681,7 @@ export const tournamentDisplay = function() {
          setEditState();
       }
 
+      // authorization to publish tournament
       function revokeAuthorization() {
          displayGen.escapeModal();
          displayGen.okCancelMessage(lang.tr('phrases.revokeauth'), revokeAuthorization, () => displayGen.closeModal());
@@ -1777,8 +1820,7 @@ export const tournamentDisplay = function() {
          [ 'start_date', 'end_date', 'organization', 'organizers', 'location', 'judge' ].forEach(field=>container[field].element.disabled = !bool);
          let publications = !tournament.events || !tournament.events.length ? false : tournament.events.reduce((p, c) => c.published || p, false);
          let delegation = publications && tournament.events && tournament.events.length && tournament.events.reduce((p, c) => p || c.draw_created || c.active, false);
-         // container.delegate.element.style.display = (bool || tournament.delegated) && delegation && same_org ? 'inline' : 'none';
-         container.delegate.element.style.display = 'none';
+         container.delegate.element.style.display = (bool || tournament.delegated) && delegation && same_org ? 'inline' : 'none';
          container.pub_link.element.style.display = bool && publications ? 'inline' : 'none';
          container.edit_notes.element.style.display = bool && same_org ? 'inline' : 'none';
          container.push2cloud.element.style.display = bool && same_org ? 'inline' : 'none';
@@ -2332,6 +2374,13 @@ export const tournamentDisplay = function() {
 
          eventBackground(e);
          toggleAutoDraw(e.automated);
+
+         // by default hidden
+         let gem_seeding = document.querySelector('.' + classes.gem_seeding);
+         if (gem_seeding) gem_seeding.style.display = 'none';
+         // only toggle it if there is a true/false value
+         if (e.gem_seeding != undefined) toggleGemSeeding(e.gem_seeding);
+
          displayed_event = e.euid;
          configureEventSelections(e);
          enableEventTeams(e);
@@ -3294,7 +3343,7 @@ export const tournamentDisplay = function() {
             e.draw.seeded_teams = dfx.seededTeams({ teams: e.draw.opponents });
             e.draw.unseeded_teams = tfx.teamSort(e.draw.opponents.filter(f=>!f[0].seed));
 
-            let seeding = tfx.rankedTeams(approved_opponents);
+            let seeding = e.gem_seeding || tfx.rankedTeams(approved_opponents);
             if (!seeding) {
                e.draw.seeded_teams = [];
                delete e.draw.seed_placements;
@@ -3337,7 +3386,7 @@ export const tournamentDisplay = function() {
                e.draw.seeded_teams = dfx.seededTeams({ teams: e.draw.opponents });
                e.draw.unseeded_teams = tfx.teamSort(e.draw.opponents.filter(f=>!f[0].seed));
 
-               let seeding = tfx.rankedTeams(approved_opponents);
+               let seeding = e.gem_seeding || tfx.rankedTeams(approved_opponents);
                if (!seeding) {
                   e.draw.seeded_teams = [];
                   delete e.draw.seed_placements;
@@ -3474,6 +3523,16 @@ export const tournamentDisplay = function() {
             eligible_players.forEach(p => { if (p.order) p.full_name = `${p.full_name}&nbsp;<span class='player_order'>(${p.order})</span>`; });
             teams = teamRankDuplicates(eventTeams(e));
             approved = teamRankDuplicates(tfx.approvedTeams({ tournament, e }));
+         }
+
+         if (e.format == 'S' && e.links && e.links['R']) {
+            let entries = util.unique(approved.map(a=>a.entry)); 
+            // if RR qualifying round and either consolation draw or elimination draw is composed entirely of qualifiers, enable Option for GEM seeding
+            if (e.draw_type == 'C' || (entries.length == 1 && entries[0] == 'Q')) {
+               let gem_seeding = document.querySelector('.' + classes.gem_seeding);
+               let display = e.active || !state.edit || !fx.fx.env().draws.gem_seeding ? false : true;
+               if (gem_seeding) gem_seeding.style.display = display ? 'inline' : 'none';
+            }
          }
 
          displayGen.displayEventPlayers({ container, approved, teams, eligible: eligible_players, ineligible: ineligible_players, unavailable: unavailable_players });
@@ -3872,8 +3931,8 @@ export const tournamentDisplay = function() {
             util.addEventToClass('dragdrop', dragStart, container.schedule.element, 'dragstart');
             util.addEventToClass('dragdrop', drop, container.schedule.element, 'drop');
 
-            util.addEventToClass('schedule_box', gridContext, container.schedule.element, 'contextmenu');
             util.addEventToClass('oop_round', roundContext, container.schedule.element, 'contextmenu');
+            util.addEventToClass('schedule_box', gridContext, container.schedule.element, 'contextmenu');
             util.addEventToClass('schedule_box', selectMatch, container.schedule.element, 'click');
             scheduleActions();
             checkConflicts(day_matches);
@@ -4417,10 +4476,13 @@ export const tournamentDisplay = function() {
                   let result = (e.draw_type == 'R') ? scoreRoundRobin(tournament, e, existing_scores, outcome) : scoreTreeDraw(tournament, e, existing_scores, outcome);
 
                   if (result && !result.error) {
+
+                     // is this duplication?
                      match.winner_index = outcome.winner;
                      match.score = outcome.score;
                      if (outcome.score) match.status = '';
                      match.score_format = outcome.score_format;
+                     // end duplication q.
 
                      updateScheduleBox(match);
 
@@ -5171,6 +5233,7 @@ export const tournamentDisplay = function() {
                displayGen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
             }
             saveTournament(tourny);
+            enableTournamentOptions();
             if (callback && typeof callback == 'function') callback();
          }
          coms.requestAcknowledgement({ uuid: evt.euid, callback: updateBroadcastStatus });
@@ -5178,7 +5241,6 @@ export const tournamentDisplay = function() {
          publishFx.broadcastEvent({ tourny, evt, draw_type_name, options });
 
          saveTournament(tourny);
-         enableTournamentOptions();
       }
 
       function pointsTab(tournament, container, filters=[]) {
@@ -5207,7 +5269,7 @@ export const tournamentDisplay = function() {
             if (tree_draw.info().doubles) tree_draw.options({ names: { seed_number: false }});
 
             // TODO: this is temporary while exploring other options
-            let seeding = evt.draw.opponents ? tfx.rankedTeams(evt.draw.opponents) : true;
+            let seeding = evt.draw.opponents ? evt.gem_seeding || tfx.rankedTeams(evt.draw.opponents) : true;
 
             let approved_opponents = tfx.approvedOpponents({ tournament, env: fx.fx.env(), e: evt });
             let seed_limit = dfx.seedLimit(approved_opponents.length);
@@ -5277,7 +5339,7 @@ export const tournamentDisplay = function() {
       }
 
       function scoreTreeDraw(tournament, e, existing_scores, outcome) {
-         let result = processResult(tournament, e, tfx.scoreTreeDraw(tournament, e, existing_scores, outcome));
+         let result = processResult(tournament, e, tfx.safeScoreTreeDraw(tournament, e, existing_scores, outcome));
          if (result && result.approved_changed) {
             approvedChanged(result.approved_changed);
             tfx.setDrawSize(tournament, result.approved_changed);
@@ -5286,7 +5348,7 @@ export const tournamentDisplay = function() {
       }
 
       function scoreRoundRobin(tournament, e, existing_scores, outcome) {
-         let result = processResult(tournament, e, tfx.scoreRoundRobin(tournament, e, existing_scores, outcome));
+         let result = processResult(tournament, e, tfx.safeScoreRoundRobin(tournament, e, existing_scores, outcome));
          return result;
       }
 
