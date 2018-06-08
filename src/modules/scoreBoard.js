@@ -41,9 +41,10 @@ export const scoreBoard = function() {
       util.keyWalk(values, o);
    }
 
-   fx.setMatchScore = ({ sobj, muid, flags, lock, grouped, round_name, teams, existing_scores, score_format={}, match, callback }) => {
+   fx.setMatchScore = ({ sobj, muid, flags, lock, grouped, round_name, teams, existing_scores, score_format={}, match, callback, auto_score=true }) => {
       let floating = !sobj;
-      let f = Object.assign({}, o, score_format);
+      o.auto_score = auto_score;
+      let f = Object.assign({}, o, score_format, { auto_score });
 
       // scoped variables need to be defined before configuration
       var set_number;
@@ -114,6 +115,7 @@ export const scoreBoard = function() {
                sobj.p2action.ddlb.lock();
                displayActions(true);
                if (scoreGoal(last_set[0].games, last_set[1].games)) { set_number += 1; }
+               f.auto_score = false;
             } else if (set_scores.retired) {
                let retired = existing_scores.winner_index != undefined ? 1 - existing_scores.winner_index : undefined;
                sobj.p1action.ddlb.setValue(retired == 0 ? 'retired' : 'winner');
@@ -154,12 +156,7 @@ export const scoreBoard = function() {
       function removeWinner() {
          let elements = Array.from(sobj.root.element.querySelectorAll(`.victor`));
          elements.forEach(el => el.classList.remove('victor'));
-         if (!lock) {
-            sobj.p1action.ddlb.unlock();
-            sobj.p2action.ddlb.unlock();
-            sobj.p2action.ddlb.setValue(' ');
-            sobj.p1action.ddlb.setValue(' ');
-         }
+         if (!lock) resetActions();
       }
 
       function setWinner(index) {
@@ -179,6 +176,7 @@ export const scoreBoard = function() {
          setScoreDisplay({ selected_set: set_number });
          sobj.p2action.ddlb.setValue(' ');
          sobj.p1action.ddlb.setValue(' ');
+         f.auto_score = o.auto_score;
          // if (floating) { displayActions(true); }
       }
 
@@ -352,7 +350,7 @@ export const scoreBoard = function() {
             set_scores[set_number] = [{ games: 0 }, { games: 0 }];
             return;
          }
-         if (interrupted() || live()) resetActions();
+         if (interrupted()) resetActions();
          let tiebreak = false;
          resetTiebreak();
 
@@ -381,6 +379,14 @@ export const scoreBoard = function() {
                if (p1 == f.tiebreaks_at + 1 && p2 < f.tiebreaks_at - 1) { replaceValue(f.tiebreaks_at); }
                if (p2 == f.tiebreaks_at + 1 && p1 < f.tiebreaks_at - 1) { replaceValue(f.tiebreaks_at); }
             }
+         } else {
+            if (which == 0 && !p2) {
+               p2 = 0;
+               sobj.p2selector.ddlb.setValue(p2);
+            } else if (which == 1 && !p1) {
+               p1 = 0;
+               sobj.p1selector.ddlb.setValue(p1);
+            } 
          }
 
          set_scores[set_number] = [{ games: p1 }, { games: p2 }];
@@ -469,8 +475,10 @@ export const scoreBoard = function() {
       }
 
       function resetActions() {
-         sobj.p1action.ddlb.setValue(' ');
-         sobj.p2action.ddlb.setValue(' ');
+         if (!live()) {
+            sobj.p1action.ddlb.setValue(' ');
+            sobj.p2action.ddlb.setValue(' ');
+         }
          sobj.p1action.ddlb.unlock();
          sobj.p2action.ddlb.unlock();
       }
@@ -567,7 +575,7 @@ export const scoreBoard = function() {
          if (set_scores.length == 0) return true;
 
          let winner = determineWinner(actions) != undefined || irregularWinner() != undefined;
-         if (winner && (!selected_set || selected_set == set_scores.length)) return false;
+         if (winner && (selected_set == undefined || selected_set == set_scores.length)) return false;
          return true;
       }
 
@@ -687,6 +695,7 @@ export const scoreBoard = function() {
          let irregular_winner = irregularWinner();
          let other = which ? p1 : p2;
 
+         f.auto_score = o.auto_score;
          if (value == '') {
             // unselecting winner clears the scoreboard
             if (winner != undefined) {
@@ -707,12 +716,16 @@ export const scoreBoard = function() {
             }
 
             setScoreDisplay({ selected_set: set_number });
-         } else if (value == 'interrupted' || value == 'live') {
+         } else if (value == 'interrupted') {
             sobj[which ? 'p1action' : 'p2action'].ddlb.setValue(' ');
-            ddlb_lock = true;
             setScoreDisplay({ selected_set: set_number });
-            sobj.p1selector.ddlb.lock();
-            sobj.p2selector.ddlb.lock();
+         } else if (value == 'live') {
+            f.auto_score = false;
+            sobj[which ? 'p1action' : 'p2action'].ddlb.setValue(' ');
+            setScoreDisplay({ selected_set: set_number });
+            // ddlb_lock = true;
+            // sobj.p1selector.ddlb.lock();
+            // sobj.p2selector.ddlb.lock();
             displayActions(true);
          } else if (value == 'winner' && other == 'winner') {
             if (winner == undefined) {
@@ -737,9 +750,9 @@ export const scoreBoard = function() {
                sobj[which ? 'p1action' : 'p2action'].ddlb.unlock();
                sobj[which ? 'p2action' : 'p1action'].ddlb.lock();
 
-               ddlb_lock = true;
-               sobj.p1selector.ddlb.lock();
-               sobj.p2selector.ddlb.lock();
+               // ddlb_lock = true;
+               // sobj.p1selector.ddlb.lock();
+               // sobj.p2selector.ddlb.lock();
 
                if (value == 'retired' || value == 'defaulted') {
                   if (winner != undefined) sobj[which ? 'p2action' : 'p1action'].ddlb.setValue(' '); 
