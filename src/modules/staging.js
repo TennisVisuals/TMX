@@ -11,7 +11,7 @@ import { tournamentFx } from './tournamentFx';
 
 export const staging = function() {
 
-   var received_events = [];
+   // var received_events = [];
 
    let fx = {};
    let tfx = tournamentFx;
@@ -22,7 +22,8 @@ export const staging = function() {
       coms.fx.receiveTournamentRecord = receiveTournamentRecord;
       coms.fx.receiveIdiomList = receiveIdiomList;
       coms.fx.tmxMessage = tmxMessage;
-      coms.fx.receiveEvent = receiveEvent;
+      // coms.fx.receiveEvent = receiveEvent;
+      coms.fx.receiveTournamentEvents = receiveTournamentEvents;
    }
 
    function resetDB() {
@@ -202,73 +203,51 @@ export const staging = function() {
       return match_message;
    }
 
-   var receive_modal = false;
-   function receiveEvent(e, authorized) {
-      let revt = attemptJSONparse(e);
-      let existing = received_events.map(r=>r.revt.event.euid);
-      if (revt && existing.indexOf(revt.event.euid) < 0) received_events.push({ revt, authorized });
-      if (!receive_modal && received_events.length) mergeReceivedEvent();
-   }
+   function receiveTournamentEvents(data) {
+      let updated = false;
+      let tuid = data.tuid;
+      if (!data.events || !data.events.length) {
+         let action = lang.tr('actions.ok');
+         let message = ` <h2>${lang.tr('phrases.notfound')}</h2> `;
+         displayGen.escapeModal();
+         displayGen.actionMessage({ message, actionFx: () => displayGen.closeModal(), action });
+         return;
+      }
+      let events = data.events.map(e => CircularJSON.parse(e));
+      let received_euids = events.map(e=>e.event.euid);
+      let received = Object.assign({}, ...events.map(e=>({[e.event.euid]: e})))
+      db.findTournament(tuid).then(trny => confirmMerge(trny), util.logError);
 
-   function mergeReceivedEvent() {
-      receive_modal = true;
-
-      let { revt, authorized } = received_events.pop();
-      db.findTournament(revt.tournament.tuid).then(trny => found(trny, authorized), util.logError);
-
-      var draw_types = {
-         'E': lang.tr('draws.elimination'),
-         'Q': lang.tr('draws.qualification'),
-         'R': lang.tr('draws.roundrobin'),
-         'C': lang.tr('draws.consolation'),
-      };
-
-      function found(trny, authorized) {
-         displayGen.escapeModal(() => receive_modal = false);
-
-         if (!trny.events) trny.events = [];
-
-         let euids = trny.events.map(e=>e.euid);
-         let exists = euids.indexOf(revt.event.euid) >= 0;
-
-         let existing = tfx.findEventByID(trny, revt.event.euid);
-         let equivalent = exists && CircularJSON.stringify(revt.draw) == CircularJSON.stringify(existing.draw);
-
-         if (equivalent) return finish();
-
-         let auth_message = authorized ? `<span style='color: green'>${lang.tr('tournaments.auth')}</span>` : lang.tr('tournaments.noauth');
-         let message = `
-            <h2>${lang.tr('events.received')}</h2>
-            ${revt.event.name} ${draw_types[revt.event.draw_type]}
-            <p>
-               <b>${lang.tr('tournaments.publishtime')}:</b>
-               <br>${isNaN(revt.event.published) ? '' : new Date(revt.event.published).toGMTString()}
-            </p>
-            ${auth_message}
-         `;
-
-         let action = exists ? lang.tr('replace') : lang.tr('add');
-         let msg = displayGen.actionMessage({ message, actionFx, action, cancelAction: finish });
+      function confirmMerge(trny) {
+         let action = lang.tr('merge');
+         let message = ` <h2>${lang.tr('events.received')}</h2> `;
+         displayGen.escapeModal();
+         displayGen.actionMessage({ message, actionFx, action, cancelAction: () => displayGen.closeModal() });
 
          function actionFx() {
-            if (exists) {
-               Object.assign(existing, revt.event);
-               existing.draw = revt.draw;
-            } else {
-               trny.events.push(revt.event);
-            }
-            db.addTournament(trny);
-            finish();
-         }
+            if (!trny.events) trny.events = [];
+            let existing_euids = trny.events.map(e=>e.euid);
+            let new_euids = received_euids.filter(e=>existing_euids.indexOf(e)<0);
+            db.addDev({events});
+            trny.events.forEach(e => {
+               if (received[e.euid]) {
+                  Object.assign(e, received[e.euid].event);
+                  e.draw = received[e.euid].draw;
+                  updated = true;
+               }
+            });
+            new_euids.forEach(euid => {
+               let evnt = received[euid].event;
+               evnt.draw = received[euid].draw;
+               trny.events.push(evnt);
+               updated = true;
+            });
 
-         function finish() {
-            receive_modal = false;
-            if (received_events.length) {
-               mergeReceivedEvent();
-            } else {
-               displayGen.closeModal();
-               tournamentDisplay.displayTournament({ tuid: revt.tournament.tuid, editing: true });
-            }
+            // if events were added update status for local download icon...
+            if (updated && trny.saved_locally) trny.saved_locally = false;
+
+            db.addTournament(trny).then(() => tournamentDisplay.displayTournament({ tuid, editing: true }), util.logError);
+            displayGen.closeModal();
          }
       }
    }
