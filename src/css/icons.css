@@ -102,6 +102,15 @@
    background-size: 100%;
 } 
 
+.gem_icon {
+   width: 2em;
+   padding-bottom: 2em;
+   margin-left: .3em;
+   margin-right: .3em;
+   background-size: 100%;
+}
+.gem_inactive { background-image: url("img/gem_inactive.png"); }
+.gem_active { background-image: url("img/gem_active.png"); }
 .automation_icon {
    width: 4em;
    height: 1.5em;
