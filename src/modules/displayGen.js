@@ -60,7 +60,7 @@ export const displayGen = function() {
          busy.callbacks[id]();
          delete busy.callbacks[id];
       }
-      busy.count -= 1;
+      if (busy.count) busy.count -= 1;
       if (!busy.count) gen.closeModal();
    }
    // END BUSY fx ---------------------------------------------------------
@@ -1245,6 +1245,7 @@ export const displayGen = function() {
    }
 
    gen.drawSettings = () => {
+      let separation = gen.fx.env().draws.settings.separation ? '' : 'disabled';
       let ids = {
          auto_byes: displayFx.uuid(),
          compressed_draw_formats: displayFx.uuid(),
@@ -1282,11 +1283,11 @@ export const displayGen = function() {
                 </div>
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.separate_by_ioc')}:</label>
-                    <input type='checkbox' id="${ids.separate_by_ioc}">
+                    <input type='checkbox' id="${ids.separate_by_ioc}" ${separation}>
                 </div>
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.separate_by_club')}:</label>
-                    <input type='checkbox' id="${ids.separate_by_club}">
+                    <input type='checkbox' id="${ids.separate_by_club}" ${separation}>
                 </div>
              </div>
              <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
@@ -2237,6 +2238,7 @@ export const displayGen = function() {
          filter_s: displayFx.uuid(), // singles
          filter_d: displayFx.uuid(), // doubles
          auto_draw: displayFx.uuid(),
+         gem_seeding: displayFx.uuid(),
          print_draw: displayFx.uuid(),
          print_sign_in: displayFx.uuid(),
          ranking_order: displayFx.uuid(),
@@ -2367,6 +2369,7 @@ export const displayGen = function() {
                   <div class='event_name flexcenter'>${lang.tr('events.newevent')}</div>
                   <div class='flexrow'>
                      <div class='${classes.auto_draw} info' style='display: none;' label='${lang.tr("adr")}'><div class='automation_icon automated_draw_pause'></div></div>
+                     <div class='${classes.gem_seeding} info' style='display: none;' label='${lang.tr("draws.gemseeding")}'><div class='gem_icon gem_inactive'></div></div>
                      <!--
                      <div class='${classes.print_draw_order} info' label='${lang.tr("mdo")}' style='display: none'><div class='print action_icon'></div></div>
                      -->
