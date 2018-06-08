@@ -23,6 +23,7 @@ export const coms = function() {
       processDirective: () => console.log('process directive'),
       receiveIdiomList: () => console.log('receive Idiom List'),
       receiveTournament: () => console.log('receive Tournament'),
+      receiveTournamentEvents: () => console.log('receive Tournament Events'),
       receiveTournamentRecord: () => console.log('receive Tournament Record'),
    }
 
@@ -66,7 +67,7 @@ export const coms = function() {
          oi.socket.on('tmx delegation', tmxDelegation);
          oi.socket.on('tourny record', record => mod.fx.receiveTournament({ record, authorized: true }));
          oi.socket.on('tournament record', mod.fx.receiveTournamentRecord);
-         oi.socket.on('tmx tournament events', receiveTournamentEvents);
+         oi.socket.on('tmx tournament events', mod.fx.receiveTournamentEvents);
          oi.socket.on('tmx_event', e => mod.fx.receiveEvent(e, true));
          oi.socket.on('noauth_event', e => mod.fx.receiveEvent(e, false));
          oi.socket.on('idioms available', mod.fx.receiveIdiomList);
@@ -97,9 +98,6 @@ export const coms = function() {
       if (msg && msg.revoked != undefined && coms.revoked && typeof coms.revoked == 'function') coms.revoked(msg);
    }
 
-   // TODO: change this so that server collects array of events instead of requesting one by one!
-   function receiveTournamentEvents(list) { list.forEach(item => oi.socket.emit(item.authorized ? 'tmx_event' : 'noauth_event', item.euid)); }
-
    mod.sendKey = (key) => { mod.emitTmx({ key }); }
 
    mod.deleteMatch = (data) => {
@@ -113,8 +111,10 @@ export const coms = function() {
 
    mod.requestTournamentEvents = (tuid) => {
       if (connected) {
-         console.log('requesting trny evts');
-         oi.socket.emit('tmx trny evts', { tuid, authorized: true });
+         let getTrnyEvents = { tuid };
+         mod.emitTmx({getTrnyEvents});
+
+         // oi.socket.emit('tmx trny evts', { tuid, authorized: true });
       } else {
          let message = `Offline: must be connected to internet`;
          let container = mod.fx.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
