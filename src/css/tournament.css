@@ -200,10 +200,6 @@
    flex-direction: column;
    -webkit-justify-content: space-between;
    justify-content: space-between;
-   -webkit-align-content: center;
-   align-content: center;
-   -webkit-align-items: center;
-   align-items: center;
 }
 
 .tournament_notes_entry {
@@ -211,7 +207,6 @@
    min-width: 100%;
    max-width: 100%;
    /* resize: none; */
-   display: none;
    min-height: 8em;
    margin-bottom: 1em;
 }
