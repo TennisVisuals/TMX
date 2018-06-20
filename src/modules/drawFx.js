@@ -1930,6 +1930,32 @@ export function drawFx(opts) {
       };
    }
 
+   fx.replaceDrawPlayer = replaceDrawPlayer;
+   function replaceDrawPlayer(draw, existing_player, new_player_data) {
+      if (!draw || !existing_player || !new_player_data || typeof new_player_data != 'object') return;
+      // Replace attributes in event.draw.opponents
+      draw.opponents.forEach(opponent_team => { opponent_team.forEach(checkReplacePlayer); });
+      // Replace attributes in event.draw.seeded_teams
+      Object.keys(draw.seeded_teams).forEach(key => draw.seeded_teams[key].forEach(checkReplacePlayer));
+      // Replace attributes in event.draw.unseeded_teams
+      draw.unseeded_teams.forEach(opponent_team => { opponent_team.forEach(checkReplacePlayer); });
+      // Replace attributes in event.draw.unseeded_placements
+      draw.unseeded_placements.forEach(placement => { if (placement.id == existing_player.id) placement.id = new_player_data.id; });
+      // Replace players in all draw matches
+      let matches = fx.matches(draw).filter(m=>m.match && m.match.muid); 
+      matches.forEach(match => {
+         if (match.teams) match.teams.forEach(team => team.forEach(checkReplacePlayer));
+         if (match.match) {
+            if (match.match.teams) match.match.teams.forEach(team => team.forEach(checkReplacePlayer));
+            if (match.match.players) match.match.players.forEach(checkReplacePlayer);
+            if (match.match.puids) match.match.puids = match.match.players.map(p=>p.puid);
+         }
+      });
+      if (draw.brackets) { draw.brackets.forEach(bracket => bracket.players.forEach(checkReplacePlayer)); }
+
+      function checkReplacePlayer(player) { if (player.puid == existing_player.puid) Object.keys(new_player_data).forEach(key=>player[key]=new_player_data[key]); }
+   }
+
    fx.bracketComplete = bracketComplete;
    function bracketComplete(bracket) {
       return bracket.matches && bracket.matches.length && bracket.matches.filter(m=>m.winner).length == bracket.matches.length;
