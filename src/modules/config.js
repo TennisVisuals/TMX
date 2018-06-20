@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.162.276.189',
+      version: '0.9.165.284.192',
       version_check: undefined,
       org: {
          name: undefined,
@@ -89,6 +89,7 @@ export const config = function() {
          category: undefined,
          first_day: 0
       },
+      players: { identify: true },
       points: { walkover_wins: ['F'] },
       drawFx: {
          auto_byes: true,
@@ -113,6 +114,25 @@ export const config = function() {
             "25": [["0", ".0625"], [1, ".1875"], [0, ".3125"], [1, ".4325"], [0, ".5625"], [1, ".6875"], [0, ".8125"], [1, ".9375"] ]
          },
          separation: { ioc: false, club_code: false }
+      },
+      scoreboard: {
+         options: {
+            bestof: [1, 3, 5],
+            setsto: [4, 6, 8, 9],
+            tiebreaksto: [7, 12],
+            supertiebreakto: [7, 10, 21]
+         },
+         settings: {
+            max_sets: 3,
+            sets_to_win: 2,
+            games_for_set: 6,
+            tiebreak_to: 7,
+            tiebreaks_at: 6,
+            supertiebreak_to: 10,
+            auto_score: true,
+            final_set_tiebreak: true,
+            final_set_supertiebreak: false,
+         },
       },
       draws: {
          gem_seeding: false,
@@ -141,15 +161,6 @@ export const config = function() {
                max_bracket_size: 5,
             },
          },
-      },
-      default_score_format: {
-         final_set_supertiebreak: false,
-         games_for_set: 6,
-         max_sets: 3,
-         sets_to_win: 2,
-         supertiebreak_to: 10,
-         tiebreak_to: 7,
-         tiebreaks_at: 6
       },
       printing: {
          save_pdfs: false
@@ -665,7 +676,7 @@ export const config = function() {
             let lastfirst = arr.map(player => { 
                let label = `${util.normalizeName(player.last_name, noaccents).toUpperCase()} ${util.normalizeName(player.first_name, noaccents)}`;
                if (player.birth) label += ` [${new Date(player.birth).getFullYear()}]`;
-               return { value: player.puid, label, }
+               return { value: player.puid, label }
             });
 
             if (env.searchbox.lastfirst) {
@@ -822,10 +833,15 @@ export const config = function() {
                util.keyWalk(schedule.settings, env.schedule);
             }
 
-            let default_score_format = getKey('defaultScoreFormat');
-            if (default_score_format && default_score_format.settings) {
-               util.boolAttrs(default_score_format.settings);
-               util.keyWalk(default_score_format.settings, env.default_score_format);
+            let scoreboard = getKey('scoreboardDefaults');
+            if (scoreboard && scoreboard.defaults) {
+               if (scoreboard.defaults.settings) {
+                  util.boolAttrs(scoreboard.settings);
+                  util.keyWalk(scoreboard.defaults.settings, env.scoreboard.settings);
+               }
+               if (scoreboard.defaults.options) {
+                  util.keyWalk(scoreboard.defaults.options, env.scoreboard.options);
+               }
             }
 
             let draw_fx = getKey('drawFx');
@@ -1265,7 +1281,7 @@ export const config = function() {
          function keyStroke(evt) { if (evt.which == 13) submitNewKey(); }
          function submitNewKey() {
             let value = actions.container.key.element.value;
-            if (value) coms.sendKey(value);
+            if (value && value.trim()) coms.sendKey(value.trim());
             displayGen.closeModal();
          }
 
