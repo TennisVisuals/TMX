@@ -50,6 +50,40 @@ export const tournamentFx = function() {
       delete match.tournament;
    }
 
+   fx.replaceTournamentPlayer = ({ tournament, existing_player, new_player_data, replace_all }) => {
+      tournament.events.forEach(evnt => { replaceEventPlayer(evnt, existing_player, new_player_data); });
+      tournament.players.forEach(checkReplacePlayer); // this must occur after all events are updated...
+      function checkReplacePlayer(player) {
+         if (player.puid == existing_player.puid) {
+            if (replace_all) {
+               Object.keys(existing_player).forEach(key=> {
+                  if (new_player_data[key]) {
+                     player[key] = new_player_data[key];
+                  } else if (key != 'signed_in') {
+                     delete player[key];
+                  }
+               });
+            }
+            Object.keys(new_player_data).forEach(key=>player[key]=new_player_data[key]);
+         }
+      }
+   }
+
+   function replaceEventPlayer(evnt, existing_player, new_player_data) {
+         dfx.replaceDrawPlayer(evnt.draw, existing_player, new_player_data);
+
+         replaceID(evnt.teams);
+         replaceID(evnt.approved);
+         replaceID(evnt.wildcards);
+         replaceID(evnt.luckylosers);
+
+         function checkReplace(elem) { if (elem == existing_player.id) elem = new_player_data.id; }
+         function replaceID(arr) {
+            if (!arr) return;
+            arr.forEach(elem => { if (Array.isArray(elem)) { elem.forEach(checkReplace); } else { checkReplace(elem); } });
+         }
+   }
+
    function playerActiveInLinked(qlinkinfo, plyr) {
       let advanced_positions = qlinkinfo.match_nodes.filter(n=>n.data.match && n.data.match.players);
       let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
