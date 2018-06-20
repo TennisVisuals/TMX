@@ -130,6 +130,7 @@ export const lang = function() {
       igr:     'Ignore',
       igd:     'Ignored',
       edt:     'Edit Player',
+      idp:     'Identify Player',
       sbt:     'Submit',
       ccl:     'Cancel',
       clr:     'Clear',
