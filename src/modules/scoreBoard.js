@@ -24,8 +24,7 @@ export const scoreBoard = function() {
 
    let stb_divider = '/';
 
-   // match format configuration
-   let o = {
+   let settings = {
       max_sets: 3,
       sets_to_win: 2,
       games_for_set: 6,
@@ -33,22 +32,51 @@ export const scoreBoard = function() {
       tiebreak_to: 7,
       supertiebreak_to: 10,
       auto_score: true,
+      final_set_tiebreak: true,
       final_set_supertiebreak: false,
    }
 
-   fx.options = (values) => {
-      if (!values) return o;
-      util.keyWalk(values, o);
+   fx.settings = (values) => {
+      if (!values) return settings;
+      util.keyWalk(values, settings);
    }
 
-   fx.setMatchScore = ({ sobj, muid, flags, lock, grouped, round_name, teams, existing_scores, score_format={}, match, callback, auto_score=true }) => {
+   let options = {
+      bestof: [1, 3, 5],
+      setsto: [4, 6, 8],
+      tiebreaksto: [7, 12],
+      supertiebreakto: [7, 10, 21]
+   }
+
+   fx.options = (values) => {
+      if (!values) return options;
+      util.keyWalk(values, options);
+   }
+
+   fx.setMatchScore = ({
+      sobj,
+      muid,
+      flags,
+      lock,
+      grouped,
+      round_name,
+      teams,
+      existing_scores,
+      score_format={},
+      scoring_config={},
+      match,
+      callback,
+      auto_score=true
+   }) => {
+
       let floating = !sobj;
-      o.auto_score = auto_score;
-      let f = Object.assign({}, o, score_format, { auto_score });
+      settings.auto_score = auto_score;
+      let sf = Object.assign({}, settings, score_format, { auto_score });
 
       // scoped variables need to be defined before configuration
       var set_number;
       var supertiebreak;
+      var longset;
       var ddlb_lock;
       var set_scores;
       var action_drawer;
@@ -81,7 +109,7 @@ export const scoreBoard = function() {
          sobj.edit_scoring.element.style.display = action_drawer ? 'none' : 'inline';
       }
 
-      configureScoring(sobj, f, clearScores);
+      configureScoring({ sobj, stg: sf, changeFx: clearScores });
       configureOutcomeSelectors();
       configureActionButtons();
       configureTiebreakEntry();
@@ -115,7 +143,7 @@ export const scoreBoard = function() {
                sobj.p2action.ddlb.lock();
                displayActions(true);
                if (scoreGoal(last_set[0].games, last_set[1].games)) { set_number += 1; }
-               f.auto_score = false;
+               sf.auto_score = false;
             } else if (set_scores.retired) {
                let retired = existing_scores.winner_index != undefined ? 1 - existing_scores.winner_index : undefined;
                sobj.p1action.ddlb.setValue(retired == 0 ? 'retired' : 'winner');
@@ -176,7 +204,7 @@ export const scoreBoard = function() {
          setScoreDisplay({ selected_set: set_number });
          sobj.p2action.ddlb.setValue(' ');
          sobj.p1action.ddlb.setValue(' ');
-         f.auto_score = o.auto_score;
+         sf.auto_score = settings.auto_score;
          // if (floating) { displayActions(true); }
       }
 
@@ -184,7 +212,7 @@ export const scoreBoard = function() {
          if (outcome) {
             outcome.teams = teams;
             outcome.set_scores = set_scores;
-            outcome.score_format = f;
+            outcome.score_format = sf;
          }
          if (typeof callback == 'function') { callback(outcome); }
          if (floating) {
@@ -227,7 +255,7 @@ export const scoreBoard = function() {
 
       function configureScoreSelectors() {
          let options = [ { key: '-', value: '' }, ];
-         let upper_range = (f.games_for_set == f.tiebreaks_at) ? f.games_for_set + 2 : f.games_for_set + 1;
+         let upper_range = (sf.games_for_set == sf.tiebreaks_at) ? sf.games_for_set + 2 : sf.games_for_set + 1;
          util.range(0, upper_range).forEach(n => options.push({ key: n, value: n }));
 
          let scoreChange1 = (value) => scoreChange(0, value);
@@ -295,7 +323,8 @@ export const scoreBoard = function() {
          // don't allow numbers with more than 2 digits
          let numeric = value && !isNaN(value[0]) ? parseInt(value[0].toString().slice(-2)) : undefined;
 
-         let tbgoal = supertiebreak ? f.supertiebreak_to : f.tiebreak_to;
+         let tbgoal = supertiebreak ? sf.supertiebreak_to : sf.tiebreak_to;
+         // let tbgoal = supertiebreak ? sf.supertiebreak_to : longset ? true : sf.tiebreak_to;
          let complement = numeric == undefined ? '' : numeric + 2 < tbgoal ? tbgoal : numeric + 2;
 
          sobj[which ? 'p2tiebreak' : 'p1tiebreak'].element.value = numeric != undefined ? numeric : '';
@@ -312,7 +341,7 @@ export const scoreBoard = function() {
          }
 
          function superTiebreakSet(submit) {
-            if (t1 < f.supertiebreak_to && t2 < f.supertiebreak_to) return;
+            if (t1 < sf.supertiebreak_to && t2 < sf.supertiebreak_to) return;
             let set = [{ supertiebreak: t1 }, { supertiebreak: t2 }];
             let which_set = set_scores.length;
 
@@ -335,12 +364,17 @@ export const scoreBoard = function() {
 
       function scoreGoal(s1, s2) {
          let score_diff = Math.abs(s1 - s2);
+         let long_set = !sf.final_set_supertiebreak && !sf.final_set_tiebreak;
+         if (long_set) {
+            console.log('Long Set!');
+            return score_diff >= 2;
+         }
          // any valid winning score that does not indicate a tiebreak
-         return score_diff >= 2 && (s1 >= f.tiebreaks_at || s2 >= f.tiebreaks_at);
+         return score_diff >= 2 && (s1 >= sf.tiebreaks_at || s2 >= sf.tiebreaks_at);
       }
 
       function tbScore(s1, s2) {
-         return (s1 == f.tiebreaks_at + 1 && s2 == f.tiebreaks_at) || (s1 == f.tiebreaks_at && s2 == f.tiebreaks_at + 1);
+         return (s1 == sf.tiebreaks_at + 1 && s2 == sf.tiebreaks_at) || (s1 == sf.tiebreaks_at && s2 == sf.tiebreaks_at + 1);
       }
 
       function scoreChange(which, value) {
@@ -367,7 +401,7 @@ export const scoreBoard = function() {
          let p1 = sobj.p1selector.ddlb.getValue();
          let p2 = sobj.p2selector.ddlb.getValue();
 
-         if (f.auto_score) {
+         if (sf.auto_score) {
             if (which == 0 && p2 == '') {
                p2 = getComplement(value);
                sobj.p2selector.ddlb.setValue(p2);
@@ -375,9 +409,9 @@ export const scoreBoard = function() {
                p1 = getComplement(value);
                sobj.p1selector.ddlb.setValue(p1);
             } else {
-               if (p1 == f.tiebreaks_at + 1 && p2 == f.tiebreaks_at + 1) replaceValue(f.tiebreaks_at);
-               if (p1 == f.tiebreaks_at + 1 && p2 < f.tiebreaks_at - 1) { replaceValue(f.tiebreaks_at); }
-               if (p2 == f.tiebreaks_at + 1 && p1 < f.tiebreaks_at - 1) { replaceValue(f.tiebreaks_at); }
+               if (p1 == sf.tiebreaks_at + 1 && p2 == sf.tiebreaks_at + 1) replaceValue(sf.tiebreaks_at);
+               if (p1 == sf.tiebreaks_at + 1 && p2 < sf.tiebreaks_at - 1) { replaceValue(sf.tiebreaks_at); }
+               if (p2 == sf.tiebreaks_at + 1 && p1 < sf.tiebreaks_at - 1) { replaceValue(sf.tiebreaks_at); }
             }
          } else {
             if (which == 0 && !p2) {
@@ -414,10 +448,10 @@ export const scoreBoard = function() {
 
          function getComplement(value) {
             if (value == '') return '';
-            if (value == f.tiebreaks_at || value == f.tiebreaks_at + 1) tiebreak = true;
-            if (value == f.tiebreaks_at - 1 || value == f.tiebreaks_at) return parseInt(f.tiebreaks_at || 0) + 1;
-            if (value < f.tiebreaks_at) return f.games_for_set;
-            return f.tiebreaks_at;
+            if (value == sf.tiebreaks_at || value == sf.tiebreaks_at + 1) tiebreak = true;
+            if (value == sf.tiebreaks_at - 1 || value == sf.tiebreaks_at) return parseInt(sf.tiebreaks_at || 0) + 1;
+            if (value < sf.tiebreaks_at) return sf.games_for_set;
+            return sf.tiebreaks_at;
          }
       }
 
@@ -436,7 +470,7 @@ export const scoreBoard = function() {
          let no_winner = determineWinner() == undefined && irregularWinner() == undefined;
 
          // only advance to the next set if match and prior set meets all criteria
-         if (numbers && no_winner && set_number + 1 < f.max_sets) set_number += 1;
+         if (numbers && no_winner && set_number + 1 < sf.max_sets) set_number += 1;
 
          setScoreDisplay({ selected_set: set_number, tiebreak });
       }
@@ -485,29 +519,29 @@ export const scoreBoard = function() {
 
       function setsWon() {
          if (!set_scores.length) return [0, 0];
-         let totals = set_scores.map(s => {
-            let g0 = isNaN(s[0].games) ? s[0].games : +s[0].games;
-            let g1 = isNaN(s[1].games) ? s[1].games : +s[1].games;
+         let totals = set_scores.map(sc => {
+            let g0 = isNaN(sc[0].games) ? sc[0].games : +sc[0].games;
+            let g1 = isNaN(sc[1].games) ? sc[1].games : +sc[1].games;
             if (g0 !== undefined && g1 !== undefined && g0 !== '' && g1 !== '') {
                // if .games attribute present, then normal set
                // if tiebreak score, check that there is a tiebreak value
-               if (tbScore(g0, g1) && s[0].tiebreak == undefined && s[1].tiebreak == undefined) return [0, 0];
+               if (tbScore(g0, g1) && sc[0].tiebreak == undefined && sc[1].tiebreak == undefined) return [0, 0];
 
                // if minimum score difference not met (or games_for_set exceeded) there is no winner
-               if (f.games_for_set == f.tiebreaks_at) {
-                  if (g0 == f.games_for_set && g0 == g1 + 1) return [0, 0];
-                  if (g1 == f.games_for_set && g1 == g0 + 1) return [0, 0];
+               if (sf.games_for_set == sf.tiebreaks_at) {
+                  if (g0 == sf.games_for_set && g0 == g1 + 1) return [0, 0];
+                  if (g1 == sf.games_for_set && g1 == g0 + 1) return [0, 0];
                } else {
-                  if (g0 == f.games_for_set && g0 == g1 + 1) return [1, 0];
-                  if (g1 == f.games_for_set && g1 == g0 + 1) return [0, 1];
+                  if (g0 == sf.games_for_set && g0 == g1 + 1) return [1, 0];
+                  if (g1 == sf.games_for_set && g1 == g0 + 1) return [0, 1];
                }
 
                // otherwise set winner determined by greater score at least games_for_set
-               if (g0 > g1 && g0 >= f.games_for_set) return [1, 0];
-               if (g1 > g0 && g1 >= f.games_for_set) return [0, 1];
-            } else if (s[0].supertiebreak != undefined && s[1].supertiebreak != undefined) {
-               if (s[0].supertiebreak > s[1].supertiebreak + 1 && s[0].supertiebreak >= f.supertiebreak_to) return [1, 0];
-               if (s[1].supertiebreak > s[0].supertiebreak + 1 && s[1].supertiebreak >= f.supertiebreak_to) return [0, 1];
+               if (g0 > g1 && g0 >= sf.games_for_set) return [1, 0];
+               if (g1 > g0 && g1 >= sf.games_for_set) return [0, 1];
+            } else if (sc[0].supertiebreak != undefined && sc[1].supertiebreak != undefined) {
+               if (sc[0].supertiebreak > sc[1].supertiebreak + 1 && sc[0].supertiebreak >= sf.supertiebreak_to) return [1, 0];
+               if (sc[1].supertiebreak > sc[0].supertiebreak + 1 && sc[1].supertiebreak >= sf.supertiebreak_to) return [0, 1];
             }
             return [0, 0];
          })
@@ -526,7 +560,7 @@ export const scoreBoard = function() {
          }
 
          let max_sets_won = Math.max(...sets_won);
-         let needed_to_win = Math.max(f.sets_to_win, Math.floor(set_scores.length / 2) + 1);
+         let needed_to_win = Math.max(sf.sets_to_win, Math.floor(set_scores.length / 2) + 1);
 
          // if # of sets won is less than or equal to half the number of sets, then no winner;
          if (max_sets_won < needed_to_win) return;
@@ -558,13 +592,21 @@ export const scoreBoard = function() {
       }
 
       function setIsSuperTiebreak(selected_set, actions) {
-         if (!f.final_set_supertiebreak) return false;
+         if (!sf.final_set_supertiebreak) return false;
 
          let winner = determineWinner(actions);
          if (winner != undefined && existingSuperTiebreak(selected_set)) return true;
+         return isFinalSet(selected_set, actions);
+      }
 
+      function setIsLongSet(selected_set, actions) {
+         if (sf.final_set_supertiebreak || sf.final_set_tiebreak) return false;
+         return isFinalSet(selected_set, actions);
+      }
+
+      function isFinalSet(selected_set, actions) {
          let sets_won = setsWon();
-         let tied_sets = sets_won[0] == sets_won[1] && sets_won[0] + 1 == f.sets_to_win;
+         let tied_sets = sets_won[0] == sets_won[1] && sets_won[0] + 1 == sf.sets_to_win;
          if (tied_sets && selected_set == set_scores.length) return true;
       }
 
@@ -586,7 +628,7 @@ export const scoreBoard = function() {
 
          // insure that the value is numeric
          if (!game_edit && !supertiebreak) selected_set = set_scores.length;
-         set_number = Math.min(f.max_sets - 1, +selected_set);
+         set_number = Math.min(sf.max_sets - 1, +selected_set);
 
          if (game_edit) resetTiebreak();
 
@@ -695,7 +737,7 @@ export const scoreBoard = function() {
          let irregular_winner = irregularWinner();
          let other = which ? p1 : p2;
 
-         f.auto_score = o.auto_score;
+         sf.auto_score = settings.auto_score;
          if (value == '') {
             // unselecting winner clears the scoreboard
             if (winner != undefined) {
@@ -720,7 +762,7 @@ export const scoreBoard = function() {
             sobj[which ? 'p1action' : 'p2action'].ddlb.setValue(' ');
             setScoreDisplay({ selected_set: set_number });
          } else if (value == 'live') {
-            f.auto_score = false;
+            sf.auto_score = false;
             sobj[which ? 'p1action' : 'p2action'].ddlb.setValue(' ');
             setScoreDisplay({ selected_set: set_number });
             // ddlb_lock = true;
@@ -785,7 +827,7 @@ export const scoreBoard = function() {
    function convertStringScore({ string_score, winner_index, split=' ', score_format={} }) {
       if (!string_score) return [];
 
-      let f = Object.assign({}, o, score_format);
+      let sf = Object.assign({}, settings, score_format);
       string_score = winner_index ? reverseScore(string_score) : string_score;
 
       let outcome = null;
@@ -804,7 +846,6 @@ export const scoreBoard = function() {
          let tbscore = null;;
          let scores = set.split('-')
             .map(m => {
-
                let score;
                if (sst.test(m)) {
                   tbscore = +sst.exec(m)[2];
@@ -815,7 +856,6 @@ export const scoreBoard = function() {
                   outcome = m;
                }
                return score || undefined;
-
             });
 
          // filter out undefined scores
@@ -824,7 +864,7 @@ export const scoreBoard = function() {
          // add spacer for score without tiebreak score
          if (tbscore !== null) {
             let min_games = Math.min(...scores.map(s=>s.games));
-            scores.forEach(s => { if (s.games == min_games) { s.tiebreak = tbscore } else { s.spacer = tbscore; } });
+            scores.forEach(s => { if (sf.games == min_games) { sf.tiebreak = tbscore } else { sf.spacer = tbscore; } });
          }
 
          return scores;
@@ -834,12 +874,12 @@ export const scoreBoard = function() {
       sets = sets.filter(scores => scores && scores.length == 2);
 
       // determine if set is supertiebreak
-      sets.forEach(s => {
-         if (s[0].games >= f.supertiebreak_to || s[1].games >= f.supertiebreak_to) { 
-            s[0].supertiebreak = s[0].games; 
-            s[1].supertiebreak = s[1].games;
-            delete s[0].games;
-            delete s[1].games;
+      sets.forEach(st => {
+         if (st[0].games >= sf.supertiebreak_to || st[1].games >= sf.supertiebreak_to) { 
+            st[0].supertiebreak = st[0].games; 
+            st[1].supertiebreak = st[1].games;
+            delete st[0].games;
+            delete st[1].games;
          } 
       })
 
@@ -904,32 +944,25 @@ export const scoreBoard = function() {
    }
 
    fx.configureScoring = configureScoring;
-   function configureScoring(sobj, f, changeFx) {
+   function configureScoring({ sobj, stg, changeFx }) {
+      util.boolAttrs(stg);
       dd.attachDropDown({ 
          id: sobj.bestof.id, 
-         options: [
-            {key: '1', value: 1},
-            {key: '3', value: 3},
-            {key: '5', value: 5}
-         ],
+         options: numericOptions(options.bestof)
       });
       sobj.bestof.ddlb = new dd.DropDown({ element: sobj.bestof.element, id: sobj.bestof.id, onChange: setBestOf });
       sobj.bestof.ddlb.selectionBackground();
-      sobj.bestof.ddlb.setValue(f.max_sets, 'white');
+      sobj.bestof.ddlb.setValue(stg.max_sets, 'white');
 
       dd.attachDropDown({ 
          id: sobj.setsto.id, 
-         options: [
-            {key: '4', value: 4},
-            {key: '6', value: 6},
-            {key: '8', value: 8},
-         ],
+         options: numericOptions(options.setsto)
       });
       sobj.setsto.ddlb = new dd.DropDown({ element: sobj.setsto.element, id: sobj.setsto.id, onChange: setsTo });
       sobj.setsto.ddlb.selectionBackground();
-      sobj.setsto.ddlb.setValue(f.games_for_set, 'white');
+      sobj.setsto.ddlb.setValue(stg.games_for_set, 'white');
 
-      let gfs = f.games_for_set;
+      let gfs = stg.games_for_set;
       let tbat_options = [
          {key: `${gfs-1}-${gfs-1}`, value: gfs - 1},
          {key: `${gfs}-${gfs}`, value: gfs},
@@ -941,53 +974,52 @@ export const scoreBoard = function() {
       });
       sobj.tiebreaksat.ddlb = new dd.DropDown({ element: sobj.tiebreaksat.element, id: sobj.tiebreaksat.id, onChange: setTiebreakAt });
       sobj.tiebreaksat.ddlb.selectionBackground();
-      sobj.tiebreaksat.ddlb.setValue(f.tiebreaks_at && f.tiebreaks_at < gfs ? f.tiebreaks_at : gfs, 'white');
+      sobj.tiebreaksat.ddlb.setValue(stg.tiebreaks_at && stg.tiebreaks_at < gfs ? stg.tiebreaks_at : gfs, 'white');
 
       dd.attachDropDown({ 
          id: sobj.tiebreaksto.id, 
-         options: [
-            {key: '7', value: 7},
-            {key: '12', value: 12},
-         ],
+         options: numericOptions(options.tiebreaksto)
       });
       sobj.tiebreaksto.ddlb = new dd.DropDown({ element: sobj.tiebreaksto.element, id: sobj.tiebreaksto.id });
       sobj.tiebreaksto.ddlb.selectionBackground();
-      sobj.tiebreaksto.ddlb.setValue(f.tiebreak_to, 'white');
+      sobj.tiebreaksto.ddlb.setValue(stg.tiebreak_to, 'white');
 
       dd.attachDropDown({ 
          id: sobj.finalset.id, 
          options: [
             {key: 'Normal', value: 'N'},
             {key: 'Supertiebreak', value: 'S'},
+            // {key: 'Long', value: 'L'},
          ],
       });
       sobj.finalset.ddlb = new dd.DropDown({ element: sobj.finalset.element, id: sobj.finalset.id, onChange: finalSet });
       sobj.finalset.ddlb.selectionBackground();
-      sobj.finalset.ddlb.setValue(f.final_set_supertiebreak ? 'S' : 'N', 'white');
+      sobj.finalset.ddlb.setValue(stg.final_set_supertiebreak ? 'S' : stg.final_set_tiebreak ? 'N' : 'L', 'white');
 
       dd.attachDropDown({ 
          id: sobj.supertiebreakto.id, 
-         options: [
-            {key: '7', value: 7},
-            {key: '10', value: 10},
-            {key: '21', value: 21},
-         ],
+         options: numericOptions(options.supertiebreakto)
       });
       sobj.supertiebreakto.ddlb = new dd.DropDown({ element: sobj.supertiebreakto.element, id: sobj.supertiebreakto.id, onChange: superTiebreakTo });
       sobj.supertiebreakto.ddlb.selectionBackground();
-      sobj.supertiebreakto.ddlb.setValue(f.supertiebreak_to, 'white');
-      sobj.supertiebreakto.element.style.opacity = f.final_set_supertiebreak ? 1 : 0;
-      sobj.stb2.element.style.opacity = f.final_set_supertiebreak ? 1 : 0;
+      sobj.supertiebreakto.ddlb.setValue(stg.supertiebreak_to, 'white');
+      sobj.supertiebreakto.element.style.opacity = stg.final_set_supertiebreak ? 1 : 0;
+      sobj.stb2.element.style.opacity = stg.final_set_supertiebreak ? 1 : 0;
+
+      function numericOptions(arr) {
+         if (!arr || !Array.isArray(arr)) return {};
+         return arr.map(a=>({key:a, value: a}));
+      }
 
       function setBestOf(value) {
-         f.max_sets = parseInt(value);
-         f.sets_to_win = Math.ceil(value/2);
+         stg.max_sets = parseInt(value);
+         stg.sets_to_win = Math.ceil(value/2);
          if (typeof changeFx == 'function') changeFx();
       }
 
       function setsTo(value) {
-         f.games_for_set = parseInt(value);
-         f.tiebreaks_at = parseInt(value);
+         stg.games_for_set = parseInt(value);
+         stg.tiebreaks_at = parseInt(value);
          let tbat_options = [
             {key: `${value-1}-${value-1}`, value: value - 1},
             {key: `${value}-${value}`, value: value},
@@ -998,22 +1030,22 @@ export const scoreBoard = function() {
       }
 
       function setTiebreakAt(value) {
-         f.tiebreaks_at = parseInt(value);
+         stg.tiebreaks_at = parseInt(value);
          if (typeof changeFx == 'function') changeFx();
       }
 
       function finalSet(value) {
-         f.final_set_supertiebreak = value == 'N' ? false : true;
-         sobj.supertiebreakto.element.style.opacity = f.final_set_supertiebreak ? 1 : 0;
-         sobj.stb2.element.style.opacity = f.final_set_supertiebreak ? 1 : 0;
+         stg.final_set_supertiebreak = value == 'S' ? true : false;
+         stg.final_set_tiebreak = value == 'N' ? true : false;
+         sobj.supertiebreakto.element.style.opacity = stg.final_set_supertiebreak ? 1 : 0;
+         sobj.stb2.element.style.opacity = stg.final_set_supertiebreak ? 1 : 0;
          if (typeof changeFx == 'function') changeFx();
       }
 
       function superTiebreakTo(value) {
-         f.supertiebreak_to = parseInt(value);
+         stg.supertiebreak_to = parseInt(value);
          if (typeof changeFx == 'function') changeFx();
       }
-      
    }
 
    fx.scoreBoards = ({ matches, elmnt, flags }) => {
