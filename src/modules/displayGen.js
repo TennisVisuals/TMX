@@ -2226,7 +2226,9 @@ export const displayGen = function() {
          cloudfetch: displayFx.uuid(),
          penalty_report: displayFx.uuid(),
          edit_notes: displayFx.uuid(),
+         notes_container: displayFx.uuid(),
          notes_display: displayFx.uuid(),
+         notes_entry: displayFx.uuid(),
          pubTrnyInfo: displayFx.uuid(),
          pubStateTrnyInfo: displayFx.uuid(),
          tournament_attrs: displayFx.uuid(),
@@ -2313,9 +2315,11 @@ export const displayGen = function() {
                 </div>
             </div>
 
-            <div class='tournament_notes'>
-               <textarea id='${ids.notes}' class='tournament_notes_entry'></textarea>
-               <div id='${ids.notes_display}' class='tournament_notes_display'></div>
+            <div id='${ids.notes_entry}' class='tournament_notes' style='display: none'>
+               <div id='${ids.notes}' class='tournament_notes_entry'></div>
+            </div>
+            <div id='${ids.notes_container}' class='tournament_notes ql-container ql-snow' style='display: none'>
+               <div id='${ids.notes_display}' class='tournament_notes ql-editor'></div>
             </div>
 
          </div>
@@ -3804,6 +3808,53 @@ export const displayGen = function() {
       return displayFx.idObj(ids);
    }
 
+   gen.selectNewPlayerIdentity = (player_data) => {
+      let ids = {
+         cancel: displayFx.uuid(),
+         search: displayFx.uuid(),
+      }
+      let html = `
+         <div class='flexccol' style='width: 100%'>
+            <div class='flexcol reps' style='width: 100%'>
+               <div class='flexcenter rtitle'>${lang.tr('idp')}</div>
+               <div class='flexcenter'>${player_data.first_name} ${player_data.last_name}</div>
+               <input id="${ids.search}" class="rinput" placeholder="${lang.tr('nm')}">
+            </div>
+            <div class='config_actions'>
+               <div id='${ids.cancel}' class='btn btn-small config_cancel'>${lang.tr('actions.cancel')}</div>
+            </div>
+         </div>
+      `;
+      gen.showConfigModal(html, 'visible');
+
+      return displayFx.idObj(ids);
+   }
+
+   gen.changePlayerIdentity = (clicked_player, new_player_data, confirmFx) => {
+      if (typeof confirmFx != 'function') { confirmFx = () => console.log('player identity confirmFx error'); }
+      let message = `
+         <div style='display: grid; grid-template-columns: 200px 200px;'>
+            <div style='display: grid'>
+               <div style='font-weight: bold; text-decoration: underline;'>${lang.tr('existing')}</div>
+               <div>${clicked_player.first_name}</div>
+               <div>${clicked_player.last_name}</div>
+               <div>${clicked_player.ioc || ''}</div>
+               <div>${lang.tr('gdr')}: ${clicked_player.sex}</div>
+               <div>${clicked_player.birth}</div>
+            </div>
+            <div style='display: grid'>
+               <div style='font-weight: bold; text-decoration: underline;'>${lang.tr('new')}</div>
+               <div>${new_player_data.first_name}</div>
+               <div>${new_player_data.last_name}</div>
+               <div>${new_player_data.ioc || ''}</div>
+               <div>${lang.tr('gdr')}: ${new_player_data.sex}</div>
+               <div>${new_player_data.birth}</div>
+            </div>
+         </div>
+      `;
+      gen.actionMessage({ message, actionFx: confirmFx, action: lang.tr('actions.ok'), cancelAction: () => gen.closeModal() });
+   }
+
    gen.playerRepresentatives = () => {
       let ids = {
          cancel: displayFx.uuid(),
@@ -3824,7 +3875,7 @@ export const displayGen = function() {
             </div>
          </div>
       `;
-      gen.showConfigModal(html);
+      gen.showConfigModal(html, 'visible');
 
       return displayFx.idObj(ids);
    }
