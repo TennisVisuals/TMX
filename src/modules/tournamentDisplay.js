@@ -1,5 +1,5 @@
 import { db } from './db'
-import { hts } from './hts';
+// import { hts } from './hts';
 import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
@@ -9,6 +9,7 @@ import { lang } from './translator';
 import { matchFx } from './matchFx';
 import { courtFx } from './courtFx';
 import { staging } from './staging';
+import { pointsFx } from './pointsFx';
 import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
 import { importFx } from './importFx';
@@ -41,7 +42,6 @@ export const tournamentDisplay = function() {
 
    fx.fx = {
       env: () => { console.log('environment request'); return {}; },
-      legacyCategory: () => console.log('legacy category'),
       pointsTable: () => console.log('points table'),
       setCalendar: () => console.log('set calendar'),
       orgCategoryOptions: () => console.log('org category options'),
@@ -185,7 +185,7 @@ export const tournamentDisplay = function() {
       }
       calendar_container.category.ddlb = new dd.DropDown({ element: calendar_container.category.element, onChange: genCal });
       calendar_container.category.ddlb.selectionBackground('white');
-      category = fx.fx.legacyCategory(category);
+      category = staging.legacyCategory(category);
 
       calendar_container.add.element.addEventListener('click', () => {
          createNewTournament({ title: lang.tr('tournaments.new'), callback: modifyTournament })
@@ -216,11 +216,11 @@ export const tournamentDisplay = function() {
 
          function displayTournyCal(tournaments) {
             var categories = util.unique(tournaments.map(t => t.category)).sort();
-            var options = [{ key: '-', value: '' }].concat(...categories.map(c => ({ key: fx.fx.legacyCategory(c, true), value: c })));
+            var options = [{ key: '-', value: '' }].concat(...categories.map(c => ({ key: staging.legacyCategory(c, true), value: c })));
             calendar_container.category.ddlb.setOptions(options);
             calendar_container.category.ddlb.setValue(category || '', 'white');
 
-            function filterCategory(cat) { return cat == fx.fx.legacyCategory(category) || cat == fx.fx.legacyCategory(category, true); }
+            function filterCategory(cat) { return cat == staging.legacyCategory(category) || cat == staging.legacyCategory(category, true); }
             if (category) tournaments = tournaments.filter(t => filterCategory(t.category));
             tournaments = tournaments.filter(t => t.end <= end);
 
@@ -303,19 +303,19 @@ export const tournamentDisplay = function() {
    }
 
    function getTournamentOptions(tournament) {
-      var category = fx.fx.legacyCategory(tournament.category);
+      var category = staging.legacyCategory(tournament.category);
 
       var opts = tournament.rank_opts || { category, sgl_rank: tournament.rank, dbl_rank: tournament.rank };
 
       if (tournament.accepted) {
          if (tournament.accepted.M) {
-            opts.category = fx.fx.legacyCategory(tournament.accepted.M.category);
+            opts.category = staging.legacyCategory(tournament.accepted.M.category);
             opts.sgl_rank = tournament.accepted.M.sgl_rank;
             opts.dbl_rank = tournament.accepted.M.dbl_rank;
             opts.M = tournament.accepted.M;
          }
          if (tournament.accepted.W) {
-            opts.w_category = fx.fx.legacyCategory(tournament.accepted.W.category);
+            opts.w_category = staging.legacyCategory(tournament.accepted.W.category);
             opts.w_sgl_rank = tournament.accepted.W.sgl_rank;
             opts.w_dbl_rank = tournament.accepted.W.dbl_rank;
             opts.W = tournament.accepted.W;
@@ -847,25 +847,22 @@ export const tournamentDisplay = function() {
          if (container.export_points.element.firstChild.classList.contains('download')) {
             db.findTournamentPoints(tournament.tuid).then(exportPoints, util.logError);
          }
-         let profile = fx.fx.env().org.abbr || 'Unknown';
+         let env = fx.fx.env();
          function exportPoints(points) {
-            // TODO: check whether there is a configuration setting for organization
-            let config_option = (fx.fx.env().org.abbr == 'HTS') ? true : false;
-
-            if (!config_option) {
-               exportFx.downloadJSON(`${tournament.tuid}-points.json`, points);
-            } else {
+            if (env.points.export_format && env.org.abbr) {
                let text = `${lang.tr('phrases.export')}: ${lang.tr('pts')}`;
-               let choices = displayGen.twoChoices({ text, option1: 'JSON', option2: 'HTS' });
+               let choices = displayGen.twoChoices({ text, option1: 'JSON', option2: env.points.export_format.name || env.org.abbr });
                displayGen.escapeModal();
                choices.option1.element.addEventListener('click', () => {
-                  exportFx.downloadJSON(`${profile}-${tournament.tuid}-points.json`, points);
+                  exportFx.downloadJSON(`${env.org.abbr}-${tournament.tuid}-points.json`, points);
                   displayGen.closeModal();
                });
                choices.option2.element.addEventListener('click', () => {
-                  hts.downloadHTSformattedPoints({points, tuid: tournament.tuid});
+                  pointsFx.downloadFormattedPoints({ org_abbr: env.org.abbr, points, tuid: tournament.tuid }).then(util.logError, util.logError);
                   displayGen.closeModal();
                });
+            } else {
+               exportFx.downloadJSON(`${tournament.tuid}-points.json`, points);
             }
          }
       });
@@ -1014,6 +1011,7 @@ export const tournamentDisplay = function() {
       container.clearschedule.element.addEventListener('click', clearScheduleDay);
       container.clearschedule.element.addEventListener('contextmenu', resetSchedule);
       container.autoschedule.element.addEventListener('click', autoSchedule);
+      container.schedulelimit.element.addEventListener('click', limitAutoSchedule);
       container.events_actions.element.addEventListener('click', newTournamentEvent);
       container.locations_actions.element.addEventListener('click', newLocation);
 
@@ -1087,6 +1085,11 @@ export const tournamentDisplay = function() {
          if (match.schedule.interrupted && match.schedule.interrupted.length) return hashes.concat(...match.schedule.interrupted.map(scheduleHash));
          return hashes;
          function scheduleHash(schedule) { return `${schedule.oop_round}|${schedule.luid}|${schedule.index}`; }
+      }
+
+      function limitAutoSchedule() {
+         // TODO: Only show the button when the selected event is a Round Robin
+         // TODO: change the button to show the limit that has been set
       }
 
       function autoSchedule(ev) {
@@ -1313,7 +1316,7 @@ export const tournamentDisplay = function() {
             if (!new_player.rankings) new_player.rankings = {};
             new_player.full_name = `${new_player.last_name.toUpperCase()}, ${util.normalizeName(new_player.first_name, false)}`;
 
-            let rank_category = fx.fx.legacyCategory(tournament.category);
+            let rank_category = staging.legacyCategory(tournament.category);
             fetchFx.fetchRankList(rank_category).then(addRanking, addPlayer);
 
             function addRanking(rank_list) {
@@ -1322,7 +1325,7 @@ export const tournamentDisplay = function() {
                if (player_rankings[new_player.id]) {
                   let category_ranking = player_rankings[new_player.id];
                   if (category_ranking) {
-                     let category = fx.fx.legacyCategory(tournament.category, true);
+                     let category = staging.legacyCategory(tournament.category, true);
                      new_player.rankings[category] = +category_ranking.ranking;
                      new_player.category_ranking = +category_ranking.ranking;
                      new_player.int = category_ranking.int;
@@ -1946,7 +1949,7 @@ export const tournamentDisplay = function() {
 
          // if no event or no approved players or category undefined, abort
          if (evt && evt.approved && evt.category) {
-            let category = fx.fx.legacyCategory(evt.category);
+            let category = staging.legacyCategory(evt.category);
             let t_players;
             if (evt.format == 'S') {
                t_players = tournament.players
@@ -3846,7 +3849,8 @@ export const tournamentDisplay = function() {
 
          function eventOption(evt) {
             let type = evt.draw_type == 'E' ? '' : evt.draw_type == 'C' ? ` ${lang.tr('draws.consolation')}` : evt.draw_type == 'R' ? ' RR' : ' Q';
-            return { key: `${evt.name}${type}`, value: evt.euid }
+            let category = evt.category ? `${evt.category} ` : '';
+            return { key: `${category}${evt.name}${type}`, value: evt.euid }
          }
          let event_filters = [].concat({ key: lang.tr('schedule.allevents'), value: '' }, ...tournament.events.map(eventOption));
          dd.attachDropDown({ 
@@ -3869,6 +3873,7 @@ export const tournamentDisplay = function() {
          // show or hide option button depending on whether there is more than one option
          util.getParent(container.location_filter.element, 'schedule_options').style.display = (tournament.locations.length > 1) ? 'flex' : 'none';
 
+         // ROUND NAMES
          let round_names = util.unique(pending_matches.map(m=>m.round_name));
          let round_filters = [].concat({ key: lang.tr('schedule.allrounds'), value: '' }, ...round_names.map(round => ({ key: round, value: round })));
          dd.attachDropDown({ 
@@ -3879,7 +3884,7 @@ export const tournamentDisplay = function() {
          container.round_filter.ddlb = new dd.DropDown({ element: container.round_filter.element, id: container.round_filter.id, onChange: displayPending });
          container.round_filter.ddlb.selectionBackground('white');
 
-         displayPending();
+         displayPending(false);
          dateChange(displayed_schedule_day);
 
          function dateChange(value) {
@@ -3911,7 +3916,13 @@ export const tournamentDisplay = function() {
             displayScheduleGrid(tournament, container);
          }
 
-         function displayPending() {
+         function updateRoundNames(euid_filtered) {
+            let round_names = util.unique(euid_filtered.map(m=>m.round_name));
+            let round_filters = [].concat({ key: lang.tr('schedule.allrounds'), value: '' }, ...round_names.map(round => ({ key: round, value: round })));
+            container.round_filter.ddlb.setOptions(round_filters);
+         }
+
+         function displayPending(update_round_names=true) {
             let pending_by_format = pending_matches.sort((a, b) => a.format == 'singles' ? 0 : 1);
             let upcoming_by_format = upcoming_matches.sort((a, b) => a.format == 'singles' ? 0 : 1);
 
@@ -3929,6 +3940,7 @@ export const tournamentDisplay = function() {
                element: container.unscheduled.element,
             });
             util.addEventToClass('dragUnscheduled', dragUnscheduled, container.unscheduled.element, 'dragstart');
+            if (update_round_names) updateRoundNames(euid_filtered);
          }
 
          // TODO: tournament parameter is not used... perhaps it should be used
@@ -4704,6 +4716,7 @@ export const tournamentDisplay = function() {
          if (!tournament.categories) tournament.categories = [tournament.category];
 
          // create an array of ids of all players who are selected for any event
+         // used to prevent sign-out of approved players
          let players_approved = () => !tournament.events ? [] : [].concat(...tournament.events.map(e => {
             if (!e.approved) return [];
             return e.teams ? [].concat(...e.teams) : [].concat(...e.approved);
@@ -4711,7 +4724,7 @@ export const tournamentDisplay = function() {
 
          // TODO: ability to sort by either name or rank
 
-         let category = fx.fx.legacyCategory(tournament.category, true);
+         let category = staging.legacyCategory(tournament.category, true);
          let tournament_date = tournament && (tournament.points_date || tournament.end);
          let calc_date = tournament_date ? new Date(tournament_date) : new Date();
          let categories = fx.fx.orgCategories({ calc_date }).map(r => ({ key: r, value: r }));
@@ -4729,6 +4742,9 @@ export const tournamentDisplay = function() {
          // playersTab has a category DDLB... and this should be used for ordering players...
          let t_players = tfx.orderPlayersByRank(tournament.players, prior_value || tournament.categories[0])
             .filter(player => playerFx.eligibleForCategory({ calc_date, age_category: prior_value, player }));
+
+         db.addDev({displayGen});
+         db.addDev({t_players});
 
          if (!t_players.length && !state.edit) {
             d3.select('#YT' + container.container.id).style('display', 'none');
