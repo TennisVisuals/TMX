@@ -480,6 +480,7 @@ export const lang = function() {
          allrounds: 'All Rounds',
          allcourts: 'All Courts',
          autoschedule: 'Auto Schedule',
+         limit: 'Limit',
          clearschedule: 'Clear Schedule',
          orderofplay: 'ORDER OF PLAY',
          matchestime: 'Matches => Time', 
