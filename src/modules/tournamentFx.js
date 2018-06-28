@@ -3,6 +3,7 @@ import { db } from './db';
 import { util } from './util';
 import { UUID } from './UUID';
 import { drawFx } from './drawFx';
+import { staging } from './staging';
 import { matchFx } from './matchFx';
 import { lang } from './translator';
 import { playerFx } from './playerFx';
@@ -15,7 +16,6 @@ export const tournamentFx = function() {
 
    fx.fx = {
       env: () => console.log('environment fx'),
-      legacyCategory: () => console.log('legacy category'),
    }
 
    fx.settingsLoaded = (env) => { dfx.options(env.drawFx); }
@@ -813,7 +813,7 @@ export const tournamentFx = function() {
    fx.orderPlayersByRank = orderPlayersByRank;
    function orderPlayersByRank(players, category) {
       if (players) {
-         category = fx.fx.legacyCategory(category);
+         category = staging.legacyCategory(category);
          players.forEach(player => {
             if (player.modified_ranking) {
                player.category_ranking = +player.modified_ranking;
