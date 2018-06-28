@@ -1,7 +1,7 @@
 import { db } from './db'
 import { UUID } from './UUID';
 import { util } from './util'
-import { config } from './config'
+import { staging } from './staging'
 import { lang } from './translator';
 import { rankCalc } from './rankCalc';
 import { searchBox } from './searchBox';
@@ -69,7 +69,7 @@ export const importFx = function() {
       };
 
       let parse_category = parts[0].match(/\d+/) || (parts[0] == 'RS' ? [20] : undefined);
-      if (parse_category) meta.filecategory = config.legacyCategory(parse_category[0]);
+      if (parse_category) meta.filecategory = staging.legacyCategory(parse_category[0]);
 
       if (filename[0] == 'R') {
          let datestring = filename.split('_')[1].match(/\d+/)[0];
@@ -182,7 +182,7 @@ export const importFx = function() {
          let rank_lists = {};
          if (!Array.isArray(rows)) return displayGen.busy.done(id);
 
-         let categories = util.unique(rows.map(r=>config.legacyCategory(r.category)));
+         let categories = util.unique(rows.map(r=>staging.legacyCategory(r.category)));
 
          let category_rankings = categories.map(category => {
             let records = rows.filter(f=>f.category == category);
@@ -220,7 +220,7 @@ export const importFx = function() {
                end: determineDate(record.end),
                draws: record.draws || '',
                rank: record.rank,
-               category: config.legacyCategory(record.category),
+               category: staging.legacyCategory(record.category),
 
             };
             console.log(tournament.category);
@@ -312,7 +312,7 @@ export const importFx = function() {
          function setTournament(tournament) {
             return new Promise((resolve, reject) => {
                if (!tournament) return reject();
-               tournament.category = config.legacyCategory(tournament.category);
+               tournament.category = staging.legacyCategory(tournament.category);
 
                if (Object.keys(tournament).length) {
                   load.loaded.tournament.sid = 'HTS';
@@ -330,7 +330,7 @@ export const importFx = function() {
                      load.loaded.meta.rank = +accepted.sgl_rank || +tournament.rank;
                      load.loaded.meta.dbl_rank = +accepted.dbl_rank;
                      load.loaded.tournament.rank = load.loaded.meta.rank;
-                     load.loaded.meta.category = config.legacyCategory(accepted.category);
+                     load.loaded.meta.category = staging.legacyCategory(accepted.category);
                      load.loaded.tournament.category = load.loaded.meta.category;
                      load.loaded.results.ranks = { singles: load.loaded.meta.rank, doubles: load.loaded.meta.dbl_rank };
 
@@ -832,7 +832,7 @@ export const importFx = function() {
          { attr: 'dbls', header: 'Dbls' }, 
       ]; 
       let rankings = extractWorkbookRows(workbook.Sheets.Rankings, headers);
-      rankings.forEach(ranking => { ranking.category == config.legacyCategory(ranking.category); });
+      rankings.forEach(ranking => { ranking.category == staging.legacyCategory(ranking.category); });
       return rankings;
    }
 
@@ -913,7 +913,7 @@ export const importFx = function() {
 
             load.loaded.tournament.category = load.loaded.tournament.category ? load.loaded.tournament.category.match(/\d+/) : undefined;
             load.loaded.tournament.category = load.loaded.tournament.category ? parseInt(load.loaded.tournament.category[0]) : 20;
-            load.loaded.tournament.category = config.legacyCategory(load.loaded.tournament.category);
+            load.loaded.tournament.category = staging.legacyCategory(load.loaded.tournament.category);
             load.loaded.meta.category = load.loaded.tournament.category;
          } else {
             load.loaded.tournament = {
