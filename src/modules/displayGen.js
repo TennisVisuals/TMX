@@ -3,6 +3,7 @@ import { dd } from './dropdown';
 import { drawFx } from './drawFx';
 import { jsTabs } from './jsTabs';
 import { lang } from './translator';
+import { staging } from './staging';
 import { fetchFx } from './fetchFx';
 import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
@@ -40,7 +41,6 @@ export const displayGen = function() {
 
    gen.fx = {
       env: () => { console.log('environment request'); return {}; },
-      legacyCategory: () => console.log('legacy category'),
       settings: () => console.log('settings'),
       setMap: () => console.log('set map'),
       pointsTable: () => console.log('points table'),
@@ -720,7 +720,7 @@ export const displayGen = function() {
             <div class='pround'>${round}</div>
             <div class='pdate'>${formatted_date}</div>
             <div class='pformat'>${lang.tr(format)}</div>
-            <div class='pcat'>${gen.fx.legacyCategory(points.category, true)}</div>
+            <div class='pcat'>${staging.legacyCategory(points.category, true)}</div>
             <div class='prank'>${points.rank}</div>
             <div class='points'>${points.points}</div>
          </div>`;
@@ -803,6 +803,41 @@ export const displayGen = function() {
           let timeB = !b[attr] ? undefined : +b[attr].split(':').join('');
           return !timeA ? -1 : timeA - timeB;
       });
+   }
+
+   gen.showSelectedPlayers = (players, filters=[], category=11, rows=3) => {
+      var gender = filters.indexOf('M') >= 0 ? 'Boys' : 'Girls';
+      var html = `<div class='flexcenter' style='margin-bottom: 1em;'>U${category} ${gender}</div>`;
+      var width = Math.round(100/rows);
+      if (filters.indexOf('M') >= 0) players = players.filter(f=>f.sex == 'M');
+      if (filters.indexOf('W') >= 0) players = players.filter(f=>f.sex == 'W');
+      var flag_root = gen.fx.env().assets.flags;
+      var plz_groups = [];
+      var plz_group = [];
+      var count = 0;
+      while (players.length) {
+         if (count + 1 > rows) {
+            plz_groups.push(plz_group);
+            plz_group = [];
+            count = 0;
+         }
+         plz_group.push(players.shift());
+         count += 1;
+      }
+      if (plz_group.length) plz_groups.push(plz_group);
+      html += `<div class='flexcol flexjustifystart' style='width: 100%;'>${plz_groups.map(playerGroup).join('')}</div>`;
+      gen.showModal(html);
+
+      function playerGroup(plz) { return `<div class='flexrow' style='margin-bottom: 2px; width: 100%; height: 1em;'>${plz.map(playerBlock).join('')}</div>`; }
+      function playerBlock(p) {
+         var player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
+         var ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
+         var flag = `<div class='flexcenter' style='margin-right: .3em'><img onerror="this.style.visibility='hidden'" width='16px' height='10px' src="${flag_root}${player_ioc}.png"></div>`.trim();
+         var first_name = util.normalizeName(p.first_name, false);
+         var last_name = p.last_name ? util.normalizeName(p.last_name, false) : '';
+         var full_name = `${first_name} ${last_name}`.trim();
+         return `<div style='width: ${width}%;' class='flexjustifystart'>${flag}${full_name}</div>`;
+      }
    }
    
    function formatTeams({tournament, match, which, puid, potentials=true}) {
@@ -2192,6 +2227,7 @@ export const displayGen = function() {
          round_filter: displayFx.uuid(),
          location_filter: displayFx.uuid(),
          autoschedule: displayFx.uuid(),
+         schedulelimit: displayFx.uuid(),
          clearschedule: displayFx.uuid(),
          container: displayFx.uuid(),
          category_filter: displayFx.uuid(),
@@ -2450,6 +2486,7 @@ export const displayGen = function() {
                   </div>
                   <div class='options_center'>
                      <div id='${ids.autoschedule}' class='autofill'>${lang.tr('schedule.autoschedule')}</div>
+                     <div id='${ids.schedulelimit}' class='autofill' style='margin-left: 1em; display: none'>${lang.tr('schedule.limit')}</div>
                   </div>
                   <div class='options_right'>
                      <div id='${ids.clearschedule}' class='autofill'>${lang.tr('schedule.clearschedule')}</div>
@@ -3363,7 +3400,7 @@ export const displayGen = function() {
    }
 
    function calendarRow(tournament) {
-      let categories = gen.fx.legacyCategory(tournament.category, true);
+      let categories = staging.legacyCategory(tournament.category, true);
       if (tournament.categories && tournament.categories.length) categories = tournament.categories.map(c=>`<span>${c}</span>`).join('');
       let background = new Date().getTime() > tournament.end ? 'calendar_past' : 'calendar_future';
       let received = tournament.received ? 'tournament_received' : '';
@@ -4173,7 +4210,7 @@ export const displayGen = function() {
       return !points_table.categories ? categories : categories
          .concat(...Object.keys(points_table.categories)
          .map(r => ({ key: r, value: r })));
-         // .map(r => ({ key: gen.fx.legacyCategory(r, true), value: r })));
+         // .map(r => ({ key: staging.legacyCategory(r, true), value: r })));
    }
 
    function getGenders() {

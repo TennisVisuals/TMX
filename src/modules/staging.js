@@ -16,14 +16,24 @@ export const staging = function() {
    let fx = {};
    let tfx = tournamentFx;
 
+   fx.fx = {
+      env: () => { console.log('environment request'); return {}; },
+   }
+
    fx.init = () => {
       coms.fx.processDirective = processDirective;
       coms.fx.receiveTournament = receiveTournament;
       coms.fx.receiveTournamentRecord = receiveTournamentRecord;
       coms.fx.receiveIdiomList = receiveIdiomList;
       coms.fx.tmxMessage = tmxMessage;
-      // coms.fx.receiveEvent = receiveEvent;
       coms.fx.receiveTournamentEvents = receiveTournamentEvents;
+   }
+
+   fx.legacy_categories = {};
+   fx.legacyCategory = (category, reverse) => {
+      let legacy = reverse ?  Object.keys(fx.legacy_categories).map(key => ({ [fx.legacy_categories[key]]: key })) : fx.legacy_categories;
+      if (legacy[category]) category = legacy[category];
+      return category;
    }
 
    function resetDB() {
@@ -41,6 +51,7 @@ export const staging = function() {
    }
 
    function processDirective(data) {
+      db.addDev({data});
       let json_data = attemptJSONparse(data);
 
       if (json_data && json_data.directive) {
