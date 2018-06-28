@@ -1,5 +1,5 @@
 import { db } from './db'
-import { hts } from './hts';
+// import { hts } from './hts';
 import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
@@ -7,6 +7,7 @@ import { dd } from './dropdown';
 import { fetchFx } from './fetchFx';
 import { lang } from './translator';
 import { staging } from './staging';
+import { pointsFx } from './pointsFx';
 import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
 import { rankCalc } from './rankCalc';
@@ -60,7 +61,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.165.284.192',
+      version: '0.9.169.288.193',
       version_check: undefined,
       org: {
          name: undefined,
@@ -188,12 +189,16 @@ export const config = function() {
    }
 
    // don't want accessor to be able to modify original
-   fx.env = () => JSON.parse(JSON.stringify(env));
+   // fx.env = () => JSON.parse(JSON.stringify(env));
+   fx.env = () => env;
 
    fx.setCalendar = (obj) => Object.keys(obj).forEach(key => { if (Object.keys(env.calendar).indexOf(key) >= 0) env.calendar[key] = obj[key]; });
    fx.setMap = (map) => env.map = map;
    fx.addMessage = (msg) => {
       msg.notice = msg.notice || msg.tournament;
+      if (msg.title.indexOf('unofficial') >= 0 && env.org.abbr) {
+         msg.notice = `<a target="_blank" href="https://courthive.com/live/${env.org.abbr}?test">${msg.notice}</a>`;
+      }
       let msgHash = (m) => Object.keys(m).map(key => m[key]).join('');
       let message_hash = msgHash(msg);
       let exists = env.messages.reduce((p, c) => msgHash(c) ==  message_hash ? true : p, false);
@@ -753,6 +758,7 @@ export const config = function() {
    function settingsLoaded() {
       tournamentDisplay.settingsLoaded(env);
       tournamentFx.settingsLoaded(env);
+      pointsFx.settingsLoaded(env);
    }
 
    fx.receiveSettings = receiveSettings;
@@ -763,7 +769,8 @@ export const config = function() {
          setting.keys.push({ keyid: data.keyid, description: data.description });
          db.addSetting(setting).then(update, update);
       }
-      function update() { updateSettings(data.content).then(()=>envSettings().then(setIdiom, util.logError), util.logError); }
+      function update() { updateSettings(data.content).then(()=>envSettings().then(settingsReceived, util.logError), util.logError); }
+      function settingsReceived() { settingsLoaded(); setIdiom(); }
       function setIdiom() { db.findSetting('defaultIdiom').then(checkIdiom, util.logError); }
       function checkIdiom(idiom) {
          if (lang.set() != idiom.ioc) changeIdiom(idiom.ioc);
@@ -795,6 +802,13 @@ export const config = function() {
             if (misc && misc.settings) {
                util.boolAttrs(misc.settings);
                util.keyWalk(misc.settings, env);
+            }
+
+            let points = getKey('pointsSettings');
+            if (points && points.settings) {
+               util.boolAttrs(points.settings);
+               util.fxAttrs(points.settings);
+               Object.assign(env.points, points.settings);
             }
 
             let draws = getKey('drawSettings');
@@ -1000,27 +1014,24 @@ export const config = function() {
 
    function configufeDependents() {
       displayGen.fx.env = fx.env;
-      displayGen.fx.legacyCategory = fx.legacyCategory;
       displayGen.fx.settings = fx.settings;
       displayGen.fx.setMap = fx.setMap;
       displayGen.fx.pointsTable = fx.pointsTable;
       displayGen.fx.orgCategoryOptions = fx.orgCategoryOptions;
 
       playerFx.fx.env = fx.env;
-      playerFx.fx.legacyCategory = fx.legacyCategory;
       playerFx.fx.pointsTable = fx.pointsTable;
 
       tournamentDisplay.fx.env = fx.env;
       tournamentDisplay.fx.drawOptions = fx.drawOptions;
       tournamentDisplay.fx.setCalendar = fx.setCalendar;
-      tournamentDisplay.fx.legacyCategory = fx.legacyCategory;
       tournamentDisplay.fx.pointsTable = fx.pointsTable;
       tournamentDisplay.fx.orgCategoryOptions = fx.orgCategoryOptions;
       tournamentDisplay.fx.orgCategories = fx.orgCategories;
       tournamentDisplay.fx.orgRankingOptions = fx.orgRankingOptions;
 
+      staging.legacy_categories = { 'S': '20', };
       tournamentFx.fx.env = fx.env;
-      tournamentFx.fx.legacyCategory = fx.legacyCategory;
 
       scheduleFx.fx.env = fx.env;
       exportFx.fx.env = fx.env;
@@ -1368,21 +1379,19 @@ export const config = function() {
                return;
             }
 
-            // TODO: check whether there is a configuration setting for organization
-            let config_option = (env.org.abbr == 'HTS') ? true : false;
-            if (!config_option) {
-               exportFx.downloadArray('points.json', pts);
-            } else {
+            if (env.points.export_format && env.org.abbr) {
                let text = `${lang.tr('phrases.export')}: ${lang.tr('pts')}`;
-               let choices = displayGen.twoChoices({ text, option1: 'JSON', option2: 'HTS' });
+               let choices = displayGen.twoChoices({ text, option1: 'JSON', option2: env.points.export_format.name || env.org.abbr });
                choices.option1.element.addEventListener('click', () => {
                   exportFx.downloadArray('points.json', pts);
                   displayGen.closeModal('configmodal');
                });
                choices.option2.element.addEventListener('click', () => {
-                  hts.downloadHTSformattedPoints({points: pts});
+                  pointsFx.downloadFormattedPoints({ org_abbr: env.org.abbr, points }).then(util.logError, util.logError);
                   displayGen.closeModal('configmodal');
                });
+            } else {
+               exportFx.downloadArray('points.json', pts);
             }
          });
       }
@@ -1475,16 +1484,6 @@ export const config = function() {
          document.getElementById('searchcount').style.color = 'black';
          document.getElementById('homeicon').className = `icon15 homeicon_black`;
       }
-   }
-
-   fx.legacyCategory = (category, reverse) => {
-      let ctgy = category;
-      if (fx.env().org.abbr == 'HTS') {
-         let legacy = reverse ?  { '20': 'S', } : { 'S': '20', };
-
-         if (legacy[ctgy]) ctgy = legacy[ctgy];
-      }
-      return ctgy;
    }
 
    return fx;
