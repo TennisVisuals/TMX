@@ -1,5 +1,5 @@
 import { util } from './util';
-import { config } from './config';
+import { staging } from './staging';
 
 export const tournamentParser = function() {
 
@@ -790,7 +790,7 @@ export const tournamentParser = function() {
          tournament_rank = rank && rank.length ? rank[0] : undefined;
          tournament_category = tournament_data.draw ? tournament_data.draw.match(/\d+/) : undefined;
          tournament_category = tournament_category ? parseInt(tournament_category[0]) : 20;
-         tournament_category = config.legacyCategory(tournament_category);
+         tournament_category = staging.legacyCategory(tournament_category);
       }
 
       let processSheet = ({ sheet_names, sheet_name }) => {
@@ -832,7 +832,7 @@ export const tournamentParser = function() {
 
             let row = {};
             let tournament = {};
-            tournament.category = tournament_category && config.legacyCategory(tournament_category);
+            tournament.category = tournament_category && staging.legacyCategory(tournament_category);
             if (tournament.category && categories.indexOf(tournament.category) < 0) categories.push(tournament.category);
 
             if (tp.profile == 'HTS') {
