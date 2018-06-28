@@ -1,7 +1,7 @@
 import { db } from './db'
 import { util } from './util';
 import { dd } from './dropdown';
-import { config } from './config';
+import { staging } from './staging';
 import { matchFx } from './matchFx';
 import { lang } from './translator';
 import { rankCalc } from './rankCalc';
@@ -22,7 +22,6 @@ export const playerFx = function() {
 
    fx.fx = {
       env: () => { console.log('environment request'); return {}; },
-      legacyCategory: () => console.log('legacy category'),
       pointsTable: () => console.log('points table'),
    }
 
@@ -313,7 +312,7 @@ export const playerFx = function() {
          if (!round || rung <= 0) return;
          rung = 8 - rung;
          let value = {
-            category: fx.fx.legacyCategory((match.event && match.event.category) || match.tournament.category, true),
+            category: staging.legacyCategory((match.event && match.event.category) || match.tournament.category, true),
             date: new Date(match.date),
             round,
             rung,
@@ -371,7 +370,7 @@ export const playerFx = function() {
 
       let points_table = fx.fx.pointsTable({calc_date: date});
       let categories = points_table && points_table.categories;
-      category = category ? fx.fx.legacyCategory(category) : 0;
+      category = category ? staging.legacyCategory(category) : 0;
       let ages = category && categories && categories[category] ? categories[category].ages : { from: 6, to: 100 };
       let year = new Date().getFullYear();
       let min_year = year - parseInt(ages.from);
