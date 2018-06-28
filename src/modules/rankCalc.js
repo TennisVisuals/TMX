@@ -1,6 +1,7 @@
 import { db } from './db'
 import { util } from './util';
 import { config } from './config';
+import { staging } from './staging';
 import { lang } from './translator';
 import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
@@ -83,7 +84,7 @@ export const rankCalc = function() {
 
    function fullName(player) { return `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; }
    function calcPoints({ match, points_table, category, event_rank, round_name, calculated }) {
-      category = config.legacyCategory(category || (match.event && match.event.category), true);
+      category = staging.legacyCategory(category || (match.event && match.event.category), true);
       event_rank = event_rank || (match.event && match.event.rank);
       if (calculated && points_table.options && points_table.options.calculated_round_modifier) {
          event_rank = `${event_rank}${points_table.options.calculated_round_modifier}`;
@@ -310,7 +311,7 @@ export const rankCalc = function() {
                categories[category][gender].forEach((player, i) => {
 
                   let eligible_categories = rank.eligibleCategories({ birth_year: player.born, calc_date: ranking_date }).categories;
-                  let ranking_category = config.legacyCategory(category, true);
+                  let ranking_category = staging.legacyCategory(category, true);
 
                   if (util.isMember(eligible_categories, ranking_category) && player.points.total) {
                      if (!rankings[player.puid]) rankings[player.puid] = {};
@@ -491,7 +492,7 @@ export const rankCalc = function() {
       let { categories, base_category } = rank.eligibleCategories({ birth_year: born, calc_date: ranking_date });
 
       Object.keys(cpts).map(ctgy => {
-         let category = config.legacyCategory(ctgy, true);
+         let category = staging.legacyCategory(ctgy, true);
          let point_events = cpts[category] || [];
 
          point_events.forEach(pe => { if (isNaN(pe.points)) rank.point_issues.push(pe); });
@@ -541,14 +542,14 @@ export const rankCalc = function() {
       let bigPoints = (pts) => pts.sort((a, b) => (b.points || 0) - a.points);
 
       // filter points by category then organize by format and sort point values
-      let categoryFilter = (pts, category) => sglDblTeam(bigPoints(pts.filter(f=>f.category == config.legacyCategory(category)))); 
+      let categoryFilter = (pts, category) => sglDblTeam(bigPoints(pts.filter(f=>f.category == staging.legacyCategory(category)))); 
 
       // create an object given keys, and array of points, and a function
       let oMap = (keys, arr, fx) => Object.assign(...keys.map(k => ({ [k]: fx(arr, k) })));
 
       let cpts = {};
       let categories = util.uunique([].concat(...valid.map(v=>v.category), ...eligible_categories))
-         .map(c=>config.legacyCategory(c, true));
+         .map(c=>staging.legacyCategory(c, true));
 
       let points_table = config.pointsTable({calc_date: ranking_date});
 
@@ -558,7 +559,7 @@ export const rankCalc = function() {
 
          Object.keys(ranking_points).forEach(category => {
             let cpoints = [].concat(...ranking_points[category].singles, ...ranking_points[category].doubles, ...ranking_points[category].team);
-            // let category = config.legacyCategory(ctgy, true);
+            // let category = staging.legacyCategory(ctgy, true);
             cpts[category] = cpoints;
          });
 
