@@ -704,11 +704,6 @@
    white-space:nowrap;
    text-overflow: ellipsis;
    text-align: left;
-   /*
-   background: -webkit-linear-gradient(left,#00 70%, #fff);
-   -webkit-background-clip: text;
-   -webkit-text-fill-color: transparent;
-   */
 }
 .registered_club_m {
    background: -webkit-linear-gradient(left,#00368c 70%, #fff);
