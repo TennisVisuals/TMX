@@ -80,7 +80,10 @@ export const lang = function() {
       fmt:     'Format',
       cat:     'Category',
       cta:     'Cat.',
+      tmz:     'Teams',
       rnk:     'Rank',
+      rnkz:    'Rankings',
+      rtz:     'Ratings',
       prnk:    'Rank',           // player rank
       trnk:    'Rank',           // tournament rank
       rl:      'Rank List',
@@ -121,6 +124,7 @@ export const lang = function() {
       stt:     'Status',
       ord:     'Order',
       clb:     'Club',
+      scl:     'School',
       cty:     'City',
       cnt:     'Country',
       kwn:     'Known',
@@ -131,6 +135,7 @@ export const lang = function() {
       igd:     'Ignored',
       edt:     'Edit Player',
       idp:     'Identify Player',
+      dlp:     'Delete Player',
       sbt:     'Submit',
       ccl:     'Cancel',
       clr:     'Clear',
@@ -237,6 +242,15 @@ export const lang = function() {
 
       draws: {
          gemseeding: 'GEM Seeding',
+         compass: 'Compass',
+         north: 'North',
+         south: 'South',
+         east: 'East',
+         west: 'West',
+         northeast: 'Northeast',
+         northwest: 'Northwest',
+         southeast: 'Southeast',
+         southwest: 'Southwest',
          feedin: 'Feed-in',
          standard: 'Standard',
          structure: 'Structure',
@@ -320,6 +334,7 @@ export const lang = function() {
          doubles:  'Doubles Tournament Rank:',
          category: 'Tournament Category:',
          draws:    'Select Event:',
+         direction: 'Select Draw:'
       },
 
       phrases: {
