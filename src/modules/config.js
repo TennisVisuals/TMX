@@ -1,5 +1,4 @@
 import { db } from './db'
-// import { hts } from './hts';
 import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
@@ -61,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.169.288.193',
+      version: '0.9.173.298.197.a',
       version_check: undefined,
       org: {
          name: undefined,
@@ -71,6 +70,7 @@ export const config = function() {
       assets: {
          flags: '/media/flags/',
          ioc_codes: './assets/ioc_codes',
+         compass: './icons/compassrose.png'
       },
       auto_update: {
          players: false,
@@ -136,6 +136,15 @@ export const config = function() {
          },
       },
       draws: {
+         types: {
+            elimination: true,
+            qualification: true,
+            roundrobin: true,
+            consolation: true,
+            compass: true,
+            feedin: false,
+            playoff: true,
+         },
          gem_seeding: false,
          settings: {
             separation: true
@@ -174,7 +183,7 @@ export const config = function() {
       schedule: {
          clubs: true,
          ioc_codes: false,
-         scores_in_draw_order: false,
+         scores_in_draw_order: true,
          completed_matches_in_search: false,
          max_matches_per_court: 14
       },
@@ -237,8 +246,10 @@ export const config = function() {
    // not visible/accesible outside of this module
    var o = {
       components: {
-         players: { add: true, calcs: false, ranklist: false },
+         players: { add: false },
+         rankings: { calcs: false, ranklist: false },
          tournaments: true,
+         teams: false,
          clubs: false,
          tournament_search: true,
          club_search: true,
@@ -1258,7 +1269,7 @@ export const config = function() {
       let container = displayGen.splashScreen(o.components, o.settings_tabs);
 
       splashEvent(container, 'tournaments', tournamentDisplay.displayCalendar);
-      splashEvent(container, 'players', displayPlayers);
+      splashEvent(container, 'rankings', displayRankings);
       splashEvent(container, 'clubs', displayClubs);
       splashEvent(container, 'settings', editSettings);
       splashEvent(container, 'documentation', ()=>window.open('/docs', '_blank'));
@@ -1428,30 +1439,21 @@ export const config = function() {
 
    }
 
-   function displayPlayers() {
-      let actions = displayGen.playerActions(); 
-      if (o.components.players && o.components.players.add) {
-         actions.add.element.style.display = 'flex';
-         actions.add.element.addEventListener('click', () => playerFx.createNewPlayer({ callback }));
-      }
+   function displayTeams() {
+      let actions = displayGen.teamActions(); 
+   }
 
-      if (o.components.players && o.components.players.calcs) {
+   function displayRankings() {
+      let actions = displayGen.rankingsActions(); 
+
+      if (o.components.rankings && o.components.rankings.calcs) {
          actions.pointCalc.element.style.display = 'flex';
          actions.pointCalc.element.addEventListener('click', () => configureCalc('points'));
       }
 
-      if (o.components.players && o.components.players.ranklist) {
+      if (o.components.rankings && o.components.rankings.ranklist) {
          actions.rankCalc.element.style.display = 'flex';
          actions.rankCalc.element.addEventListener('click', () => configureCalc('rankings'));
-      }
-
-      function callback(player) {
-         player.puid = `pl${UUID.new()}`;
-         player.id = player.puid;
-         db.addPlayer(player);
-         if (searchBox.category == 'players') {
-            searchBox.updateSearch();
-         }
       }
    }
 

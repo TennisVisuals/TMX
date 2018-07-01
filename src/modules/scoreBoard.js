@@ -665,8 +665,8 @@ export const scoreBoard = function() {
          sobj.p1selector.ddlb.setValue(this_set ? this_set[0].games + '' : '');
          sobj.p2selector.ddlb.setValue(this_set ? this_set[1].games + '' : '');
          // selectors won't be shown if scoreboard is loacked or ddlb is locked or editing tiebreak (!game_edit)
-         sobj.p1selector.element.style=`display: ${game_edit && !ddlb_lock && !lock ? 'flex' : 'none'}`;
-         sobj.p2selector.element.style=`display: ${game_edit && !ddlb_lock && !lock ? 'flex' : 'none'}`;
+         sobj.p1selector.element.style.display = (game_edit && !ddlb_lock && !lock) ? 'flex' : 'none';
+         sobj.p2selector.element.style.display = (game_edit && !ddlb_lock && !lock) ? 'flex' : 'none';
 
          p1scores = after.map((s, i) => setScore({ setnum: +selected_set + 1 + i, score: s[0] })).join('');
          p2scores = after.map((s, i) => setScore({ setnum: +selected_set + 1 + i, score: s[1] })).join('');

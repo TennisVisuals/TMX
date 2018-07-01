@@ -62,12 +62,16 @@ export const playerFx = function() {
       if (!categories) return true;
       if (!categories[age_category]) return false;
       let ages = categories[age_category].ages;
-      if (!ages) return false;
-      let year = calc_date.getFullYear();
-      let min_year = year - parseInt(ages.from);
-      let max_year = year - parseInt(ages.to);
-      let birth_year = new Date(player.birth).getFullYear();
-      if (birth_year <= min_year && birth_year >= max_year) return true;
+      let ratings = categories[age_category].ratings;
+      if (!ages && !ratings) return true;
+
+      if (ages) {
+         let year = calc_date.getFullYear();
+         let min_year = year - parseInt(ages.from);
+         let max_year = year - parseInt(ages.to);
+         let birth_year = new Date(player.birth).getFullYear();
+         if (birth_year <= min_year && birth_year >= max_year) return true;
+      }
       return false;
    }
 
@@ -256,6 +260,7 @@ export const playerFx = function() {
          last_name: p.last_name,
          first_name: p.first_name,
          draw_position: p.draw_position,
+         category_dbls: p.category_dbls,
          category_ranking: p.category_ranking,
          modified_ranking: p.modified_ranking,
       }

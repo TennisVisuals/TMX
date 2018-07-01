@@ -688,7 +688,7 @@ export const importFx = function() {
 
       if (keys.length && ['key', 'category'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'settings';
       if (keys.length && ['hash', 'alias'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'aliases';
-      if (keys.length && ['sex', 'birth'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'players';
+      if (keys.length && ['sex', 'puid'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'players';
       if (keys.length && ['hash', 'ioc'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'ignored';
       if (keys.length && ['muid', 'puids', 'score'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'matches';
       if (keys.length && ['muid', 'puid', 'points'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'points';
@@ -785,12 +785,13 @@ export const importFx = function() {
          { attr: 'puid', header: 'Unique Identifier' }, 
          { attr: 'club', header: 'Club ID' }, 
          { attr: 'club_name', header: 'Club Name' }, 
+         { attr: 'school', header: 'School' }, 
       ];
       let players = extractWorkbookRows(workbook.Sheets.Players, headers);
       players.forEach(player => {
          player.puid = player.puid || UUID.new();
          player.id = player.id || player.puid;
-         player.birth = player.birth.indexOf('-') < 0 ? parseFloat(player.birth) : new Date(player.birth).getTime();
+         if (player.birth) player.birth = player.birth.indexOf('-') < 0 ? parseFloat(player.birth) : new Date(player.birth).getTime();
          player.ioc = player.ioc ? (player.ioc.match(/\D+/g) || [])[0] : '';
       });
       return players;

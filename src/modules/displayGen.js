@@ -1771,6 +1771,8 @@ export const displayGen = function() {
          `<div class='flexrow pdata_container'><div class='pdata_label'>${lang.tr('clb')}:</div><div class='pdata_value'>${club.name}</div></div>`;
       var clubcode = !club.code ? '' :
          `<div class='flexrow pdata_container'><div class='pdata_label'>${lang.tr('clb')}:</div><div class='pdata_value'>${club.code}</div></div>`;
+      var school = !p.school ? '' :
+         `<div class='flexrow pdata_container'><div class='pdata_label'>${lang.tr('scl')}:</div><div class='pdata_value'>${p.school}</div></div>`;
       var cropin = !p.cropin ? '' :
          `<div class='flexrow pdata_container'><div class='pdata_label'>CROPIN:</div><div class='pdata_value'>${p.cropin || ''}</div></div>`;
       var birth = !p.birth ? '' :
@@ -1794,9 +1796,9 @@ export const displayGen = function() {
             <div class='pdata_value' style='color: red'>${displayFullDate(p.registered_until)}</div>
          </div>`;
 
-      var detail_1 = !cropin && !clubdata && !clubcode ? '' : `
+      var detail_1 = !cropin && !clubdata && !clubcode && !school ? '' : `
          <div class='pdetail' style="width: 100%">
-            ${cropin} ${clubdata} ${clubcode}
+            ${cropin} ${clubdata} ${clubcode} ${school}
          </div>
       `;
 
@@ -1961,6 +1963,14 @@ export const displayGen = function() {
       if (filters.indexOf('M') >= 0) players = players.filter(f=>f.sex != 'M');
       if (filters.indexOf('W') >= 0) players = players.filter(f=>f.sex != 'W');
 
+      let display = { clubs: false, countries: false, schools: false, years: false };
+      players.forEach(p => {
+         if (p.club_code || p.club_name) display.clubs = true;
+         if (p.ioc) display.countries = true;
+         if (p.school) display.schools = true;
+         if (p.birth) display.years = true;
+      });
+
       let wd = (p) => (p.withdrawn == true || p.withdrawn == 'Y') && !p.signed_in;
       let not_signed_in = players.filter(p => !wd(p) && !p.signed_in && playerFx.medical(p, tournament));
       let signed_in = players.filter(p => !wd(p) && p.signed_in);
@@ -1976,7 +1986,7 @@ export const displayGen = function() {
       let html = '';
       let display_order = {}
       let rowHTML = (p, i, gender) => {
-         html += tpRow(tournament, p, i + 1, j, gender, additional_attributes);
+         html += tpRow(tournament, p, i + 1, j, gender, display, additional_attributes);
          display_order[p.puid] = j;
          j+=1;
       }
@@ -1986,7 +1996,7 @@ export const displayGen = function() {
          let u = arr.filter(f=>['M', 'W'].indexOf(f.sex) < 0);
 
          html += `<div class='signin-section'>${lang.tr(notice)}</div>`;
-         html += tpHeader(additional_attributes);
+         html += tpHeader({ display, additional_attributes });
 
          m.forEach((p, i) => rowHTML(p, i, 'M'));
          if (m.length) html += `<div class='signin-row'></div>`;
@@ -2008,18 +2018,20 @@ export const displayGen = function() {
    }
 
    // TODO: make additional rows configurable; CROPIN should be configuration option
-   function tpHeader(additional_attributes) {
+   function tpHeader({ display, additional_attributes }) {
       let additional = !additional_attributes ? '' :
-         additional_attributes.map(attr => `<div class='registered_attr flexcenter'>${attr.header}</div>`);
+         additional_attributes.map(attr => `<div class='registered_attr flexcenter'><b>${attr.header}</b></div>`);
+      let years = display.years ? `<div class='registered_attr flexcenter'><b>${lang.tr('yr')}</b></div>` : '';
+      let clubs = display.clubs ? `<div class='registered_attr flexcenter'><b>${lang.tr('clb')}</b></div>` : '';
+      let countries = display.countries ? `<div class='registered_attr flexcenter'><b>${lang.tr('cnt')}</b></div>` : '';
+      let schools = display.schools ? `<div class='registered_attr flexcenter'><b>${lang.tr('scl')}</b></div>` : '';
       let html = `
          <div class='signin-row flexrow signin-header'>
             <div class='registered_count flexjustifystart'><b>#</b></div>
             <div class='registered_player flexjustifystart'><b>${lang.tr('ply')}</b></div>
             ${additional}
             <div class='registered_attr flexcenter'><b>${lang.tr('prnk')}</b></div>
-            <div class='registered_attr flexcenter'><b>${lang.tr('yr')}</b></div>
-            <div class='registered_attr flexcenter'><b>${lang.tr('clb')}</b></div>
-            <div class='registered_attr flexcenter'><b>${lang.tr('cnt')}</b></div>
+            ${years} ${clubs} ${countries} ${schools}
             <div class='registered_attr flexcenter'><b>${lang.tr('gdr')}</b></div>
          </div>
       `;
@@ -2028,7 +2040,7 @@ export const displayGen = function() {
    }
 
    // TODO: make additional rows configurable; CROPIN should be configuration option
-   function tpRow(tournament, p, i, j, gender, additional_attributes) {
+   function tpRow(tournament, p, i, j, gender, display, additional_attributes) {
       let ioc = p.ioc && p.ioc.length == 3 ? p.ioc.toUpperCase() : '';
       if (ioc == '' && p.foreign == 'Y') ioc = 'INO';
 
@@ -2051,6 +2063,16 @@ export const displayGen = function() {
       let club_gradient = `registered_club_${!gender ? 'u' : gender == 'W' ? 'w' : 'm'}`;
       let club_class = p.club_code || !club ? 'registered_attr flexcenter' : `registered_club ${club_gradient}`;
       let gender_abbr = p.sex ? lang.tr(p.sex == 'M' ? 'genders.male_abbr' : 'genders.female_abbr') : 'X';
+
+      let school = p.school || '';
+      let school_gradient = `registered_club_${!gender ? 'u' : gender == 'W' ? 'w' : 'm'}`;
+      let school_class = `registered_club ${club_gradient}`;
+
+      let years = display.years ? `<div class='registered_attr flexcenter'>${birthyear}</div>` : '';
+      let clubs = display.clubs ? `<div class='${club_class}'>${club}</div>` : '';
+      let countries = display.countries ? `<div class='registered_attr flexcenter'>${ioc}</div>` : '';
+      let schools = display.schools ? `<div class='${school_class}'>${school}</div>` : '';
+
       let html = `
          <div puid='${p.puid}' index='${i}' class='player_click signin-row flexrow detail' ${style}>
             <div class='registered_count flexjustifystart'>${i || ''}</div>
@@ -2065,9 +2087,7 @@ export const displayGen = function() {
                   <input rankentry='${p.id}' puid='${p.puid}' order='${j}' class='subrank' value='${p.subrank || ''}' style='opacity: 0;'>
                </span>
             </div>
-            <div class='registered_attr flexcenter'>${birthyear}</div>
-            <div class='${club_class}'>${club}</div>
-            <div class='registered_attr flexcenter'>${ioc}</div>
+            ${years} ${clubs} ${countries} ${schools}
             <div class='registered_attr flexcenter'>${p.sex || 'X'}</div>
          </div>`;
       return html;
@@ -2211,6 +2231,7 @@ export const displayGen = function() {
          matches: displayFx.uuid(),
          events: displayFx.uuid(),
          select_draw: displayFx.uuid(),
+         compass_direction: displayFx.uuid(),
          events_actions: displayFx.uuid(),
          event_details: displayFx.uuid(),
          detail_fields: displayFx.uuid(),
@@ -2521,6 +2542,7 @@ export const displayGen = function() {
             <div class='draw_options'>
                <div class='options_left'>
                   <div class='select_draw' id='${ids.select_draw}'></div>
+                  <div class='select_draw' id='${ids.compass_direction}'></div>
                </div>
                <div class='options_right'>
                   <div id='${ids.recycle}' class='${gen.infoleft}' label='${lang.tr("draws.clear")}'style='display: none'><div class='cleardraw action_icon'></div></div>
@@ -2537,7 +2559,7 @@ export const displayGen = function() {
          </div>
       `;
 
-      let modify_info = tournament.players && tournament.players.length ? '${gen.infoleft}' : '';
+      let modify_info = tournament.players && tournament.players.length ? `${gen.infoleft}` : '';
       let players_tab = `
          <div>
             <div class='filter_row'>
@@ -3430,7 +3452,8 @@ export const displayGen = function() {
       let ids = { 
          org: displayFx.uuid(),
          clubs: displayFx.uuid(),
-         players: displayFx.uuid(),
+         teams: displayFx.uuid(),
+         rankings: displayFx.uuid(),
          settings: displayFx.uuid(),
          tournaments: displayFx.uuid(),
          documentation: displayFx.uuid(),
@@ -3442,9 +3465,10 @@ export const displayGen = function() {
       let settings_tabs_count = Object.keys(settings_tabs).map(k=>settings_tabs[k]).reduce((p, c) => p || c);
       let settings = action(components.settings && settings_tabs_count, ids.settings, lang.tr('set'), 'splash_settings');
 
-      let players = action(components.players, ids.players, lang.tr('pyr'), 'splash_players');
-      let tournaments = action(components.tournaments, ids.tournaments, lang.tr('trn'), 'splash_tournament');
+      let rankings = action(components.rankings, ids.rankings, lang.tr('rnkz'), 'splash_rankings');
       let clubs = action(components.clubs, ids.clubs, lang.tr('clb'), 'splash_clubs');
+      let tournaments = action(components.tournaments, ids.tournaments, lang.tr('trn'), 'splash_tournament');
+      let teams = action(components.teams, ids.teams, lang.tr('tmz'), 'splash_teams');
       let importexport = action(components.importexport, ids.importexport, lang.tr('importexport'), 'splash_importexport');
       let documentation = action(components.documentation, ids.documentation, lang.tr('documentation'), 'splash_documentation');
       let keys = action(components.keys, ids.keys, lang.tr('keys'), 'splash_keys');
@@ -3452,7 +3476,7 @@ export const displayGen = function() {
       let html = `
          <div class='splash_screen'>
             <div class='splash_org flexcenter' id='${ids.org}'></div>
-            <div class='actions container'>${players}${tournaments}${clubs}${settings}${documentation}${importexport}${keys}</div>
+            <div class='actions container'>${rankings}${clubs}${tournaments}${teams}${settings}${documentation}${importexport}${keys}</div>
          </div>
       `;
 
@@ -3490,7 +3514,24 @@ export const displayGen = function() {
       return displayFx.idObj(ids);
    }
 
-   gen.playerActions = () => {
+   gen.teamActions = () => {
+      let ids = { 
+         add: displayFx.uuid(),
+         pointCalc: displayFx.uuid(),
+         rankCalc: displayFx.uuid(),
+      }
+      let html = `
+         </div>
+      `;
+
+      html += '</div>';
+      gen.reset();
+      selectDisplay(html, 'teams');
+
+      return displayFx.idObj(ids);
+   }
+
+   gen.rankingsActions = () => {
       let ids = { 
          add: displayFx.uuid(),
          pointCalc: displayFx.uuid(),
@@ -3499,9 +3540,6 @@ export const displayGen = function() {
       let html = `<div class='flexcenter container'>
 
          <div class='actions'>
-            <div id='${ids.add}' class='${gen.info} action' label='${lang.tr("actions.add_player")}' style='display: none'>
-               <div class='player_add_player'></div>
-            </div>
             <div id='${ids.pointCalc}' class='${gen.info} action' label='${lang.tr("phrases.calculateranking")}' style='display: none'>
                <div class='player_calc_points'></div></div>
             <div id='${ids.rankCalc}' class='${gen.info} action' label='${lang.tr("phrases.generateranklist")}' style='display: none'>
@@ -3512,7 +3550,7 @@ export const displayGen = function() {
 
       html += '</div>';
       gen.reset();
-      selectDisplay(html, 'players');
+      selectDisplay(html, 'rankings');
 
       return displayFx.idObj(ids);
    }

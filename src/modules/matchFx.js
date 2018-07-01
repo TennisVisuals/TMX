@@ -253,18 +253,21 @@ export const matchFx = function() {
 
    function addMUIDs(e) {
       if (!e.draw) return;
+      let current_draw = e.draw.compass ? e.draw[e.draw.compass] : e.draw;
+      if (e.draw.compass && !current_draw.matches) current_draw.matches = {};
 
       if (e.draw.brackets) {
          e.draw.brackets.forEach(bracket => bracket.matches.forEach(match => {
             if (!match.muid) match.muid = UUID.new();
          }));
       } else {
-         dfx.drawInfo(e.draw).nodes.forEach(node => { 
-            // if (dfx.matchNode(node) && !dfx.byeTeams(node)) {
+         dfx.drawInfo(current_draw).nodes.forEach(node => { 
             if (node.children && !dfx.byeTeams(node)) {
                if (!node.data.match) node.data.match = {};
                if (!node.data.match.muid) node.data.match.muid = UUID.new();
                if (!node.data.match.euid) node.data.match.euid = e.euid;
+               // TODO: future match information should live in matches object
+               if (e.draw.compass) current_draw.matches[node.data.match.muid] = true;
             }
          });
       }

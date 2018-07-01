@@ -810,6 +810,11 @@ export function treeDraw() {
          path: undefined,
       },
 
+      compass: {
+         display: false,
+         png: undefined,
+      },
+
       lines: {
          stroke_width: 1,
       },
@@ -894,6 +899,7 @@ export function treeDraw() {
       'player2'  : { 'mouseover': highlightCell, 'mouseout': unHighlightCell, 'click': null, 'contextmenu': null },
       'p1club'   : { 'mouseover': highlightCell, 'mouseout': unHighlightCell, 'click': null, 'contextmenu': null },
       'p2club'   : { 'mouseover': highlightCell, 'mouseout': unHighlightCell, 'click': null, 'contextmenu': null },
+      'compass' :  { 'mouseover': null, 'mouseout': null, 'click': null, 'contextmenu': null },
       'score'    : { 'mouseover': null, 'mouseout': null, 'click': null, 'contextmenu': null },
       'umpire'   : { 'mouseover': null, 'mouseout': null, 'click': null, 'contextmenu': null },
       'sizing'   : { 'width': null, },  // optional functions for sizeToFit
@@ -908,8 +914,10 @@ export function treeDraw() {
          return;
       }
 
+      let info = dfx.drawInfo(data);
+
       // scan data to see if columns necessary
-      var opponents = [].concat(...dfx.drawInfo(data).nodes.filter(n=>n.data.team).map(n=>n.data.team)).filter(f=>f);
+      var opponents = [].concat(...info.nodes.filter(n=>n.data.team).map(n=>n.data.team)).filter(f=>f);
       if (opponents && opponents.length) {
          datascan.draw_entry = opponents.reduce((p, c) => c.entry || p, undefined);
          datascan.seeding = opponents.reduce((p, c) => c.seed || p, undefined);
@@ -934,7 +942,6 @@ export function treeDraw() {
       if (o.addByes) dfx.addByes(data);
       let draw_hierarchy = d3.hierarchy(data);
 
-      let info = dfx.drawInfo(data);
       let depth = info.depth;
       let doubles = info.doubles;
       let draw_positions = info.draw_positions;
@@ -1019,12 +1026,14 @@ export function treeDraw() {
 
       if (o.cleanup) root.selectAll("svg").remove();
 
+      let svg_width = draw_width + o.margins.left + o.margins.right + left_column_offset;
+      let translate_x = left_column_offset + +o.margins.left - (invert_first ? 0 : round_width);
       let svg = root.append("svg")
           .style("shape-rendering", "crispEdges")
-          .attr("width", draw_width + o.margins.left + o.margins.right + left_column_offset)
+          .attr("width", svg_width)
           .attr("height", draw_height + top_margin + o.margins.bottom)
         .append("g")
-          .attr("transform", "translate(" + (left_column_offset + +o.margins.left - (invert_first ? 0 : round_width)) + "," + top_margin + ")");
+          .attr("transform", "translate(" + translate_x + "," + top_margin + ")");
 
       let link = svg.selectAll(".link")
           .data(links)
@@ -1075,6 +1084,22 @@ export function treeDraw() {
             .style("shape-rendering", "crispEdges");
       }
       */
+
+      if (o.compass.display && o.compass.png) {
+         let compasssize = Math.min(playerHeight *3, round_width);
+         let inset = svg_width - compasssize - translate_x;
+         svg.selectAll(".compass").data([0])
+            .enter().append('image')
+             .attr('xlink:href', d => o.compass.png)
+             .attr('x', inset)
+             .attr("y", 0)
+             .attr('height', compasssize + 'px')
+             .attr('width', compasssize + 'px')
+             .on('click', events.compass.click)
+             .on('mouseover', events.compass.mouseover)
+             .on('mouseout', events.compass.mouseout)
+             .on('contextmenu', events.compass.contextmenu);
+      }
 
       let node = svg.selectAll(".node")
           .data(nodes)
@@ -1581,9 +1606,9 @@ export function treeDraw() {
       }
    }
 
-   chart.data = function(value) {
+   chart.data = function(draw) {
       if (!arguments.length) { return data; }
-      data = value;
+      data = draw.compass ? draw[draw.compass] : draw;
       o.max_round = data.max_round;
       return chart;
    }
@@ -1883,6 +1908,11 @@ export function drawFx(opts) {
       }
    }
 
+   fx.compassInfo = compassInfo;
+   function compassInfo(draw) {
+      return treeInfo(draw.east);
+   }
+
    function treeInfo(draw) {
       let calc_tree = d3.tree();
       let draw_hierarchy = d3.hierarchy(draw);
@@ -1965,6 +1995,11 @@ export function drawFx(opts) {
    function drawInfo(draw) {
       if (!draw) return;
       if (draw.brackets) return rrInfo(draw);
+      if (draw.compass) {
+         let info = drawInfo(draw[draw.compass]);
+         if (info) info.compass = true;
+         return info;
+      }
       if (draw.children) return treeInfo(draw);
    }
 
@@ -2042,7 +2077,6 @@ export function drawFx(opts) {
          if (isNaN(n)) return false; 
          return n && (n & (n - 1)) === 0;
       }
-
    }
 
    fx.dispersion = dispersion;
@@ -2277,6 +2311,7 @@ export function drawFx(opts) {
       }
    }
 
+   /*
    fx.findMatchNodeByPosition = findMatchNodeByPosition;
    function findMatchNodeByPosition({ node, position }) {
       let position_node = findPositionNode({ node, position });
@@ -2298,6 +2333,7 @@ export function drawFx(opts) {
 
       if (teams.length == 2 && !byeTeam) return target_node;
    }
+   */
 
    fx.modifyPositionScore = modifyPositionScore;
    function modifyPositionScore({ node, positions, score, set_scores, complete, score_format }) {
@@ -2485,11 +2521,12 @@ export function drawFx(opts) {
    // such that byes are handed out to seeds in order: 1, 2, 3...
    fx.distributeByes = distributeByes;
    function distributeByes({ draw, num_players }) {
-      let info = drawInfo(draw);
+      let current_draw = draw.compass ? draw[draw.compass] : draw;
+      let info = drawInfo(current_draw);
       let seed_positions = info.seeds.map(m=>m.data.dp);
       let randomBinary = () => Math.floor(Math.random() * 2);
 
-      num_players = num_players || ((draw.opponents ? draw.opponents.length : 0) + (draw.qualifiers || 0));
+      num_players = num_players || ((current_draw.opponents ? current_draw.opponents.length : 0) + (current_draw.qualifiers || 0));
 
       // bye_positions is an array of UNDEFINED with length = # of byes
       // constructed by slicing from array number of actual teams/players
@@ -2511,7 +2548,7 @@ export function drawFx(opts) {
          if (bp[draw_size] && bp[draw_size].length >= bye_positions.length) {
             bye_positions = bye_positions.map((p, i) => bp[draw_size][i]);
          } else {
-            let seed_placements = draw.seed_placements ? [].concat(...draw.seed_placements.map(m=>m.placements)).map(m=>m.position) : [];
+            let seed_placements = current_draw.seed_placements ? [].concat(...current_draw.seed_placements.map(m=>m.placements)).map(m=>m.position) : [];
 
             // function isSeed(p) { return seed_placements.indexOf(p) >= 0; }
             // let pws = pairs_with_seed.filter(p=>!isSeed(p[0]) || !isSeed(p[1]));
@@ -2556,10 +2593,10 @@ export function drawFx(opts) {
 
       bye_placements.forEach((position, i) => {
          // bye is a boolean which also signifies bye order (order in which byes were assigned)
-         assignPosition({ node: draw, position, bye: i + 1 });
+         assignPosition({ node: current_draw, position, bye: i + 1 });
       });
    
-      draw.bye_placements = bye_placements;
+      current_draw.bye_placements = bye_placements;
       return bye_placements;
    };
 
@@ -2667,12 +2704,13 @@ export function drawFx(opts) {
 
    fx.distributeQualifiers = distributeQualifiers;
    function distributeQualifiers({ draw, num_qualifiers }) {
-      let info = drawInfo(draw);
+      let current_draw = draw.compass ? draw[draw.compass] : draw;
+      let info = drawInfo(current_draw);
       let total = info.draw_positions.length;
       let bye_positions = info.byes.map(b=>b.data.dp);
       let unassigned_positions = info.unassigned.map(u=>u.data.dp);
       let randomBinary = () => Math.floor(Math.random() * 2);
-      num_qualifiers = num_qualifiers || draw.qualifiers || 0;
+      num_qualifiers = num_qualifiers || current_draw.qualifiers || 0;
 
       // reverse qualifiers so that popping returns in numerical order
       let qualifiers = d3.range(0, num_qualifiers).map((q, i) => { return [{ entry: 'Q', qualifier: true }] }).reverse();
@@ -2694,15 +2732,15 @@ export function drawFx(opts) {
          let position = randomBinary() ? available_positions.shift() : available_positions.pop();
          if (position) {
             let team = qualifiers.pop();
-            assignPosition({ node: draw, position, team, qualifier: true });
+            assignPosition({ node: current_draw, position, team, qualifier: true });
          }
       });
 
       qualifiers.forEach(team => {
-         info = drawInfo(draw);
+         info = drawInfo(current_draw);
          let available_positions = info.unassigned.map(u=>u.data.dp);
          let position = available_positions.pop();
-         assignPosition({ node: draw, position, team, qualifier: true });
+         assignPosition({ node: current_draw, position, team, qualifier: true });
       });
    }
 
@@ -2714,17 +2752,19 @@ export function drawFx(opts) {
 
    fx.placeSeedGroups = placeSeedGroups;
    function placeSeedGroups({ draw, count }) {
-      if (!draw.seed_placements || !draw.seeded_teams) return;
+      let current_draw = draw.compass ? draw[draw.compass] : draw;
+      if (!current_draw.seed_placements || !current_draw.seeded_teams) return;
 
       // if no count is specified, place all seed groups
-      count = count || draw.seed_placements.length;
-      d3.range(0, count).forEach(c=>placeSeedGroup({draw}));
+      count = count || current_draw.seed_placements.length;
+      d3.range(0, count).forEach(c=>placeSeedGroup({ draw: current_draw }));
    }
 
    fx.placeSeedGroup = placeSeedGroup;
    function placeSeedGroup({ draw, group_index }) {
-      if (!draw.seed_placements || !draw.seeded_teams) return;
-      let seed_group = group_index != undefined ? draw.seed_placements[group_index] : nextSeedGroup({ draw });
+      let current_draw = draw.compass ? draw[draw.compass] : draw;
+      if (!current_draw.seed_placements || !current_draw.seeded_teams) return;
+      let seed_group = group_index != undefined ? current_draw.seed_placements[group_index] : nextSeedGroup({ draw: current_draw });
 
       if (!seed_group) return;
 
@@ -2732,14 +2772,14 @@ export function drawFx(opts) {
       let positions = seed_group.positions.slice();
 
       // pre-round draws place byes before remaining seeds... because all ranked players are seedeed
-      if (draw.bye_placements) positions = positions.filter(p=>draw.bye_placements.indexOf(p) < 0);
+      if (current_draw.bye_placements) positions = positions.filter(p=>current_draw.bye_placements.indexOf(p) < 0);
 
       let missing_seeds = [];
 
       seed_group.range.forEach(seed => {
          // positions should already be randomized
          let position = positions.pop();
-         let team = draw.seeded_teams[seed];
+         let team = current_draw.seeded_teams[seed];
 
          if (!team) {
             seed_group.positions = seed_group.positions.filter(p=>p!=position);
@@ -2747,14 +2787,14 @@ export function drawFx(opts) {
             return;
          }
 
-         if (draw.brackets) {
+         if (current_draw.brackets) {
             // procesing a round robin
             let player = team[0];
             player.draw_position = position.position;
-            draw.brackets[position.bracket].players.push(player);
+            current_draw.brackets[position.bracket].players.push(player);
          } else {
             // processing a tree draw
-            assignPosition({ node: draw, position, team })
+            assignPosition({ node: current_draw, position, team })
          }
          seed_group.placements.push({ seed, position });
       });
@@ -2766,35 +2806,39 @@ export function drawFx(opts) {
 
    fx.nextSeedGroup = nextSeedGroup;
    function nextSeedGroup({ draw }) {
-      let unplaced = unplacedSeedGroups({ draw });
+      let current_draw = draw.compass ? draw[draw.compass] : draw;
+      let unplaced = unplacedSeedGroups({ draw: current_draw });
       return unplaced ? unplaced[0] : undefined;
    }
 
    fx.unplacedSeedGroups = unplacedSeedGroups;
    function unplacedSeedGroups({ draw }) {
-      if (!draw.seed_placements || !Array.isArray(draw.seed_placements)) return;
-      return draw.seed_placements.filter(sp => sp.range.length != sp.placements.length);
+      let current_draw = draw.compass ? draw[draw.compass] : draw;
+      if (!current_draw.seed_placements || !Array.isArray(current_draw.seed_placements)) return;
+      return current_draw.seed_placements.filter(sp => sp.range.length != sp.placements.length);
    }
 
    fx.placeUnseededTeam = placeUnseededTeam;
    function placeUnseededTeam({ draw }) {
-      if (!draw.unseeded_teams) return;
+      let current_draw = draw.compass ? draw[draw.compass] : draw;
+      if (!current_draw.unseeded_teams) return;
 
-      let unfilled_positions = drawInfo(draw).unassigned.map(u=>u.data.dp);;
+      let unfilled_positions = drawInfo(current_draw).unassigned.map(u=>u.data.dp);;
       if (!unfilled_positions.length) return;
 
       let position = unfilled_positions[0];
-      let team = randomPop(draw.unseeded_teams);
-      assignPosition({ node: draw, position, team });
+      let team = randomPop(current_draw.unseeded_teams);
+      assignPosition({ node: current_draw, position, team });
    }
 
    fx.placeUnseededTeams = placeUnseededTeams;
    function placeUnseededTeams({ draw }) {
-      if (!draw.unseeded_teams) return;
+      let current_draw = draw.compass ? draw[draw.compass] : draw;
+      if (!current_draw.unseeded_teams) return;
       if (o.separation.ioc || o.separation.club_code) {
-         randomUnseededSeparation({ draw });
+         randomUnseededSeparation({ draw: current_draw });
       } else {
-         randomUnseededDistribution({ draw });
+         randomUnseededDistribution({ draw: current_draw });
       }
    }
 

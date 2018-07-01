@@ -401,6 +401,7 @@ export const tournamentDisplay = function() {
       tree_draw.options({ sizeToFit: false, });
       tree_draw.options({ minWidth: 400, minHeight: 100 });
       tree_draw.options({ flags: { path: fx.fx.env().assets.flags }});
+      tree_draw.options({ compass: { png: fx.fx.env().assets.compass }});
       tree_draw.events({'player1': { 'click': d => playerClick(d, 0) }});
       tree_draw.events({'player2': { 'click': d => playerClick(d, 1) }});
 
@@ -1222,13 +1223,15 @@ export const tournamentDisplay = function() {
          { key: lang.tr('formats.doubles'), value: 'D'},
       ];
       
-      var draw_types = [
-         { key: lang.tr('draws.elimination'), value: 'E'},
-         { key: lang.tr('draws.qualification'), value: 'Q'},
-         { key: lang.tr('draws.roundrobin'), value: 'R'},
-         { key: lang.tr('draws.consolation'), value: 'C'},
-         { key: lang.tr('pyo'), value: 'P'},
-      ];
+      var supported_types = fx.fx.env().draws.types;
+      var draw_types = [];
+      if (supported_types.elimination) draw_types.push({ key: lang.tr('draws.elimination'), value: 'E'});
+      if (supported_types.qualification) draw_types.push({ key: lang.tr('draws.qualification'), value: 'Q'});
+      if (supported_types.roundrobin) draw_types.push({ key: lang.tr('draws.roundrobin'), value: 'R'});
+      if (supported_types.consolation) draw_types.push({ key: lang.tr('draws.consolation'), value: 'C'});
+      if (supported_types.compass) draw_types.push({ key: lang.tr('draws.compass'), value: 'S'});
+      if (supported_types.feedin) draw_types.push({ key: lang.tr('draws.feedin'), value: 'F'});
+      if (supported_types.playoff) draw_types.push({ key: lang.tr('pyo'), value: 'P'});
 
       // NOTE: this was done to build up a player list from parsed matches...
       // if there are any matches, add match players first
@@ -1411,18 +1414,19 @@ export const tournamentDisplay = function() {
       }
 
       function enableAddPlayer() {
-         let age_category = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : tournament.category;
+         let category_filter = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : tournament.category;
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
          let calc_date = tournament_date ? new Date(tournament_date) : new Date();
 
          let points_table = fx.fx.pointsTable({calc_date});
          let categories = points_table && points_table.categories;
-         let ages = categories && categories[age_category] ? categories[age_category].ages : { from: 8, to: 100 };
+         let ages = categories && categories[category_filter] && categories[category_filter].ages;
+         let ratings = categories && categories[category_filter] && categories[category_filter].ratings;
 
          let year = calc_date.getFullYear();
-         let min_year = year - parseInt(ages.from);
-         let max_year = year - parseInt(ages.to);
+         let min_year = ages && (year - parseInt(ages.from));
+         let max_year = ages && (year - parseInt(ages.to));
 
          playerFx.action = 'addTournamentPlayer';
          playerFx.displayGen = displayGen.showConfigModal;
@@ -1439,8 +1443,11 @@ export const tournamentDisplay = function() {
          });
 
          function categoryFilter(player) {
-            let birth_year = new Date(player.birth).getFullYear();
-            if (birth_year <= min_year && birth_year >= max_year) return true;
+            if (!ages && !ratings) return true;
+            if (ages) {
+               let birth_year = player.birth && new Date(player.birth).getFullYear();
+               if (birth_year <= min_year && birth_year >= max_year) return true;
+            }
          }
       }
 
@@ -2529,6 +2536,8 @@ export const tournamentDisplay = function() {
             'Q': ['Q', 'R'],
             'E': ['E'],
             'C': ['C'],
+            'F': ['F'],
+            'S': ['S'],
             'P': ['P'],
             'R': ['Q'],
          }
@@ -2540,6 +2549,8 @@ export const tournamentDisplay = function() {
             'R': 'qualification',
             'C': 'consolation',
             'E': 'elimination',
+            'S': 'compass',
+            'F': 'feedin',
             'P': 'playoff',
          }
 
@@ -2835,6 +2846,8 @@ export const tournamentDisplay = function() {
             'C': () => setConsolationConfig(),
             'Q': () => setQualificationConfig(),
             'P': () => setPlayoffConfig(),
+//            'F': () => setFeedinConfig(),
+//            'S': () => setCompassConfig(),
          }
 
          if (drawTypes[e.draw_type]) drawTypes[e.draw_type]();
@@ -2896,7 +2909,7 @@ export const tournamentDisplay = function() {
       }
 
       function luckyLosersOption(evt,e) {
-         if (!e || !e.draw) return;
+         if (!e || !e.draw || e.draw_type == 'C') return;
          let competitors = [].concat(...e.draw.opponents.map(team=>team.map(p=>p.id)));
          let linkedQ = tfx.findEventByID(tournament, e.links['Q']) || tfx.findEventByID(tournament, e.links['R']);
          let linked_info = linkedQ && linkedQ.draw ? dfx.drawInfo(linkedQ.draw) : undefined;
@@ -2920,6 +2933,14 @@ export const tournamentDisplay = function() {
 
          // losers from linked draw excluding losers who have already been substituted
          let losers = tfx.teamSort(losing_teams).filter(l=>util.intersection(l.map(p=>p.id), competitors).length == 0);
+
+         // if the qualifying event *also* has a linked consolation event, exclude any players who have been approved for that event
+         let consolation = tfx.findEventByID(tournament, linkedQ.links['C']);
+         if (consolation) losers = losers.filter(l=>util.intersection(l.map(p=>p.id), consolation.approved).length == 0);
+         if (!losers.length) return;
+
+         // if qualification draw is round-robin, sort losers by GEM score
+         if (e.links['R']) losers.sort((a, b) => ((b[0].results && b[0].results.ratio_hash) || 0) - ((a[0].results && a[0].results.ratio_hash) || 0) );
 
          let teams = optionNames(losers, true);
          let clickAction = (d, i) => {
@@ -3280,6 +3301,7 @@ export const tournamentDisplay = function() {
          tree_draw.options({ max_round: undefined, seeds: { limit: seed_limit } });
          tree_draw.options({ draw: { feed_in: e.structure == 'feed' }});
          tree_draw.options({ flags: { path: fx.fx.env().assets.flags }});
+         tree_draw.options({ compass: { png: fx.fx.env().assets.compass }});
 
          let qualification = () => {
             let draw_size = dfx.acceptedDrawSizes(num_players, true);
@@ -3388,11 +3410,68 @@ export const tournamentDisplay = function() {
             }
          }
 
-         let consolation = () => {
-            let linked = tfx.findEventByID(tournament, e.links['M']);
+         let compass = () => {
+            let num_players = approved_opponents.length + e.qualifiers;
+            e.draw_size = dfx.acceptedDrawSizes(num_players);
+            if (!e.draw_size || !meetsMinimums(e.draw_size)) return;
 
-            // if (!fx.fx.env().drawFx.consolation_seeding) seed_limit = 0;
-            
+            e.draw = {
+               compass: 'east',
+               east: undefined,
+               west: undefined,
+               north: undefined,
+               south: undefined,
+               northeast: undefined,
+               northwest: undefined,
+               southeast: undefined,
+               southwest: undefined,
+            }
+
+            let structural_byes = e.draw_size == 12 ? dfx.structuralByes(e.draw_size, true) : undefined;
+            e.draw.east = dfx.buildDraw({ teams: e.draw_size, structural_byes });
+
+            // has to be defined after draw is built
+            e.draw.qualifiers = e.qualifiers || 0;
+
+            e.draw.east.unseeded_placements = [];
+            e.draw.east.opponents = approved_opponents;
+            e.draw.east.seed_placements = dfx.validSeedPlacements({ num_players, random_sort: true, seed_limit });
+
+            e.draw.east.seeded_teams = dfx.seededTeams({ teams: e.draw.east.opponents });
+            e.draw.east.unseeded_teams = tfx.teamSort(e.draw.east.opponents.filter(f=>!f[0].seed));
+
+            let seeding = e.gem_seeding || tfx.rankedTeams(approved_opponents);
+            if (!seeding) {
+               e.draw.east.seeded_teams = [];
+               delete e.draw.east.seed_placements;
+            }
+
+            // always place first two seeded groups (2 x 1) => place first two seeds
+            dfx.placeSeedGroups({ draw: e.draw.east, count: 2 });
+
+            if (e.automated) {
+               dfx.placeSeedGroups({ draw: e.draw.east });
+               dfx.distributeByes({ draw: e.draw.east });
+               dfx.distributeQualifiers({ draw: e.draw.east });
+               dfx.placeUnseededTeams({ draw: e.draw.east });
+               dfx.advanceTeamsWithByes({ draw: e.draw.east });
+               if (e.draw_type == 'Q') checkForQualifiedTeams(e);
+               drawCreated(e);
+               eventBackground(e);
+               eventList();
+            } else {
+               testLastSeedPosition(e);
+            }
+
+            let info = dfx.drawInfo(e.draw.east);
+            console.log('info:', info);
+            db.addDev({info});
+         }
+
+         let feedin = () => {
+         }
+
+         let consolation = () => {
             e.draw_size = dfx.acceptedDrawSizes(num_players);
             if (!meetsMinimums(e.draw_size)) return;
 
@@ -3469,6 +3548,8 @@ export const tournamentDisplay = function() {
             'R': () => roundrobin(),
             'C': () => consolation(),
             'P': () => consolation(), // playoff
+            'S': () => compass(), // playoff
+            'F': () => feedin(), // playoff
          }
 
          if (drawTypes[e.draw_type] && !e.active) drawTypes[e.draw_type](); 
@@ -3898,7 +3979,6 @@ export const tournamentDisplay = function() {
             all_matches = completed_matches.concat(...pending_matches, ...upcoming_matches);
             muid_key = Object.assign({}, ...all_matches.map(m=>({ [m.muid]: m })));
             day_matches = all_matches.filter(scheduledFilter);
-            db.addDev({day_matches});
             checkConflicts(day_matches);
          }
 
@@ -4503,7 +4583,9 @@ export const tournamentDisplay = function() {
                   if (!outcome) return;
 
                   // this must happen first as 'e' is modified
-                  let result = (e.draw_type == 'R') ? scoreRoundRobin(tournament, e, existing_scores, outcome) : scoreTreeDraw(tournament, e, existing_scores, outcome);
+                  let result = (e.draw_type == 'R') 
+                     ? scoreRoundRobin(tournament, e, existing_scores, outcome)
+                     : scoreTreeDraw({ tournament, e, muid: match.muid, existing_scores, outcome });
 
                   if (result && !result.error) {
 
@@ -4743,13 +4825,16 @@ export const tournamentDisplay = function() {
          let t_players = tfx.orderPlayersByRank(tournament.players, prior_value || tournament.categories[0])
             .filter(player => playerFx.eligibleForCategory({ calc_date, age_category: prior_value, player }));
 
-         db.addDev({displayGen});
-         db.addDev({t_players});
-
          if (!t_players.length && !state.edit) {
             d3.select('#YT' + container.container.id).style('display', 'none');
             return;
          }
+
+         /*
+         let points_table = fx.fx.pointsTable({calc_date});
+         let ctgs = points_table && points_table.categories;
+         */
+
          let display_order = displayGen.displayTournamentPlayers({ container, tournament, players: t_players, filters, edit: state.edit });
 
          function categoryChanged(selected_category) { playersTab(); }
@@ -4770,7 +4855,7 @@ export const tournamentDisplay = function() {
             var options = [];
             options.push({ label: lang.tr('edt'), key: 'edit' });
             if (identify) options.push({ label: lang.tr('idp'), key: 'identify' });
-            if (!approved) options.push({ label: `${lang.tr('delete')} ${lang.tr('ply')}`, key: 'delete' });
+            if (!approved) options.push({ label: lang.tr('dlp'), key: 'delete' });
 
             if (options.length == 1) {
                selectionMade({ key: options[0].key });
@@ -4794,8 +4879,6 @@ export const tournamentDisplay = function() {
                   let modal = displayGen.selectNewPlayerIdentity(clicked_player);
                   modal.cancel.element.addEventListener('click', () => displayGen.closeModal());
                   let valid_players = searchBox.typeAhead._list;
-                  db.addDev({valid_players});
-                  db.addDev({clicked_player});
                   let available = new Awesomplete(modal.search.element, { list: valid_players });
 
                   let selection_flag = false;
@@ -5128,7 +5211,7 @@ export const tournamentDisplay = function() {
                if (e.draw_type == 'R') {
                   scoreRoundRobin(tournament, e, existing_scores, outcome);
                } else {
-                  scoreTreeDraw(tournament, e, existing_scores, outcome);
+                  scoreTreeDraw({ tournament, e, muid: match.match.muid, existing_scores, outcome });
                }
                matchesTab();
             }
@@ -5342,8 +5425,27 @@ export const tournamentDisplay = function() {
       function displayDraw({ evt }) { 
          if (!evt.draw) return;
          if (displayed_draw_event) displayGen.drawRepState(container.player_reps_state.element, displayed_draw_event);
+         tree_draw.options({ compass: { display: false } });
 
-         if (evt.draw.children && evt.draw.children.length) { 
+         if (evt.draw.compass) {
+            if (evt.draw[evt.draw.compass] && evt.draw[evt.draw.compass].children && evt.draw[evt.draw.compass].children.length) {
+               tree_draw.data(evt.draw[evt.draw.compass]);
+               if (tree_draw.info().doubles) tree_draw.options({ names: { seed_number: false }});
+
+               // TODO: this is temporary while exploring other options
+               let seeding = evt.draw[evt.draw.compass].opponents ? evt.gem_seeding || tfx.rankedTeams(evt.draw[evt.draw.compass].opponents) : true;
+
+               let approved_opponents = tfx.approvedOpponents({ tournament, env: fx.fx.env(), e: evt });
+               let seed_limit = dfx.seedLimit(approved_opponents.length);
+
+               fx.drawOptions({ draw: tree_draw });
+               tree_draw.options({ names: { seed_number: seeding }, details: { seeding }});
+               tree_draw.options({ seeds: { limit: seed_limit } });
+               tree_draw.options({ compass: { display: true } });
+
+               tree_draw(); 
+            }
+         } else if (evt.draw.children && evt.draw.children.length) { 
             tree_draw.data(evt.draw);
             if (tree_draw.info().doubles) tree_draw.options({ names: { seed_number: false }});
 
@@ -5395,7 +5497,7 @@ export const tournamentDisplay = function() {
          var settings = fx.fx.env().drawFx;
          // after all seeded positions have been placed, distribute byes
          if (!e && !tree_draw.nextSeedGroup()) {
-            // context is working with a data structure
+            // context is working with a tree_draw
             if (settings.auto_byes) tree_draw.distributeByes();
             if (settings.auto_qualifiers) tree_draw.distributeQualifiers();
          } else if (e && !dfx.nextSeedGroup({ draw: e.draw })) {
@@ -5417,8 +5519,8 @@ export const tournamentDisplay = function() {
          }
       }
 
-      function scoreTreeDraw(tournament, e, existing_scores, outcome) {
-         let result = processResult(tournament, e, tfx.safeScoreTreeDraw(tournament, e, existing_scores, outcome));
+      function scoreTreeDraw({ tournament, e, muid, existing_scores, outcome }) {
+         let result = processResult(tournament, e, tfx.safeScoreTreeDraw({ tournament, e, muid, existing_scores, outcome }));
          if (result && result.approved_changed) {
             approvedChanged(result.approved_changed);
             tfx.setDrawSize(tournament, result.approved_changed);
@@ -5434,6 +5536,10 @@ export const tournamentDisplay = function() {
       function processResult(tournament, e, result) {
          if (result.error) {
             displayGen.popUpMessage(lang.tr(result.error));
+            return result;
+         }
+         if (result.devmessage) {
+            displayGen.popUpMessage(devmessage);
             return result;
          }
          if (result.exit) return result;
@@ -5521,6 +5627,9 @@ export const tournamentDisplay = function() {
             'position': { 
                'contextmenu': contextPopUp,
                'click': positionClick,
+            },
+            'compass': {
+               'click': compassClick,
             },
             'player1': {
                'contextmenu': contextPopUp,
@@ -5634,12 +5743,13 @@ export const tournamentDisplay = function() {
          }
 
          function assignPosition(position, team, bye, qualifier) {
+            let current_draw = displayed_draw_event.draw.compass ? displayed_draw_event.draw[displayed_draw_event.draw.compass] : displayed_draw_event.draw;
             let linked = tfx.findEventByID(tournament, e.links['Q']) || tfx.findEventByID(tournament, e.links['R']);
             if (linked && linked.qualified && team) {
                let qualifier_ids = linked.qualified.map(teamHash);
                if (qualifier_ids.indexOf(team[0].id) >= 0) { team[0].entry = 'Q'; }
             }
-            dfx.assignPosition({ node: displayed_draw_event.draw, position, team, bye, qualifier });
+            dfx.assignPosition({ node: current_draw, position, team, bye, qualifier });
 
             let team_ids = !team ? [] : team.map(t=>t.id);
             tfx.logEventChange(displayed_draw_event, { fx: 'position assigned', d: { position, bye, qualifier, team: team_ids } });
@@ -5760,6 +5870,10 @@ export const tournamentDisplay = function() {
             }
          }
 
+         function compassClick(d) {
+            console.log('displayed event:', displayed_draw_event);
+         }
+
          function positionClick(d) {
             let node = d3.select(this);
             highlightCell(node);
@@ -5794,7 +5908,7 @@ export const tournamentDisplay = function() {
             let scoreSubmitted = (outcome) => {
                displayGen.escapeFx = undefined;
                // this must happen first as 'e' is modified
-               scoreTreeDraw(tournament, e, existing_scores, outcome);
+               scoreTreeDraw({ tournament, e, muid: d.data.match.muid, existing_scores, outcome });
 
                tree_draw.unHighlightCells();
                tree_draw.data(e.draw)();
@@ -5831,11 +5945,12 @@ export const tournamentDisplay = function() {
          }
 
          function getSeedTeams(seed_group) {
+            let current_draw = e.draw.compass ? e.draw[e.draw.compass] : e.draw;
             let placements = seed_group.placements.map(p=>p.seed);
             let positioned = seed_group.placements.map(p=>p.position);
             let positions = seed_group.positions.filter(p=>positioned.indexOf(p)<0);
             let remaining = seed_group.range.filter(r=>placements.indexOf(r) < 0);
-            let teams = optionNames(remaining.map(r=>e.draw.seeded_teams[r]).filter(f=>f));
+            let teams = optionNames(remaining.map(r=>current_draw.seeded_teams[r]).filter(f=>f));
             return { remaining, positions, teams };
          }
 
@@ -5969,17 +6084,18 @@ export const tournamentDisplay = function() {
          }
 
          function placeTreeDrawPlayer(d) {
-            let draw = e.draw;
+            // let draw = e.draw;
+            let current_draw = e.draw.compass ? e.draw[e.draw.compass] : e.draw;
             let position = d.data.dp;
             let info = tree_draw.info();
 
-            let seed_group = dfx.nextSeedGroup({ draw });
+            let seed_group = dfx.nextSeedGroup({ draw: current_draw });
             if (seed_group && seed_group.positions.indexOf(position) < 0) return;
 
-            let placements = draw.unseeded_placements.map(p=>p.id);
-            var unplaced_teams = draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
+            let placements = current_draw.unseeded_placements.map(p=>p.id);
+            var unplaced_teams = current_draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
 
-            if (!seed_group && info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length) {
+            if (!seed_group && info.draw_positions.length > current_draw.opponents.length + info.byes.length + info.qualifiers.length) {
                let coords = d3.mouse(container.draws.element);
                return contextPopUp(d, coords);
             }
@@ -6062,23 +6178,23 @@ export const tournamentDisplay = function() {
                   let placements = seed_group.placements.map(p=>p.seed);
                   let remaining_range = seed_group.range.filter(r=>placements.indexOf(r) < 0);
                   if (remaining_range.indexOf(player_index) < 0) return invalidEntry();
-                  seedAssignment(draw, seed_group, position, player_index);
+                  seedAssignment(current_draw, seed_group, position, player_index);
                } else {
                   if (unplaced_teams.map(u=>u.order).indexOf(player_index) < 0) return invalidEntry();
                   let team = unplaced_teams.filter(u=>u.order == player_index)[0];
                   assignPosition(position, team);
-                  draw.unseeded_placements.push({ id: team[0].id, position });
+                  current_draw.unseeded_placements.push({ id: team[0].id, position });
 
                   // TODO: this block of code is duplicated
                   let info = tree_draw.info();
                   if (info.unassigned.length == 1) {
                      let unassigned_position = info.unassigned[0].data.dp;
-                     let placements = draw.unseeded_placements.map(p=>p.id);
-                     let ut = draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
+                     let placements = current_draw.unseeded_placements.map(p=>p.id);
+                     let ut = current_draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
                      let team = ut[0];
                      if (team) {
                         assignPosition(unassigned_position, team);
-                        draw.unseeded_placements.push({ id: team[0].id, position: unassigned_position });
+                        current_draw.unseeded_placements.push({ id: team[0].id, position: unassigned_position });
                         tree_draw.advanceTeamsWithByes();
                         if (e.draw_type == 'Q') checkForQualifiedTeams(e);
                         drawCreated(e);
@@ -6088,7 +6204,11 @@ export const tournamentDisplay = function() {
                }
 
                tree_draw();
-               e.draw = tree_draw.data();
+               if (e.draw.compass) {
+                  e.draw[e.draw.compass] = tree_draw.data();
+               } else {
+                  e.draw = tree_draw.data();
+               }
                removeEntryField();
                saveTournament(tournament);
                outOfDate(e, true);
@@ -6577,10 +6697,11 @@ export const tournamentDisplay = function() {
          }
 
          function drawActiveContextClick(d, coords) {
-            var draw = e.draw;
+            // var draw = e.draw;
+            let current_draw = e.draw.compass ? e.draw[e.draw.compass] : e.draw;
             var position = d.data.dp;
 
-            var info = dfx.drawInfo(draw);
+            var info = dfx.drawInfo(current_draw);
             var linked = tfx.findEventByID(tournament, e.links['E']);
             var linked_info = null;
 
@@ -6640,13 +6761,14 @@ export const tournamentDisplay = function() {
                }
                cMenu({ selector, coords, options, clickAction })
             } else if (!d.height && !d.data.bye && !d.data.qualifier && d.data.team) {
-               let info = dfx.drawInfo(draw);
-               assignedPlayerOptions({ selector, position, node: d, coords, info, draw, seed: d.data.team[0].seed });
+               let info = dfx.drawInfo(current_draw);
+               assignedPlayerOptions({ selector, position, node: d, coords, info, draw: current_draw, seed: d.data.team[0].seed });
             }
          }
 
          function drawNotActiveContextClick(d, coords) {
-            let draw = e.draw;
+            // let draw = e.draw;
+            let current_draw = e.draw.compass ? e.draw[e.draw.compass] : e.draw;
             let position = d.data.dp;
 
             // must be a unique selector in case there are other SVGs
@@ -6654,32 +6776,32 @@ export const tournamentDisplay = function() {
 
             if (!d.height && d.data && d.data.dp && !d.data.team) {
                // position is vacant, decide appropriate action
-               let seed_group = dfx.nextSeedGroup({ draw });
+               let seed_group = dfx.nextSeedGroup({ draw: current_draw });
                if (seed_group) {
-                  assignSeededPosition({ selector, position, seed_group, coords });
+                  assignSeededPosition({ selector, position, draw: current_draw, seed_group, coords });
                } else {
                   if (o.byes_with_unseeded) {
-                     assignUnseededPosition({ selector, position, coords });
+                     assignUnseededPosition({ selector, position, draw: current_draw, coords });
                   } else {
                      // section assigns byes then qualifiers before unseeded positions
-                     let info = dfx.drawInfo(draw);
-                     let byesAndQs = info.draw_positions.length > draw.opponents.length + info.byes.length + info.qualifiers.length;
+                     let info = dfx.drawInfo(current_draw);
+                     let byesAndQs = info.draw_positions.length > current_draw.opponents.length + info.byes.length + info.qualifiers.length;
                      if (byesAndQs) {
-                        let player_count = (draw.opponents ? draw.opponents.length : 0) + (draw.qualifiers || 0);
+                        let player_count = (current_draw.opponents ? current_draw.opponents.length : 0) + (current_draw.qualifiers || 0);
                         let bye = info.draw_positions.length > player_count + info.byes.length;
                         assignByeOrQualifier({ selector, position, bye, coords });
                      } else {
-                        assignUnseededPosition({ selector, position, coords });
+                        assignUnseededPosition({ selector, position, draw: current_draw, coords });
                      }
                   }
                }
             } else if (d.height == 0 && d.data.qualifier && !displayed_draw_event.active) {
-               assignedQBOptions({ selector, position, node: d, coords, draw, qualifier: true });
+               assignedQBOptions({ selector, position, node: d, coords, draw: current_draw, qualifier: true });
             } else if (d.height == 0 && d.data.bye && !displayed_draw_event.active) {
-               assignedQBOptions({ selector, position, node: d, coords, draw, bye: true });
+               assignedQBOptions({ selector, position, node: d, coords, draw: current_draw, bye: true });
             } else if (!d.data.bye && !d.data.qualifier && d.data.team) {
-               let info = dfx.drawInfo(draw);
-               assignedPlayerOptions({ selector, position, node: d, coords, info, draw, seed: d.data.team[0].seed });
+               let info = dfx.drawInfo(current_draw);
+               assignedPlayerOptions({ selector, position, node: d, coords, info, draw: current_draw, seed: d.data.team[0].seed });
             } else {
                console.log('what to do?');
             }
@@ -6709,14 +6831,19 @@ export const tournamentDisplay = function() {
                if (info.unassigned.length || finished_options.length) cMenu({ selector, coords, options, clickAction })
             }
 
-            function assignSeededPosition({ selector, position, seed_group, coords }) {
+            function assignSeededPosition({ selector, position, draw, seed_group, coords }) {
                if (seed_group.positions.indexOf(position) >= 0) {
                   let { remaining: range, teams } = getSeedTeams(seed_group);
                   let clickAction = (d, i) => {
                      seedAssignment(draw, seed_group, position, range[i]);
 
                      tree_draw();
-                     e.draw = tree_draw.data();
+                     if (e.draw.compass) {
+                        e.draw[e.draw.compass] = tree_draw.data();
+                     } else {
+                        e.draw = tree_draw.data();
+                     }
+                     // e.draw = tree_draw.data();
                      saveTournament(tournament);
 
                      outOfDate(e, true);
@@ -6725,7 +6852,7 @@ export const tournamentDisplay = function() {
                }
             }
 
-            function assignUnseededPosition({ selector, position, coords }) {
+            function assignUnseededPosition({ selector, position, draw, coords }) {
                let info = dfx.drawInfo(draw);
                let player_count = (draw.opponents ? draw.opponents.length : 0) + (draw.qualifiers || 0);
                let byes = info.draw_positions.length - (player_count + info.byes.length);
@@ -6788,7 +6915,11 @@ export const tournamentDisplay = function() {
                      drawCreated(e);
                   }
                   tree_draw();
-                  e.draw = tree_draw.data();
+                  if (e.draw.compass) {
+                     e.draw[e.draw.compass] = tree_draw.data();
+                  } else {
+                     e.draw = tree_draw.data();
+                  }
                   saveTournament(tournament);
                   outOfDate(e, true);
                }
@@ -6805,7 +6936,12 @@ export const tournamentDisplay = function() {
                      drawCreated(e);
                   }
                   tree_draw();
-                  e.draw = tree_draw.data();
+                  // e.draw = tree_draw.data();
+                  if (e.draw.compass) {
+                     e.draw[e.draw.compass] = tree_draw.data();
+                  } else {
+                     e.draw = tree_draw.data();
+                  }
                   saveTournament(tournament);
                   outOfDate(e, true);
                }
@@ -7080,6 +7216,7 @@ export const tournamentDisplay = function() {
 
       function drawsTab() {
          let existing_draws = false;
+         let directions = ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'];
          let event_draws = tournament.events && tournament.events.length && tournament.events.map(e => e.draw).length;
          if ((group_draws && group_draws.length) || event_draws) existing_draws = true;
          tabVisible(container, 'DT', existing_draws);
@@ -7089,7 +7226,6 @@ export const tournamentDisplay = function() {
 
          let selection = 0;
          let draw_options;
-         let onChange = () => undefined;
 
          if (event_draws) {
             draw_options = tournament.events.map((e, i) => { 
@@ -7097,11 +7233,8 @@ export const tournamentDisplay = function() {
                let edt = tfx.genEventName(e, tfx.isPreRound({ env: fx.fx.env(), e })).type || '';
                return { key: `${e.category ? e.category + ' ' : ''}${e.name} ${edt}`, value: i }
             });
-            onChange = genEventDraw;
          } else if (group_draws.length) {
-            console.log('boo boo');
             draw_options = group_draws;
-            onChange = genGroupDraw;
             enableDrawActions();
          }
 
@@ -7110,7 +7243,7 @@ export const tournamentDisplay = function() {
             id: container.select_draw.id, 
             label: lang.tr('ddlb.draws'), 
          });
-         container.select_draw.ddlb = new dd.DropDown({ element: container.select_draw.element, onChange: onChange, id: container.select_draw.id });
+         container.select_draw.ddlb = new dd.DropDown({ element: container.select_draw.element, onChange: eventChange, id: container.select_draw.id });
 
          if (event_draws) {
             container.select_draw.ddlb.setValue(selection, 'white');
@@ -7118,7 +7251,38 @@ export const tournamentDisplay = function() {
             container.select_draw.ddlb.setValue(selected_event || group_draws[0].value, 'white');
          }
 
-         onChange(draw_options[selection].value);
+         dd.attachDropDown({ 
+            id: container.compass_direction.id, 
+            label: lang.tr('ddlb.direction'), 
+         });
+         container.compass_direction.ddlb = new dd.DropDown({ element: container.compass_direction.element, onChange: compassChange, id: container.compass_direction.id });
+         container.compass_direction.element.style.display = 'none';
+
+         if (event_draws) {
+            eventChange(draw_options[selection].value);
+         } else {
+            eventChange(group_draws[selection].value);
+         }
+
+         function compassChange(direction, generate=true) {
+            let compass_options = directions
+               .filter(d => displayed_draw_event.draw[d])
+               .map(d => ({ key: lang.tr(`draws.${d}`), value: d}));
+            container.compass_direction.ddlb.setOptions(compass_options);
+            container.compass_direction.ddlb.setValue(direction, 'white');
+            displayed_draw_event.draw.compass = direction;
+            if (generate) genEventDraw(container.select_draw.ddlb.getValue());
+         }
+
+         function eventChange(value) {
+            if (event_draws) {
+               genEventDraw(value);
+               container.compass_direction.element.style.display = (displayed_draw_event.draw && displayed_draw_event.draw.compass) ? 'flex' : 'none';
+               if (displayed_draw_event && displayed_draw_event.draw && displayed_draw_event.draw.compass) compassChange(displayed_draw_event.draw.compass, false);
+            } else if (group_draws.length) {
+               genGroupDraw(value);
+            }
+         }
       }
 
       function enableRankEntry(visible) {
@@ -7286,7 +7450,7 @@ export const tournamentDisplay = function() {
    }
 
    function saveMatchesAndPoints({ tournament, matches, points, gender, finishFx }) {
-      db.deleteTournamentPoints(tournament.tuid, gender).then(saveAll, (err) => console.log(err));
+      // db.deleteTournamentPoints(tournament.tuid, gender).then(saveAll, (err) => console.log(err));
 
       function saveAll() {
          let finish = (result) => { if (typeof finishFx == 'function') finishFx(result); }

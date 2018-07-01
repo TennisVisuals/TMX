@@ -30,6 +30,8 @@ export const tournamentFx = function() {
          'R': lang.tr('draws.roundrobin'),
          'C': lang.tr('draws.consolation'),
          'Q': lang.tr('draws.qualification'),
+         'S': lang.tr('draws.compass'),
+         'F': lang.tr('draws.feedin'),
          'P': lang.tr('pyo'),
       }
       let type = pre ? lang.tr('draws.preround'): types[e.draw_type] || lang.tr('draws.maindraw');
@@ -141,18 +143,29 @@ export const tournamentFx = function() {
       fx.logEventChange(e, { fx: 'qualifier changed', d: { team: outcome.teams[outcome.winner].map(t=>t.id) } });
    }
 
-   fx.safeScoreTreeDraw = (tournament, e, existing_scores, outcome) => {
-      try { return fx.scoreTreeDraw(tournament, e, existing_scores, outcome); }
+   fx.safeScoreTreeDraw = ({ tournament, e, muid, existing_scores, outcome }) => {
+      try { return fx.scoreTreeDraw({ tournament, e, muid, existing_scores, outcome }); }
       catch (err) { tfx.logEventError(e, err, 'tournamentFx.scoreTreeDraw'); }
    }
 
-   fx.scoreTreeDraw = (tournament, e, existing_scores, outcome) => {
+   fx.scoreTreeDraw = ({ tournament, e, muid, existing_scores, outcome }) => {
       var result = {};
       if (!outcome) return result;
 
+      let current_draw = e.draw;
+      if (e.draw && e.draw.compass) {
+         // current draw should equal the draw within which the muid is found
+         let current_direction = Object.keys(e.draw).reduce((p, c) => p || (typeof e.draw[c] == 'object' && e.draw[c].matches && e.draw[c].matches[muid] && c), undefined);
+         if (current_direction) {
+            current_draw = e.draw[current_direction];
+         } else {
+            return { devmessage: 'DEVEL: compass direction not found' };
+         }
+      }
+
       let qlink = e.draw_type == 'Q' && fx.findEventByID(tournament, e.links['E']);
       let qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
-      let node = !existing_scores ? null : dfx.findMatchNodeByTeamPositions(e.draw, outcome.positions);
+      let node = !existing_scores ? null : dfx.findMatchNodeByTeamPositions(current_draw, outcome.positions);
       let previous_winner = node && node.match && node.match.winner ? node.match.winner.map(m=>m.id) : undefined;
       let current_winner = outcome.winner != undefined ? outcome.teams[outcome.winner].map(m=>m.id) : undefined;
       let active_in_linked = qlink && previous_winner && playerActiveInLinked(qlinkinfo, previous_winner);
@@ -171,7 +184,7 @@ export const tournamentFx = function() {
 
       if (!existing_scores) {
          // no existing scores so advance position
-         dfx.advancePosition({ node: e.draw, position: outcome.position });
+         dfx.advancePosition({ node: current_draw, position: outcome.position });
       } else if (!outcome.score) {
          var possible_to_remove = (!node.ancestor || !node.ancestor.team);
          if (!possible_to_remove) return { error: 'phrases.cannotchangewinner' };
@@ -190,7 +203,7 @@ export const tournamentFx = function() {
          if (result && !result.advanced) return { error: 'phrases.cannotchangewinner' };
       }
 
-      let info = dfx.drawInfo(e.draw);
+      let info = dfx.drawInfo(current_draw);
       let finalist_dp = info.final_round.map(m=>m.data.dp);
       let qualifier_index = finalist_dp.indexOf(outcome.position);
       let qualified = e.draw_type == 'Q' && qualifier_index >= 0;
@@ -202,7 +215,7 @@ export const tournamentFx = function() {
 
       // modifyPositionScore removes winner/loser if match incomplete
       dfx.modifyPositionScore({ 
-         node: e.draw, 
+         node: current_draw, 
          positions: outcome.positions,
          score: outcome.score, 
          score_format: outcome.score_format,
@@ -396,7 +409,7 @@ export const tournamentFx = function() {
       let entry_data = {};
 
       // first capture any existing entry data
-      if (['E', 'Q', 'C'].indexOf(e.draw_type) >= 0 && e.draw && e.draw.opponents) {
+      if (['E', 'Q'].indexOf(e.draw_type) >= 0 && e.draw && e.draw.opponents) {
          e.draw.opponents.forEach(opponent=>opponent.forEach(plyr=>entry_data[plyr.id] = plyr.entry));
       }
 
@@ -530,9 +543,12 @@ export const tournamentFx = function() {
 
       if (qualifying_consolation) approved_players = approved_players.filter(p=>qualifier_ids.indexOf(p.id) < 0);
 
+      let alternate_ids = [];
+      /*
       let linkedE = fx.findEventByID(tournament, e.links['E']);
       let alternate_ids = (e.draw_type == 'C' && linkedE && linkedE.approved) ?
          approved_players.map(ap => ap.id).filter(i => linkedE.approved.indexOf(i) < 0) : [];
+      */
 
       let seeding = !fx.isPreRound({ env, e }) && fx.rankedTeams(approved_players);
 
@@ -615,6 +631,12 @@ export const tournamentFx = function() {
             // TODO: unless structure is feed-in, draw_size should be half of the main draw to which it is linked
             let draw_size = Math.max(0, e.approved && e.approved.length ? dfx.acceptedDrawSizes(e.approved.length) : 0);
             e.draw_size = draw_size;
+         },
+         S() {
+            e.draw_size = !e.east || !e.east.draw ? 0 : dfx.drawInfo(e.east.draw).draw_positions.length;
+         },
+         F() {
+            e.draw_size = !e.draw ? 0 : dfx.drawInfo(e.draw).draw_positions.length;
          }
       }
 
@@ -670,6 +692,15 @@ export const tournamentFx = function() {
             let qual_hash = !e.qualified ? [] : e.qualified.map(teamHash);
             let linked_approved = !linked.approved ? [] : linked.approved.filter(a=>qual_hash.indexOf(a)<0);
             return filterPlayers(linked_approved);
+         }
+      } else if (e.draw_type == 'C' && (e.links['R'] || e.links['Q'])) {
+         // if consolation event follows qualifying... then can't have eligible players who are in main draw event
+         let linked = fx.findEventByID(tournament, e.links['R'] || e.links['Q']);
+         let main_id = linked.links['E'];
+         let main = main_id && fx.findEventByID(tournament, main_id);
+         if (main) {
+            let main_approved = !main.approved ? [] : main.approved;
+            return filterPlayers(main_approved);
          }
       }
 
