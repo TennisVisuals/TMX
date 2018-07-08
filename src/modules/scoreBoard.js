@@ -456,7 +456,7 @@ export const scoreBoard = function() {
       }
 
       function nextSet(p1, p2, tiebreak) {
-         if (tiebreak) {
+         if (tiebreak && !lock) {
             sobj.p1tiebreak.element.style.display='inline';
             sobj.p2tiebreak.element.style.display='inline';
             sobj[p1 > p2 ? 'p1tiebreak' : 'p2tiebreak'].element.disabled = true;
@@ -632,7 +632,7 @@ export const scoreBoard = function() {
 
          if (game_edit) resetTiebreak();
 
-         if (supertiebreak) {
+         if (supertiebreak && !lock) {
             sobj.p1tiebreak.element.style.display='inline';
             sobj.p2tiebreak.element.style.display='inline';
             sobj.p1tiebreak.element.disabled = false;
