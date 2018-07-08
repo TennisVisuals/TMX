@@ -59,6 +59,7 @@ export const tournamentDisplay = function() {
    }
 
    let dfx = drawFx();
+   db.addDev({dfx});
    fx.settingsLoaded = (env) => {
       dfx.options(env.drawFx);
       scoreBoard.options(env.scoreboard.options);
@@ -4009,6 +4010,8 @@ export const tournamentDisplay = function() {
             let pending_upcoming = pending_by_format.concat(...upcoming_by_format);
 
             let euid = container.event_filter.ddlb.getValue();
+            container.schedulelimit.element.style.display = euid ? 'flex' : 'none';
+            
             let euid_filtered = !euid ? pending_upcoming : pending_upcoming.filter(m=>m.event.euid == euid);
             let round_name = container.round_filter.ddlb.getValue();
 
@@ -4121,10 +4124,11 @@ export const tournamentDisplay = function() {
                   if (!muid) return;
                   opponent_search.value = '';
                   let match_to_schedule = muid_key[muid];
-                  if (match_to_schedule.score && match_to_schedule.score.indexOf('INT') >= 0) {
+                  let interrupted = (match_to_schedule.score && match_to_schedule.score.indexOf('INT') >= 0);
+                  if (interrupted) {
                      console.log('INTERRUPTED');
                   }
-                  scheduleMatch(muid, true);
+                  scheduleMatch(muid, interrupted);
                }
                opponent_search.addEventListener("awesomplete-selectcomplete", function(e) { selection_flag = true; matchSelected(this.value); }, false);
                opponent_search.addEventListener('keydown', catchTab , false);
@@ -4150,6 +4154,9 @@ export const tournamentDisplay = function() {
                let court = target.getAttribute('court');
                let oop_round = parseInt(target.getAttribute('oop_round'));
                let source_match = muid_key[source_muid];
+
+               if (!source_match.schedule) source_match.schedule = {};
+               if (!source_match.source.schedule) source_match.source.schedule = {};
 
                // SETTING to prevent moving completed matches???
                // if (source_match.winner != undefined) return;
@@ -5154,6 +5161,13 @@ export const tournamentDisplay = function() {
          tabVisible(container, 'MT');
          showSchedule();
 
+         if (e.draw && e.draw.compass) {
+            let west_opponent_count = dfx.drawInfo(e.draw).all_matches.filter(m=>m.height == 1).length;
+            let west_draw_size = dfx.acceptedDrawSizes(west_opponent_count);
+            console.log('west opponents:', west_opponent_count, 'west draw size:', west_draw_size);
+            e.draw.west = dfx.buildDraw({ teams: west_draw_size });
+         }
+
          // add round_name to matches
          mfx.eventMatches(e, tournament);
          saveTournament(tournament);
@@ -6084,7 +6098,6 @@ export const tournamentDisplay = function() {
          }
 
          function placeTreeDrawPlayer(d) {
-            // let draw = e.draw;
             let current_draw = e.draw.compass ? e.draw[e.draw.compass] : e.draw;
             let position = d.data.dp;
             let info = tree_draw.info();
@@ -6092,8 +6105,10 @@ export const tournamentDisplay = function() {
             let seed_group = dfx.nextSeedGroup({ draw: current_draw });
             if (seed_group && seed_group.positions.indexOf(position) < 0) return;
 
-            let placements = current_draw.unseeded_placements.map(p=>p.id);
-            var unplaced_teams = current_draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0);
+            if (!current_draw.unseeded_placements || !current_draw.unseeded_teams) return;
+
+            let placements = current_draw.unseeded_placements ? current_draw.unseeded_placements.map(p=>p.id) : [];
+            var unplaced_teams = current_draw.unseeded_teams ? current_draw.unseeded_teams.filter(team => placements.indexOf(team[0].id) < 0) : [];
 
             if (!seed_group && info.draw_positions.length > current_draw.opponents.length + info.byes.length + info.qualifiers.length) {
                let coords = d3.mouse(container.draws.element);
@@ -6599,7 +6614,8 @@ export const tournamentDisplay = function() {
                            if (evt.which == 13 && valid) {
                               let new_position = value ? +value[0] : undefined;
                               if (new_position) {
-                                 let advanced_by_bye = info.match_nodes.filter(m=>!dfx.teamMatch(m));
+                                 // let advanced_by_bye = info.match_nodes.filter(m=>!dfx.teamMatch(m));
+                                 let advanced_by_bye = info.bye_nodes;
                                  advanced_by_bye.forEach(p => {
                                     if (active_positions.indexOf(p.data.dp) < 0) {
                                        p.data.team = undefined;
@@ -6767,7 +6783,6 @@ export const tournamentDisplay = function() {
          }
 
          function drawNotActiveContextClick(d, coords) {
-            // let draw = e.draw;
             let current_draw = e.draw.compass ? e.draw[e.draw.compass] : e.draw;
             let position = d.data.dp;
 
@@ -6861,6 +6876,8 @@ export const tournamentDisplay = function() {
 
                let linked_q = tfx.findEventByID(tournament, displayed_draw_event.links['Q']) || tfx.findEventByID(tournament, displayed_draw_event.links['R']);
                let qualifiers = linked_q ? linked_q.qualifiers - (linked_q.qualified.length + info.qualifiers.length) : 0;
+
+               if (!draw.unseeded_placements) return;
 
                let placements = draw.unseeded_placements.map(p=>p.id);
                var unplaced = draw.unseeded_teams
@@ -7450,7 +7467,7 @@ export const tournamentDisplay = function() {
    }
 
    function saveMatchesAndPoints({ tournament, matches, points, gender, finishFx }) {
-      // db.deleteTournamentPoints(tournament.tuid, gender).then(saveAll, (err) => console.log(err));
+      db.deleteTournamentPoints(tournament.tuid, gender).then(saveAll, (err) => console.log(err));
 
       function saveAll() {
          let finish = (result) => { if (typeof finishFx == 'function') finishFx(result); }
