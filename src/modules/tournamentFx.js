@@ -53,7 +53,8 @@ export const tournamentFx = function() {
    }
 
    fx.replaceTournamentPlayer = ({ tournament, existing_player, new_player_data, replace_all }) => {
-      tournament.events.forEach(evnt => { replaceEventPlayer(evnt, existing_player, new_player_data); });
+      if (!tournament || !tournament.players) return;
+      if (tournament.events && tournament.events.length) tournament.events.forEach(evnt => { replaceEventPlayer(evnt, existing_player, new_player_data); });
       tournament.players.forEach(checkReplacePlayer); // this must occur after all events are updated...
       function checkReplacePlayer(player) {
          if (player.puid == existing_player.puid) {
@@ -574,13 +575,14 @@ export const tournamentFx = function() {
 
       if (e.gem_seeding) {
          let linkedQ = fx.findEventByID(tournament, e.links['Q']) || fx.findEventByID(tournament, e.links['R']);
-         if (!linkedQ || !linkedQ.qualified || !linkedQ.draw) return;
+         if (!linkedQ || !linkedQ.qualified || !linkedQ.draw) return [];
          let qualifier_ids = linkedQ.qualified.map(q=>q[0].id);
          let teams = linkedQ.draw.opponents.filter(t=>e.draw_type == 'C' ? qualifier_ids.indexOf(t[0].id) < 0 : qualifier_ids.indexOf(t[0].id) >= 0);
          let ratios = Object.assign({}, ...teams.map(t=>({ [t[0].puid]: t[0].results && t[0].results.ratio_hash })) );
          approved_players.forEach(o=>o.gem_ratio = ratios[o.puid]);
+
          approved_players
-            .sort((a, b) => (b.gem_ratio || 0) > (a.gem_ratio || 0))
+            .sort((a, b) => (b.gem_ratio || 0) > (a.gem_ratio || 0) ? 1 : (b.gem_ratio || 0) < (a.gem_ratio || 0) ? -1 : 0 )
             .forEach((p, i) => { p.seed = (i < seed_limit) ? i + 1 : undefined; });
       }
 
