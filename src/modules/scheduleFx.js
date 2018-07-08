@@ -14,10 +14,11 @@ export const scheduleFx = function() {
 
    fx.fx = {};
 
-   fx.generateSchedule = (tournament) => {
+   fx.generateSchedule = (tournament, date_filter) => {
       if (!tournament.schedule) tournament.schedule = {};
 
       var date_range = util.dateRange(tournament.start, tournament.end);
+      console.log('date range:', date_range);
       var date_options = date_range.map(d => ({ key: calendarFx.localizeDate(d), value: util.formatDate(d) }));
 
       var scheduled = mfx.scheduledMatches(tournament).scheduled;
@@ -271,11 +272,7 @@ export const scheduleFx = function() {
 
       let score = match.score || '';
       let reverse_scores = fx.fx.env && fx.fx.env().schedule && !fx.fx.env().schedule.scores_in_draw_order;
-      if (score && winner_index && reverse_scores) {
-         console.log(score);
-         score = dfx.reverseScore(score);
-         console.log(score);
-      }
+      if (score && winner_index && reverse_scores) score = dfx.reverseScore(score);
 
       let match_status = match.status ? `<div class='match_status'>${match.status}</div>` : '&nbsp;';
       let category = match.event ? match.event.category : '';
