@@ -1769,7 +1769,7 @@ export function drawFx(opts) {
          // get an array of all match_ups:
          let match_ups = [].concat(...bracket.players.map(player => playerMatchups(player)).map(player => player.map(o => o.map(p=>p.puid))));
          let existing_match_ups = bracket.matches.map(match => match.players.map(p=>p.puid));
-         let defunct = existing_match_ups.filter(emu => !match_ups.reduce((p, c) => intersection(emu, c).length == 2 || p, false));
+         let defunct = existing_match_ups.filter(emu => !match_ups.reduce((p, c) => emu && c && intersection(emu, c).length == 2 || p, false));
          bracket.matches = bracket.matches.filter(match => {
             let pair = match.players.map(p=>p.puid);
             let obsolete = defunct.reduce((p, c) => intersection(pair, c).length == 2 || p, false);
@@ -1923,6 +1923,7 @@ export function drawFx(opts) {
       let structural_byes = nodes.filter(f=>f.height == 0 && f.depth != depth);
 
       let match_nodes = nodes.filter(n=>matchNode(n));
+      let bye_nodes = match_nodes.filter(n=>!teamMatch(n));
       let all_matches = nodes.filter(n=>n.children && n.children.length == 2 && (!draw.max_round || n.height <= draw.max_round));
       var upcoming_match_nodes = all_matches.filter(n=>n.children && (qualifierChild(n) || (!matchNode(n) && upcomingChild(n))));
       let doubles = nodes
@@ -1943,7 +1944,7 @@ export function drawFx(opts) {
       let assigned_positions = assignments.length ? Object.assign(...assignments) : {};
 
       let total_matches = all_matches.length - byes.length;
-      let complete = match_nodes.filter(validMatch).map(n=>byeChild(n) || (n.data.match && n.data.match.complete)).reduce((p, c) => c && p, true);
+      let complete = match_nodes.length && match_nodes.filter(validMatch).map(n=>byeChild(n) || (n.data.match && n.data.match.complete)).reduce((p, c) => c && p, true);
 
       function byeChild(n) { return n.children.map(c=>c.data.bye).reduce((p, c) => c || p, false); }
       function qualifierChild(n) { return !byeChild(n) && n.children.map(c=>c.data.qualifier).reduce((p, c) => c || p, false); }
@@ -1954,8 +1955,8 @@ export function drawFx(opts) {
 
       return {
          draw_type: 'tree', complete,
-         draw_positions, assigned_positions, seeds, doubles,
-         total_matches, all_matches, match_nodes, upcoming_match_nodes, nodes, depth,
+         draw_positions, assigned_positions, seeds, doubles, nodes, depth,
+         total_matches, all_matches, match_nodes, upcoming_match_nodes, bye_nodes,
          byes, structural_byes, qualifiers, final_round, final_round_players, unassigned,
       };
    }
@@ -1996,7 +1997,7 @@ export function drawFx(opts) {
       if (!draw) return;
       if (draw.brackets) return rrInfo(draw);
       if (draw.compass) {
-         let info = drawInfo(draw[draw.compass]);
+         let info = treeInfo(draw[draw.compass]);
          if (info) info.compass = true;
          return info;
       }
@@ -3084,6 +3085,7 @@ export function drawFx(opts) {
    fx.findMatchNodeByTeamPositions = findMatchNodeByTeamPositions;
    function findMatchNodeByTeamPositions(draw, positions) {
       let info = drawInfo(draw);
+
       let nodes = info.match_nodes.filter(f=>fx.teamMatch(f)).filter(match_node => {
          let match_positions = match_node.data.children.map(c => c.team ? c.team[0].draw_position : undefined);
          return intersection(positions, match_positions).length == 2;
@@ -3140,12 +3142,16 @@ export function drawFx(opts) {
       if (info.draw_type == 'tree') {
          let round_offset = data.max_round ? info.depth - data.max_round : 0;
          let matches = info.match_nodes
+
+            // TODO: this filter can be moved to info
             // filter out nodes which don't contain matches
             // filter out matches which occur after final round (qualification)
             .filter(n=>teamMatch(n) && (data.max_round ? n.height <= data.max_round : true))
+
             .map(node => {
                let round_name = round_names.length ? round_names[node.depth - round_offset] : undefined;
                if (round_name) node.data.round_name = round_name;
+               // node.data.round_number = node.height;
 
                let calculated_round_name = calculated_round_names.length ? calculated_round_names[node.depth - round_offset] : undefined;
                if (calculated_round_name) node.data.calculated_round_name = calculated_round_name;
@@ -3253,12 +3259,15 @@ export function drawFx(opts) {
       let score_format;
       let disqualified = [];
 
+      let output = {};
+
       if (bracket) {
          matches = bracket.matches;
          players = bracket.players;
       }
       if (!matches) return;
 
+      // build plyrz array;
       players.forEach(player => addPlayer(player));
 
       matches.forEach(match => {
@@ -3300,7 +3309,7 @@ export function drawFx(opts) {
          let pointsWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countPoints(scores, outcomes[i])[0];
          let pointsLost = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countPoints(scores, outcomes[i])[1];
 
-         player.results = {
+         let results = {
             matches_won: occurrences(0, outcomes),
             matches_lost: occurrences(1, outcomes),
             sets_won: !scores[p] ? [] : scores[p].map(setsWon).reduce((a, b) => +a + +b, 0),
@@ -3311,23 +3320,32 @@ export function drawFx(opts) {
             points_lost: !scores[p] ? [] : scores[p].map(pointsLost).reduce((a, b) => +a + +b, 0),
          }
 
-         let points_ratio = Math.round(player.results.points_won / player.results.points_lost * 1000)/1000;
-         if (isNaN(points_ratio)) points_ratio = 0;
-         player.results.points_ratio = points_ratio;
+         let sets_ratio = Math.round(results.sets_won / results.sets_lost * 1000)/1000;
+         if (sets_ratio == Infinity || isNaN(sets_ratio)) sets_ratio = 0;
 
-         let games_ratio = Math.round(player.results.games_won / player.results.games_lost * 1000)/1000;
-         if (isNaN(games_ratio)) games_ratio = 0;
-         player.results.games_ratio = games_ratio;
+         let matches_ratio = Math.round(results.matches_won / results.matches_lost * 1000)/1000;
+         if (matches_ratio == Infinity || isNaN(matches_ratio)) matches_ratio = 0;
 
-         let matches_ratio = Math.round(player.results.matches_won / player.results.matches_lost * 1000)/1000;
-         if (isNaN(matches_ratio)) matches_ratio = 0;
-         player.results.matches_ratio = matches_ratio;
+         let games_ratio = Math.round(results.games_won / results.games_lost * 1000)/1000;
+         if (games_ratio == Infinity || isNaN(games_ratio)) {
+            games_ratio = 0;
+            // if NO games were lost add a 'phantom' set to insure the GEM score
+            // is higher than players who won the same number of sets but lost some games
+            sets_ratio += 1;
+         }
 
-         let sets_ratio = Math.round(player.results.sets_won / player.results.sets_lost * 1000)/1000;
-         if (isNaN(sets_ratio)) sets_ratio = 0;
-         player.results.sets_ratio = sets_ratio;
+         let points_ratio = Math.round(results.points_won / results.points_lost * 1000)/1000;
+         if (points_ratio == Infinity || isNaN(points_ratio)) points_ratio = 0;
 
-         player.result = `${player.results.matches_won}/${player.results.matches_lost}`;
+         results.sets_ratio = sets_ratio;
+         results.matches_ratio = matches_ratio;
+         results.games_ratio = games_ratio;
+         results.points_ratio = points_ratio;
+
+         player.results = results;
+         player.result = `${results.matches_won}/${results.matches_lost}`;
+
+         output[player.puid] = { results };
       });
 
       let order = determineOrder(plyrz);
