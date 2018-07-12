@@ -1085,22 +1085,6 @@ export function treeDraw() {
       }
       */
 
-      if (o.compass.display && o.compass.png) {
-         let compasssize = Math.min(playerHeight *3, round_width);
-         let inset = svg_width - compasssize - translate_x;
-         svg.selectAll(".compass").data([0])
-            .enter().append('image')
-             .attr('xlink:href', d => o.compass.png)
-             .attr('x', inset)
-             .attr("y", 0)
-             .attr('height', compasssize + 'px')
-             .attr('width', compasssize + 'px')
-             .on('click', events.compass.click)
-             .on('mouseover', events.compass.mouseover)
-             .on('mouseout', events.compass.mouseout)
-             .on('contextmenu', events.compass.contextmenu);
-      }
-
       let node = svg.selectAll(".node")
           .data(nodes)
         .enter().append("g")
@@ -1727,6 +1711,8 @@ export function drawFx(opts) {
    fx.acceptedDrawSizes = acceptedDrawSizes;
    function acceptedDrawSizes(num_players, qualifying_draw) {
 
+      if (!num_players || num_players < 2) return 0;
+
       let d = 0;
       while (draw_sizes[d] < num_players) d += 1;
 
@@ -1914,6 +1900,7 @@ export function drawFx(opts) {
    }
 
    function treeInfo(draw) {
+      if (!draw) return {};
       let calc_tree = d3.tree();
       let draw_hierarchy = d3.hierarchy(draw);
       let nodes = calc_tree(draw_hierarchy).descendants();
@@ -1965,13 +1952,13 @@ export function drawFx(opts) {
    function replaceDrawPlayer(draw, existing_player, new_player_data) {
       if (!draw || !existing_player || !new_player_data || typeof new_player_data != 'object') return;
       // Replace attributes in event.draw.opponents
-      draw.opponents.forEach(opponent_team => { opponent_team.forEach(checkReplacePlayer); });
+      if (draw.opponents) draw.opponents.forEach(opponent_team => { opponent_team.forEach(checkReplacePlayer); });
       // Replace attributes in event.draw.seeded_teams
-      Object.keys(draw.seeded_teams).forEach(key => draw.seeded_teams[key].forEach(checkReplacePlayer));
+      if (draw.seeded_teams) Object.keys(draw.seeded_teams).forEach(key => draw.seeded_teams[key].forEach(checkReplacePlayer));
       // Replace attributes in event.draw.unseeded_teams
-      draw.unseeded_teams.forEach(opponent_team => { opponent_team.forEach(checkReplacePlayer); });
+      if (draw.unseeded_teams) draw.unseeded_teams.forEach(opponent_team => { opponent_team.forEach(checkReplacePlayer); });
       // Replace attributes in event.draw.unseeded_placements
-      draw.unseeded_placements.forEach(placement => { if (placement.id == existing_player.id) placement.id = new_player_data.id; });
+      if (draw.unseeded_placements) draw.unseeded_placements.forEach(placement => { if (placement.id == existing_player.id) placement.id = new_player_data.id; });
       // Replace players in all draw matches
       let matches = fx.matches(draw).filter(m=>m.match && m.match.muid); 
       matches.forEach(match => {
@@ -2184,7 +2171,7 @@ export function drawFx(opts) {
    }
 
    fx.buildDraw = buildDraw;
-   function buildDraw({ teams, structural_byes, offset = 0 }) {
+   function buildDraw({ teams, structural_byes, offset = 0, direction }) {
 
       let round;
       if (Array.isArray(teams)) {
@@ -2198,6 +2185,7 @@ export function drawFx(opts) {
 
       round = buildRound(round, structural_byes);
       while (round.length > 1) { round = buildRound(round); }
+      if (direction) round[0].direction = direction;
       return round[0];
    }
 
@@ -2259,6 +2247,8 @@ export function drawFx(opts) {
       return advanceToNode({ node: position_node, position, score, set_scores, score_format });
    }
 
+   fx.teamIsBye = (team) => team.map(p => p.bye).reduce((a, b) => a && b);
+
    fx.advanceToNode = advanceToNode;
    function advanceToNode({ node, position, score, set_scores, complete, score_format }) {
       // cannot advance if no position node
@@ -2279,13 +2269,13 @@ export function drawFx(opts) {
       // if position in node children, get index;
       let cdpi = node.children.map(c => c.dp).indexOf(position);
       let teams = node.children.map(c => c.team).filter(f=>f);
-      let teamIsBye = (team) => team.map(p => p.bye).reduce((a, b) => a && b);
+      // let teamIsBye = (team) => team.map(p => p.bye).reduce((a, b) => a && b);
 
       if (teams.length == 2 && cdpi >= 0) {
-         if (teamIsBye(teams[cdpi])) {
+         if (fx.teamIsBye(teams[cdpi])) {
             return { advanced: false };
          } else {
-            let opponent_is_bye = teamIsBye(teams[1 - cdpi]);
+            let opponent_is_bye = fx.teamIsBye(teams[1 - cdpi]);
             advance(opponent_is_bye);
             return { advanced: true };
          }
@@ -2329,8 +2319,8 @@ export function drawFx(opts) {
       if (!target_node.children) return;
 
       let teams = target_node.children.map(c => c.team).filter(f=>f);
-      let teamIsBye = (team) => team.map(p => p.bye).reduce((a, b) => a && b);
-      let byeTeam = teams.map(t => teamIsBye(t)).reduce((a, b) => a && b);
+      // let teamIsBye = (team) => team.map(p => p.bye).reduce((a, b) => a && b);
+      let byeTeam = teams.map(t => fx.teamIsBye(t)).reduce((a, b) => a && b);
 
       if (teams.length == 2 && !byeTeam) return target_node;
    }
@@ -2847,7 +2837,7 @@ export function drawFx(opts) {
       let unfilled_positions = drawInfo(draw).unassigned.map(u=>u.data.dp);;
       unfilled_positions.forEach(position => {
          let team = randomPop(draw.unseeded_teams);
-         assignPosition({ node: draw, position, team });
+         if (team) assignPosition({ node: draw, position, team });
       });
    }
 
@@ -2958,7 +2948,7 @@ export function drawFx(opts) {
       }
 
       let max_round_offset = 0;
-      let tree = buildDraw({ teams, structural_byes });
+      let tree = buildDraw({ teams, structural_byes, direction });
       if (draw_type == 'Q') {
          if ([12, 24, 48, 96].indexOf(teams) >= 0) {
             // TODO: namespace conflict; round here should really be round_name ??
@@ -3056,6 +3046,13 @@ export function drawFx(opts) {
       return test.reduce((a, b) => a && b) ? teams : false;
    }
 
+   fx.byeNode = byeNode;
+   function byeNode(node) {
+      if (!node.children) return false;
+      let test = node.data.children.map(d=>d.bye).filter(f=>f);
+      if (test.length) return true;
+   }
+
    fx.teamMatch = teamMatch;
    function teamMatch(node) {
       if (!node.children) return false;
@@ -3111,7 +3108,9 @@ export function drawFx(opts) {
                let calculated_round_name = calculated_round_names.length ? calculated_round_names[node.depth - round_offset] : undefined;
                if (calculated_round_name) node.data.calculated_round_name = calculated_round_name;
 
+               if (node.data.match) node.data.match.round = node.height;
                if (node.data.match && round_name) node.data.match.round_name = round_name;
+
                let potentials = node.data.children.filter(c=>!c.team).map(p=>p.children ? p.children.map(l=>l.team) : undefined).filter(f=>f);
                let dependencies = node.data.children.filter(c=>!c.team).map(d=>d.match && d.match.muid);
                let dependent = node.parent && node.parent.data && node.parent.data.match && node.parent.data.match.muid;
@@ -3133,12 +3132,64 @@ export function drawFx(opts) {
       return [];
    }
 
+   function treeMatches({ match_nodes, max_round, round_offset=0, round_names=[], calculated_round_names=[] }) {
+      let matches = match_nodes
+
+         // TODO: this filter can be moved to info
+         // filter out nodes which don't contain matches
+         // filter out matches which occur after final round (qualification)
+         .filter(n=>teamMatch(n) && (max_round ? n.height <= max_round : true))
+
+         .map(node => {
+            let round_name = round_names.length ? round_names[node.depth - round_offset] : undefined;
+            if (round_name) node.data.round_name = round_name;
+
+            let calculated_round_name = calculated_round_names.length ? calculated_round_names[node.depth - round_offset] : undefined;
+            if (calculated_round_name) node.data.calculated_round_name = calculated_round_name;
+
+            if (node.data.match && round_name) node.data.match.round_name = round_name;
+            let dependencies = node.data.children.filter(c=>!c.team).map(d=>d.match.muid);
+            let dependent = node.parent && node.parent.data && node.parent.data.match && node.parent.data.match.muid;
+            return {
+               dependent,
+               round_name,
+               dependencies,
+               source: node,
+               round: node.height,
+               calculated_round_name,
+               match: node.data.match,
+               teams: node.data.children.map(c => c.team).filter(f=>f),
+            }
+         });
+      return matches;
+   }
+
+   function compassMatches(data) {
+      let pre = { 'east': 'E', 'west': 'W', 'north': 'N', 'south': 'S', 'northeast': 'NE', 'northwest': 'NW', 'southeast': 'SE', 'southwest': 'SW' };
+      let names = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128', 'R256'];
+
+      let matches = [].concat(...Object.keys(pre).filter(key=>data[key]).map(key => {
+         let info = drawInfo(data[key]);
+         let round_names = names.map(n=>`${pre[key]}-${n}`);
+         return treeMatches({ match_nodes: info.match_nodes, round_names });
+      }));
+
+      return matches;
+   }
+
    fx.matches = matches;
    function matches(data, round_names=[], calculated_round_names=[]) {
       if (!data) return [];
+      if (data.compass) return compassMatches(data);
+
       let info = drawInfo(data);
       if (!info) return [];
 
+      if (info.draw_type == 'tree') {
+         let round_offset = data.max_round ? info.depth - data.max_round : 0;
+         return treeMatches({ match_nodes: info.match_nodes, max_round: data.max_round, round_offset, round_names, calculated_round_names });
+      }
+      /*
       if (info.draw_type == 'tree') {
          let round_offset = data.max_round ? info.depth - data.max_round : 0;
          let matches = info.match_nodes
@@ -3151,7 +3202,6 @@ export function drawFx(opts) {
             .map(node => {
                let round_name = round_names.length ? round_names[node.depth - round_offset] : undefined;
                if (round_name) node.data.round_name = round_name;
-               // node.data.round_number = node.height;
 
                let calculated_round_name = calculated_round_names.length ? calculated_round_names[node.depth - round_offset] : undefined;
                if (calculated_round_name) node.data.calculated_round_name = calculated_round_name;
@@ -3172,6 +3222,7 @@ export function drawFx(opts) {
             });
          return matches;
       }
+      */
 
       if (info.draw_type == 'roundrobin') {
          data.brackets.forEach((b, i) => bracketMatches(data, i));

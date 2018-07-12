@@ -49,13 +49,13 @@ export const matchFx = function() {
       }
 
       let complete = event_matches
-         .filter(f => f.match.winner && f.match.loser)
+         .filter(f => f.match && f.match.winner && f.match.loser)
          .map(m => matchStorageObject(tournament, evt, m, source))
          .filter(f=>f);
 
       complete.forEach(match => match.outcome = matchOutcome(match));
 
-      let incomplete = event_matches.filter(f => !f.match.winner && !f.match.loser)
+      let incomplete = event_matches.filter(f => f.match && (!f.match.winner && !f.match.loser))
          .map(m=>matchStorageObject(tournament, evt, m, source));
 
       let upcoming = upcomingEventMatches(evt, tournament).map(m=>matchStorageObject(tournament, evt, m, source));
@@ -102,6 +102,7 @@ export const matchFx = function() {
          // potential opponents for upcoming matches
          potentials: match.potentials,
 
+         round: match.round || match.match.round,
          round_name: match.round_name || match.match.round_name,
          calculated_round_name: match.calculated_round_name,
 
@@ -184,7 +185,7 @@ export const matchFx = function() {
 
    fx.eventMatches = eventMatches;
    function eventMatches(e, tournament) {
-      if (!e.draw) return [];
+      if (!e.draw) { return []; }
       let round_names = roundNames(tournament, e);
       let matches = dfx.matches(e.draw, round_names.names, round_names.calculated_names);
       return checkScheduledMatches(e, tournament, matches);
@@ -233,7 +234,7 @@ export const matchFx = function() {
             schedule.court = court_names[courtFx.ctuuid(schedule)];
             if (schedule && schedule.oop_round && schedule.luid) {
                let court_matches = matches
-                  .filter(m => m.match.schedule && courtFx.ctuuid(m.match.schedule) == courtFx.ctuuid(schedule))
+                  .filter(m => m.match && m.match.schedule && courtFx.ctuuid(m.match.schedule) == courtFx.ctuuid(schedule))
                   .filter(m => m.match.schedule.oop_round < schedule.oop_round && m.match.winner == undefined);
                schedule.after = court_matches.length;
             }
@@ -254,6 +255,7 @@ export const matchFx = function() {
    function addMUIDs(e) {
       if (!e.draw) return;
       let current_draw = e.draw.compass ? e.draw[e.draw.compass] : e.draw;
+      if (!current_draw) return;
       if (e.draw.compass && !current_draw.matches) current_draw.matches = {};
 
       if (e.draw.brackets) {

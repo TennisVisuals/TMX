@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.173.301.205.h',
+      version: '0.9.174.307.212.e',
       version_check: undefined,
       org: {
          name: undefined,
@@ -70,7 +70,6 @@ export const config = function() {
       assets: {
          flags: '/media/flags/',
          ioc_codes: './assets/ioc_codes',
-         compass: './icons/compassrose.png'
       },
       auto_update: {
          players: false,
@@ -141,13 +140,16 @@ export const config = function() {
             qualification: true,
             roundrobin: true,
             consolation: true,
-            compass: true,
+            compass: false,
             feedin: false,
             playoff: true,
          },
          gem_seeding: false,
          settings: {
             separation: true
+         },
+         compass_draw: {
+            direction_by_loss: false  // whether move by # round or # loss
          },
          tree_draw: {
             flags: { display: true },
@@ -168,7 +170,7 @@ export const config = function() {
             brackets: {
                min_bracket_size: 3,
                default_bracket_size: 4,
-               max_bracket_size: 5,
+               max_bracket_size: 6,
             },
          },
       },

@@ -1,5 +1,4 @@
 import { db } from './db'
-// import { hts } from './hts';
 import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
@@ -402,7 +401,6 @@ export const tournamentDisplay = function() {
       tree_draw.options({ sizeToFit: false, });
       tree_draw.options({ minWidth: 400, minHeight: 100 });
       tree_draw.options({ flags: { path: fx.fx.env().assets.flags }});
-      tree_draw.options({ compass: { png: fx.fx.env().assets.compass }});
       tree_draw.events({'player1': { 'click': d => playerClick(d, 0) }});
       tree_draw.events({'player2': { 'click': d => playerClick(d, 1) }});
 
@@ -931,6 +929,10 @@ export const tournamentDisplay = function() {
          displayGen.okCancelMessage(`${lang.tr('draws.clear')}?`, clearDraw, () => displayGen.closeModal());
          function clearDraw() {
             let evt = displayed_draw_event;
+            if (evt && evt.draw && evt.draw.compass) {
+               evt.draw.compass = 'east';
+               container.compass_direction.ddlb.setValue(evt.draw.compass, 'white');
+            }
 
             // remove any entry information attached to players
             playerFx.clearEntry(evt && evt.draw && evt.draw.opponents);
@@ -938,6 +940,7 @@ export const tournamentDisplay = function() {
             evt.draw_created = false;
             generateDraw(evt, true);
             displayDraw({ evt });
+            updateCompassDirections();
 
             // if (evt.published) evt.up_to_date = false;
             // displayGen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
@@ -3302,7 +3305,6 @@ export const tournamentDisplay = function() {
          tree_draw.options({ max_round: undefined, seeds: { limit: seed_limit } });
          tree_draw.options({ draw: { feed_in: e.structure == 'feed' }});
          tree_draw.options({ flags: { path: fx.fx.env().assets.flags }});
-         tree_draw.options({ compass: { png: fx.fx.env().assets.compass }});
 
          let qualification = () => {
             let draw_size = dfx.acceptedDrawSizes(num_players, true);
@@ -3429,7 +3431,7 @@ export const tournamentDisplay = function() {
             }
 
             let structural_byes = e.draw_size == 12 ? dfx.structuralByes(e.draw_size, true) : undefined;
-            e.draw.east = dfx.buildDraw({ teams: e.draw_size, structural_byes });
+            e.draw.east = dfx.buildDraw({ teams: e.draw_size, structural_byes, direction: 'east' });
 
             // has to be defined after draw is built
             e.draw.qualifiers = e.qualifiers || 0;
@@ -5162,15 +5164,64 @@ export const tournamentDisplay = function() {
          showSchedule();
 
          if (e.draw && e.draw.compass) {
-            let west_opponent_count = dfx.drawInfo(e.draw).all_matches.filter(m=>m.height == 1).length;
-            let west_draw_size = dfx.acceptedDrawSizes(west_opponent_count);
-            console.log('west opponents:', west_opponent_count, 'west draw size:', west_draw_size);
-            e.draw.west = dfx.buildDraw({ teams: west_draw_size });
+            buildDirectionDraw(e, 'east', 'west', 'north', 'northeast');
+            buildDirectionDraw(e, 'west', 'south', 'southwest')
+            buildDirectionDraw(e, 'south', 'southeast')
+            buildDirectionDraw(e, 'north', 'northwest')
+            updateCompassDirections();
          }
 
          // add round_name to matches
          mfx.eventMatches(e, tournament);
          saveTournament(tournament);
+      }
+
+      function buildDirectionDraw(e, current_direction, direction_1st, direction_2nd, direction_3rd) {
+         if (!current_direction || !e.draw || !e.draw[current_direction]) return {};
+
+         let loss_count = fx.fx.env && fx.fx.env().draws.compass_draw.direction_by_loss;
+
+         let draw_info = dfx.drawInfo(e.draw[current_direction]); 
+         let byes = draw_info.bye_nodes; 
+         let structural_byes = draw_info.structural_byes;
+         let all_matches = draw_info.all_matches; 
+
+         let round_1st = all_matches.filter(m=>m.height == 1 && !dfx.byeNode(m));
+         let round_2nd = all_matches.filter(m=>m.height == 2);
+         let round_3rd = all_matches.filter(m=>m.height == 3);
+         let round_4th = all_matches.filter(m=>m.height == 4);
+
+         let offset_losses = all_matches.filter(m=>m.height == 2).length - round_1st.length;
+         if (offset_losses < 0) offset_losses = 0;
+
+         let loss_1st = all_matches.filter(m=>m.height == 1).length - offset_losses;
+         let loss_2nd = all_matches.filter(m=>m.height == 2).length;
+         let loss_3rd = all_matches.filter(m=>m.height == 3).length;
+
+         let players_1st = loss_count ? loss_1st : round_1st.length;
+         let players_2nd = loss_count ? loss_2nd : round_2nd.length;
+         let players_3rd = loss_count ? loss_3rd : round_3rd.length;
+
+         let direction_1st_size = direction_1st && players_1st > 1 && dfx.acceptedDrawSizes(players_1st);
+         let direction_2nd_size = direction_2nd && players_2nd > 1 && dfx.acceptedDrawSizes(players_2nd);
+         let direction_3rd_size = direction_3rd && players_3rd > 1 && dfx.acceptedDrawSizes(players_3rd);
+
+         if (direction_1st && direction_1st_size) {
+            e.draw[direction_1st] = dfx.buildDraw({ teams: direction_1st_size, direction: direction_1st });
+            dfx.distributeByes({ draw: e.draw[direction_1st], num_players: players_1st });
+            e.draw[direction_1st].unseeded_teams = [];
+            e.draw[direction_1st].opponents = [];
+         }
+         if (direction_2nd && direction_2nd_size) {
+            e.draw[direction_2nd] = dfx.buildDraw({ teams: direction_2nd_size, direction: direction_2nd });
+            e.draw[direction_2nd].unseeded_teams = [];
+            e.draw[direction_2nd].opponents = [];
+         }
+         if (direction_3rd && direction_3rd_size) {
+            e.draw[direction_3rd] = dfx.buildDraw({ teams: direction_3rd_size, direction: direction_3rd });
+            e.draw[direction_3rd].unseeded_teams = [];
+            e.draw[direction_2nd].opponents = [];
+         }
       }
 
       function showSchedule() {
@@ -5493,6 +5544,12 @@ export const tournamentDisplay = function() {
          let visible = created && approved;
          let ouid = fx.fx.env().org && fx.fx.env().org.ouid;
 
+         let current_draw = !displayed_draw_event ? undefined : 
+            displayed_draw_event.draw.compass ? displayed_draw_event.draw[displayed_draw_event.draw.compass] :
+            displayed_draw_event.draw;
+         let direction = current_draw && current_draw.direction;
+         let compass = direction && ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'].indexOf(direction) >= 0;
+
          // if created by no approved players then it must be created from dbmatches
          let active = created && !visible ? true : displayed_draw_event ? displayed_draw_event.active : false;
          let svg = container.draws.element.querySelector('svg');
@@ -5505,6 +5562,7 @@ export const tournamentDisplay = function() {
          container.publish_draw.element.style.display = ouid && state.edit ? 'inline' : 'none';
          container.player_reps.element.style.display = approved && svg && state.edit ? 'inline' : 'none';
          container.recycle.element.style.display = !active && svg && state.edit ? 'inline' : 'none';
+         container.compass.element.style.display = compass ? 'inline' : 'none';
       }
 
       function testLastSeedPosition(e) {
@@ -5548,6 +5606,10 @@ export const tournamentDisplay = function() {
       }
 
       function processResult(tournament, e, result) {
+         if (!result) {
+            console.log('no result!');
+         }
+
          if (result.error) {
             displayGen.popUpMessage(lang.tr(result.error));
             return result;
@@ -7233,7 +7295,6 @@ export const tournamentDisplay = function() {
 
       function drawsTab() {
          let existing_draws = false;
-         let directions = ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'];
          let event_draws = tournament.events && tournament.events.length && tournament.events.map(e => e.draw).length;
          if ((group_draws && group_draws.length) || event_draws) existing_draws = true;
          tabVisible(container, 'DT', existing_draws);
@@ -7282,10 +7343,7 @@ export const tournamentDisplay = function() {
          }
 
          function compassChange(direction, generate=true) {
-            let compass_options = directions
-               .filter(d => displayed_draw_event.draw[d])
-               .map(d => ({ key: lang.tr(`draws.${d}`), value: d}));
-            container.compass_direction.ddlb.setOptions(compass_options);
+            updateCompassDirections();
             container.compass_direction.ddlb.setValue(direction, 'white');
             displayed_draw_event.draw.compass = direction;
             if (generate) genEventDraw(container.select_draw.ddlb.getValue());
@@ -7300,6 +7358,15 @@ export const tournamentDisplay = function() {
                genGroupDraw(value);
             }
          }
+      }
+
+      function updateCompassDirections() {
+         if (!displayed_draw_event || !displayed_draw_event.draw) return;
+         let directions = ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'];
+         let compass_options = directions
+            .filter(d => displayed_draw_event.draw[d])
+            .map(d => ({ key: lang.tr(`draws.${d}`), value: d}));
+         container.compass_direction.ddlb.setOptions(compass_options);
       }
 
       function enableRankEntry(visible) {
@@ -7466,14 +7533,14 @@ export const tournamentDisplay = function() {
       if (tuid) rankCalc.addAcceptedRanking({tuid, category, rankings});
    }
 
-   function saveMatchesAndPoints({ tournament, matches, points, gender, finishFx }) {
+   function saveMatchesAndPoints({ tournament, matches, points={}, gender, finishFx }) {
       db.deleteTournamentPoints(tournament.tuid, gender).then(saveAll, (err) => console.log(err));
 
       function saveAll() {
          let finish = (result) => { if (typeof finishFx == 'function') finishFx(result); }
          let addMatches = (matches) => util.performTask(db.addMatch, matches, false);
-         let singles_points = Object.keys(points.singles).map(player => points.singles[player]);
-         let doubles_points = Object.keys(points.doubles).map(player => points.doubles[player]);
+         let singles_points = points.singles ? Object.keys(points.singles).map(player => points.singles[player]) : [];
+         let doubles_points = points.doubles ? Object.keys(points.doubles).map(player => points.doubles[player]) : [];
          let all_points = [].concat(...singles_points, ...doubles_points);
 
          // total points adds all points for all players
@@ -7522,6 +7589,7 @@ export const tournamentDisplay = function() {
    }
 
    function displayTournamentPoints(container, tournament, points={}, filters) {
+      if (!points.singles && !points.doubles) return;
       let totalPoints = (point_events) => Object.keys(point_events).map(k=>util.numeric(point_events[k].points)).reduce((a, b) => a + b, 0);
       let filterPointsByGender = (obj) => {
          if (!obj) return {};
@@ -7539,7 +7607,7 @@ export const tournamentDisplay = function() {
          doubles: filterPointsByGender(points.doubles),
       }
 
-      let pts = totalPoints(points.singles) || totalPoints(points.doubles);
+      let pts = (points.singles && totalPoints(points.singles)) || (points.doubles && totalPoints(points.doubles));
       pointsTabVisible(container, tournament, pts);
 
       if (pts) {
@@ -7772,19 +7840,17 @@ export const tournamentDisplay = function() {
       let groups = {}
       if (!matches) return groups;
 
-      // TODO: .round needs to be replaced with .round_name
-
       groups.ms = matches.filter(match => match.format == 'singles' && match.gender == 'M' && match.consolation == false);
-      groups.msq = groups.ms.filter(match => match.round && match.round.indexOf('Q') == 0 && match.round.indexOf('QF') != 0);
-      groups.msm = groups.ms.filter(match => match.round && match.round.indexOf('RR') < 0 && (match.round.indexOf('QF') == 0 || match.round.indexOf('Q') < 0));
-      groups.msrr = groups.ms.filter(match => match.round && match.round.indexOf('RR') == 0);
+      groups.msq = groups.ms.filter(match => match.round_name && match.round_name.indexOf('Q') == 0 && match.round_name.indexOf('QF') != 0);
+      groups.msm = groups.ms.filter(match => match.round_name && match.round_name.indexOf('RR') < 0 && (match.round_name.indexOf('QF') == 0 || match.round_name.indexOf('Q') < 0));
+      groups.msrr = groups.ms.filter(match => match.round_name && match.round_name.indexOf('RR') == 0);
 
       groups.md = matches.filter(match => match.format == 'doubles' && match.gender == 'M' && match.consolation == false);
 
       groups.ws = matches.filter(match => match.format == 'singles' && match.gender == 'W' && match.consolation == false);
-      groups.wsq = groups.ws.filter(match => match.round && match.round.indexOf('Q') == 0 && match.round.indexOf('QF') != 0);
-      groups.wsm = groups.ws.filter(match => match.round && match.round.indexOf('RR') < 0 && (match.round.indexOf('QF') == 0 || match.round.indexOf('Q') < 0));
-      groups.wsrr = groups.ws.filter(match => match.round && match.round.indexOf('RR') == 0);
+      groups.wsq = groups.ws.filter(match => match.round_name && match.round_name.indexOf('Q') == 0 && match.round_name.indexOf('QF') != 0);
+      groups.wsm = groups.ws.filter(match => match.round_name && match.round_name.indexOf('RR') < 0 && (match.round_name.indexOf('QF') == 0 || match.round_name.indexOf('Q') < 0));
+      groups.wsrr = groups.ws.filter(match => match.round_name && match.round_name.indexOf('RR') == 0);
 
       groups.wd = matches.filter(match => match.format == 'doubles' && match.gender == 'W' && match.consolation == false);
 
@@ -7799,8 +7865,8 @@ export const tournamentDisplay = function() {
       if (groups.wsrr.length) group_draws.push( {key: `${lang.tr('genders.female')} ${lang.tr('draws.roundrobin')}`, value: 'wsrr'} );
 
       // if there are no main draw matches then RR matches were main draw...
-      if (groups.wsrr.length && !groups.wsm.length) { groups.wsrr.forEach(match => match.round = match.round.replace('Q', '')); }
-      if (groups.msrr.length && !groups.msm.length) { groups.msrr.forEach(match => match.round = match.round.replace('Q', '')); }
+      if (groups.wsrr.length && !groups.wsm.length) { groups.wsrr.forEach(match => match.round_name = match.round_name.replace('Q', '')); }
+      if (groups.msrr.length && !groups.msm.length) { groups.msrr.forEach(match => match.round_name = match.round_name.replace('Q', '')); }
 
       return { groups, group_draws };
    }

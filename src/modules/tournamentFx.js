@@ -49,6 +49,7 @@ export const tournamentFx = function() {
       delete match.teams;
       delete match.complete;
       delete match.round_name;
+      delete match.round;
       delete match.tournament;
    }
 
@@ -73,18 +74,23 @@ export const tournamentFx = function() {
    }
 
    function replaceEventPlayer(evnt, existing_player, new_player_data) {
+      if (evnt.draw.compass) {
+         let directions = ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'];
+         directions.filter(d=>evnt.draw[d]).forEach(d=>dfx.replaceDrawPlayer(evnt.draw[d], existing_player, new_player_data));
+      } else {
          dfx.replaceDrawPlayer(evnt.draw, existing_player, new_player_data);
+      }
 
-         replaceID(evnt.teams);
-         replaceID(evnt.approved);
-         replaceID(evnt.wildcards);
-         replaceID(evnt.luckylosers);
+      replaceID(evnt.teams);
+      replaceID(evnt.approved);
+      replaceID(evnt.wildcards);
+      replaceID(evnt.luckylosers);
 
-         function checkReplace(elem) { if (elem == existing_player.id) elem = new_player_data.id; }
-         function replaceID(arr) {
-            if (!arr) return;
-            arr.forEach(elem => { if (Array.isArray(elem)) { elem.forEach(checkReplace); } else { checkReplace(elem); } });
-         }
+      function checkReplace(elem) { if (elem == existing_player.id) elem = new_player_data.id; }
+      function replaceID(arr) {
+         if (!arr) return;
+         arr.forEach(elem => { if (Array.isArray(elem)) { elem.forEach(checkReplace); } else { checkReplace(elem); } });
+      }
    }
 
    function playerActiveInLinked(qlinkinfo, plyr) {
@@ -146,17 +152,23 @@ export const tournamentFx = function() {
 
    fx.safeScoreTreeDraw = ({ tournament, e, muid, existing_scores, outcome }) => {
       try { return fx.scoreTreeDraw({ tournament, e, muid, existing_scores, outcome }); }
-      catch (err) { tfx.logEventError(e, err, 'tournamentFx.scoreTreeDraw'); }
+      catch (err) { 
+         console.log('error:', err);
+         fx.logEventError(e, err, 'tournamentFx.scoreTreeDraw');
+         return {};
+      }
    }
 
    fx.scoreTreeDraw = ({ tournament, e, muid, existing_scores, outcome }) => {
       var result = {};
       if (!outcome) return result;
 
+      let current_direction;
       let current_draw = e.draw;
-      if (e.draw && e.draw.compass) {
+      let compass = e.draw && e.draw.compass;
+      if (compass) {
          // current draw should equal the draw within which the muid is found
-         let current_direction = Object.keys(e.draw).reduce((p, c) => p || (typeof e.draw[c] == 'object' && e.draw[c].matches && e.draw[c].matches[muid] && c), undefined);
+         current_direction = Object.keys(e.draw).reduce((p, c) => p || (typeof e.draw[c] == 'object' && e.draw[c].matches && e.draw[c].matches[muid] && c), undefined);
          if (current_direction) {
             current_draw = e.draw[current_direction];
          } else {
@@ -166,6 +178,7 @@ export const tournamentFx = function() {
 
       let qlink = e.draw_type == 'Q' && fx.findEventByID(tournament, e.links['E']);
       let qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
+
       let node = !existing_scores ? null : dfx.findMatchNodeByTeamPositions(current_draw, outcome.positions);
       let previous_winner = node && node.match && node.match.winner ? node.match.winner.map(m=>m.id) : undefined;
       let current_winner = outcome.winner != undefined ? outcome.teams[outcome.winner].map(m=>m.id) : undefined;
@@ -232,9 +245,7 @@ export const tournamentFx = function() {
       }
       let match_event = mfx.eventMatches(e, tournament).reduce(findMatch, undefined);
 
-      if (!match_event) {
-         return { exit: true };
-      }
+      if (!match_event) return { exit: true };
 
       let match = match_event.match;
       result.muid = match.muid;
@@ -251,24 +262,48 @@ export const tournamentFx = function() {
 
       match.players = [].concat(...outcome.teams);
       match.teams = outcome.teams;
+      match.round = match_event.round;
 
       match.tournament = {
          name: tournament.name,
          tuid: tournament.tuid,
          org: tournament.org,
          category: tournament.category,
-         // TODO get rid of round...
-         round: match.round_name || match.round,
-         round_name: match.round_name
+         round_name: match.round_name,
       };
+
+      if (compass) directLoser();
 
       e.active = true;
       return result;
+
+      function directLoser() {
+         let directions = {
+            'east': ['west', 'north', 'northeast'],
+            'west': ['south', 'southwest'],
+            'north': ['northwest'],
+            'south': ['southeast'],
+         }
+
+         let target_direction = directions[current_direction] && directions[current_direction][match.round - 1];
+         let target_draw = target_direction && e.draw[target_direction];
+         if (!target_draw) return;
+
+         if (!target_draw.opponents) target_draw.opponents = [];
+         if (!target_draw.unseeded_teams) target_draw.unseeded_teams = [];
+
+         target_draw.opponents.push(match.loser);
+         target_draw.unseeded_teams.push(match.loser);
+
+         dfx.placeUnseededTeams({ draw: target_draw });
+         let unfilled_positions = dfx.drawInfo(target_draw).unassigned.map(u=>u.data.dp);;
+         if (!unfilled_positions.length) dfx.advanceTeamsWithByes({ draw: target_draw });
+      }
    }
 
    fx.safeScoreRoundRobin = (tournament, e, existing_scores, outcome) => {
       try { return fx.scoreRoundRobin(tournament, e, existing_scores, outcome); }
-      catch (err) { tfx.logEventError(e, err, 'tournamentFx.scoreRoundRobin'); }
+      catch (err) { fx.logEventError(e, err, 'tournamentFx.scoreRoundRobin'); }
    }
 
    fx.scoreRoundRobin = (tournament, e, existing_scores, outcome) => {
@@ -335,7 +370,8 @@ export const tournamentFx = function() {
          tuid: tournament.tuid,
          org: tournament.org,
          category: tournament.category,
-         round_name: match.round_name
+         round_name: match.round_name,
+         round: match_event.round
       };
 
       dfx.tallyBracketResults({ bracket, reset: true });

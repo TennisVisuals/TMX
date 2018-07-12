@@ -751,8 +751,8 @@ export const displayGen = function() {
          }
       }
 
-      let rr = (m) => m.round && m.round.indexOf('RR') >= 0 && m.round.indexOf('Q') < 0;
-      let qual = (m) => m.round && m.round.indexOf('Q') >= 0 && m.round.indexOf('QF') < 0;
+      let rr = (m) => m.round_name && m.round_name.indexOf('RR') >= 0 && m.round_name.indexOf('Q') < 0;
+      let qual = (m) => m.round_name && m.round_name.indexOf('Q') >= 0 && m.round_name.indexOf('QF') < 0;
       let singles = matchSort(completed_matches.filter(m => m.format == 'singles')).reverse();
       let doubles = matchSort(completed_matches.filter(m => m.format == 'doubles')).reverse();
       let roundrobin = singles.filter(m => rr(m));
@@ -2231,6 +2231,7 @@ export const displayGen = function() {
          matches: displayFx.uuid(),
          events: displayFx.uuid(),
          select_draw: displayFx.uuid(),
+         compass: displayFx.uuid(),
          compass_direction: displayFx.uuid(),
          events_actions: displayFx.uuid(),
          event_details: displayFx.uuid(),
@@ -2545,6 +2546,9 @@ export const displayGen = function() {
                   <div class='select_draw' id='${ids.compass_direction}'></div>
                </div>
                <div class='options_right'>
+                  <div id='${ids.compass}' class='${gen.infoleft}' label='${lang.tr("draws.compass")}'style='display: none'>
+                     <div class='compass action_icon' style='margin-right: 1em;'></div>
+                  </div>
                   <div id='${ids.recycle}' class='${gen.infoleft}' label='${lang.tr("draws.clear")}'style='display: none'><div class='cleardraw action_icon'></div></div>
                   <div id='${ids.player_reps}' class='${gen.infoleft}' label='${lang.tr("draws.playerreps")}' style='display: none'>
                      <div id='${ids.player_reps_state}' style='margin-left: 1em;' class='reps_incomplete action_icon'></div>

@@ -139,8 +139,9 @@ export const rankCalc = function() {
 
    rank.calcMatchesPoints = ({ matches, points_table, points_date }) => {
       let player_points = { singles: {}, doubles: {} };
-      if (!config.validPointsTable(points_table)) return;
+      if (!points_table || !points_table.rankings || !config.validPointsTable(points_table)) return;
       matches.forEach(match => {
+         if (!match.event || !match.event.rank) return;
          if (points_date) { match.date = points_date.getTime(); }
          let ranking_attributes = points_table.rankings[match.event.rank];
          if (!ranking_attributes) return;

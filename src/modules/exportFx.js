@@ -410,7 +410,9 @@ export const exportFx = function() {
       var category = match.event ? match.event.category : '';
       var time_detail = !match.schedule ? "" : `${match.schedule.time_prefix || ''} ${match.schedule.time || ''}`;
       var score = util.containsNumber(match.score) && match.score.indexOf('LIVE') < 0 && match.score;
-      if (score && match.winner == 1 && exp.fx.env().schedule.scores_in_draw_order) score = dfx.reverseScore(score);
+
+      let reverse_scores = exp.fx.env && exp.fx.env().schedule && !exp.fx.env().schedule.scores_in_draw_order;
+      if (score && match.winner == 1 && reverse_scores) score = dfx.reverseScore(score);
       var unknowns = [];
 
       var first_team = match.team_players && match.team_players[0] ? teamName(match, match.team_players[0]) : unknownBlock(match, 0);

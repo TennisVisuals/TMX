@@ -78,6 +78,7 @@ export const scheduleFx = function() {
          let tournamentOOP = {
             title: lang.tr('phrases.oop_system'),
             notice: tournament.schedule.notice,
+            options: fx.fx.env && fx.fx.env().schedule,
             umpirenotes: tournament.schedule.umpirenotes,
             days_matches,
             published: {
