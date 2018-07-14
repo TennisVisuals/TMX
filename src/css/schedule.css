@@ -236,7 +236,7 @@ html.can-touch .unscheduled_match:hover { background: none; }
 }
 .unscheduled_match .event_round {
    padding-left: 1em;
-   width: 3em;
+   width: 5em;
 }
 
 .potential_separator {

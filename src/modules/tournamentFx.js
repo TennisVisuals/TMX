@@ -292,8 +292,9 @@ export const tournamentFx = function() {
          if (!target_draw.opponents) target_draw.opponents = [];
          if (!target_draw.unseeded_teams) target_draw.unseeded_teams = [];
 
-         target_draw.opponents.push(match.loser);
-         target_draw.unseeded_teams.push(match.loser);
+         let losers = match.loser.map(playerFx.playerCopy);
+         target_draw.opponents.push(losers);
+         target_draw.unseeded_teams.push(losers);
 
          dfx.placeUnseededTeams({ draw: target_draw });
          let unfilled_positions = dfx.drawInfo(target_draw).unassigned.map(u=>u.data.dp);;

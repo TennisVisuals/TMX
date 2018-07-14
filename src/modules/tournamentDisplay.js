@@ -1142,6 +1142,7 @@ export const tournamentDisplay = function() {
          let round_filter = container.round_filter.ddlb.getValue();
 
          let unscheduled_matches = all_matches
+            .filter(m=>m)
             .filter(m=>(!m.schedule || !m.schedule.court) && m.winner == undefined);
 
          // only schedule matches that match the round and event filters
@@ -1881,11 +1882,12 @@ export const tournamentDisplay = function() {
       }
 
       function printDraw() {
+         let current_draw = displayed_draw_event.draw.compass ? displayed_draw_event.draw[displayed_draw_event.draw.compass] : displayed_draw_event.draw;
          var created = drawIsCreated(displayed_draw_event);
 
          if (created) {
-            let qualifying = (displayed_draw_event && util.isMember(['Q', 'R'], displayed_draw_event.draw_type) && displayed_draw_event.draw);
-            let lucky_losers = qualifying ? dfx.drawInfo(displayed_draw_event.draw).complete : undefined;
+            let qualifying = (displayed_draw_event && util.isMember(['Q', 'R'], displayed_draw_event.draw_type) && current_draw);
+            let lucky_losers = qualifying ? dfx.drawInfo(current_draw).complete : undefined;
 
             let tree = Object.keys(tree_draw.data()).length;
             let rr = rr_draw && rr_draw.data().brackets && rr_draw.data().brackets.length;
@@ -3979,7 +3981,7 @@ export const tournamentDisplay = function() {
 
          function filterDayMatches() {
             ({ completed_matches, pending_matches, upcoming_matches } = mfx.tournamentEventMatches({ tournament, source: true }));
-            all_matches = completed_matches.concat(...pending_matches, ...upcoming_matches);
+            all_matches = completed_matches.concat(...pending_matches, ...upcoming_matches).filter(m=>m);
             muid_key = Object.assign({}, ...all_matches.map(m=>({ [m.muid]: m })));
             day_matches = all_matches.filter(scheduledFilter);
             checkConflicts(day_matches);
@@ -4009,7 +4011,7 @@ export const tournamentDisplay = function() {
             let pending_by_format = pending_matches.sort((a, b) => a.format == 'singles' ? 0 : 1);
             let upcoming_by_format = upcoming_matches.sort((a, b) => a.format == 'singles' ? 0 : 1);
 
-            let pending_upcoming = pending_by_format.concat(...upcoming_by_format);
+            let pending_upcoming = pending_by_format.concat(...upcoming_by_format).filter(f=>f);
 
             let euid = container.event_filter.ddlb.getValue();
             container.schedulelimit.element.style.display = euid ? 'flex' : 'none';
@@ -5545,7 +5547,7 @@ export const tournamentDisplay = function() {
          let ouid = fx.fx.env().org && fx.fx.env().org.ouid;
 
          let current_draw = !displayed_draw_event ? undefined : 
-            displayed_draw_event.draw.compass ? displayed_draw_event.draw[displayed_draw_event.draw.compass] :
+            displayed_draw_event.draw && displayed_draw_event.draw.compass ? displayed_draw_event.draw[displayed_draw_event.draw.compass] :
             displayed_draw_event.draw;
          let direction = current_draw && current_draw.direction;
          let compass = direction && ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'].indexOf(direction) >= 0;
@@ -8263,7 +8265,8 @@ export const tournamentDisplay = function() {
 
    function drawIsCreated(evt) {
       if (!evt || !evt.draw) return false;
-      let info = dfx.drawInfo(evt.draw);
+      let current_draw = evt.draw.compass ? evt.draw[evt.draw.compass] : evt.draw;
+      let info = dfx.drawInfo(current_draw);
       let created = (info.unassigned && !info.unassigned.length) || info.positions_filled;
       return created ? new Date().getTime() : undefined;
    }

@@ -367,7 +367,12 @@ export const scheduleFx = function() {
             function roundMatchupMUIDs(rrround) { return [].concat(...rrround.map(m=>m.matchups.map(u=>u.muid))); }
          } else {
             // get an ordered list of muids based on draw positions
-            match_order = dfx.treeDrawMatchOrder(evnt.draw);
+            if (evnt.draw.compass) {
+               let directions = ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'];
+               match_order = [].concat(...directions.filter(d=>evnt.draw[d]).map(d=>dfx.treeDrawMatchOrder(evnt.draw[d])));
+            } else {
+               match_order = dfx.treeDrawMatchOrder(evnt.draw);
+            }
          }
 
          // filter out any matches that have been scheduled

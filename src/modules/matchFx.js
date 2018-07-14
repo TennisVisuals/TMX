@@ -58,7 +58,7 @@ export const matchFx = function() {
       let incomplete = event_matches.filter(f => f.match && (!f.match.winner && !f.match.loser))
          .map(m=>matchStorageObject(tournament, evt, m, source));
 
-      let upcoming = upcomingEventMatches(evt, tournament).map(m=>matchStorageObject(tournament, evt, m, source));
+      let upcoming = upcomingEventMatches(evt, tournament).map(m=>matchStorageObject(tournament, evt, m, source)) || [];
 
       return { complete, incomplete, upcoming }
    }
@@ -202,7 +202,7 @@ export const matchFx = function() {
    function roundNames(tournament, e) {
       var names = [];
       var calculated_names = [];
-      if (['E', 'C'].indexOf(e.draw_type) >= 0) {
+      if (['E', 'C', 'S'].indexOf(e.draw_type) >= 0) {
          names = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128', 'R256'];
       }
       if (['Q'].indexOf(e.draw_type) >= 0) {
@@ -241,7 +241,7 @@ export const matchFx = function() {
          }
       });
 
-      return matches;
+      return matches || [];
    }
 
    fx.getLuckyLosers = (tournament, evnt, all_rounds) => {

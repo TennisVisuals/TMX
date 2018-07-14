@@ -1735,7 +1735,9 @@ export function drawFx(opts) {
 
    fx.treeDrawMatchOrder = treeDrawMatchOrder;
    function treeDrawMatchOrder(draw) {
-      return matches(draw).sort((a, b) => drawPosition(a) - drawPosition(b)).map(m=>m.match.muid);
+      let mz = matches(draw).filter(m=>!m.match);
+      if (mz && mz.length) console.log('NO MUID treeDrawMatchOrder matches:', mz);
+      return matches(draw).filter(m=>m.match).sort((a, b) => drawPosition(a) - drawPosition(b)).map(m=>m.match.muid);
       function drawPosition(match) { return !match.teams || !match.teams.length ? 1000 : match.teams[0][0].draw_position; }
    }
 
@@ -3093,9 +3095,17 @@ export function drawFx(opts) {
    fx.upcomingMatches = upcomingMatches;
    function upcomingMatches(data, round_names=[], calculated_round_names=[]) {
       if (!data) return [];
+      if (data.compass) return upcomingCompassMatches(data);
+
       let info = drawInfo(data);
       if (!info) return [];
 
+      if (info.draw_type == 'tree') {
+         let round_offset = data.max_round ? info.depth - data.max_round : 0;
+         return treeMatches({ match_nodes: info.upcoming_match_nodes, max_round: data.max_round, round_offset, round_names, calculated_round_names, potentials: true });
+      }
+
+      /*
       if (info.draw_type == 'tree') {
          let round_offset = data.max_round ? info.depth - data.max_round : 0;
          let matches = info.upcoming_match_nodes
@@ -3128,18 +3138,15 @@ export function drawFx(opts) {
             });
          return matches;
       }
+      */
 
       return [];
    }
 
-   function treeMatches({ match_nodes, max_round, round_offset=0, round_names=[], calculated_round_names=[] }) {
+   function treeMatches({ match_nodes, max_round, round_offset=0, round_names=[], calculated_round_names=[], potentials }) {
       let matches = match_nodes
-
-         // TODO: this filter can be moved to info
-         // filter out nodes which don't contain matches
-         // filter out matches which occur after final round (qualification)
-         .filter(n=>teamMatch(n) && (max_round ? n.height <= max_round : true))
-
+         .filter(n=>potentials || teamMatch(n))
+         .filter(n=>max_round ? n.height <= max_round : true)
          .map(node => {
             let round_name = round_names.length ? round_names[node.depth - round_offset] : undefined;
             if (round_name) node.data.round_name = round_name;
@@ -3148,11 +3155,13 @@ export function drawFx(opts) {
             if (calculated_round_name) node.data.calculated_round_name = calculated_round_name;
 
             if (node.data.match && round_name) node.data.match.round_name = round_name;
-            let dependencies = node.data.children.filter(c=>!c.team).map(d=>d.match.muid);
+            let potentials = node.data.children.filter(c=>!c.team).map(p=>p.children ? p.children.map(l=>l.team) : undefined).filter(f=>f);
+            let dependencies = node.data.children.filter(c=>!c.team).map(d=>d.match && d.match.muid);
             let dependent = node.parent && node.parent.data && node.parent.data.match && node.parent.data.match.muid;
             return {
                dependent,
                round_name,
+               potentials,
                dependencies,
                source: node,
                round: node.height,
@@ -3161,6 +3170,19 @@ export function drawFx(opts) {
                teams: node.data.children.map(c => c.team).filter(f=>f),
             }
          });
+      return matches;
+   }
+
+   function upcomingCompassMatches(data) {
+      let pre = { 'east': 'E', 'west': 'W', 'north': 'N', 'south': 'S', 'northeast': 'NE', 'northwest': 'NW', 'southeast': 'SE', 'southwest': 'SW' };
+      let names = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128', 'R256'];
+
+      let matches = [].concat(...Object.keys(pre).filter(key=>data[key]).map(key => {
+         let info = drawInfo(data[key]);
+         let round_names = names.map(n=>`${pre[key]}-${n}`);
+         return treeMatches({ match_nodes: info.upcoming_match_nodes, round_names, potentials: true });
+      })).filter(m=>m && m.match);
+
       return matches;
    }
 

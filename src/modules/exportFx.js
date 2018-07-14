@@ -1007,7 +1007,8 @@ export const exportFx = function() {
    }
 
    function getRankedPlayers(evt, info) {
-      if (!evt.draw || !evt.draw.opponents) return noevent;
+      let current_draw = evt.draw.compass ? evt.draw[evt.draw.compass] : evt.draw;
+      if (!current_draw || !current_draw.opponents) return noevent;
 
       let blank = { text: ' ' };
       let lda = '';
@@ -1016,12 +1017,12 @@ export const exportFx = function() {
       
       let noevent = { s1: [], s2: [], c1: [], c2: [], smin: '', smax: '', omin: '', omax: '', a1, c3, lda };
 
-      let seeded_players = evt.draw.opponents.filter(o=>o[0].seed);
+      let seeded_players = current_draw.opponents.filter(o=>o[0].seed);
       let seed_rankings = [].concat(...seeded_players.map(p=>p.map(m=>m.category_ranking)));
       let smin = seed_rankings.length ? Math.min(...seed_rankings) : '';
       let smax = seed_rankings.length ? Math.max(...seed_rankings) : '';
 
-      let players = [].concat(...evt.draw.opponents);
+      let players = [].concat(...current_draw.opponents);
       let alt_ll = players.filter(p=>['A', 'LL'].indexOf(p.entry) >= 0);
       alt_ll.forEach((p, i) => { a1[i] = entryObject(p); c3[i] = { text: i + 1 }; });
 
@@ -1033,7 +1034,7 @@ export const exportFx = function() {
       let lda_player = !damax ? undefined : da_players.reduce((p, c) => c.category_ranking == damax ? c : p, undefined);
       lda = (info && info.byes && info.byes.length) || !lda_player ? { text: lang.tr('draws.allindraw') } : rankingObject(lda_player);
 
-      let opponent_rankings = [].concat(...evt.draw.opponents.map(o=>o.map(m=>m.category_ranking))).sort((a, b) => a - b);
+      let opponent_rankings = [].concat(...current_draw.opponents.map(o=>o.map(m=>m.category_ranking))).sort((a, b) => a - b);
       let olen = opponent_rankings.length;
       let omin = olen && !isNaN(opponent_rankings[0]) ? opponent_rankings[0] : "nr";
       let omax = olen && !isNaN(opponent_rankings[olen - 1]) ? opponent_rankings[olen - 1] : "nr";
