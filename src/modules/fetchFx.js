@@ -3,6 +3,7 @@ import { util } from './util';
 import { UUID } from './UUID';
 import { config } from './config';
 import { lang } from './translator';
+import { importFx } from './importFx';
 import { displayGen } from './displayGen';
 import { tournamentDisplay } from './tournamentDisplay';
 
@@ -447,7 +448,8 @@ export const fetchFx = function() {
             if (!nums.length) return reject('No Tournament ID');
             id = nums[0];
          } else {
-            displayGen.popUpMessage(`<div>${lang.tr('phrases.locallycreated')}</div><p><i>${lang.tr('phrases.noremote')}</i>`, () => resolve({}));
+            let message = `<h2>${lang.tr('phrases.locallycreated')}</h2><h3><i>${lang.tr('phrases.noremote')}</i></h3>`;
+            displayGen.actionMessage({ message, actionFx: okAction, action: lang.tr('actions.ok'), cancel: 'Load Players', cancelAction: loadAction });
             return;
          }
 
@@ -455,6 +457,20 @@ export const fetchFx = function() {
             db.findSetting('fetchRegisteredPlayers').then(checkSettings, reject);
          } else {
             return localRequest();
+         }
+
+         function okAction() {
+            displayGen.closeModal();
+            return resolve();
+         }
+
+         function loadAction() {
+            let id_obj = displayGen.importPlayers();
+            let callback = (players) => {
+               players.forEach(player => { player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; });
+               resolve(players);
+            }
+            importFx.loadPlayersDragAndDrop(id_obj.dropzone.element, () => { console.log('init'); }, callback);
          }
 
          function localRequest() {

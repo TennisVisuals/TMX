@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.174.310.215.h',
+      version: '0.9.176.315.219.r',
       version_check: undefined,
       org: {
          name: undefined,
@@ -95,7 +95,7 @@ export const config = function() {
          auto_byes: true,
          ll_all_rounds: false,
          auto_qualifiers: false,
-         fixed_bye_order: false,
+         fixed_bye_order: true,
          consolation_seeding: false,
          consolation_alternates: false,
          compressed_draw_formats: true,
@@ -943,15 +943,17 @@ export const config = function() {
       let categories = Object.keys(points_table.categories)
          .filter(category => {
             let c = points_table.categories[category];
-            let from = parseInt(c.ages.from);
-            let to = parseInt(c.ages.to);
-            let valid = util.range(from, to+1).indexOf(age) >= 0;
-            if (!valid) ineligible.push(category);
-            if (valid && from < minimum_age) {
-               minimum_age = from;
-               base_category = category;
+            if (c.ages) {
+               let from = parseInt(c.ages.from);
+               let to = parseInt(c.ages.to);
+               let valid = util.range(from, to+1).indexOf(age) >= 0;
+               if (!valid) ineligible.push(category);
+               if (valid && from < minimum_age) {
+                  minimum_age = from;
+                  base_category = category;
+               }
+               return valid;
             }
-            return valid;
          });
       return { categories, base_category, ineligible };
    }

@@ -87,7 +87,7 @@ export const importFx = function() {
 
          let fileid = parts[4].match(/\d+/);
          if (fileid && fileid[0].length == 4) meta.old_id = fileid[0];
-         if (fileid && fileid[0].length == 3) meta.tuid = 'HTS' + fileid[0];
+         // if (fileid && fileid[0].length == 3) meta.tuid = 'HTS' + fileid[0];
       }
       return meta;
    }
@@ -248,7 +248,7 @@ export const importFx = function() {
 
    load.findTournament = () => {
       return new Promise((resolve, reject) => {
-         if (load.loaded.tournament.name) load.loaded.meta.name = load.loaded.tournament.name;
+         if (load.loaded.tournament && load.loaded.tournament.name) load.loaded.meta.name = load.loaded.tournament.name;
 
          // TODO: search for Tournament by name rather than requiring TournamentID to be entered
          let obj = displayGen.entryModal('tournaments.id', false, { x: (window.innerWidth / 2) - 100, y: window.innerHeight / 3 });
@@ -314,8 +314,10 @@ export const importFx = function() {
                if (!tournament) return reject();
                tournament.category = staging.legacyCategory(tournament.category);
 
+               if (!load.loaded.tournament) load.loaded.tournament = {};
+
                if (Object.keys(tournament).length) {
-                  load.loaded.tournament.sid = 'HTS';
+                  // load.loaded.tournament.sid = 'HTS';
                   load.loaded.meta.tuid = tournament.tuid;
 
                   load.loaded.start = tournament.start;
@@ -549,6 +551,96 @@ export const importFx = function() {
       }
    }
 
+   load.loadPlayersDragAndDrop = (dropzone, initFx, callback) => {
+      let isAdvancedUpload = function() {
+         let div = document.createElement('div');
+         return (('draggable' in div) || ('ondragstart' in div && 'ondrop' in div)) && 'FormData' in window && 'FileReader' in window;
+      }();
+
+      let input = dropzone.querySelector('input[type="file"]');
+      let label = dropzone.querySelector('label');
+      let droppedFiles = false;
+      let showFiles = (files) => {
+         label.textContent = (files.length > 1)
+            ? ( input.getAttribute( 'data-multiple-caption' ) || '' ).replace( '{count}', files.length ) 
+            : files[ 0 ].name;
+      };
+
+      input.addEventListener('change', e => processFile(e.target.files));
+
+      if (isAdvancedUpload) {
+         dropzone.classList.add('has-advanced-upload');
+
+         [ 'drag', 'dragstart', 'dragend', 'dragover', 'dragenter', 'dragleave', 'drop' ].forEach( function( event ) {
+            dropzone.addEventListener( event, function(e) {
+               e.preventDefault();
+               e.stopPropagation();
+            });
+         });
+
+         [ 'dragover', 'dragenter' ].forEach(function (event) { dropzone.addEventListener(event, () => dropzone.classList.add('is-dragover')); });
+         [ 'dragleave', 'dragend', 'drop' ].forEach( function (event) { dropzone.addEventListener(event, () => dropzone.classList.remove('is-dragover')); });
+
+         dropzone.addEventListener('drop', (e) => {
+            droppedFiles = e.dataTransfer.files;
+            processFile( droppedFiles );
+         });
+      }
+
+      // Firefox focus bug fix for file input
+      input.addEventListener( 'focus', function() { input.classList.add( 'has-focus' ); });
+      input.addEventListener( 'blur', function() { input.classList.remove( 'has-focus' ); });
+
+      let processFile = function(files) {
+         if (!isAdvancedUpload || !files || !files.length) return false;
+         if (initFx && typeof initFx == 'function') initFx();
+
+         let file = files[0];
+         loadPlayerFile(file, callback);
+      };
+   }
+
+   function loadPlayerFile(file, callback) {
+      load.loaded.meta = load.parseFileName(file.name);
+
+      let reader = new FileReader();
+      reader.onload = function(evt) {
+         if (evt.target.error) {
+            displayMessage(lang.tr('phrases.fileerror'));
+            return;
+         }
+
+         let file_content = evt.target.result;
+         if (!file_content.length) return;
+
+         if (load.loaded.meta.filetype.indexOf('xls') >= 0) {
+            loadWorkbook(file_content, callback);
+         } else if (load.loaded.meta.filetype == 'csv') {
+            console.log('loadCSV');
+            // loadJSON(CSV2JSON(file_content));
+         } else if (load.loaded.meta.filetype.indexOf('json') >= 0) {
+            if (file_content.indexOf('"~') >= 0) {
+               console.log('loadCircularJSON');
+               // loadJSON(CircularJSON.parse(file_content));
+            } else {
+               console.log('loadJSON');
+               // loadJSON(JSON.parse(file_content));
+            }
+         }
+      };
+
+      if (!load.loaded.meta.filetype) {
+         displayMessage(lang.tr('phrases.invalid'));
+         return;
+      } else {
+         if (['csv', 'json'].indexOf(load.loaded.meta.filetype) >= 0) {
+            reader.readAsText(file);
+         } else {
+            reader.readAsBinaryString(file);
+         }
+      }
+   }
+
    load.initDragAndDrop = (initFx, callback) => {
       let isAdvancedUpload = function() {
          let div = document.createElement('div');
@@ -746,6 +838,11 @@ export const importFx = function() {
 
       let workbook_type = identifyWorkbook(workbook);
 
+      if (workbook_type == 'UTR') {
+         let players = extractPlayers(workbook);
+         return (typeof callback == 'function') ? callback(players) : true;
+      }
+
       if (workbook_type == 'tournament') {
          processWorkbook(workbook);
          let process = () => load.processPlayers().then(tournamentDisplay.processLoadedTournament, identifyPlayers);
@@ -771,7 +868,8 @@ export const importFx = function() {
    }
 
    function extractPlayers(workbook) {
-      if (workbook.SheetNames.indexOf('Players') < 0) return [];
+      let sheet_name = workbook.SheetNames.indexOf('Players') >= 0 ? 'Players' : workbook.SheetNames.indexOf('Registrants') >= 0 ? 'Registrants' : undefined;
+      if (!sheet_name) return [];
       let headers = [ 
          { attr: 'id', header: 'ID' }, 
          { attr: 'last_name', header: 'Last Name' }, 
@@ -786,15 +884,55 @@ export const importFx = function() {
          { attr: 'club', header: 'Club ID' }, 
          { attr: 'club_name', header: 'Club Name' }, 
          { attr: 'school', header: 'School' }, 
+         { attr: 'rating_utr_singles', header: 'Verified SinglesUtr' }, 
+         { attr: 'rating_utr_singles_status', header: 'Verified SinglesUtr Status' }, 
+         { attr: 'rating_utr_doubles', header: 'Verified DoublesUtr' }, 
+         { attr: 'rating_utr_doubles_status', header: 'Verified DoublesUtr Status' }, 
+         { attr: 'ioc', header: 'Nationality' }, 
+         { attr: 'email', header: 'Email' }, 
+         { attr: 'phone', header: 'Phone' }, 
+         { attr: 'college', header: 'College' }, 
       ];
-      let players = extractWorkbookRows(workbook.Sheets.Players, headers);
+      let players = extractWorkbookRows(workbook.Sheets[sheet_name], headers);
       players.forEach(player => {
+         if (player.sex) {
+            player.sex = player.sex.toUpperCase();
+            if (player.sex == 'F') player.sex = 'W';
+            if (['M', 'W'].indexOf(player.sex) < 0) delete player.sex;
+         }
          player.puid = player.puid || UUID.new();
          player.id = player.id || player.puid;
          if (player.birth) player.birth = player.birth.indexOf('-') < 0 ? parseFloat(player.birth) : new Date(player.birth).getTime();
          player.ioc = player.ioc ? (player.ioc.match(/\D+/g) || [])[0] : '';
+         processRatings(player);
       });
       return players;
+   }
+   
+   function processRatings(player) {
+      let ratings = Object.keys(player).reduce((p, c) => c.indexOf('rating') == 0 || p, false);
+      if (ratings) {
+         if (!player.ratings) player.ratings = {};
+         Object.keys(player).forEach(key => {
+            if (key.indexOf('rating') == 0) {
+               let attrs = key.split('_');
+               let type = attrs && attrs.length >= 2 && attrs[1];
+               if (type) {
+                  if (!player.ratings[type]) player.ratings[type] = {};
+                  let format = attrs && attrs.length >= 3 && attrs[2];
+                  if (format && !player.ratings[type][format]) player.ratings[type][format] = {};
+                  let status = attrs && attrs.length >= 4 && attrs[3];
+                  if (format && status) {
+                     if (!player.ratings[type][format].status) player.ratings[type][format].status = player[key];
+                  } else if (format) {
+                     player.ratings[type][format].value = player[key];
+                  } else {
+                     player.ratings[type].value = player[key]
+                  }
+               }
+            }
+         });
+      }
    }
 
    function extractTournaments(workbook) {
@@ -868,7 +1006,8 @@ export const importFx = function() {
 
    function identifyWorkbook(workbook) {
       let sheets = workbook.SheetNames;
-      if (util.intersection(sheets, ['CourtHive', 'Players', 'Clubs']).length == 2) return 'courthive_imports';
+      if (util.intersection(sheets, ['CourtHive', 'Players']).length == 2) return 'courthive_imports';
+      if (util.intersection(sheets, ['Registrants']).length == 1) return 'UTR';
       return 'tournament';
    }
 
@@ -900,6 +1039,7 @@ export const importFx = function() {
          load.loaded.date = undefined;
          load.loaded.players = all_players;
 
+         /*
          if (tournamentParser.profile == 'HTS') {
             load.loaded.tournament = tournamentParser.HTS_tournamentData(workbook);
             load.loaded.tournament.sid = tournamentParser.profile;
@@ -917,11 +1057,12 @@ export const importFx = function() {
             load.loaded.tournament.category = staging.legacyCategory(load.loaded.tournament.category);
             load.loaded.meta.category = load.loaded.tournament.category;
          } else {
+         */
             load.loaded.tournament = {
                name: workbook.Sheets[workbook.SheetNames[0]].A1.v,
                category: load.loaded.results.categories[0],
             };
-         }
+         // }
       }
    }
 

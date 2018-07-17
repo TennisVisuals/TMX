@@ -2219,7 +2219,7 @@ export const tournamentDisplay = function() {
             events = tournament.events.map((e, i) => {
                tfx.setDrawSize(tournament, e);
                if (displayed_event && displayed_event == e.euid) highlight_euid = e.euid;
-               let info = !e.draw ? {} : dfx.drawInfo(e.draw);
+               let info = !e.draw ? {} : e.draw.compass ? dfx.compassInfo(e.draw) : dfx.drawInfo(e.draw);
 
                let event_matches = mfx.eventMatches(e, tournament);
                let scheduled = event_matches.filter(m=>m.match && m.match.schedule && m.match.schedule.court).length;
@@ -4836,6 +4836,8 @@ export const tournamentDisplay = function() {
          let t_players = tfx.orderPlayersByRank(tournament.players, prior_value || tournament.categories[0])
             .filter(player => playerFx.eligibleForCategory({ calc_date, age_category: prior_value, player }));
 
+         let ratings = false;
+
          if (!t_players.length && !state.edit) {
             d3.select('#YT' + container.container.id).style('display', 'none');
             return;
@@ -4846,7 +4848,7 @@ export const tournamentDisplay = function() {
          let ctgs = points_table && points_table.categories;
          */
 
-         let display_order = displayGen.displayTournamentPlayers({ container, tournament, players: t_players, filters, edit: state.edit });
+         let display_order = displayGen.displayTournamentPlayers({ container, tournament, players: t_players, filters, ratings, edit: state.edit });
 
          function categoryChanged(selected_category) { playersTab(); }
 
@@ -5593,6 +5595,10 @@ export const tournamentDisplay = function() {
          }
       }
 
+      function removeDirectionalPlayer(e, target_draw, losing_team_ids, linked_info) {
+         let removed = tfx.removeDirectionalPlayer(tournament, e, target_draw, losing_team_ids, linked_info);
+      }
+
       function scoreTreeDraw({ tournament, e, muid, existing_scores, outcome }) {
          let result = processResult(tournament, e, tfx.safeScoreTreeDraw({ tournament, e, muid, existing_scores, outcome }));
          if (result && result.approved_changed) {
@@ -5638,7 +5644,7 @@ export const tournamentDisplay = function() {
 
       function updateAfterDelete(e) {
          e.up_to_date = false;
-         let completed_matches = mfx.eventMatches(e, tournament).filter(m=>m.match.winner);
+         let completed_matches = mfx.eventMatches(e, tournament).filter(m=>m.match && m.match.winner);
          if (!completed_matches.length) e.active = false;
          afterScoreUpdate(e);
       }
@@ -6777,13 +6783,13 @@ export const tournamentDisplay = function() {
          }
 
          function drawActiveContextClick(d, coords) {
-            // var draw = e.draw;
             let current_draw = e.draw.compass ? e.draw[e.draw.compass] : e.draw;
             var position = d.data.dp;
 
             var info = dfx.drawInfo(current_draw);
             var linked = tfx.findEventByID(tournament, e.links['E']);
             var linked_info = null;
+            var target_draw = null;
 
             var selector = d3.select('#' + container.draws.id + ' svg').node();
             var finalist_dp = info.final_round.map(m=>m.data.dp);
@@ -6793,6 +6799,22 @@ export const tournamentDisplay = function() {
             var match_score = d.data.match && d.data.match.score;
             var qualification = ['Q', 'R'].indexOf(e.draw_type) >= 0;
             var active_in_linked = null;
+
+            if (e.draw.compass && d.data.match && d.data.match.loser) {
+               // check whether match loser is active in linked direction
+               let target_direction = tfx.getTargetDirection(current_draw.direction, d.data.match.round);
+               target_draw = target_direction && e.draw[target_direction];
+               if (target_draw) {
+                  linked_info = dfx.drawInfo(target_draw);
+                  let losing_team_ids = d.data.match.loser.map(m=>m.id);
+                  let advanced_positions = linked_info.match_nodes.filter(n=>n.data.match && n.data.match.players);
+                  let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
+                  let position_in_linked = [].concat(...linked_info.nodes
+                     .filter(node => node.data.team && util.intersection(node.data.team.map(t=>t.id), losing_team_ids).length)
+                     .map(node => node.data.dp));
+                  active_in_linked = util.intersection(active_player_positions, position_in_linked).length;
+               }
+            }
 
             if (qualification && match_score && qualified && linked && linked.draw && d.data.team) {
                linked_info = dfx.drawInfo(linked.draw);
@@ -6817,6 +6839,11 @@ export const tournamentDisplay = function() {
                   if (qualified && d.data.team) {
                      let team_ids = d.data.team.map(m=>m.id);
                      removeQualifiedPlayer(e, team_ids, linked, linked_info);
+                  }
+
+                  if (e.draw.compass && target_draw && d.data.match && d.data.match.loser) {
+                     let losing_team_ids = d.data.match.loser.map(m=>m.id);
+                     removeDirectionalPlayer(e, target_draw, losing_team_ids, linked_info);
                   }
 
                   tfx.logEventChange(displayed_draw_event, { fx: 'match removed', d: { teams: d.data.match.teams.map(team=>team.map(t=>t.id)) } });
@@ -7200,6 +7227,7 @@ export const tournamentDisplay = function() {
 
       function tournamentOptions(days) {
          if (!tournament.display_id) {
+            if (!tournament.tuid) tournament.tuid = UUID.new();
             if (tournament.tuid.length < 15) tournament.display_id = tournament.tuid;
          }
 

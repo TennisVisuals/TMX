@@ -1898,7 +1898,19 @@ export function drawFx(opts) {
 
    fx.compassInfo = compassInfo;
    function compassInfo(draw) {
-      return treeInfo(draw.east);
+      var complete, total_matches=0, all_matches=[], match_nodes=[], upcoming_match_nodes=[], unassigned=[];
+      let directions = ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'];
+      let existing_directions = directions.filter(d=>draw[d]).forEach(direction => {
+         let info = treeInfo(draw[direction]);
+         complete = complete || info.complete;
+         total_matches += info.total_matches;
+         all_matches = all_matches.concat(...info.all_matches);
+         match_nodes = match_nodes.concat(...info.match_nodes);
+         upcoming_match_nodes = upcoming_match_nodes.concat(...info.upcoming_match_nodes);
+         unassigned = unassigned.concat(...info.unassigned);
+      });
+
+      return { complete, total_matches, all_matches, match_nodes, upcoming_match_nodes, unassigned };
    }
 
    function treeInfo(draw) {

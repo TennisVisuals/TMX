@@ -143,6 +143,7 @@ export const tournamentParser = function() {
    
    tp.headerColumns = ({sheet}) => {
       let profile = tp.profiles[tp.profile];
+      if (!profile) return [];
       let columns = Object.assign({}, profile.columns);
       if (profile.header_columns) {
          profile.header_columns.forEach(obj => {
@@ -164,6 +165,7 @@ export const tournamentParser = function() {
    }
    tp.playerRows = ({sheet}) => {
       let profile = tp.profiles[tp.profile];
+      if (!profile) return { rows: [], preround_rows: [] };
       let columns = tp.headerColumns({sheet});
 
       let rr_result = [];
@@ -235,8 +237,10 @@ export const tournamentParser = function() {
       return { rows: draw_rows, range, finals, preround_rows };
    }
    tp.roundColumns = ({sheet}) => {
-      let header_row = tp.profiles[tp.profile].rows.header;
-      let rounds_column = tp.profiles[tp.profile].columns.rounds;
+      let profile = tp.profiles[tp.profile];
+      if (!profile) return [];
+      let header_row = profile.rows.header;
+      let rounds_column = profile.columns.rounds;
       let columns = Object.keys(sheet)
          .filter(key => key.length == 2 && key.slice(1) == header_row && letterValue(key[0]) >= letterValue(rounds_column))
          .map(m=>m[0]).filter((item, i, s) => s.lastIndexOf(item) == i).sort();
@@ -413,6 +417,7 @@ export const tournamentParser = function() {
 
    let addByes = (rounds, players) => {
       let profile = tp.profiles[tp.profile];
+      if (!profile) return [];
       if (draw_byes[players.length] && profile.routines && profile.routines.add_byes) {
          let round_winners = [].concat(...rounds[0].map(match => match.winners).filter(f=>f));
          draw_byes[players.length].forEach(player => { 
@@ -633,7 +638,7 @@ export const tournamentParser = function() {
 
          // also search for final match in single-page RR sheet
          let profile = tp.profiles[tp.profile];
-         if (player_data.finals && profile.targets && profile.targets.winner) {
+         if (profile && player_data.finals && profile.targets && profile.targets.winner) {
             let keys = Object.keys(sheet);
             let columns = tp.headerColumns({sheet});
             let target = unique(keys.filter(f=>tp.value(sheet[f]) == profile.targets.winner))[0];
@@ -784,7 +789,7 @@ export const tournamentParser = function() {
       let tournament_rank;
       let tournament_category;
       let tournament_data = [];
-      tournament_data = tp.profile == 'HTS' ? tp.HTS_tournamentData(workbook) : {};
+      // tournament_data = tp.profile == 'HTS' ? tp.HTS_tournamentData(workbook) : {};
       if (Object.keys(tournament_data).length) {
          let rank = tournament_data.rang_turnira ? parseInt(tournament_data.rang_turnira.match(/\d+/)) : undefined;
          tournament_rank = rank && rank.length ? rank[0] : undefined;
@@ -835,6 +840,7 @@ export const tournamentParser = function() {
             tournament.category = tournament_category && staging.legacyCategory(tournament_category);
             if (tournament.category && categories.indexOf(tournament.category) < 0) categories.push(tournament.category);
 
+            /*
             if (tp.profile == 'HTS') {
                tournament.sid = 'HTS';
                tournament.code = tournament_data.id_turnira;
@@ -844,11 +850,12 @@ export const tournamentParser = function() {
 
                Object.assign(row, { date: tp.dateProcess.HTS(tournament_data.datum_turnir), });
             } else {
+            */
                let tournament_name = workbook.Sheets[workbook.SheetNames[0]].A1.v;
                let tournament_code = tournament_name.split(' ').join('');
                tournament.name = tournament_name;
                tournament.code = tournament_code;
-            }
+            // }
 
             players.forEach(player => {
                if (player.draw_position > draw_positions) {
@@ -882,10 +889,12 @@ export const tournamentParser = function() {
       }
 
       let sheet_names = workbook.SheetNames.filter(sheet_name => {
+         /*
          if (tp.profile == 'HTS') {
             if (sheet_name.toLowerCase().indexOf('raspored') >= 0) return false;
             return sheet_name.match(/\d+/) || sheet_name.match(/_M/) || sheet_name.match(/_Z/);
          }
+         */
          return sheet_name;
       });
       
@@ -907,7 +916,7 @@ export const tournamentParser = function() {
             if (identification.includes && includes(sheet_names, identification.includes)) tp.profile = profile;
             if (identification.sub_includes && subInclude(sheet_names, identification.sub_includes)) tp.profile = profile;
          });
-      if (!tp.profile) tp.profile = 'HTS';
+      // if (!tp.profile) tp.profile = 'HTS';
    }
 
    // if (typeof define === "function" && define.amd) define(tournamentParser); else if (typeof module === "object" && module.exports) module.exports = tournamentParser;

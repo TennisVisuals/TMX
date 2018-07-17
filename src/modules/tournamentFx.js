@@ -163,37 +163,61 @@ export const tournamentFx = function() {
       var result = {};
       if (!outcome) return result;
 
+      let linked_info = null;
       let current_direction;
       let current_draw = e.draw;
+      let target_draw = null;
+      let active_in_linked = null;
       let compass = e.draw && e.draw.compass;
-      if (compass) {
-         // current draw should equal the draw within which the muid is found
-         current_direction = Object.keys(e.draw).reduce((p, c) => p || (typeof e.draw[c] == 'object' && e.draw[c].matches && e.draw[c].matches[muid] && c), undefined);
-         if (current_direction) {
-            current_draw = e.draw[current_direction];
-         } else {
-            return { devmessage: 'DEVEL: compass direction not found' };
-         }
-      }
 
       let qlink = e.draw_type == 'Q' && fx.findEventByID(tournament, e.links['E']);
       let qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
 
       let node = !existing_scores ? null : dfx.findMatchNodeByTeamPositions(current_draw, outcome.positions);
       let previous_winner = node && node.match && node.match.winner ? node.match.winner.map(m=>m.id) : undefined;
+      let previous_loser = node && node.match && node.match.loser ? node.match.loser.map(m=>m.id) : undefined;
       let current_winner = outcome.winner != undefined ? outcome.teams[outcome.winner].map(m=>m.id) : undefined;
-      let active_in_linked = qlink && previous_winner && playerActiveInLinked(qlinkinfo, previous_winner);
-      let qualifier_changed = !previous_winner || !current_winner ? undefined : util.intersection(previous_winner, current_winner).length == 0;
+      let current_loser = outcome.winner != undefined ? outcome.teams[1 - outcome.winner].map(m=>m.id) : undefined;
 
-      if (active_in_linked && (qualifier_changed || (previous_winner && !current_winner))) {
+      if (compass) {
+         // current draw should equal the draw within which the muid is found
+         current_direction = Object.keys(e.draw).reduce((p, c) => p || (typeof e.draw[c] == 'object' && e.draw[c].matches && e.draw[c].matches[muid] && c), undefined);
+         if (current_direction) current_draw = e.draw[current_direction];
+         if (node) {
+            // check whether player is active in target direction
+            current_draw = e.draw[current_direction];
+            let target_direction = fx.getTargetDirection(current_draw.direction, node.match.round);
+            target_draw = target_direction && e.draw[target_direction];
+            if (target_draw && previous_loser) {
+               linked_info = dfx.drawInfo(target_draw);
+               let advanced_positions = linked_info.match_nodes.filter(n=>n.data.match && n.data.match.players);
+               let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
+               let position_in_linked = [].concat(...linked_info.nodes
+                  .filter(node => node.data && node.data.team && util.intersection(node.data.team.map(t=>t.id), previous_loser).length)
+                  .map(node => node.data.dp));
+               active_in_linked = util.intersection(active_player_positions, position_in_linked).length;
+            }
+         }
+      } else {
+         active_in_linked = qlink && previous_winner && playerActiveInLinked(qlinkinfo, previous_winner);
+      }
+
+      let winner_changed = !previous_winner || !current_winner ? undefined : util.intersection(previous_winner, current_winner).length == 0;
+
+      if (active_in_linked && (winner_changed || (previous_winner && !current_winner))) {
          return { error: 'phrases.cannotchangewinner' };
       } else if (previous_winner && !current_winner) {
-         winnerRemoved({ tournament, e, qlink, qlinkinfo, previous_winner, outcome });
+         if (compass) {
+            fx.removeDirectionalPlayer(tournament, e, target_draw, previous_loser, linked_info);
+         } else {
+            winnerRemoved({ tournament, e, qlink, qlinkinfo, previous_winner, outcome });
+         }
          if (qlink) result.approved_changed = qlink;
          result.winner_removed = true;
-      } else if (qualifier_changed) {
-         qualifierChanged({ e, outcome, qlink, qlinkinfo, previous_winner, current_winner });
-         result.qualifier_changed = true;
+      } else if (winner_changed) {
+         if (qlink) qualifierChanged({ e, outcome, qlink, qlinkinfo, previous_winner, current_winner });
+         if (compass) fx.removeDirectionalPlayer(tournament, e, target_draw, previous_loser, linked_info);
+         result.winner_changed = true;
       }
 
       if (!existing_scores) {
@@ -272,20 +296,13 @@ export const tournamentFx = function() {
          round_name: match.round_name,
       };
 
-      if (compass) directLoser();
+      if (compass && match.loser) directLoser();
 
       e.active = true;
       return result;
 
       function directLoser() {
-         let directions = {
-            'east': ['west', 'north', 'northeast'],
-            'west': ['south', 'southwest'],
-            'north': ['northwest'],
-            'south': ['southeast'],
-         }
-
-         let target_direction = directions[current_direction] && directions[current_direction][match.round - 1];
+         let target_direction = fx.getTargetDirection(current_direction, match.round);
          let target_draw = target_direction && e.draw[target_direction];
          if (!target_draw) return;
 
@@ -293,13 +310,31 @@ export const tournamentFx = function() {
          if (!target_draw.unseeded_teams) target_draw.unseeded_teams = [];
 
          let losers = match.loser.map(playerFx.playerCopy);
-         target_draw.opponents.push(losers);
-         target_draw.unseeded_teams.push(losers);
+         if (!existingOpponents(target_draw, losers)) {
+            target_draw.opponents.push(losers);
+            target_draw.unseeded_teams.push(losers);
 
-         dfx.placeUnseededTeams({ draw: target_draw });
-         let unfilled_positions = dfx.drawInfo(target_draw).unassigned.map(u=>u.data.dp);;
-         if (!unfilled_positions.length) dfx.advanceTeamsWithByes({ draw: target_draw });
+            dfx.placeUnseededTeams({ draw: target_draw });
+            let unfilled_positions = dfx.drawInfo(target_draw).unassigned.map(u=>u.data.dp);;
+            if (!unfilled_positions.length) dfx.advanceTeamsWithByes({ draw: target_draw });
+         }
       }
+   }
+
+   fx.getTargetDirection = (current_direction, match_round) => {
+      let directions = {
+         'east': ['west', 'north', 'northeast'],
+         'west': ['south', 'southwest'],
+         'north': ['northwest'],
+         'south': ['southeast'],
+      }
+      return directions[current_direction] && directions[current_direction][match_round - 1];
+   }
+
+   function existingOpponents(target_draw, opponents) {
+      let existing_opponents_puids = target_draw.opponents.map(o=>o.map(p=>p.puid));
+      let opponent_puids = opponents.map(p=>p.puid);
+      return existing_opponents_puids.reduce((p, c) => p || util.intersection(c, opponent_puids).length == opponent_puids.length, false);
    }
 
    fx.safeScoreRoundRobin = (tournament, e, existing_scores, outcome) => {
@@ -672,7 +707,13 @@ export const tournamentFx = function() {
             e.draw_size = draw_size;
          },
          S() {
-            e.draw_size = !e.east || !e.east.draw ? 0 : dfx.drawInfo(e.east.draw).draw_positions.length;
+            if (!e.draw || !e.draw.east) {
+               e.draw_size = 0;
+            } else {
+               let directions = ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'];
+               let draw_size = directions.filter(d=>e.draw[d]).reduce((p, c) => p + dfx.drawInfo(e.draw[c]).draw_positions.length, 0);
+               e.draw_size = draw_size;
+            }
          },
          F() {
             e.draw_size = !e.draw ? 0 : dfx.drawInfo(e.draw).draw_positions.length;
@@ -1109,6 +1150,16 @@ export const tournamentFx = function() {
       if (linkchanges) fx.setDrawSize(tournament, qlink);
 
       return { linkchanges, qlink }
+   }
+
+   fx.removeDirectionalPlayer = (tournament, e, target_draw, losing_team_ids, linked_info) => {
+      if (!target_draw) return {};
+      fx.logEventChange(e, { fx: 'directional player removed', d: { losing_team_ids } });
+      target_draw.opponents = target_draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), losing_team_ids).length != losing_team_ids.length);
+      linked_info.nodes.forEach(node => {
+         if (node.data.team && util.intersection(node.data.team.map(t=>t.id), losing_team_ids).length) { delete node.data.team; }
+      });
+      return {};
    }
 
    // MISC

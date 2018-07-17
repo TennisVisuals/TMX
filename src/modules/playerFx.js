@@ -378,15 +378,15 @@ export const playerFx = function() {
       category = category ? staging.legacyCategory(category) : 0;
       let ages = category && categories && categories[category] ? categories[category].ages : { from: 6, to: 100 };
       let year = new Date().getFullYear();
-      let min_year = year - parseInt(ages.from);
-      let max_year = year - parseInt(ages.to);
+      let min_year = year - ((ages && parseInt(ages.from)) || 0);
+      let max_year = year - ((ages && parseInt(ages.to)) || 0);
       let daterange = { start: `${max_year}-01-01`, end: `${min_year}-12-31` };
 
       let player_container = displayGen.createNewPlayer(player);
       player_container.last_name.element.style.background = player.last_name ? 'white' : 'yellow';
       player_container.first_name.element.style.background = player.first_name ? 'white' : 'yellow';
       player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
-      player_container.birth.element.style.background = util.validDate(player.birth, daterange) ? 'white' : 'yellow';
+      player_container.birth.element.style.background = !ages || util.validDate(player.birth, daterange) ? 'white' : 'yellow';
 
       // try to make a reasonable start year
       let start_year = year - max_year < 17 ? max_year : min_year - 10;
@@ -482,7 +482,7 @@ export const playerFx = function() {
       }
 
       let saveNewPlayer = () => { 
-         let valid_date = util.validDate(player.birth, daterange);
+         let valid_date = !ages || util.validDate(player.birth, daterange);
          if (!valid_date || !player.first_name || !player.last_name || !player.ioc) return;
          player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
          if (!player.club && player_container.club.element.value) player.club_name = player_container.club.element.value;

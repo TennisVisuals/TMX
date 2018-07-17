@@ -331,25 +331,26 @@ export const displayGen = function() {
       gen.actionMessage({ message, actionFx: okAction, action: lang.tr('actions.ok'), cancelAction });
    }
 
-   gen.actionMessage = ({ message, actionFx, action, cancelAction }) => {
+   gen.actionMessage = ({ message_ids, message, actionFx, action, cancel, cancelAction }) => {
       if (searchBox.element) searchBox.element.blur();
-      let ids = { 
-         ok: displayFx.uuid(), 
-         cancel: displayFx.uuid(), 
-      }
+      if (!cancel) cancel = lang.tr('actions.cancel');
+      let ids = { cancel: displayFx.uuid(), }
+      if (action) ids.ok = displayFx.uuid();
+      if (message_ids) Object.assign(ids, message_ids);
 
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
+      let ok_button = action ? `<button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${action}</button>` : '';
       let html = `
          <div style='margin: 1em'>${message}</div>
          <div class="flexcenter" style='margin-bottom: 2em;'>
-            <button id='${ids.cancel}' class='btn btn-medium dismiss' style='display: none'>${lang.tr('actions.cancel')}</button>
-            <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${action}</button>
+            <button id='${ids.cancel}' class='btn btn-medium dismiss' style='display: none'>${cancel}</button>
+            ${ok_button}
          </div>
       `;
       document.getElementById('processingtext').innerHTML = html;
       let id_obj = displayFx.idObj(ids);
-      id_obj.ok.element.addEventListener('click', actionFx);
+      if (id_obj.ok) id_obj.ok.element.addEventListener('click', actionFx);
       id_obj.cancel.element.addEventListener('click', cancelAction);
       if (typeof cancelAction == 'function') id_obj.cancel.element.style.display = 'inline';
       gen.modal += 1;
@@ -1948,7 +1949,7 @@ export const displayGen = function() {
       }
    }
 
-   gen.displayTournamentPlayers = ({ container, tournament, players, filters=[], edit }) => {
+   gen.displayTournamentPlayers = ({ container, tournament, players, filters=[], ratings, edit }) => {
       if (!players) {
          container.players.element.innerHTML = '';
          return;
@@ -3492,6 +3493,25 @@ export const displayGen = function() {
          if (!bool) return '';
          return `<div id='${id}' class='${gen.info} action' label="${label}"><div class='splash_icon ${icon}'></div></div>`;
       }
+   }
+
+   gen.importPlayers = () => {
+      let ids = { 
+         dropzone: displayFx.uuid()
+      }
+      let message = `<div id='${ids.dropzone}' class='dropzone flexcenter container'>
+         <div class='flexcol'>
+            <div class='actions'>
+               <div class='action ${gen.info}' label='${lang.tr("phrases.importdata")}'><label for='file'><div class='splash_icon splash_upload'></div></label></div>
+            </div>
+            <div class='flexcenter' style='width: 100%;'><div style='width: 80%;'>${lang.tr('phrases.draganddrop')}</div></div>
+         </div>
+         <input type="file" name="files[]" id="file" class="dropzone__file" data-multiple-caption="{count} files selected" multiple style='display: none' />
+         </div>
+      `;
+
+      let cancelAction = () => gen.closeModal();
+      return gen.actionMessage({ message_ids: ids, message, cancelAction });
    }
 
    gen.importExport = () => {
