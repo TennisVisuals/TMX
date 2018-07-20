@@ -1,6 +1,7 @@
 import { db } from './db'
 import { UUID } from './UUID';
 import { util } from './util';
+import { staging } from './staging';
 import { lang } from './translator';
 import { importFx } from './importFx';
 import { rankCalc } from './rankCalc';
@@ -111,22 +112,25 @@ export const exportFx = function() {
    let zeroPad = (number) => number.toString()[1] ? number : "0" + number; 
    let normalID = (id) => util.replaceDiacritics(id).toUpperCase();
    let dateFormatUTR = (timestamp) => { 
+      if (!timestamp) return '';
       let date = new Date(timestamp);
       return [zeroPad(date.getMonth() + 1), zeroPad(date.getDate()), date.getFullYear()].join('/');
    }
 
-   exp.matchRecord = (match) => {
+   exp.UTRmatchRecord = (match, tournament_players) => {
+      let getPlayerBirth = (player) => tournament_players.reduce((p, c) => p || (c.id == player.id ? c.birth : false), false) || '';
       let winners = match.team_players[match.winner];
       let losers = match.team_players[1 - match.winner];
       let players = match.players;
       let dbls = winners.length > 1;
-      let category = match.tournament.category || ''; 
-      if (+category == 20) category = 'Senior';
+      let category = staging.legacyCategory(match.tournament.category) || '';
       let genders = match.players.map(p => p.sex).filter(f=>f).filter((item, i, s) => s.lastIndexOf(item) == i);
-      let player_gender = () => !genders.length ? '' : genders.length > 1 ? 'Mixed' : genders[0] == 'M' ? 'M' : 'F';
+      let player_gender = (sex) => ['M', 'B'].indexOf(sex) >= 0 ? 'M' : 'F';
       let draw_gender = !genders.length ? '' : genders.length > 1 ? 'Mixed' : genders[0] == 'M' ? 'Male' : 'Female';
       let qualifying = match.round_name.indexOf('Q') == 0 && match.round_name.indexOf('QF') < 0;
       let draw_type = match.consolation ? 'Consolation' : qualifying ? 'Qualifying' : 'Main';
+
+      let sanctioning = (exp.fx.env && exp.fx.env().org && exp.fx.env().org.name) || '';
 
       return {
          "Date": dateFormatUTR(match.date),
@@ -134,7 +138,7 @@ export const exportFx = function() {
          "Winner 1 Name": util.normalizeName(`${players[winners[0]].last_name}, ${players[winners[0]].first_name}`),
          "Winner 1 Third Party ID": normalID(players[winners[0]].cropin || ''),
          "Winner 1 Gender": player_gender(players[winners[0]].sex),
-         "Winner 1 DOB": players[winners[0]].birth ? dateFormatUTR(players[winners[0]].birth) : '',
+         "Winner 1 DOB": dateFormatUTR(getPlayerBirth(players[winners[0]])),
          "Winner 1 City": util.replaceDiacritics(players[winners[0]].city || ''),
          "Winner 1 State": '',
          "Winner 1 Country": players[winners[0]].ioc || '',
@@ -142,7 +146,7 @@ export const exportFx = function() {
          "Winner 2 Name": dbls ? util.normalizeName(`${players[winners[1]].last_name}, ${players[winners[1]].first_name}`) : '',
          "Winner 2 Third Party ID": normalID(dbls ? (players[winners[1]].cropin || '') : ''),
          "Winner 2 Gender": dbls ? player_gender(players[winners[1]].sex) : '',
-         "Winner 2 DOB": dbls ? (players[winners[1]].birth ? dateFormatUTR(players[winners[1]].birth) : '') : '',
+         "Winner 2 DOB": dbls ? dateFormatUTR(getPlayerBirth(players[winners[1]])) : '',
          "Winner 2 City": util.replaceDiacritics(dbls ? (players[winners[0]].city || '') : ''),
          "Winner 2 State": '',
          "Winner 2 Country": dbls ? (players[winners[1]].ioc || '') : '',
@@ -151,7 +155,7 @@ export const exportFx = function() {
          "Loser 1 Name": util.normalizeName(`${players[losers[0]].last_name}, ${players[losers[0]].first_name}`),
          "Loser 1 Third Party ID": normalID(players[losers[0]].cropin || ''),
          "Loser 1 Gender": player_gender(players[losers[0]].sex),
-         "Loser 1 DOB": players[losers[0]].birth ? dateFormatUTR(players[losers[0]].birth) : '',
+         "Loser 1 DOB": dateFormatUTR(getPlayerBirth(players[losers[0]])),
          "Loser 1 City": util.replaceDiacritics(players[losers[0]].city || ''),
          "Loser 1 State": '',
          "Loser 1 Country": players[losers[0]].ioc || '',
@@ -159,14 +163,14 @@ export const exportFx = function() {
          "Loser 2 Name": dbls ? util.normalizeName(`${players[losers[1]].last_name}, ${players[losers[1]].first_name}`) : '',
          "Loser 2 Third Party ID": normalID(dbls ? (players[losers[1]].cropin || '') : ''),
          "Loser 2 Gender": dbls ? player_gender(players[losers[1]].sex) : '',
-         "Loser 2 DOB": dbls ? (players[losers[1]].birth ? dateFormatUTR(players[losers[1]].birth) : '') : '',
+         "Loser 2 DOB": dbls ? dateFormatUTR(getPlayerBirth(players[losers[1]])) : '',
          "Loser 2 City": util.replaceDiacritics(dbls ? (players[losers[0]].city || '') : ''),
          "Loser 2 State": '',
          "Loser 2 Country": dbls ? (players[losers[1]].ioc || '') : '',
          "Loser 2 College": '',
 
          "Score": match.score,
-         "Id Type": 'Croatia',
+         "Id Type": '',
          "Draw Name": match.tournament.draw || '',
          "Draw Gender": draw_gender,
          "Draw Team Type": util.normalizeName(match.format) || '',
@@ -179,37 +183,19 @@ export const exportFx = function() {
          "Tournament End Date": dateFormatUTR(new Date(match.tournament.end).getTime()),
          "Tournament City": '',
          "Tournament State": '',
-         "Tournament Country": 'Croatia',
-         "Tournament Country Code": 'CRO',
+         "Tournament Country": '',
+         "Tournament Country Code": '',
          "Tournament Host": '',
          "Tournament Location Type": '',
          "Tournament Surface": '',
          "Tournament Event Type": 'Tournament',
          "Tournament Event Category": category == 'Seniors' || category == 'S' ? 'Seniors' : 'Juniors',
-         "Tournament Import Source": 'Croatian Tennis Association',
-         "Tournament Sanction Body": 'Croatian Tennis Association',
+         "Tournament Import Source": 'CourtHive',
+         "Tournament Sanction Body": sanctioning,
       }
    }
-   exp.matchRecords = (match_array) => match_array.map(m => exp.matchRecord(m));
 
-   // buik function
-   exp.downloadUTR = ({matches, category, year, month, group_size = 700, profile = 'HTS'} = {}) => {
-      if (!category || !year) return false;
-      let filtered_matches = matches
-         // decided to not filter out players who don't have IDs...
-         // .filter(m => m.players.length == m.players.filter(p => p.cropin).length)
-         .filter(m => {
-            let date = new Date(m.date);
-            return (category == m.tournament.category) && (year == date.getFullYear()) && (!month || month == date.getMonth() + 1);
-         });
-      let match_records = exp.matchRecords(filtered_matches);
-      let cursor = 0;
-      while (cursor < match_records.length) {
-         let csv = json2csv(match_records.slice(cursor, cursor + group_size));
-         exp.downloadText(`UTR-${profile}${year}-${month ? zeroPad(month) : 'all'}-U${category}.csv`, csv);
-         cursor += group_size;
-      }
-   }
+   exp.UTRmatchRecords = ({ matches, players }) => matches.map(m => exp.UTRmatchRecord(m, players));
 
    /************************* Database Table Export **************************/
    let tableJSON = (table) => db.findAll(table).then(arr => { exp.downloadJSON(`${table}.json`, arr) }); 

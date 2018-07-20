@@ -60,12 +60,21 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.176.315.219.r',
+      version: '0.9.182.326.226',
       version_check: undefined,
       org: {
          name: undefined,
          abbr: undefined,
-         ouid: undefined
+         ouid: undefined,
+      },
+      editing: {
+         players: {
+            birth: true,
+            gender: false
+         }
+      },
+      exports: {
+         utr: false
       },
       assets: {
          flags: '/media/flags/',

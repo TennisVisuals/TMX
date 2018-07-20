@@ -1718,16 +1718,21 @@ export const displayGen = function() {
       return id_obj;
    }
 
-   gen.editPlayer = (p) => {
+   gen.editPlayer = (p, allowed={}) => {
       let ids = {
          ioc: displayFx.uuid(),
          save: displayFx.uuid(),
          form: displayFx.uuid(),
          cancel: displayFx.uuid(),
+         birth: displayFx.uuid(),
+         gender: displayFx.uuid(),
          last_name: displayFx.uuid(),
          first_name: displayFx.uuid(),
          entry_form: displayFx.uuid(),
       }
+
+      let gender = allowed.gender ? 'inline' : 'none';
+      let birth = allowed.birth ? 'inline' : 'none';
 
       let html = `
          <div class='add_player' style='margin: 2em'>
@@ -1736,6 +1741,8 @@ export const displayGen = function() {
                   <div class='flexcol playerattrs'>
                      <div class='playerattr'>${lang.tr('lnm')}:</div>
                      <div class='playerattr'>${lang.tr('fnm')}:</div>
+                     <div class='playerattr' style='display: ${birth}'>${lang.tr('bd')}:</div>
+                     <div class='playerattr' style='display: ${gender}'>${lang.tr('gdr')}:</div>
                      <div class='playerattr'>${lang.tr('cnt')}:</div>
                   </div>
                   <div id='${ids.entry_form}' class='flexcol'>
@@ -1745,8 +1752,12 @@ export const displayGen = function() {
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.first_name}' value='${p.first_name || ''}'>
                      </div>
+                     <div class='flexjustifystart playerattrvalue' style='display: ${birth}'>
+                        <input id='${ids.birth}' value=''>
+                     </div>
+                     <div id='${ids.gender}' class='flexjustifystart genderddlb' style='display: ${gender}'> </div>
                      <div class='flexjustifystart playerattrvalue'>
-                        <input id='${ids.ioc}' value='${p.ioc || ''}'>
+                        <input id='${ids.ioc}' value=''>
                      </div>
                   </div>
                </div>
@@ -1759,7 +1770,7 @@ export const displayGen = function() {
       `;
       gen.showConfigModal(html, 'visible');
       let id_obj = displayFx.idObj(ids);
-      dd.attachDropDown({ id: ids.gender, options: getGenders() });
+      if (allowed.gender) dd.attachDropDown({ id: ids.gender, options: getGenders() });
       return id_obj;
    }
 
@@ -1949,7 +1960,7 @@ export const displayGen = function() {
       }
    }
 
-   gen.displayTournamentPlayers = ({ container, tournament, players, filters=[], ratings, edit }) => {
+   gen.displayTournamentPlayers = ({ container, tournament, players, filters=[], ratings_type, edit }) => {
       if (!players) {
          container.players.element.innerHTML = '';
          return;
@@ -1987,7 +1998,7 @@ export const displayGen = function() {
       let html = '';
       let display_order = {}
       let rowHTML = (p, i, gender) => {
-         html += tpRow(tournament, p, i + 1, j, gender, display, additional_attributes);
+         html += tpRow(tournament, p, i + 1, j, gender, display, additional_attributes, ratings_type);
          display_order[p.puid] = j;
          j+=1;
       }
@@ -1997,7 +2008,7 @@ export const displayGen = function() {
          let u = arr.filter(f=>['M', 'W'].indexOf(f.sex) < 0);
 
          html += `<div class='signin-section'>${lang.tr(notice)}</div>`;
-         html += tpHeader({ display, additional_attributes });
+         html += tpHeader({ display, additional_attributes, ratings_type });
 
          m.forEach((p, i) => rowHTML(p, i, 'M'));
          if (m.length) html += `<div class='signin-row'></div>`;
@@ -2019,18 +2030,19 @@ export const displayGen = function() {
    }
 
    // TODO: make additional rows configurable; CROPIN should be configuration option
-   function tpHeader({ display, additional_attributes }) {
+   function tpHeader({ display, additional_attributes, ratings_type }) {
       let additional = !additional_attributes ? '' :
          additional_attributes.map(attr => `<div class='registered_attr flexcenter'><b>${attr.header}</b></div>`);
       let years = display.years ? `<div class='registered_attr flexcenter'><b>${lang.tr('yr')}</b></div>` : '';
       let clubs = display.clubs ? `<div class='registered_attr flexcenter'><b>${lang.tr('clb')}</b></div>` : '';
       let countries = display.countries ? `<div class='registered_attr flexcenter'><b>${lang.tr('cnt')}</b></div>` : '';
       let schools = display.schools ? `<div class='registered_attr flexcenter'><b>${lang.tr('scl')}</b></div>` : '';
+      let rating = ratings_type ? `<div class='registered_attr flexcenter rankbyrating'><b>${lang.tr('rtg')}</b></div>` : '';
       let html = `
          <div class='signin-row flexrow signin-header'>
             <div class='registered_count flexjustifystart'><b>#</b></div>
             <div class='registered_player flexjustifystart'><b>${lang.tr('ply')}</b></div>
-            ${additional}
+            ${additional}${rating}
             <div class='registered_attr flexcenter'><b>${lang.tr('prnk')}</b></div>
             ${years} ${clubs} ${countries} ${schools}
             <div class='registered_attr flexcenter'><b>${lang.tr('gdr')}</b></div>
@@ -2041,7 +2053,7 @@ export const displayGen = function() {
    }
 
    // TODO: make additional rows configurable; CROPIN should be configuration option
-   function tpRow(tournament, p, i, j, gender, display, additional_attributes) {
+   function tpRow(tournament, p, i, j, gender, display, additional_attributes, ratings_type) {
       let ioc = p.ioc && p.ioc.length == 3 ? p.ioc.toUpperCase() : '';
       if (ioc == '' && p.foreign == 'Y') ioc = 'INO';
 
@@ -2074,11 +2086,20 @@ export const displayGen = function() {
       let countries = display.countries ? `<div class='registered_attr flexcenter'>${ioc}</div>` : '';
       let schools = display.schools ? `<div class='${school_class}'>${school}</div>` : '';
 
+      let player_rating = !ratings_type || !p.ratings ? '' :
+         (p.ratings[ratings_type] && p.ratings[ratings_type].singles && p.ratings[ratings_type].singles.value) || '';
+      if (player_rating == 0) player_rating = '';
       let html = `
          <div puid='${p.puid}' index='${i}' class='player_click signin-row flexrow detail' ${style}>
             <div class='registered_count flexjustifystart'>${i || ''}</div>
             <div class='registered_player flexjustifystart'>${p.full_name}${penalty_icon}${medical_icon}</div>
             ${additional}
+            <div class='registered_attr rankrow' style='display: ${ratings_type ? "flex" : "none"}'>
+               <span class='flexcenter ratingvalue'>${player_rating}</span>
+               <span class='flexjustifyend ratingentry' style='display: none;'>
+                  <input ratingentry='${p.id}' order='${j}' class='manualrating' value='${player_rating}'>
+               </span>
+            </div>
             <div class='registered_attr rankrow'>
                <span class='flexcenter rankvalue'>${ranking}</span>
                <span class='flexjustifyend rankentry' style='display: none;'>
@@ -2941,7 +2962,7 @@ export const displayGen = function() {
       let display = events && events.length;
       let html = !display ? '' : `
          <div class='event_row events_header'>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("cat")}'><div class='event_icon category_header'></div></div>
+            <div class='cell event_category icon ${gen.info} flexjustifystart' label='${lang.tr("cat")}'><div class='event_icon category_header'></div></div>
             <div class='cell event_name'>${lang.tr('events.name')}</div>
             <div class='cell event_draw_type'>${lang.tr('events.draw_type')}</div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.draw_size")}'><div class='event_icon drawsize_header'></div></div>
@@ -2985,7 +3006,7 @@ export const displayGen = function() {
 
       let html = `
          <div class='event event_row${highlight}${warning}' index='${i}' euid='${e.euid}'>
-            <div class='event_data'>${e.category}</div>
+            <div class='event_category'>${e.custom_category || e.category}</div>
             <div class='event_name'>${e.name}</div>
             <div class='event_draw_type'>${e.draw_type_name}</div>
             <div class='event_data flexcenter'>${e.draw_size}</div>

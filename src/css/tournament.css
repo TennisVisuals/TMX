@@ -491,18 +491,39 @@
    flex-direction: row;
    -webkit-flex-direction: row;
    -webkit-justify-content: flex-start;
+   -webkit-align-content: center;
+   align-content: center;
    justify-content: flex-start;
 }
 
 .events .events_header .cell { 
    border-bottom: 1px solid lightgray;
 }
-.events .event_row .event_name           { width: 35%; text-align: left; }
-.events .event_row .event_draw_type      { width: 30%; text-align: left; }
-.event_data { 
-   width:  5%; 
-   text-align: center;
+.events .event_row .event_name {
+   width: 35%;
+   height: auto;
+   text-align: left;
+   display: flex;
+   -webkit-align-items: center;
+   align-items: center;
 }
+.events .event_row .event_draw_type {
+   width: 30%;
+   height: auto;
+   text-align: left;
+   display: flex;
+   -webkit-align-items: center;
+   align-items: center;
+}
+.events .event_row .event_category {
+   width: 15%;
+   height: auto;
+   text-align: left;
+   display: flex;
+   -webkit-align-items: center;
+   align-items: center;
+}
+.event_data { width:  5%; text-align: center; }
 
 .events .event:hover { background-color: #EAEDED }
 .events .highlight_listitem { font-weight: bold }
@@ -725,6 +746,16 @@
    width: 100%; 
    min-height: 1em;
 }
+.signin-row .ratingentry input {
+   border: 0;
+   width: 2em;
+   height: 100%;
+   font-size: 1em;
+   text-align: center;
+   border-bottom: 1px solid lightGrey;
+   background: #FFE;
+}
+
 .signin-row .rankentry input {
    border: 0;
    width: 2em;
@@ -746,8 +777,8 @@
    background: #FFE;
 }
 
-.rankvalue { min-width: 2em; }
-.manualrank { min-width: 3em; }
+.ratingvalue, .rankvalue { min-width: 2em; }
+.manualrank, .manualrating { min-width: 3em; }
 .subrank { min-width: 2em; }
 
 .rankrow {

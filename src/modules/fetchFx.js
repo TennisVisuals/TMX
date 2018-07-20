@@ -245,7 +245,10 @@ export const fetchFx = function() {
          db.findSetting('fetchNewTournaments').then(checkSettings, reject);
 
          function checkSettings(params) {
-            if (!params) return reject({ error: lang.tr('phrases.notconfigured') });
+            if (!params) {
+               console.log('offer to retrieve from server');
+               return reject({ error: lang.tr('phrases.notconfigured') });
+            }
             db.findAllTournaments().then(trnys => fetchNew(trnys, params));
          }
 

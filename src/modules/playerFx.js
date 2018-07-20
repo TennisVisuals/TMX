@@ -54,15 +54,15 @@ export const playerFx = function() {
          .forEach(elem => elem.addEventListener('click', displayGen.clearActivePlayer));
    }
 
-   fx.eligibleForCategory = ({ calc_date, age_category, player }) => {
+   fx.eligibleForCategory = ({ calc_date, category, player }) => {
       if (!calc_date) return false;
-      if (!age_category) return true;
+      if (!category) return true;
       let points_table = fx.fx.pointsTable({calc_date});
       let categories = points_table && points_table.categories;
       if (!categories) return true;
-      if (!categories[age_category]) return false;
-      let ages = categories[age_category].ages;
-      let ratings = categories[age_category].ratings;
+      if (!categories[category]) return false;
+      let ages = categories[category].ages;
+      let ratings = categories[category].ratings;
       if (!ages && !ratings) return true;
 
       if (ages) {
@@ -71,6 +71,8 @@ export const playerFx = function() {
          let max_year = year - parseInt(ages.to);
          let birth_year = new Date(player.birth).getFullYear();
          if (birth_year <= min_year && birth_year >= max_year) return true;
+      } else if (ratings) {
+         return true;
       }
       return false;
    }
@@ -411,7 +413,7 @@ export const playerFx = function() {
       }
       let setGender = (value) => player.sex = value;
       player_container.gender.ddlb = new dd.DropDown({ element: player_container.gender.element, onChange: setGender });
-      player_container.gender.ddlb.selectionBackground();
+      player_container.gender.ddlb.selectionBackground('white');
       if (player.sex) player_container.gender.ddlb.setValue(player.sex, 'white');
 
       // IOC Awesomplete
@@ -533,18 +535,52 @@ export const playerFx = function() {
 
    fx.editPlayer = editPlayer;
    function editPlayer({player_data={}, category, callback, date=new Date()} = {}) {
+      let allowed = fx.fx.env().editing.players;
       let player = {
          first_name: player_data.first_name,
          last_name: player_data.last_name,
+         birth: player_data.birth,
          ioc: player_data.ioc,
+         sex: player_data.sex || 'M'
       }
 
-      let player_container = displayGen.editPlayer(player);
+      let points_table = fx.fx.pointsTable({calc_date: date});
+      let categories = points_table && points_table.categories;
+      category = category ? staging.legacyCategory(category) : 0;
+      let ages = category && categories && categories[category] ? categories[category].ages : { from: 6, to: 100 };
+      let year = new Date().getFullYear();
+      let min_year = year - ((ages && parseInt(ages.from)) || 0);
+      let max_year = year - ((ages && parseInt(ages.to)) || 0);
+      let daterange = { start: `${max_year}-01-01`, end: `${min_year}-12-31` };
+
+      let player_container = displayGen.editPlayer(player, allowed);
       player_container.last_name.element.style.background = player.last_name ? 'white' : 'yellow';
       player_container.first_name.element.style.background = player.first_name ? 'white' : 'yellow';
       player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
+      player_container.birth.element.style.background = player.birth ? 'white' : 'yellow';
 
+      // try to make a reasonable start year
+      let start_year = year - max_year < 17 ? max_year : min_year - 10;
+      let start_date = player.birth ? new Date(player.birth) : new Date(start_year, 11, 31);
+
+      let birthdayPicker = new Pikaday({
+         field: player_container.birth.element,
+         i18n: lang.obj('i18n'),
+         defaultDate: start_date,
+         setDefaultDate: true,
+         minDate: new Date(max_year, 0, 1),
+         maxDate: new Date(min_year, 11, 31),
+         firstDay: fx.fx.env().calendar.first_day,
+         onSelect: function() { validateBirth(player_container.birth.element); },
+      });
       let field_order = [ 'last_name', 'first_name', 'ioc' ];
+
+      if (allowed.gender) {
+         let setGender = (value) => player.sex = value;
+         player_container.gender.ddlb = new dd.DropDown({ element: player_container.gender.element, onChange: setGender });
+         player_container.gender.ddlb.selectionBackground('white');
+         if (player.sex) player_container.gender.ddlb.setValue(player.sex, 'white');
+      }
 
       player_container.last_name.element.focus();
       let nextFieldFocus = (field) => {
@@ -557,6 +593,7 @@ export const playerFx = function() {
       d3.json('./assets/ioc_codes.json', data => {
          let list = data.map(d => ({ label: d.name, value: d.ioc }));
          player_container.ioc.typeAhead = new Awesomplete(player_container.ioc.element, { list });
+         player_container.ioc.element.value = data.reduce((p, c) => p || (c.ioc == player.ioc ? c.name : ''), undefined) || '';
 
          let selection_flag = false;
          let selectComplete = (c) => { 
@@ -590,7 +627,7 @@ export const playerFx = function() {
          if ((!evt || evt.which == 13 || evt.which == 9) && (!required || (required && player[attr]))) return nextFieldFocus(attr);
       }
 
-      let saveNewPlayer = () => { 
+      let saveEditedPlayer = () => { 
          if (!player.first_name || !player.last_name || !player.ioc) return;
          player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
 
@@ -605,12 +642,21 @@ export const playerFx = function() {
 
       let handleSaveKeyUp = (evt) => {
          catchTab(evt); 
-         if (evt.which == 13) saveNewPlayer();
+         if (evt.which == 13) saveEditedPlayer();
       }
 
       let handleCancelKeyEvent = (evt) => {
          evt.preventDefault()
          if (evt.which == 9) nextFieldFocus(evt.shiftKey ? 'phone' : 'cancel');
+      }
+
+      function birthKeyUp(evt) { validateBirth(evt.target, evt); }
+
+      function validateBirth(elem, evt) {
+         let datestring = elem.value;
+         let valid_date = util.validDate(datestring, daterange);
+         elem.style.background = valid_date ? 'white' : 'yellow';
+         if (valid_date) return defineAttr('birth', evt, true, elem);
       }
 
       player_container.last_name.element.addEventListener('keydown', (evt) => { if (evt.shiftKey && evt.which == 9) nextFieldFocus('email'); });
@@ -619,7 +665,8 @@ export const playerFx = function() {
       player_container.cancel.element.addEventListener('click', () => displayGen.closeModal());
       player_container.cancel.element.addEventListener('keydown', handleCancelKeyEvent);
       player_container.cancel.element.addEventListener('keyup', (evt) => { if (evt.which == 13) displayGen.closeModal(); });
-      player_container.save.element.addEventListener('click', saveNewPlayer);
+      player_container.birth.element.addEventListener('keyup', birthKeyUp);
+      player_container.save.element.addEventListener('click', saveEditedPlayer);
       player_container.save.element.addEventListener('keydown', handleSaveKeyDown, false);
       player_container.save.element.addEventListener('keyup', handleSaveKeyUp, false);
    }

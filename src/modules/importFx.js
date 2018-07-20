@@ -864,7 +864,6 @@ export const importFx = function() {
 
          addPlayers().then(addTournaments).then(addRankings).then(addClubs).then(()=>displayGen.busy.done(id));
       }
-
    }
 
    function extractPlayers(workbook) {

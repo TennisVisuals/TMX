@@ -18,7 +18,6 @@ export const scheduleFx = function() {
       if (!tournament.schedule) tournament.schedule = {};
 
       var date_range = util.dateRange(tournament.start, tournament.end);
-      console.log('date range:', date_range);
       var date_options = date_range.map(d => ({ key: calendarFx.localizeDate(d), value: util.formatDate(d) }));
 
       var scheduled = mfx.scheduledMatches(tournament).scheduled;
@@ -32,6 +31,8 @@ export const scheduleFx = function() {
             courts
          }
       }).filter(d => Object.keys(d.courts).length);
+
+      if (!days_matches.length) return;
 
       return getOOP();
 

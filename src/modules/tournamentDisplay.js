@@ -869,7 +869,8 @@ export const tournamentDisplay = function() {
 
       container.export_matches.element.addEventListener('click', () => {
          if (container.export_matches.element.firstChild.classList.contains('download')) {
-            db.findTournamentMatches(tournament.tuid).then(exportMatches, util.logError);
+            let { completed_matches, pending_matches, upcoming_matches } = mfx.tournamentEventMatches({ tournament });
+            exportMatches(completed_matches);
          }
          let profile = fx.fx.env().org.abbr || 'Unknown';
          function exportMatches(matches) {
@@ -881,12 +882,16 @@ export const tournamentDisplay = function() {
                displayGen.closeModal();
             });
             choices.option2.element.addEventListener('click', () => {
-               downloadUTRmatches(tournament, matches);
                displayGen.closeModal();
+               if (fx.fx.env().exports.utr) {
+                  downloadUTRmatches(tournament, matches);
+               } else {
+                  displayGen.popUpMessage('Not authorized to export UTR');
+               }
             });
          }
          function downloadUTRmatches(tournament, matches) {
-            let match_records = exportFx.matchRecords(matches);
+            let match_records = exportFx.UTRmatchRecords({ matches, players: tournament.players });
             let csv = exportFx.json2csv(match_records);
             exportFx.downloadText(`UTR-${profile}-${tournament.tuid}-U${tournament.category}.csv`, csv);
          }
@@ -2232,6 +2237,7 @@ export const tournamentDisplay = function() {
                   name: e.name,
                   rank: e.rank,
                   active: e.active,
+                  custom_category: e.custom_category,
                   category: e.category,
                   published: e.published,
                   up_to_date: e.up_to_date,
@@ -2265,10 +2271,47 @@ export const tournamentDisplay = function() {
          }
          // attach action to display event_details when clicking each event
          util.addEventToClass('event', eventDetails, container.events.element);
+         util.addEventToClass('event', customEventCategory, container.events.element, 'contextmenu');
          util.addEventToClass('pubstate', eventPubState, container.events.element);
          util.addEventToClass('published_header', unpublishAllEvents, document, 'contextmenu');
          if (regen_drawstab) drawsTab();
          enableTournamentOptions();
+      }
+
+      function customEventCategory(evt) {
+         let clicked_event = util.getParent(evt.target, 'event');
+         let euid = clicked_event.getAttribute('euid');
+         let evnt = tfx.findEventByID(tournament, euid);
+         if (state.edit) {
+            var coords = { x: evt.clientX, y: evt.clientY }
+            // let coords = d3.mouse(selector);
+            let cec_name_obj = displayGen.entryModal('nm', false, coords);
+            displayGen.escapeModal();
+
+            let entry_modal = d3.select(cec_name_obj.entry_modal.element);
+
+            let removeEntryModal = () => {
+               entry_modal.remove();
+               document.body.style.overflow = null;
+               displayGen.escapeFx = undefined;
+            }
+
+            entry_modal.on('click', removeEntryModal);
+            cec_name_obj.search_field.element.value = evnt.custom_category;
+            cec_name_obj.search_field.element.addEventListener("keyup", function(e) { 
+               if (e.which == 13) {
+                  submitCustomName(cec_name_obj.search_field.element.value);
+                  removeEntryModal();
+               }
+            });
+
+            function submitCustomName(name) {
+               evnt.custom_category = name;
+               evnt.broadcast_name = `${evnt.custom_category || evnt.category || ''} ${getKey(genders, evnt.gender)} ${getKey(formats, evnt.format)}`;
+               saveTournament(tournament);
+               eventList(true);
+            }
+         }
       }
 
       function eventPubState(evt, action) {
@@ -2566,7 +2609,7 @@ export const tournamentDisplay = function() {
             .filter(f => types[type].indexOf(f.draw_type) >= 0)
             .filter(f => f.gender == e.gender && f.format == e.format && f.category == e.category)
             .filter(f => existingLink(f) || !hasLinkType(f, e.draw_type))
-            .map(m => ({ key: `${m.category} ${m.name}${modifiers[m.draw_type] || ''}`, value: m.euid }));
+            .map(m => ({ key: `${m.custom_category || m.category} ${m.name}${modifiers[m.draw_type] || ''}`, value: m.euid }));
          let options = [].concat({ key: 'None', value: '' }, ...events);
          if (!events.length) return false;
 
@@ -2978,7 +3021,7 @@ export const tournamentDisplay = function() {
 
       function eventName(e) {
          e.name = `${getKey(genders, e.gender)} ${getKey(formats, e.format)}`;
-         e.broadcast_name = `${getKey(genders, e.gender)} ${e.category || ''} ${getKey(formats, e.format)}`;
+         e.broadcast_name = `${e.custom_category || e.category || ''} ${getKey(genders, e.gender)} ${getKey(formats, e.format)}`;
          displayGen.setEventName(container, e);
          eventList();
       }
@@ -3900,6 +3943,7 @@ export const tournamentDisplay = function() {
 
          // TODO: consider the possibility that tournament dates may not include all dates within a range
          let date_range = util.dateRange(tournament.start, tournament.end);
+         if (currently_selected_day && date_range.indexOf(new Date(currently_selected_day)) < 0) currently_selected_day = undefined;
          let formatted_date_range = date_range.map(m => new Date(util.formatDate(m)).getTime());
 
          let all_matches = completed_matches.concat(...pending_matches, ...upcoming_matches);
@@ -3935,7 +3979,7 @@ export const tournamentDisplay = function() {
 
          function eventOption(evt) {
             let type = evt.draw_type == 'E' ? '' : evt.draw_type == 'C' ? ` ${lang.tr('draws.consolation')}` : evt.draw_type == 'R' ? ' RR' : ' Q';
-            let category = evt.category ? `${evt.category} ` : '';
+            let category = evt.custom_category ? `${evt.custom_category} ` : evt.category ? `${evt.category} ` : '';
             return { key: `${category}${evt.name}${type}`, value: evt.euid }
          }
          let event_filters = [].concat({ key: lang.tr('schedule.allevents'), value: '' }, ...tournament.events.map(eventOption));
@@ -4833,22 +4877,21 @@ export const tournamentDisplay = function() {
          container.category_filter.ddlb.setValue(prior_value || category, 'white');
 
          // playersTab has a category DDLB... and this should be used for ordering players...
-         let t_players = tfx.orderPlayersByRank(tournament.players, prior_value || tournament.categories[0])
-            .filter(player => playerFx.eligibleForCategory({ calc_date, age_category: prior_value, player }));
+         let current_value = prior_value || tournament.categories[0];
+         let t_players = tfx.orderPlayersByRank(tournament.players, current_value)
+            .filter(player => playerFx.eligibleForCategory({ calc_date, category: current_value, player }));
 
-         let ratings = false;
+         let points_table = fx.fx.pointsTable({calc_date});
+         let ctgs = points_table && points_table.categories;
+         let ratings = ctgs && ctgs[current_value] && ctgs[current_value].ratings;
+         let ratings_type = ratings && ratings.type;
 
          if (!t_players.length && !state.edit) {
             d3.select('#YT' + container.container.id).style('display', 'none');
             return;
          }
 
-         /*
-         let points_table = fx.fx.pointsTable({calc_date});
-         let ctgs = points_table && points_table.categories;
-         */
-
-         let display_order = displayGen.displayTournamentPlayers({ container, tournament, players: t_players, filters, ratings, edit: state.edit });
+         let display_order = displayGen.displayTournamentPlayers({ container, tournament, players: t_players, filters, ratings_type, edit: state.edit });
 
          function categoryChanged(selected_category) { playersTab(); }
 
@@ -4934,6 +4977,8 @@ export const tournamentDisplay = function() {
                if (p.last_name) new_player_data.last_name = p.last_name;
                new_player_data.full_name = `${new_player_data.last_name.toUpperCase()}, ${util.normalizeName(new_player_data.first_name, false)}`;
                if (p.ioc) new_player_data.ioc = p.ioc;
+               if (p.birth) new_player_data.birth = p.birth;
+               if (p.sex) new_player_data.sex = p.sex;
 
                tfx.replaceTournamentPlayer({ tournament, existing_player: clicked_player, new_player_data });
                saveFx();
@@ -5021,22 +5066,28 @@ export const tournamentDisplay = function() {
 
          let entryKey = (evt, cls, attribute) => {
             let value = evt.target.value;
-            function validValue(value) { return /^\{\d*\}*$/.test(value) ? value : util.numeric(value); }
-            evt.target.value = validValue(value) || '';
+            function validRanking(value) { return /^\{\d*\}*$/.test(value) ? value : util.numeric(value); }
+            function validRating(value) {return /^[-+]?\d+(\.\d+)?$/.test(value) ? value : value; }
+
+            evt.target.value = cls && cls.indexOf('rating') >= 0 ? validRating(value) || '' : validRanking(value) || '';
 
             let element = util.getParent(evt.target, 'player_click');
             let puid = element.getAttribute('puid');
             let changed_player = playerByPUID(puid);
 
-            let changed_value = evt.target.value != validValue(changed_player.category_ranking) && evt.target.value != validValue(changed_player.modified_ranking);
+            // TODO: changed_value needs to be attribute sensitive
+            // let changed_value = evt.target.value != validRanking(changed_player.category_ranking) && evt.target.value != validRanking(changed_player.modified_ranking);
 
             if (changed_player) {
+               let changeable = true;
+               /*
                let changeable = players_approved().indexOf(changed_player.id) >= 0 ? false : true;
                if (!changeable && changed_value) {
                   let message = `<div>${lang.tr('phrases.cannotchangerank')}<p>${lang.tr('phrases.approvedplayer')}</div>`;
                   displayGen.escapeModal();
                   displayGen.popUpMessage(message);
                }
+               */
                // TODO: in the future will need to modify rank for categories if there are multiple categories in one tournament
                if (attribute == 'rank') { 
                   if (changeable) {
@@ -5055,7 +5106,14 @@ export const tournamentDisplay = function() {
                         checkDuplicateRankings(display_order);
                      }
                   } else {
-                     evt.target.value = validValue(changed_player.modified_ranking || changed_player.category_ranking) || '';
+                     evt.target.value = validRanking(changed_player.modified_ranking || changed_player.category_ranking) || '';
+                  }
+               } else if (attribute == 'rating') {
+                  console.log('modify rating for ratings type:', ratings_type);
+                  if (changeable) {
+                     changed_player.ratings[ratings_type].singles.value = value;
+                  } else {
+                     // evt.target.value = validRating(changed_player.ratings[ratings_type].singles.value) || '';
                   }
                } else {
                   if (changeable) {
@@ -5086,17 +5144,41 @@ export const tournamentDisplay = function() {
          }
 
          let rankEntryKey = (evt) => entryKey(evt, '.manualrank', 'rank');
+         let ratingEntryKey = (evt) => entryKey(evt, '.manualrating', 'rating');
          let subRankKey = (evt) => entryKey(evt, '.subrank', 'subrank');
 
+         let rankByRating = () => {
+            if (!state.edit || !tournament.players || !tournament.players.length) return;
+            let message = `Rank Players by Rating?`;
+            displayGen.okCancelMessage(message, rankEm, () => displayGen.closeModal());
+
+            function rankEm() {
+               displayGen.closeModal();
+               tournament.players.forEach(p => { delete p.rank; delete p.modified_ranking; delete p.category_ranking; });
+               let rated_players = tournament.players
+                  .filter(p=>p.ratings && p.ratings[ratings_type] && p.ratings[ratings_type].singles && parseFloat(p.ratings[ratings_type].singles.value));
+               rated_players
+                  .sort((a, b) => parseFloat(b.ratings[ratings_type].singles.value) - parseFloat(a.ratings[ratings_type].singles.value))
+                  .forEach((p, i) => p.rank = i+1);
+               saveTournament(tournament);
+               playersTab();
+            }
+         }
+
          util.addEventToClass('manualrank', catchTab, container.players.element, 'keydown');
+         util.addEventToClass('manualrating', catchTab, container.players.element, 'keydown');
          util.addEventToClass('subrank', catchTab, container.players.element, 'keydown');
 
          util.addEventToClass('player_click', signInState, container.players.element);
          util.addEventToClass('player_click', tournamentPlayerContext, container.players.element, 'contextmenu');
          util.addEventToClass('ranksub', stopPropagation, container.players.element);
          util.addEventToClass('rankentry', stopPropagation, container.players.element);
+         util.addEventToClass('ratingentry', stopPropagation, container.players.element);
          util.addEventToClass('manualrank', rankEntryKey, container.players.element, 'keyup');
+         util.addEventToClass('manualrating', ratingEntryKey, container.players.element, 'keyup');
          util.addEventToClass('subrank', subRankKey, container.players.element, 'keyup');
+         util.addEventToClass('rankbyrating', rankByRating, container.players.element);
+         util.addEventToClass('rankbyrating', rankByRating, container.players.element, 'contextmenu');
          checkDuplicateRankings(display_order);
          signInSheet();
       }
@@ -7251,7 +7333,7 @@ export const tournamentDisplay = function() {
             container[field].element.addEventListener('keydown', catchTab, false);
             container[field].element.addEventListener('keyup', (evt) => defineAttr(field, evt));
             container[field].element.value = tournament[field] || '';
-         });;
+         });
 
          let day_times = days.map(d=>new Date(d).getTime());
          let max_start = Math.min(...day_times);
@@ -7259,6 +7341,10 @@ export const tournamentDisplay = function() {
 
          let start = new Date(tournament.start);
          let end = new Date(tournament.end);
+         if (start > new Date(max_start)) {
+            tournament.start = max_start;
+            start = new Date(max_start);
+         }
 
          function updateStartDate() {
             tournament.start = util.dateUTC(start);
@@ -7269,15 +7355,27 @@ export const tournamentDisplay = function() {
             }
             endPicker.setStartRange(start);
             endPicker.setMinDate(start);
+            unscheduleStrandedMatches();
             saveTournament(tournament);
-         };
+         }
          function updateEndDate() {
             tournament.end = util.dateUTC(end);
             startPicker.setEndRange(end);
             startPicker.setMaxDate(end);
             endPicker.setEndRange(end);
+            unscheduleStrandedMatches();
             saveTournament(tournament);
-         };
+         }
+         function unscheduleStrandedMatches() {
+            let date_range = util.dateRange(tournament.start, tournament.end);
+            let { scheduled } = mfx.scheduledMatches(tournament);
+            let stranded = scheduled.filter(s=>date_range.indexOf(new Date(s.schedule.day)) < 0);
+
+            stranded.forEach(match => {
+               match.schedule = {};
+               match.source.schedule = {};
+            });
+         }
          var startPicker = new Pikaday({
             field: container.start_date.element,
             defaultDate: start,
@@ -7285,17 +7383,11 @@ export const tournamentDisplay = function() {
             i18n: lang.obj('i18n'),
             firstDay: fx.fx.env().calendar.first_day,
             onSelect: function() {
-                let date = this.getDate();
-                // can't set start after to earliest scheduled match
-                if (util.sameDay(date, new Date(max_start)) || date.getTime() <= max_start) {
-                   start = date;
-                   updateStartDate();
-                } else {
-                   this.setDate(start);
-                }
-                nextFieldFocus('start_date');
+               start = this.getDate();
+               updateStartDate();
+               nextFieldFocus('start_date');
             },
-         });
+         })
          var endPicker = new Pikaday({
             field: container.end_date.element,
             defaultDate: end,
@@ -7303,16 +7395,9 @@ export const tournamentDisplay = function() {
             i18n: lang.obj('i18n'),
             firstDay: fx.fx.env().calendar.first_day,
             onSelect: function() {
-                let date = this.getDate();
-               let this_date = this.getDate();
-                // can't set end prior to latest scheduled match
-                if (util.sameDay(date, new Date(min_end)) || date.getTime() >= min_end) {
-                   end = date;
-                   updateEndDate();
-                } else {
-                   this.setDate(end);
-                }
-                nextFieldFocus('end_date');
+               end = this.getDate();
+               updateEndDate();
+               nextFieldFocus('end_date');
             },
          });
 
@@ -7339,7 +7424,7 @@ export const tournamentDisplay = function() {
             draw_options = tournament.events.map((e, i) => { 
                if (displayed_event && displayed_event == e.euid) selection = i;
                let edt = tfx.genEventName(e, tfx.isPreRound({ env: fx.fx.env(), e })).type || '';
-               return { key: `${e.category ? e.category + ' ' : ''}${e.name} ${edt}`, value: i }
+               return { key: `${e.custom_category ? e.custom_category + ' ' : e.category ? e.category + ' ' : ''}${e.name} ${edt}`, value: i }
             });
          } else if (group_draws.length) {
             draw_options = group_draws;
@@ -7402,6 +7487,10 @@ export const tournamentDisplay = function() {
       function enableRankEntry(visible) {
          Array.from(document.querySelectorAll('.rankentry')).forEach(e=>e.style.display = visible ? '' : 'none');
          Array.from(document.querySelectorAll('.rankvalue')).forEach(e=>e.style.display = visible ? 'none' : '');
+
+         Array.from(document.querySelectorAll('.ratingentry')).forEach(e=>e.style.display = visible ? '' : 'none');
+         Array.from(document.querySelectorAll('.ratingvalue')).forEach(e=>e.style.display = visible ? 'none' : '');
+
          if (!visible) playersTab();
       }
 

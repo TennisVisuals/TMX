@@ -83,6 +83,7 @@ export const lang = function() {
       tmz:     'Teams',
       rnk:     'Rank',
       rnkz:    'Rankings',
+      rtg:     'Rating',
       rtz:     'Ratings',
       prnk:    'Rank',           // player rank
       trnk:    'Rank',           // tournament rank

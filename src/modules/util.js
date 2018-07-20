@@ -221,6 +221,7 @@ export const util = function() {
    // Miscellaneous Functions
    util.zeroPad = (number) => number.toString()[1] ? number : "0" + number;
    util.numeric = (value) => value && !isNaN(value) ? parseInt(value.toString().trim()) : 0;
+   util.numericFloat = (value) => value && !isNaN(value) ? parseFloat(value.toString().trim()) : 0;
    util.containsNumber = (value) => /\d/.test(value);
    util.isMember = (list, m) => list.reduce((p, c) => c == m || p, false);
    util.unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
