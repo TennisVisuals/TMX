@@ -1,3 +1,4 @@
+import { db } from './db'
 export function rrDraw() {
 
    var o = {
@@ -810,11 +811,6 @@ export function treeDraw() {
          path: undefined,
       },
 
-      compass: {
-         display: false,
-         png: undefined,
-      },
-
       lines: {
          stroke_width: 1,
       },
@@ -946,6 +942,7 @@ export function treeDraw() {
       let doubles = info.doubles;
       let draw_positions = info.draw_positions;
       let max_draw_position = Math.max(...draw_positions);
+      let total_rounds = dfx.drawRounds(draw_positions.length);
       let total_players = draw_positions.length - info.byes.length;
 
       let playerHeight = o.height / draw_positions.length;
@@ -992,6 +989,7 @@ export function treeDraw() {
       tree
           .separation((a, b) => a.parent === b.parent ? 1 : 1)
           .size([draw_height, draw_width - (invert_first ? 0 : round_width)]);
+          // .nodeSize([playerHeight, round_width]); // .nodeSize or .size but not both
 
       let nodes = tree(draw_hierarchy).descendants();
 
@@ -1000,29 +998,103 @@ export function treeDraw() {
     
       let links = nodes[0].links();
 
+      let unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
+
+      // collect and sort an array of all bracket offsets
+      let offsets = unique(links.map(l=>+Math.abs(l.source.x - l.target.x).toFixed(2))).sort((a, b) => a - b);
+      let lastRound = (height) => height == depth;
+      let isEven = (n) => n % 2 == 0;
+
+      db.addDev({offsets});
+
+      // determine all heights > 2 at which feed rounds occur
+      // keep a record in rh of the rounds for heach feed height
+      let rh = {};
+      let heights = links
+         .filter(l=>l.target.data.feed && l.source.height > 2)
+         .reduce((p, c) => {
+            if (p.indexOf(c.source.height) < 0) {
+               p.push(c.source.height);
+               if (lastRound(c.source.height)) { c.source.data.round = total_rounds - 1; }
+               rh[c.source.height] = { round: c.source.data.round, fed: c.target.data.fed };
+            }
+            return p;
+         }, []);
+
+      // keep track of any overflow due to feed rounds
+      let max_height = draw_height;
+
+      // for each height adjust all source nodes by apprpriate offset
+      // if link is a feed node then also adjust the target node
+      heights
+         .forEach(ht => {
+            links.forEach(l => {
+               if (l.source.height >= ht) {
+                  // FUTURE TODO
+                  // let direction = isEven(rh[ht].fed) ? -1 : 1;
+                  let direction = 1;
+                  if (offsets[rh[ht].round - 1]) {
+                     // add bracket source offset
+                     if (direction > 0) {
+                        let source_offset = (offsets[rh[ht].round - 1] - (offsets[0] / 2));
+                        let last_offset = (offsets[rh[ht].round - 1]/2) - (offsets[0] / 2);
+                        l.source.x += (lastRound(ht) ? last_offset : source_offset);
+                     } else {
+                        // FUTURE TODO
+                        let source_offset = (offsets[rh[ht].round - 1] + (offsets[0] / 2));
+                        let last_offset = (offsets[rh[ht].round - 1]/2) + (offsets[0] / 2);
+                        l.source.x -= (lastRound(ht) ? last_offset : source_offset);
+                     }
+                     // modify position of feed arm
+                     if (l.target.data.feed) {
+                        if (direction > 0) {
+                           // first correct for other adjustments
+                           l.target.x += (l.source.x - l.target.x);
+                           // then add proper offset
+                           let offset = offsets[l.source.data.round] || offsets[0] * Math.pow(2, l.source.data.round) || 0;
+                           if (lastRound(l.source.height)) { offset = offsets[0] * Math.pow(2, l.source.data.round - 1); }
+                           l.target.x += offset;
+                        } else {
+                           // FUTURE TODO
+                           // first correct for other adjustments
+                           l.target.x = l.target.x - (l.source.x - l.target.x);
+                           // then add proper offset
+                           let offset = offsets[l.source.data.round] || offsets[0] * Math.pow(2, l.source.data.round) || 0;
+                           if (lastRound(l.source.height)) { offset = offsets[0] * Math.pow(2, l.source.data.round - 1); }
+                           l.target.x = l.target.x - offset;
+                        }
+                        if (l.target.x > max_height) { max_height = l.target.x; }
+                     }
+                  }
+               }
+            });
+         });
+
       if (invert_first) links[0].source.y = links[0].source.y - (2 * round_width);
 
       let elbow = (d, i) => {
-         let targety = d.target.y;
+         let target_y = d.target.y;
          let ydiff = d.source.y - d.target.y;
 
+         let feed_arm = d.target.data.feed;
+
          // horizontal offset
-         let ho = seeding + (!o.draw.feed_in && ydiff - round_width > 1 ? round_width * 2 : round_width);
+         let ho = (!feed_arm ? seeding : 0) + (ydiff - round_width > 1 ? round_width * 2 : round_width);
 
-         if (ydiff - round_width > 1) targety = targety + round_width;
+         if (ydiff - round_width > 1) target_y += round_width;
 
+         // insure that lines for compressed draw formats extend full left
          if (d.target.depth == depth || (!o.draw.feed_in && d.target.depth < depth && !d.target.data.match)) ho = ho + left_column_offset - seeding;
-         let eulerian = (n,r=0) => { for (i=n, r=n?1:0; i>1; i--) { r+=Math.pow(2, i)-1; } return r; }
-         if (o.draw.feed_in && !d.target.children && d.source.depth < depth - 2) {
-            let multiplier = eulerian((depth - d.source.depth) / 2 - 1);
-            d.target.x = d.target.x + multiplier * (d.target.x - d.source.x);
-         }
 
-         return `M${d.source.y},${d.source.x}H${targety}V${d.target.x}${d.target.children ? "" : "h-" + ho}`;
+         return `M${d.source.y},${d.source.x}H${target_y}V${d.target.x}${d.target.children ? "" : "h-" + ho}`;
       }
 
       // temporarily used for figuring out feed-in draw layout
-      let pathColor = (d, i) => o.draw.feed_in && !d.target.children && d.source.depth < depth - 2 ? 'black' : 'black';
+      let pathColor = (d, i) => {
+         if (!o.draw.feed_in || !d.target.data.feed) return 'black';
+         return 'black';
+         // return (d.source.height == depth ? 'blue' : 'green');
+      }
 
       if (o.cleanup) root.selectAll("svg").remove();
 
@@ -1031,7 +1103,7 @@ export function treeDraw() {
       let svg = root.append("svg")
           .style("shape-rendering", "crispEdges")
           .attr("width", svg_width)
-          .attr("height", draw_height + top_margin + o.margins.bottom)
+          .attr("height", max_height + top_margin + o.margins.bottom)
         .append("g")
           .attr("transform", "translate(" + translate_x + "," + top_margin + ")");
 
@@ -1124,7 +1196,8 @@ export function treeDraw() {
 
          function editWidth(d) {
             let width = round_width - o.players.offset_left;
-            if (!d.height) width += club_codes;
+            let feed = d.data && d.data.feed;
+            if (!d.height && !feed) { width += club_codes; }
             return width > 0 ? width : 0;
          }
       }
@@ -1334,9 +1407,10 @@ export function treeDraw() {
       }
 
       function playerBaseX(d, i) {
+         let feed = d.data && d.data.feed;
          let base = (-1 * round_width) + o.players.offset_left;
          let x = (i == 0 && invert_first) ? base + round_width : base;
-         return d.height ? x : x - club_codes;
+         return d.height || feed ? x : x - club_codes;
       }
 
       function dpX(d, i) {
@@ -1726,8 +1800,8 @@ export function drawFx(opts) {
       return o.compressed_draw_formats ? draw_sizes[d] : standard_draws[s];
    }
 
-   fx.qualDrawSize = qualDrawSize;
-   function qualDrawSize(num_players) {
+   fx.standardDrawSize = standardDrawSize;
+   function standardDrawSize(num_players) {
       let i = 0;
       while (standard_draws[i] < num_players) i += 1;
       return standard_draws[i];
@@ -1993,6 +2067,44 @@ export function drawFx(opts) {
       return bracket.matches && bracket.matches.length && bracket.matches.filter(m=>m.winner).length == bracket.matches.length;
    }
 
+   fx.drawRounds = drawRounds;
+   function drawRounds(num_players) {
+      if (!num_players) return;
+      // get the binary representation of the number of players
+      let bin = d2b(num_players);
+      // result is length of binary string - 1 + 1 if there are any 1s after first digit
+      return bin.slice(1).length + (bin.slice(1).indexOf(1) >= 0 ? 1 : 0);
+      function d2b(dec) { return (dec >>> 0).toString(2); }
+   }
+
+   fx.feedDrawSize = feedDrawSize;
+   function feedDrawSize({ num_players, skip_rounds, feed_rounds }) {
+      let s = 0;
+      let burn = 0;
+      while (calcFeedSize({ first_round_size: standard_draws[s], skip_rounds, feed_rounds }) < num_players && burn < 10) {
+         burn += 1;
+         s += 1;
+      }
+      if (burn >= 10) {
+         console.log('BOOM!', num_players, skip_rounds, feed_rounds);
+         return standard_draws[1];
+      }
+      return standard_draws[s];
+   }
+
+   fx.calcFeedSize = calcFeedSize;
+   function calcFeedSize({ first_round_size, skip_rounds, feed_rounds }) {
+      if (!first_round_size) return 0;
+      let numArr = (count) => [...Array(count)].map((_, i) => i);
+      let feed_capacity = (first_round_size * 2) - 1;
+      let skip_reduce = skip_rounds && skip_rounds > 0 ? first_round_size / (skip_rounds * 2) : 0;
+      let draw_rounds = drawRounds(first_round_size);
+      let possible_feed_rounds = draw_rounds - (skip_rounds || 0);
+      let feed_diff = feed_rounds != undefined ? possible_feed_rounds - feed_rounds : 0;
+      let feed_reduce = (feed_rounds != undefined && feed_diff > 0) ? numArr(feed_diff).map(d=>Math.pow(2, d)).reduce((a, b) => (a || 0) + (b || 0)) : 0;
+      return feed_capacity - skip_reduce - feed_reduce;
+   }
+
    fx.drawInfo = drawInfo;
    function drawInfo(draw) {
       if (!draw) return;
@@ -2111,7 +2223,7 @@ export function drawFx(opts) {
    }
 
    fx.buildRound = buildRound;
-   function buildRound(draw, byes = []) {
+   function buildRound(draw, byes = [], fed, rounds) {
       let round = [];
       let pos = 0;
       while (pos < draw.length) {
@@ -2120,7 +2232,16 @@ export function drawFx(opts) {
             round.push(match);
             pos += 1;
          } else {
-            let match = { children: [ draw[pos], draw[pos + 1]] };
+            let child1 = draw[pos];
+            child1.fed = fed;
+            child1.round = rounds;
+            let child2 = draw[pos + 1];
+            if (child2) {
+               child2.fed = fed;
+               child2.round = rounds;
+            }
+
+            let match = { children: [ child1, child2] };
             round.push(match);
             pos += 2;
          }
@@ -2129,12 +2250,20 @@ export function drawFx(opts) {
    }
 
    fx.feedRound = feedRound;
-   function feedRound(draw, remaining) {
+   function feedRound(draw, remaining, fed, rounds) {
       let round = [];
       let pos = 0;
       while (pos < draw.length) {
-         let opponent = remaining.pop();
-         let match = { children: [ draw[pos], opponent] };
+         let feed_arm = remaining.pop();
+         feed_arm.feed = true;
+         feed_arm.fed = fed + 1;
+         feed_arm.round = rounds;
+
+         let position = draw[pos];
+         position.round = rounds;
+         position.fed = fed + 1;
+
+         let match = { children: [ position, feed_arm] };
          round.push(match);
          pos += 1;
       }
@@ -2153,34 +2282,57 @@ export function drawFx(opts) {
    }
 
    fx.feedInDraw = feedInDraw;
-   function feedInDraw({ teams, skip_rounds = 0, feed_rounds = 10, offset }) {
-      let total_positions = Array.isArray(teams) ? teams.length : teams;
-      if (total_positions < 3) return;
+   function feedInDraw({ teams, skip_rounds=0, sequentials=0, feed_rounds=0, offset }) {
+      let team_count = Array.isArray(teams) ? teams.length : teams;
+      if (team_count < 2) return;
+      let total_rounds = drawRounds(teams);
+      if (skip_rounds >= total_rounds) feed_rounds = 0;
+
       let up2 = (x) => Math.pow(2, Math.ceil(Math.log(x)/Math.log(2)));
-      let positions = blankDraw(up2(total_positions + 1), offset);
+      let players = up2(team_count + 1);
+      let positions = blankDraw(players, offset);
 
       let remaining = positions.slice(positions.length / 2).reverse();
       let round = buildRound(positions.slice(0, positions.length / 2));
 
-      while (skip_rounds) {
+      let rounds = 0;
+      while (round.length > 1 && skip_rounds > 0) {
          round = buildRound(round);
          skip_rounds -= 1;
+         rounds += 1;
       }
+
+      // if (sequentials && sequentials > 1) feed_rounds = sequentials;
 
       let fed = 0;
-      if (round.length > 1) {
-         ({round, remaining} = feedRound(round, remaining));
+      let sequenced = 0;
+      if (round.length > 1 && fed < feed_rounds) {
+         ({round, remaining} = feedRound(round, remaining, fed, rounds));
          fed += 1;
+         sequenced += 1;
       }
 
+      /*
+      while(round.length > 1 && sequentials < sequenced) {
+         ({round, remaining} = feedRound(round, remaining, fed, rounds));
+         fed += 1;
+         sequenced += 1;
+      }
+      */
+
       while (round.length > 1) {
-         round = buildRound(round);
+         round = buildRound(round, undefined, fed, rounds);
+         rounds += 1;
          if (round.length > 1 && fed < feed_rounds) {
-            if (fed >= skip_rounds) ({round, remaining} = feedRound(round, remaining));
+            if (fed >= skip_rounds) ({round, remaining} = feedRound(round, remaining, fed, rounds));
             fed += 1;
          }
       }
-      ({round, remaining} = feedRound(round, remaining));
+
+      if (fed < feed_rounds) {
+         ({round, remaining} = feedRound(round, remaining, fed, rounds));
+      }
+
       return round && round.length ? round[0] : round;
    }
 
@@ -2206,7 +2358,7 @@ export function drawFx(opts) {
    fx.buildQualDraw = buildQualDraw;
    function buildQualDraw(num_players, num_qualifiers) {
       let group_size = Math.ceil(num_players/num_qualifiers);
-      let section_size = qualDrawSize(group_size);
+      let section_size = standardDrawSize(group_size);
       let sections = Array.from(new Array(num_qualifiers),(val,i)=>i);
       let children = sections.map((u, i) => buildDraw({teams: section_size, offset: i * section_size}));
       let max_round = d3.hierarchy(children[0]).height;
@@ -2432,7 +2584,7 @@ export function drawFx(opts) {
    function qualifyingBracketSeeding({ draw, num_players, qualifiers, seed_limit }) {
 
       let group_size = Math.ceil(num_players/qualifiers);
-      let section_size = qualDrawSize(group_size);
+      let section_size = standardDrawSize(group_size);
       let sections = Array.from(new Array(qualifiers),(val,i)=>i);
 
       let placements = [];
@@ -2586,7 +2738,11 @@ export function drawFx(opts) {
          let flat_pairs = [].concat(...pairs_no_seed_or_bye);
 
          // redefined undefined bye_positions to either be those asigned to adjacent pairs or pairs_no_seed_or_bye
-         bye_positions = assignment.map(b => b || randomPop(pairs_no_seed_or_bye)[Math.floor(Math.random() * 2)]);
+         bye_positions = assignment.map(b => {
+            if (b) return b;
+            if (pairs_no_seed_or_bye.length) return randomPop(pairs_no_seed_or_bye)[Math.floor(Math.random() * 2)];
+            console.log('filtered bye position')
+         }).filter(f=>f);
 
          // redefine pairs_no_seed to filter out pairs_no_seed_or_bye
          pairs_no_seed = pairs_no_seed.filter(pair => !intersection(pair, flat_pairs));

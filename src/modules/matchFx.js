@@ -203,7 +203,16 @@ export const matchFx = function() {
       var names = [];
       var calculated_names = [];
       if (['E', 'C', 'S'].indexOf(e.draw_type) >= 0) {
-         names = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128', 'R256'];
+         if (e.structure == 'feed') {
+            names = ['F', 'SF', 'QF'];
+            let depth = dfx.drawInfo(e.draw).depth;
+            if (depth > 3) {
+               let rounds = util.numArr(depth -3).map(d=>`R${d+1}`).reverse();
+               names = names.concat(...rounds);
+            }
+         } else {
+            names = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128', 'R256'];
+         }
       }
       if (['Q'].indexOf(e.draw_type) >= 0) {
          names = ['Q', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5'];

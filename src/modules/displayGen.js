@@ -1289,6 +1289,8 @@ export const displayGen = function() {
          separate_by_ioc: displayFx.uuid(),
          separate_by_club: displayFx.uuid(),
          ll_all_rounds: displayFx.uuid(),
+         consolationalts: displayFx.uuid(),
+         consolationseeds: displayFx.uuid(),
          display_flags: displayFx.uuid(),
          court_detail: displayFx.uuid(),
          after_matches: displayFx.uuid(),
@@ -1316,6 +1318,14 @@ export const displayGen = function() {
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.llallrounds')}:</label>
                     <input type='checkbox' id="${ids.ll_all_rounds}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.consolationalts')}:</label>
+                    <input type='checkbox' id="${ids.consolationalts}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.consolationseeds')}:</label>
+                    <input type='checkbox' id="${ids.consolationseeds}">
                 </div>
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.separate_by_ioc')}:</label>
@@ -3156,7 +3166,7 @@ export const displayGen = function() {
       return displayFx.idObj(ids);
    }
 
-   gen.configTreeDraw = (container, e, options) => {
+   gen.configTreeDraw = ({ container, e, structure_options, feed_options, skip_options, sequential_options }) => {
       let ids = {
          structure: displayFx.uuid(),
          qualification: displayFx.uuid(),
@@ -3164,21 +3174,22 @@ export const displayGen = function() {
          elimination: displayFx.uuid(),
          skiprounds: displayFx.uuid(),
          feedrounds: displayFx.uuid(),
+         sequential: displayFx.uuid(),
       }
-
-      // TODO: Skip Rounds / Feed Rounds
 
       let config = `
          <div class='detail_fields'>
             <div class='column'>
                <div class='entry_label'>${lang.tr('draws.structure')}</div>
-               <div class='entry_label' style='display: none'>Skip Rounds</div>
-               <div class='entry_label' style='display: none'>Feed Rounds</div>
+               <div class='entry_label feedconfig' style='display: none'>Skip Rounds</div>
+               <div class='entry_label feedconfig' style='display: none'>Feed Rounds</div>
+               <div class='entry_label feedconfig' style='display: none'>Sequential</div>
             </div>
             <div class='column'>
                <div class='entry_field' id='${ids.structure}'></div>
-               <div class='entry_field' style='display: none' id='${ids.skip}'></div>
-               <div class='entry_field' style='display: none' id='${ids.feed}'></div>
+               <div class='entry_field feedconfig' style='display: none' id='${ids.skiprounds}'></div>
+               <div class='entry_field feedconfig' style='display: none' id='${ids.feedrounds}'></div>
+               <div class='entry_field feedconfig' style='display: none' id='${ids.sequential}'></div>
             </div>
          </div>
          <div class='linked_draw qualification' style='display: none'>
@@ -3195,7 +3206,11 @@ export const displayGen = function() {
          </div>
       `;
       d3.select(container.draw_config.element).html(config);
-      dd.attachDropDown({ id: ids.structure,  options });
+
+      dd.attachDropDown({ id: ids.skiprounds, options: skip_options });
+      dd.attachDropDown({ id: ids.feedrounds, options: feed_options });
+      dd.attachDropDown({ id: ids.sequential, options: sequential_options });
+      dd.attachDropDown({ id: ids.structure,  options: structure_options });
       dd.attachDropDown({ id: ids.qualification, options: [{ key: lang.tr('none'), value: ''}] });
       dd.attachDropDown({ id: ids.consolation, options: [{ key: lang.tr('none'), value: ''}] });
       dd.attachDropDown({ id: ids.elimination, options: [{ key: lang.tr('none'), value: ''}] });
@@ -3236,17 +3251,20 @@ export const displayGen = function() {
       return displayFx.idObj(ids);
    }
 
-   gen.configQualificationDraw = (container, e, qualcounts) => {
+   gen.configQualificationDraw = ({ container, e, structure_options, feed_options, skip_options, sequential_options, qualcounts }) => {
       let ids = {
+         structure: displayFx.uuid(),
          qualifiers: displayFx.uuid(),
          elimination: displayFx.uuid(),
       }
       let config = `
          <div class='detail_fields'>
             <div class='column'>
+               <div class='entry_label'>${lang.tr('draws.structure')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('qualifiers')}</div>
             </div>
             <div class='column'>
+               <div class='entry_field' id='${ids.structure}'></div>
                <div class='entry_field' id='${ids.qualifiers}'></div>
             </div>
          </div>
@@ -3256,6 +3274,8 @@ export const displayGen = function() {
          </div>
       `;
       d3.select(container.draw_config.element).html(config);
+
+      dd.attachDropDown({ id: ids.structure, options: structure_options });
       dd.attachDropDown({ id: ids.qualifiers,  options: qualcounts });
       dd.attachDropDown({ id: ids.elimination, options: [{ key: lang.tr('none'), value: ''}] });
       return displayFx.idObj(ids);

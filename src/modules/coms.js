@@ -23,6 +23,7 @@ export const coms = function() {
       processDirective: () => console.log('process directive'),
       receiveIdiomList: () => console.log('receive Idiom List'),
       receiveTournament: () => console.log('receive Tournament'),
+      receiveTournaments: () => console.log('receive Tournaments.'),
       receiveTournamentEvents: () => console.log('receive Tournament Events'),
       receiveTournamentRecord: () => console.log('receive Tournament Record'),
    }
@@ -71,6 +72,8 @@ export const coms = function() {
          oi.socket.on('tmx_event', e => mod.fx.receiveEvent(e, true));
          oi.socket.on('noauth_event', e => mod.fx.receiveEvent(e, false));
          oi.socket.on('idioms available', mod.fx.receiveIdiomList);
+         oi.socket.on('auth_org_trnys', t => mod.fx.receiveTournaments(t, true));
+         oi.socket.on('noauth_org_trnys', mod.fx.receiveTournaments);
       }
    } 
 

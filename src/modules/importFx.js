@@ -71,6 +71,7 @@ export const importFx = function() {
       let parse_category = parts[0].match(/\d+/) || (parts[0] == 'RS' ? [20] : undefined);
       if (parse_category) meta.filecategory = staging.legacyCategory(parse_category[0]);
 
+      /*
       if (filename[0] == 'R') {
          let datestring = filename.split('_')[1].match(/\d+/)[0];
          if (datestring.length == 8) {
@@ -89,6 +90,7 @@ export const importFx = function() {
          if (fileid && fileid[0].length == 4) meta.old_id = fileid[0];
          // if (fileid && fileid[0].length == 3) meta.tuid = 'HTS' + fileid[0];
       }
+      */
       return meta;
    }
 
@@ -201,7 +203,7 @@ export const importFx = function() {
 
    function importTournaments(rows) {
       let callback = () => searchBox.searchSelect('tournaments');
-      let id = displayGen.busy.message('<p>Loading Tournaments...</p>', callback);
+      let id = displayGen.busy.message(`<p>${lang.tr('trnyz')}</p>`, callback);
       let tournaments = [];
       if (!Array.isArray(rows)) rows = [rows];
 
@@ -236,7 +238,7 @@ export const importFx = function() {
 
    load.addNewTournaments = (trnys) => {
       let callback = () => searchBox.searchSelect('tournaments');
-      let id = displayGen.busy.message('<p>Loading Tournaments...</p>');
+      let id = displayGen.busy.message(`<p>${lang.tr('trnyz')}</p>`);
       console.log(id);
       util.performTask(db.addTournament, trnys, false).then(done, () => displayGen.busy.done(id));
 
@@ -867,12 +869,17 @@ export const importFx = function() {
    }
 
    function extractPlayers(workbook) {
-      let sheet_name = workbook.SheetNames.indexOf('Players') >= 0 ? 'Players' : workbook.SheetNames.indexOf('Registrants') >= 0 ? 'Registrants' : undefined;
+      let sheet_name;
+      if (workbook.SheetNames.indexOf('Players') >= 0) sheet_name = 'Players';
+      if (workbook.SheetNames.indexOf('Registrants') >= 0) sheet_name = 'Registrants';
+      if (workbook.SheetNames.indexOf('Matched Players') >= 0) sheet_name = 'Matched Players';
       if (!sheet_name) return [];
       let headers = [ 
          { attr: 'id', header: 'ID' }, 
          { attr: 'last_name', header: 'Last Name' }, 
+         { attr: 'last_name', header: 'Last', sheet_name: 'Matched Players' }, 
          { attr: 'first_name', header: 'First Name' }, 
+         { attr: 'first_name', header: 'First', sheet_name: 'Matched Players' }, 
          { attr: 'full_name', header: 'Full Name' }, 
          { attr: 'city', header: 'City' }, 
          { attr: 'region', header: 'Region' }, 
@@ -884,14 +891,18 @@ export const importFx = function() {
          { attr: 'club_name', header: 'Club Name' }, 
          { attr: 'school', header: 'School' }, 
          { attr: 'rating_utr_singles', header: 'Verified SinglesUtr' }, 
+         { attr: 'rating_utr_singles', header: 'Rating', sheet_name: 'Matched Players' }, 
          { attr: 'rating_utr_singles_status', header: 'Verified SinglesUtr Status' }, 
+         { attr: 'rating_utr_singles_status', header: 'RatingStatus' }, 
          { attr: 'rating_utr_doubles', header: 'Verified DoublesUtr' }, 
+         { attr: 'rating_utr_doubles', header: 'DoublesRating', sheet_name: 'Matched Players' }, 
          { attr: 'rating_utr_doubles_status', header: 'Verified DoublesUtr Status' }, 
+         { attr: 'rating_utr_doubles_status', header: 'RatingStatusDoubles' }, 
          { attr: 'ioc', header: 'Nationality' }, 
          { attr: 'email', header: 'Email' }, 
          { attr: 'phone', header: 'Phone' }, 
          { attr: 'college', header: 'College' }, 
-      ];
+      ].filter(s=>!s.sheet_name || s.sheet_name == sheet_name);
       let players = extractWorkbookRows(workbook.Sheets[sheet_name], headers);
       players.forEach(player => {
          if (player.sex) {
@@ -1006,7 +1017,7 @@ export const importFx = function() {
    function identifyWorkbook(workbook) {
       let sheets = workbook.SheetNames;
       if (util.intersection(sheets, ['CourtHive', 'Players']).length == 2) return 'courthive_imports';
-      if (util.intersection(sheets, ['Registrants']).length == 1) return 'UTR';
+      if (util.intersection(sheets, ['Registrants', 'Matched Players']).length == 1) return 'UTR';
       return 'tournament';
    }
 

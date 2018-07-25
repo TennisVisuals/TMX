@@ -23,6 +23,7 @@ export const staging = function() {
    fx.init = () => {
       coms.fx.processDirective = processDirective;
       coms.fx.receiveTournament = receiveTournament;
+      coms.fx.receiveTournaments = receiveTournaments;
       coms.fx.receiveTournamentRecord = receiveTournamentRecord;
       coms.fx.receiveIdiomList = receiveIdiomList;
       coms.fx.tmxMessage = tmxMessage;
@@ -101,6 +102,26 @@ export const staging = function() {
          db.addTournament(published_tournament).then(displayTournament, util.logError);
       }
       function displayTournament() { tournamentDisplay.displayTournament({tuid: published_tournament.tuid}); }
+   }
+
+   function receiveTournaments(tournaments, authorized) {
+      let new_trnys = tournaments.map(t=>attemptJSONparse(t)).filter(f=>f);
+      Promise.all(new_trnys.map(mergeTournament)).then(checkDisplay, util.logError);
+
+      function mergeTournament(trny) {
+         return new Promise((resolve, reject) => {
+            db.findTournament(trny.tuid).then(mergeExisting, util.logError);
+            function mergeExisting(existing) {
+               if (!existing) {
+                  db.addTournament(trny).then(resolve, reject);
+               } else {
+                  resolve();
+               }
+            }
+         });
+      }
+
+      function checkDisplay() { if (displayGen.content == 'calendar') tournamentDisplay.displayCalendar(); }
    }
 
    function tmxMessage(msg) {

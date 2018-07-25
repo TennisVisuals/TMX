@@ -122,7 +122,7 @@ export const exportFx = function() {
       let winners = match.team_players[match.winner];
       let losers = match.team_players[1 - match.winner];
       let players = match.players;
-      let dbls = winners.length > 1;
+      let dbls = winners && winners.length > 1;
       let category = staging.legacyCategory(match.tournament.category) || '';
       let genders = match.players.map(p => p.sex).filter(f=>f).filter((item, i, s) => s.lastIndexOf(item) == i);
       let player_gender = (sex) => ['M', 'B'].indexOf(sex) >= 0 ? 'M' : 'F';

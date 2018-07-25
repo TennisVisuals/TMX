@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.182.326.226',
+      version: '0.9.188.338.232',
       version_check: undefined,
       org: {
          name: undefined,
@@ -149,9 +149,14 @@ export const config = function() {
             qualification: true,
             roundrobin: true,
             consolation: true,
-            compass: false,
-            feedin: false,
+            compass: true,
             playoff: true,
+         },
+         structures: {
+            feedin: {
+               elimination: true,
+               consolation: false
+            },
          },
          gem_seeding: false,
          settings: {
@@ -388,7 +393,8 @@ export const config = function() {
    function updateSettings(settings) {
       return new Promise((resolve, reject) => {
          if (!settings) resolve();
-         db.db.settings.where('key').equals('superUser').delete().then(newSettings, reject);
+         newSettings();
+         // db.db.settings.where('key').equals('superUser').delete().then(newSettings, reject);
          function newSettings() { Promise.all(settings.map(s=>db.addSetting(s))).then(resolve, reject) }
       });
    }
@@ -476,6 +482,14 @@ export const config = function() {
             container.ll_all_rounds.element.addEventListener('click', llAllRounds);
             container.ll_all_rounds.element.checked = util.string2boolean(env.drawFx.ll_all_rounds);
             function llAllRounds(evt) { env.drawFx.ll_all_rounds = container.ll_all_rounds.element.checked; }
+
+            container.consolationalts.element.addEventListener('click', consolationAlts);
+            container.consolationalts.element.checked = util.string2boolean(env.drawFx.consolation_alternates);
+            function consolationAlts(evt) { env.drawFx.consolation_alternates = container.consolationalts.element.checked; }
+
+            container.consolationseeds.element.addEventListener('click', consolationSeeding);
+            container.consolationseeds.element.checked = util.string2boolean(env.drawFx.consolation_seeding);
+            function consolationSeeding(evt) { env.drawFx.consolation_seeding = container.consolationseeds.element.checked; }
 
             container.separate_by_ioc.element.addEventListener('click', separateIOCs);
             container.separate_by_ioc.element.checked = util.string2boolean(env.drawFx.separation.ioc);
@@ -872,7 +886,7 @@ export const config = function() {
             let scoreboard = getKey('scoreboardDefaults');
             if (scoreboard && scoreboard.defaults) {
                if (scoreboard.defaults.settings) {
-                  util.boolAttrs(scoreboard.settings);
+                  util.boolAttrs(scoreboard.defaults.settings);
                   util.keyWalk(scoreboard.defaults.settings, env.scoreboard.settings);
                }
                if (scoreboard.defaults.options) {
@@ -1222,10 +1236,18 @@ export const config = function() {
       let addNew = (trnys) => util.performTask(db.addTournament, trnys, false).then(done, done);
       let mergeTournaments = (trnys) => util.performTask(mergeTournament, trnys, false).then(done, done);
       let notConfigured = (err) => { done(); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
+      let checkServer = (err) => {
+         let message = `${(err && err.error) || ''}<p>Retrieve from CourtHive Server?`;
+         displayGen.okCancelMessage(message, fetchServerTournaments, () => displayGen.closeModal());
+         function fetchServerTournaments() {
+            displayGen.closeModal();
+            coms.emitTmx({ getOrgTournaments: { ouid: env.org.ouid, authorized: true }});
+         }
+      }
       if (merge) {
-         fetchFx.fetchNewTournaments(merge).then(mergeTournaments, notConfigured);
+         fetchFx.fetchNewTournaments(merge).then(mergeTournaments, checkServer);
       } else {
-         fetchFx.fetchNewTournaments().then(addNew, notConfigured);
+         fetchFx.fetchNewTournaments().then(addNew, checkServer);
       }
 
       function mergeTournament(trny) {

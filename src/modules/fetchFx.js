@@ -245,10 +245,7 @@ export const fetchFx = function() {
          db.findSetting('fetchNewTournaments').then(checkSettings, reject);
 
          function checkSettings(params) {
-            if (!params) {
-               console.log('offer to retrieve from server');
-               return reject({ error: lang.tr('phrases.notconfigured') });
-            }
+            if (!params) { return reject({ error: lang.tr('phrases.notconfigured') }); }
             db.findAllTournaments().then(trnys => fetchNew(trnys, params));
          }
 
@@ -473,7 +470,7 @@ export const fetchFx = function() {
                players.forEach(player => { player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; });
                resolve(players);
             }
-            importFx.loadPlayersDragAndDrop(id_obj.dropzone.element, () => { console.log('init'); }, callback);
+            importFx.loadPlayersDragAndDrop(id_obj.dropzone.element, ()=>{}, callback);
          }
 
          function localRequest() {

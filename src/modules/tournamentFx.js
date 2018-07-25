@@ -74,6 +74,7 @@ export const tournamentFx = function() {
    }
 
    function replaceEventPlayer(evnt, existing_player, new_player_data) {
+      if (!evnt.draw) return;
       if (evnt.draw.compass) {
          let directions = ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'];
          directions.filter(d=>evnt.draw[d]).forEach(d=>dfx.replaceDrawPlayer(evnt.draw[d], existing_player, new_player_data));
