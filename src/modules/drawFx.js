@@ -1,4 +1,3 @@
-import { db } from './db'
 export function rrDraw() {
 
    var o = {
@@ -1004,8 +1003,6 @@ export function treeDraw() {
       let offsets = unique(links.map(l=>+Math.abs(l.source.x - l.target.x).toFixed(2))).sort((a, b) => a - b);
       let lastRound = (height) => height == depth;
       let isEven = (n) => n % 2 == 0;
-
-      db.addDev({offsets});
 
       // determine all heights > 2 at which feed rounds occur
       // keep a record in rh of the rounds for heach feed height
