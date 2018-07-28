@@ -256,6 +256,7 @@ export const playerFx = function() {
          puid: p.puid,
          seed: p.seed,
          rank: p.rank,
+         ratings: p.ratings,
          rankings: p.rankings,
          club_code: p.club_code,
          full_name: p.full_name,

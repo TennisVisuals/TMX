@@ -60,8 +60,12 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '0.9.188.338.232',
+      version: '1.0.0.1.2',
       version_check: undefined,
+      reset_new_versions: false,
+
+      orientation: undefined,
+
       org: {
          name: undefined,
          abbr: undefined,
@@ -70,11 +74,8 @@ export const config = function() {
       editing: {
          players: {
             birth: true,
-            gender: false
+            gender: true
          }
-      },
-      exports: {
-         utr: false
       },
       assets: {
          flags: '/media/flags/',
@@ -84,14 +85,27 @@ export const config = function() {
          players: false,
          registered_players: false,
       },
-      map: undefined,
-      map_provider: undefined, // 'google' or 'leaflet'
-      orientation: undefined,
-      reset_new_versions: false,
-      geolocate: true,
-      broadcast: true,
-      livescore: false,
-      autodraw: true,
+      metadata: {
+         exchange_formats: {
+            oops: 1.0,
+            matches: 1.0,
+            tournaments: 1.0,
+         }
+      },
+      exports: {
+         utr: false
+      },
+      locations: {
+         geolocate: true,
+         map: undefined,
+         map_provider: undefined, // 'google' or 'leaflet'
+      },
+      // broadcast: true,
+      // livescore: false,
+      // autodraw: true,
+      // geolocate: true,
+      // map: undefined,
+      // map_provider: undefined, // 'google' or 'leaflet'
       calendar: {
          start: undefined,
          end: undefined,
@@ -144,6 +158,7 @@ export const config = function() {
          },
       },
       draws: {
+         autodraw: true,
          types: {
             elimination: true,
             qualification: true,
@@ -192,6 +207,8 @@ export const config = function() {
          save_pdfs: false
       },
       publishing: {
+         broadcast: true,
+         livescore: false,
          require_confirmation: false,
          publish_on_score_entry: true,
          publish_draw_creation: false,
@@ -486,6 +503,10 @@ export const config = function() {
             container.consolationalts.element.addEventListener('click', consolationAlts);
             container.consolationalts.element.checked = util.string2boolean(env.drawFx.consolation_alternates);
             function consolationAlts(evt) { env.drawFx.consolation_alternates = container.consolationalts.element.checked; }
+
+            container.qualconsolation.element.addEventListener('click', qualConsolation);
+            container.qualconsolation.element.checked = util.string2boolean(env.drawFx.consolation_from_qualifying);
+            function qualConsolation(evt) { env.drawFx.consolation_from_qualifying = container.qualconsolation.element.checked; }
 
             container.consolationseeds.element.addEventListener('click', consolationSeeding);
             container.consolationseeds.element.checked = util.string2boolean(env.drawFx.consolation_seeding);
@@ -803,7 +824,7 @@ export const config = function() {
       function updateKey(setting={key: 'keys', keys:[]}) {
          setting.keys = setting.keys.filter(k=>k.keyid != data.keyid);
          setting.keys.push({ keyid: data.keyid, description: data.description });
-         db.addSetting(setting).then(update, update);
+         if (data.description) db.addSetting(setting).then(update, update);
       }
       function update() { updateSettings(data.content).then(()=>envSettings().then(settingsReceived, util.logError), util.logError); }
       function settingsReceived() { settingsLoaded(); setIdiom(); }
@@ -825,7 +846,7 @@ export const config = function() {
             if (app && app.components) {
                util.boolAttrs(app.components);
                util.keyWalk(app.components, o.components);
-               env.autodraw = o.components.autodraw != undefined ? o.components.autodraw : true;
+               env.draws.autodraw = o.components.autodraw != undefined ? o.components.autodraw : true;
             }
 
             let org = getKey('orgData');
@@ -1143,7 +1164,7 @@ export const config = function() {
       window.addEventListener("resize", function() { setOrientation(); checkVisible(); }, false);
       setOrientation();
 
-      if (env.map_provider == 'google') fetchFx.loadGoogleMaps();
+      if (env.locations.map_provider == 'google') fetchFx.loadGoogleMaps();
 
       coms.emitTmx({
          event: 'Connection',
@@ -1152,7 +1173,7 @@ export const config = function() {
       });
 
       // used to locate known tournaments in vicinity; auto-fill country
-      if (env.geolocate && window.navigator.onLine && window.navigator.geolocation) {
+      if (env.locations.geolocate && window.navigator.onLine && window.navigator.geolocation) {
          window.navigator.geolocation.getCurrentPosition(pos => { 
             device.geoposition = pos;
             coms.emitTmx({ 

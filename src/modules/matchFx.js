@@ -25,7 +25,14 @@ export const matchFx = function() {
 
       ordered_events.forEach(oe => {
          let e = tournament.events[oe.index];
+         if (e.draw_type == 'R') dfx.roundRobinRounds(e.draw);
          let { complete, incomplete, upcoming } = eventMatchStorageObjects(tournament, e, source);
+
+         if (e.draw_type == 'R') {
+            complete.sort((a, b) => a.round_name && b.round_name && a.round_name.localeCompare(b.round_name));
+            incomplete.sort((a, b) => a.round_name && b.round_name && a.round_name.localeCompare(b.round_name));
+            upcoming.sort((a, b) => a.round_name && b.round_name && a.round_name.localeCompare(b.round_name));
+         }
 
          completed_matches = completed_matches.concat(...complete);
          pending_matches = pending_matches.concat(...incomplete);
@@ -102,6 +109,7 @@ export const matchFx = function() {
          // potential opponents for upcoming matches
          potentials: match.potentials,
 
+         result_order: match.result_order,
          round: match.round || match.match.round,
          round_name: match.round_name || match.match.round_name,
          calculated_round_name: match.calculated_round_name,

@@ -1289,6 +1289,7 @@ export const displayGen = function() {
          separate_by_ioc: displayFx.uuid(),
          separate_by_club: displayFx.uuid(),
          ll_all_rounds: displayFx.uuid(),
+         qualconsolation: displayFx.uuid(),
          consolationalts: displayFx.uuid(),
          consolationseeds: displayFx.uuid(),
          display_flags: displayFx.uuid(),
@@ -1313,11 +1314,23 @@ export const displayGen = function() {
                     <label class='calabel'>${lang.tr('settings.fixedbyes')}:</label>
                     <input type='checkbox' id="${ids.fixed_bye_order}">
                 </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.separate_by_ioc')}:</label>
+                    <input type='checkbox' id="${ids.separate_by_ioc}" ${separation}>
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.separate_by_club')}:</label>
+                    <input type='checkbox' id="${ids.separate_by_club}" ${separation}>
+                </div>
              </div>
              <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.llallrounds')}:</label>
                     <input type='checkbox' id="${ids.ll_all_rounds}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.qualconsolation')}:</label>
+                    <input type='checkbox' id="${ids.qualconsolation}">
                 </div>
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.consolationalts')}:</label>
@@ -1326,14 +1339,6 @@ export const displayGen = function() {
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.consolationseeds')}:</label>
                     <input type='checkbox' id="${ids.consolationseeds}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.separate_by_ioc')}:</label>
-                    <input type='checkbox' id="${ids.separate_by_ioc}" ${separation}>
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.separate_by_club')}:</label>
-                    <input type='checkbox' id="${ids.separate_by_club}" ${separation}>
                 </div>
              </div>
              <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
@@ -2331,6 +2336,7 @@ export const displayGen = function() {
          filter_d: displayFx.uuid(), // doubles
          auto_draw: displayFx.uuid(),
          gem_seeding: displayFx.uuid(),
+         player_filter: displayFx.uuid(),
          print_draw: displayFx.uuid(),
          print_sign_in: displayFx.uuid(),
          ranking_order: displayFx.uuid(),
@@ -2463,7 +2469,8 @@ export const displayGen = function() {
                   <div class='event_name flexcenter'>${lang.tr('events.newevent')}</div>
                   <div class='flexrow'>
                      <div class='${classes.auto_draw} info' style='display: none;' label='${lang.tr("adr")}'><div class='automation_icon automated_draw_pause'></div></div>
-                     <div class='${classes.gem_seeding} info' style='display: none;' label='${lang.tr("draws.gemseeding")}'><div class='gem_icon gem_inactive'></div></div>
+                     <div class='${classes.gem_seeding} info' style='display: inline;' label='${lang.tr("draws.gemseeding")}'><div class='gem_icon gem_inactive'></div></div>
+                     <div class='${classes.player_filter} info' style='display: inline;' label='${lang.tr("draws.playerfilter")}'><div class='filter_icon filter_inactive'></div></div>
                      <!--
                      <div class='${classes.print_draw_order} info' label='${lang.tr("mdo")}' style='display: none'><div class='print action_icon'></div></div>
                      -->
@@ -3168,6 +3175,7 @@ export const displayGen = function() {
 
    gen.configTreeDraw = ({ container, e, structure_options, feed_options, skip_options, sequential_options }) => {
       let ids = {
+         roundlimit: displayFx.uuid(),
          structure: displayFx.uuid(),
          qualification: displayFx.uuid(),
          consolation: displayFx.uuid(),
@@ -3180,12 +3188,14 @@ export const displayGen = function() {
       let config = `
          <div class='detail_fields'>
             <div class='column'>
+               <div class='entry_label roundlimit' style='display: none'>${lang.tr('draws.roundlimit')}</div>
                <div class='entry_label'>${lang.tr('draws.structure')}</div>
-               <div class='entry_label feedconfig' style='display: none'>Skip Rounds</div>
-               <div class='entry_label feedconfig' style='display: none'>Feed Rounds</div>
-               <div class='entry_label feedconfig' style='display: none'>Sequential</div>
+               <div class='entry_label feedconfig' style='display: none'>${lang.tr('draws.skiprounds')}</div>
+               <div class='entry_label feedconfig' style='display: none'>${lang.tr('draws.feedrounds')}</div>
+               <div class='entry_label feedconfig' style='display: none'>${lang.tr('draws.sequential')}</div>
             </div>
             <div class='column'>
+               <div class='entry_field roundlimit' id='${ids.roundlimit}' style='display: none'></div>
                <div class='entry_field' id='${ids.structure}'></div>
                <div class='entry_field feedconfig' style='display: none' id='${ids.skiprounds}'></div>
                <div class='entry_field feedconfig' style='display: none' id='${ids.feedrounds}'></div>
@@ -3207,10 +3217,11 @@ export const displayGen = function() {
       `;
       d3.select(container.draw_config.element).html(config);
 
+      dd.attachDropDown({ id: ids.roundlimit });
+      dd.attachDropDown({ id: ids.structure,  options: structure_options });
       dd.attachDropDown({ id: ids.skiprounds, options: skip_options });
       dd.attachDropDown({ id: ids.feedrounds, options: feed_options });
       dd.attachDropDown({ id: ids.sequential, options: sequential_options });
-      dd.attachDropDown({ id: ids.structure,  options: structure_options });
       dd.attachDropDown({ id: ids.qualification, options: [{ key: lang.tr('none'), value: ''}] });
       dd.attachDropDown({ id: ids.consolation, options: [{ key: lang.tr('none'), value: ''}] });
       dd.attachDropDown({ id: ids.elimination, options: [{ key: lang.tr('none'), value: ''}] });
@@ -3878,7 +3889,7 @@ export const displayGen = function() {
       gen.fx.setMap(map);
 
       // retrieve lat/lng from click event
-      google.maps.event.addListener(gen.fx.env().map, 'click', function (e) {
+      google.maps.event.addListener(gen.fx.env().locations.map, 'click', function (e) {
           alert("Latitude: " + e.latLng.lat() + "\r\nLongitude: " + e.latLng.lng());
       });
 
@@ -3886,7 +3897,7 @@ export const displayGen = function() {
       // https://stackoverflow.com/questions/7905733/google-maps-api-3-get-coordinates-from-right-click
       // also has example of using infoWindow
       /*
-      google.maps.event.addListener(gen.fx.env().map, "rightclick", function(e) {
+      google.maps.event.addListener(gen.fx.env().locations.map, "rightclick", function(e) {
           let lat = e.latLng.lat();
           let lng = e.latLng.lng();
           alert("Lat=" + lat + "; Lng=" + lng);
@@ -3898,7 +3909,7 @@ export const displayGen = function() {
       /*
       let marker = new google.maps.Marker({
           position: myLatlng,
-          map: gen.fx.env().map,
+          map: gen.fx.env().locations.map,
           title: 'Click to zoom'
       });
 
@@ -4236,7 +4247,7 @@ export const displayGen = function() {
       }
 
       if (gps) {
-         if (gen.fx.env().map_provider == 'google') {
+         if (gen.fx.env().locations.map_provider == 'google') {
             let opts = {
                id: id_obj.map.id,
                lat: +club.lat,
@@ -4245,7 +4256,7 @@ export const displayGen = function() {
             gen.googleMap(opts);
          } 
 
-         if (gen.fx.env().map_provider == 'leaflet') {
+         if (gen.fx.env().locations.map_provider == 'leaflet') {
             // some ideas: https://leanpub.com/leaflet-tips-and-tricks/read
 
             let mapLink = '<a href="http://openstreetmap.org">OpenStreetMap</a>';
@@ -4261,9 +4272,9 @@ export const displayGen = function() {
             let map = L.map(id_obj.map.id).setView([+club.lat, +club.long], 16).addLayer(Esri_WorldImagery); // satellite imagery
             gen.fx.setMap(ap);
 
-            let marker = L.marker([+club.lat, +club.long]).addTo(gen.fx.env().map);
+            let marker = L.marker([+club.lat, +club.long]).addTo(gen.fx.env().locations.map);
 
-            // gen.fx.env().map.on('click', function(e) { alert(e.latlng.lat); });
+            // gen.fx.env().locations.map.on('click', function(e) { alert(e.latlng.lat); });
             // http://leafletjs.com/reference.html#events
             map.on('click', function(e) { alert(e.latlng); });
 
@@ -4271,7 +4282,7 @@ export const displayGen = function() {
             // http://plnkr.co/edit/9vm81YsQxnkAFs35N8Jo?p=preview
             map.on("contextmenu", function (event) {
               console.log("Coordinates: " + event.latlng.toString());
-              L.marker(event.latlng).addTo(gen.fx.env().map);
+              L.marker(event.latlng).addTo(gen.fx.env().locations.map);
             });
          }
       }

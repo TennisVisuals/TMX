@@ -162,11 +162,11 @@ export const staging = function() {
       }
    }
 
-   fx.endBroadcast = () => { config.env().broadcast = false; }
+   fx.endBroadcast = () => { config.env().publishing.broadcast = false; }
    fx.broadcasting = () => {
-      if (config.env().broadcast && coms.connected()) return true;
-      // if (config.env().broadcast && !coms.connected() && navigator.onLine) { connectSocket(); }
-      if (config.env().broadcast && !coms.connected) { connectSocket(); }
+      if (config.env().publishing.broadcast && coms.connected()) return true;
+      // if (config.env().publishing.broadcast && !coms.connected() && navigator.onLine) { connectSocket(); }
+      if (config.env().publishing.broadcast && !coms.connected) { connectSocket(); }
       return false;
    }
 

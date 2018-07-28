@@ -6,6 +6,7 @@ body {
    --sch-warning: lightyellow;
    --sch-complete: #E0ECF8;
    --sch-inprogress: #CEF6CE;
+   --sch-abandoned: #F7BE81;
 }
 
 .umpire_notes {
@@ -221,6 +222,7 @@ html.can-touch .unscheduled_match:hover { background: none; }
 .court_schedule .conflict { background: var(--sch-conflict); }
 .court_schedule .warning { background: var(--sch-warning); }
 .court_schedule .inprogress { background: var(--sch-inprogress); }
+.court_schedule .abandoned { background: var(--sch-abandoned); }
 
 .left_team { 
    width: 30em;
@@ -251,5 +253,6 @@ html.can-touch .unscheduled_match:hover { background: none; }
 }
 .trny-oop .timepressure { background: var(--schedule-timepressure); }
 .trny-oop .inprogress { background: var(--schedule-inprogress); }
+.trny-oop .abandoned { background: var(--schedule-abandoned); }
 .trny-oop .complete { background: var(--schedule-complete); }
 .trny-oop .conflict { background: var(--schedule-conflict); }

@@ -90,8 +90,7 @@ export const rankCalc = function() {
          event_rank = `${event_rank}${points_table.options.calculated_round_modifier}`;
       }
 
-      // this handles legacy situation...  TODO: cleanup / standardize
-      let match_round = round_name || match.round_name || match.round;
+      let match_round = match.result_order || round_name || match.round_name;
 
       // draw_positions is total # of draw positions
       let qualifying = match_round && match_round.indexOf('Q') >= 0 && match_round != 'QF' && match_round.indexOf('RR') < 0;
@@ -104,6 +103,8 @@ export const rankCalc = function() {
          let points_row = (mapping && mapping[round]) ?  mapping[round] : undefined;
          let points = points_row && points_row[event_rank] ? points_row[event_rank] * multiplier : 0;
          if (match.score && match.score.toLowerCase().indexOf('abandoned') >= 0) { return 0; }
+         if (match.score && match.score.toLowerCase().indexOf('cancelled') >= 0) { return 0; }
+         if (match.score && match.score.toLowerCase().indexOf('incomplete') >= 0) { return 0; }
          return points;
       }
       

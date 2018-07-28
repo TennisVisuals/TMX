@@ -127,7 +127,7 @@ export const scoreBoard = function() {
          let winner = determineWinner(grouped ? false : true);
          set_number = winner != undefined ? set_scores.length : Math.max(0, set_scores.length - 1);
 
-         if (existing_scores && (existing_scores.length || existing_scores.walkover || existing_scores.default)) {
+         if (existing_scores && (Object.keys(existing_scores).length || existing_scores.length || existing_scores.walkover || existing_scores.default)) {
             let last_set = set_scores.length ? set_scores[set_scores.length - 1] : undefined;
             if (set_scores.interrupted) {
                sobj.p1action.ddlb.setValue(' ');
@@ -135,14 +135,27 @@ export const scoreBoard = function() {
                sobj.p1action.ddlb.lock();
                sobj.p2action.ddlb.lock();
                displayActions(true);
-               if (scoreGoal(last_set[0].games, last_set[1].games)) { set_number += 1; }
+               if (last_set && scoreGoal(last_set[0].games, last_set[1].games)) { set_number += 1; }
+            } else if (set_scores.cancelled) {
+               sobj.p1action.ddlb.setValue(' ');
+               sobj.p2action.ddlb.setValue('cancelled');
+               sobj.p1action.ddlb.lock();
+               sobj.p2action.ddlb.lock();
+               displayActions(true);
+            } else if (set_scores.incomplete) {
+               sobj.p1action.ddlb.setValue(' ');
+               sobj.p2action.ddlb.setValue('incomplete');
+               sobj.p1action.ddlb.lock();
+               sobj.p2action.ddlb.lock();
+               displayActions(true);
+               if (last_set && scoreGoal(last_set[0].games, last_set[1].games)) { set_number += 1; }
             } else if (set_scores.live) {
                sobj.p1action.ddlb.setValue(' ');
                sobj.p2action.ddlb.setValue('live');
                sobj.p1action.ddlb.lock();
                sobj.p2action.ddlb.lock();
                displayActions(true);
-               if (scoreGoal(last_set[0].games, last_set[1].games)) { set_number += 1; }
+               if (last_set && scoreGoal(last_set[0].games, last_set[1].games)) { set_number += 1; }
                sf.auto_score = false;
             } else if (set_scores.retired) {
                let retired = existing_scores.winner_index != undefined ? 1 - existing_scores.winner_index : undefined;
@@ -280,6 +293,8 @@ export const scoreBoard = function() {
             { key: 'W.O.', value: 'walkover' },
             { key: 'DEF.', value: 'defaulted' },
             { key: 'INT.', value: 'interrupted' },
+            { key: 'INC.', value: 'incomplete' },
+            { key: 'CCL',  value: 'cancelled' },
             { key: 'LIVE', value: 'live' },
             { key: `<div class='link'><img src='./icons/completed.png' class='completed_icon'></div>`, value: 'winner' },
          ];
@@ -481,6 +496,15 @@ export const scoreBoard = function() {
          return (s1 == 'winner' || s2 == 'winner') ? true : false;
       }
 
+      function irregularEnding() {
+         let s1 = sobj.p1action.ddlb.getValue();
+         let s2 = sobj.p2action.ddlb.getValue();
+
+         if (['cancelled', 'incomplete'].indexOf(s1) >= 0) return true;
+         if (['cancelled', 'incomplete'].indexOf(s2) >= 0) return true;
+         return false;
+      }
+
       function irregularWinner() {
          let s1 = sobj.p1action.ddlb.getValue();
          let s2 = sobj.p2action.ddlb.getValue();
@@ -554,7 +578,7 @@ export const scoreBoard = function() {
 
          let sets_won = setsWon();
          // if an equivalent # of sets have been won, no winner
-         if (sets_won[0] == sets_won[1] && !live() && !interrupted() && irregularWinner() == undefined) {
+         if (sets_won[0] == sets_won[1] && !live() && !interrupted() && !irregularEnding() && irregularWinner() == undefined) {
             // displayActions(false);
             return;
          }
@@ -566,7 +590,7 @@ export const scoreBoard = function() {
          if (max_sets_won < needed_to_win) return;
 
          let winner = sets_won[0] >= needed_to_win ? 0 : sets_won[1] >= needed_to_win ? 1 : undefined;
-         if (winner == undefined && !live() && !interrupted() && irregularWinner() == undefined) {
+         if (winner == undefined && !live() && !interrupted() && !irregularEnding() && irregularWinner() == undefined) {
             // displayActions(false);
             return;
          }
@@ -711,6 +735,14 @@ export const scoreBoard = function() {
             complete = false;
             score += ' LIVE';
          }
+         if (s1 == 'cancelled' || s2 == 'cancelled') {
+            complete = false;
+            score = 'Cancelled';
+         }
+         if (s1 == 'incomplete' || s2 == 'incomplete') {
+            complete = false;
+            score += ' INC.';
+         }
 
          return { score, position, positions, complete, winner: winner_index }
       }
@@ -758,9 +790,10 @@ export const scoreBoard = function() {
             }
 
             setScoreDisplay({ selected_set: set_number });
-         } else if (value == 'interrupted') {
+         } else if (value == 'interrupted' || value == 'cancelled' || value == 'incomplete') {
             sobj[which ? 'p1action' : 'p2action'].ddlb.setValue(' ');
             setScoreDisplay({ selected_set: set_number });
+            displayActions(true);
          } else if (value == 'live') {
             sf.auto_score = false;
             sobj[which ? 'p1action' : 'p2action'].ddlb.setValue(' ');
@@ -886,6 +919,8 @@ export const scoreBoard = function() {
       if (winner_index != undefined) { sets.winner_index = winner_index; }
 
       if (outcome) {
+         if (outcome == 'Cancelled') sets.cancelled = true;
+         if (outcome == 'INC.') sets.incomplete = true;
          if (outcome == 'INT.') sets.interrupted = true;
          if (outcome == 'LIVE') sets.live = true;
          if (outcome == 'RET.') sets.retired = true;

@@ -49,6 +49,7 @@ export const tournamentFx = function() {
       delete match.teams;
       delete match.complete;
       delete match.round_name;
+      delete match.result_order;
       delete match.round;
       delete match.tournament;
    }
@@ -905,6 +906,7 @@ export const tournamentFx = function() {
             muid: match.match.muid,
             exit_round: round,
             round_name: match.match.round_name,
+            result_order: match.match.result_order,
             event_rounds: event_rounds[loser_id],
             winner: {
                id: winner_id,
@@ -1013,7 +1015,7 @@ export const tournamentFx = function() {
 
    function rrQualSort(a, b) {
       if (!b[0].category_ranking && !a[0].category_ranking && b[0].results.ratio_hash && a[0].results.ratio_hash) {
-         return a[0].results.ratio_hash - b[0].results.ratio_hash;
+         return b[0].results.ratio_hash - a[0].results.ratio_hash;
       }
       return (b[0].category_ranking || 9999) - (a[0].category_ranking || 9999);
    }

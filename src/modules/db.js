@@ -37,18 +37,21 @@ export const db = function() {
          });
          /*
          db.db.version(3).stores({ 
+            // remove aliases & ignored code
             // aliases: "&alias",
             // ignored: "[hash+ioc]",
+
             clubs: "&id, code",
             calculations: "&hash, date, type",
             matches: "&muid, *puids, format, date, tournament.category, tournament.tuid",
 
-            // points: "[puid+tuid+format+round], puid, tuid, muid, date",
             // also chandge addPointEvent()
-            points: "[puid+euid], puid, tuid, euid, muid, date",
+            points: "[puid+euid+format+round], puid, tuid, euid, muid, date",
 
             tournaments: "&tuid, name, start, end, category, cuid",
             players: "&puid, cuid, &id, [last_name+first_name], last_name, birth",    // remove hash
+            teams: "&tmuid, name",
+
             rankings: "category",
             settings: "key",
             idioms: "ioc",

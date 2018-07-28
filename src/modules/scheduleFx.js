@@ -232,9 +232,10 @@ export const scheduleFx = function() {
       let offgrid = empty && !court;
       let complete = match.winner_index != undefined;
       let inprogress = match.status == 'inprogress' || (match.score && match.winner_index == undefined);
+      let abandoned = match.score && (match.score.indexOf('Cancelled') == 0 || match.score.indexOf('INC') >= 0);
       let conflict = match.scheduling == 'conflict';
       let timepressure = match.scheduling == 'timepressure';
-      let statuscolor = conflict ? 'conflict' : timepressure ? 'warning' : inprogress ? 'inprogress' : complete ? 'complete' : 'neutral';
+      let statuscolor = conflict ? 'conflict' : abandoned ? 'abandoned' : timepressure ? 'warning' : inprogress ? 'inprogress' : complete ? 'complete' : 'neutral';
       let droptarget = `ondragover="event.preventDefault();"`;
       let dragdrop = ' dragdrop';
       let draggable = editable && !offgrid && !empty ? ` draggable="true"` : '';

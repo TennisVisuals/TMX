@@ -705,7 +705,11 @@ export const exportFx = function() {
 
          // if event published add QR code
          if (event && event.published && tournament.org && tournament.org.abbr) {
-            images.push(getQRuri({ abbr: tournament.org.abbr, qr_dim, x_offset: -1, y_offset: -1 }));
+            let y_offset = -1;
+            if (event.structure == 'feed') {
+               // future TODO... reposition QR code based on feed arm in final round...
+            }
+            images.push(getQRuri({ abbr: tournament.org.abbr, qr_dim, x_offset: -1, y_offset }));
          }
 
          getLogo().then(logo => showPDF(logo, images));
@@ -718,7 +722,7 @@ export const exportFx = function() {
       });
    }
 
-   function getQRuri({ abbr, qr_dim, x_offset=1, y_offset=1 }) {
+   function getQRuri({ abbr, qr_dim, x_offset=0, y_offset=0 }) {
          var xx = new QRious({
             level: 'H',
             size: qr_dim,

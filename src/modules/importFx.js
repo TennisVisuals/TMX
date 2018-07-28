@@ -901,7 +901,8 @@ export const importFx = function() {
          { attr: 'ioc', header: 'Nationality' }, 
          { attr: 'email', header: 'Email' }, 
          { attr: 'phone', header: 'Phone' }, 
-         { attr: 'college', header: 'College' }, 
+         { attr: 'school', header: 'School' }, 
+         { attr: 'school', header: 'College' }, 
       ].filter(s=>!s.sheet_name || s.sheet_name == sheet_name);
       let players = extractWorkbookRows(workbook.Sheets[sheet_name], headers);
       players.forEach(player => {
