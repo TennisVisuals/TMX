@@ -33,31 +33,21 @@ export const db = function() {
             players: "&puid, hash, cuid, &id, [last_name+first_name], last_name, birthdate",
             rankings: "category",
             settings: "key",
-            idioms: "ioc",
+            idioms: "ioc"
          });
-         /*
          db.db.version(3).stores({ 
-            // remove aliases & ignored code
-            // aliases: "&alias",
-            // ignored: "[hash+ioc]",
-
-            clubs: "&id, code",
+            clubs: "&id, &code",
             calculations: "&hash, date, type",
             matches: "&muid, *puids, format, date, tournament.category, tournament.tuid",
-
-            // also chandge addPointEvent()
-            points: "[puid+euid+format+round], puid, tuid, euid, muid, date",
-
+            points: "[puid+tuid+format+round], puid, tuid, muid, date",
             tournaments: "&tuid, name, start, end, category, cuid",
-            players: "&puid, cuid, &id, [last_name+first_name], last_name, birth",    // remove hash
-            teams: "&tmuid, name",
-
+            players: "&puid, hash, cuid, &id, [last_name+first_name], last_name, birth",
             rankings: "category",
             settings: "key",
             idioms: "ioc",
-            themes: "&theme",
+            teams: "&uuid, name",
+            themes: "&uuid, name"
          });
-         */
          db.db.open().then(resolve, reject);
       });
    }
@@ -69,9 +59,11 @@ export const db = function() {
 
    db.findAll = (table) => new Promise((resolve, reject) => db.db[table].toArray(resolve, reject).catch(reject));
    db.findAllClubs = () => db.findAll('clubs');
+   db.findAllTeams = () => db.findAll('teams');
+   db.findAllThemes = () => db.findAll('themes');
    db.findAllPlayers = () => db.findAll('players');
-   db.findAllAliases = () => db.findAll('aliases');
-   db.findAllIgnored = () => db.findAll('ignored');
+   // db.findAllAliases = () => db.findAll('aliases');
+   // db.findAllIgnored = () => db.findAll('ignored');
    db.findAllTournaments = () => db.findAll('tournaments');
    db.findAllCalculations = () => db.findAll('calculations');
    db.findAllRankings = () => db.findAll('rankings');
@@ -91,10 +83,7 @@ export const db = function() {
    db.findRankings = (category) => db.findUnique('rankings', 'category', category);
    db.findPointsRange = (start, end) => db.db.points.where('date').between(start, end).toArray();
    db.findMatchesRange = (start, end) => db.db.matches.where('date').between(start, end).toArray();
-
-   // TODO: update the database version to index player dates properly!
-   // db.findPlayersRange = (start, end) => db.db.players.where('birth').between(start, end).toArray();
-
+   db.findPlayersRange = (start, end) => db.db.players.where('birth').between(start, end).toArray();
    db.pointsAfter = (date) => new Promise ((resolve, reject) => db.db.points.where('date').aboveOrEqual(date).toArray(resolve, reject).catch(reject));
 
    db.deleteMatch = (muid) => {
@@ -156,6 +145,8 @@ export const db = function() {
    db.findSetting = (key) => db.findUnique('settings', 'key', key);
    db.findIdiom = (ioc) => db.findUnique('idioms', 'ioc', ioc);
    db.findPlayer = (puid) => db.findUnique('players', 'puid', puid);
+   db.findTeam = (uuid) => db.findUnique('teams', 'uuid', uuid);
+   db.findTheme = (uuid) => db.findUnique('themes', 'uuid', uuid);
    db.findPlayerById = (id) => db.findUnique('players', 'id', id);
    db.findClub = (cuid) => db.findUnique('clubs', 'id', cuid);
    db.findTournament = (tuid) => db.findUnique('tournaments', 'tuid', tuid);
@@ -163,8 +154,8 @@ export const db = function() {
    db.findTournamentsBetween = (start, end) => new Promise ((resolve, reject) => db.db.tournaments.where('end').between(start, end).toArray(resolve, reject));
 
    db.addItem = (tbl, item) => new Promise ((resolve, reject) => db.db[tbl].add(item).then(resolve, reject).catch((err) => { alert('try again:', err); reject(err); }));
-   db.addAlias = (alias) => db.addItem('aliases', alias);
-   db.addIgnore = (ignore) => db.addItem('ignored', ignore);
+   // db.addAlias = (alias) => db.addItem('aliases', alias);
+   // db.addIgnore = (ignore) => db.addItem('ignored', ignore);
 
    db.modifyOrAddUnique = (tbl, attr, val, item) => new Promise ((resolve, reject) => {
       db.db[tbl].where(attr).equals(val)
