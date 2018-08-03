@@ -24,6 +24,9 @@
 .time_header { background-image: url("img/time.png"); }
 .time_header_inactive { background-image: url("img/time_inactive.png"); }
 .opponents_header { background-image: url("img/players.png"); }
+.league_header { background-image: url("img/league.png"); }
+.gender_header { background-image: url("img/gender.png"); }
+.winloss_header { background-image: url("img/winloss.png"); }
 .drawsize_header { background-image: url("img/drawbracket.png"); }
 .matches_header { background-image: url("img/match.png"); }
 .matches_header_inactive { background-image: url("img/match_gray.png"); }
@@ -43,6 +46,13 @@
 .published { background-image: url("img/publishgreen.png"); }
 .cleardraw { background-image: url("img/recycle.png"); }
 .compass { background-image: url("img/compassrose.png"); }
+.tiny_docs_icon {
+   width: 1em;
+   height: 0;
+   padding-bottom: 1em;
+   background-size: 100%;
+   background-image: url("img/docs.png");
+}
 
 .surface_header { background-image: url("img/h_court.png"); }
 .surface_grass { background-image: url("img/court_grass.png"); }
