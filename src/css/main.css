@@ -122,6 +122,7 @@ html {
    background-size: 100%;
    margin-bottom: 2em;
 }
+.splash_players { background-image: url("img/players.png"); }
 .splash_tournament { background-image: url("img/cupblack.png"); }
 .splash_keys { background-image: url("img/keys.png"); }
 .splash_rankings { background-image: url("img/rank.png"); }

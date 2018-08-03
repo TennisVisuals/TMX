@@ -398,21 +398,6 @@
    align-items: center;
 }
 
-.attribute_groups {
-   width: 100%;
-   display: flex;
-   flex-wrap: wrap;
-   flex-direction: row;
-   -webkit-flex-direction: row;
-   -webkit-justify-content: flex-start;
-   justify-content: flex-start;
-   -webkit-align-content: center;
-   align-content: center;
-   -webkit-align-items: center;
-   align-items: center;
-   overflow: hidden;
-}
-
 .location_attribute {
    width: 100%;
    margin-bottom: .5em;
@@ -451,8 +436,139 @@
    width: 2em;
 }
 
+/* teams */
+.teamattr {
+   min-width: 8em;
+   font-weight: bold;
+   text-align: left;
+   margin-left: .5em;
+   align-self: center;
+}
+
+.teams_tab {
+   padding: 0px;
+   background-color: white;
+   border: 1px solid lightgray;
+}
+
+.team_player, .team_attribute {
+   width: 100%;
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+}
+
+.team_data { width:  10%; text-align: center; }
+.teams_tab .manualorder {
+   border: 0;
+   width: 3em;
+}
+
+.teams_tab .team_header { 
+   border-bottom: 1px solid lightgray;
+}
+
+.team_list {
+   width: 100%;
+   padding: .2em;
+}
+
+.team_display_name {
+   font-weight: bold;
+   font-size: larger;
+}
+
+.teams_tab .attributes {
+   display: grid;
+   grid-template-columns: 10em auto;
+}
+
+.teams_tab .attributes, .teams_tab .team_players {
+   min-width: 300px;
+   width: 50%;
+   height: auto;
+   padding: .5em;
+}
+
+.teams_tab .detail_body { width: 100%; }
+.teams_tab .detail_body .attributes input {
+   width: 100%;
+   height: auto;
+   padding: 0px;
+   height: 1.5em;
+   align-self: center;
+}
+
+.team_attr_edit {
+   color: black;
+   font-size: larger;
+   margin-top: .2em;
+   margin-bottom: .2em;
+}
+
+.teams_tab .teams_actions {
+   width: 100%;
+   padding: .3em;
+   display: flex;
+   flex-direction: row;
+   -webkit-flex-direction: row;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+   background-color: #F9FAFD;
+}
+.teams_tab .team_rows {
+   width: 100%;
+   display: flex;
+   flex-direction: column;
+   -webkit-flex-direction: column;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+}
+.teams_tab .team_row {
+   width: 100%;
+   display: flex;
+   padding: .1em;
+   margin-top: .2em;
+   flex-direction: row;
+   -webkit-flex-direction: row;
+   -webkit-justify-content: flex-start;
+   -webkit-align-content: center;
+   align-content: center;
+   justify-content: flex-start;
+}
+
+.teams_tab .teams_header .cell { 
+   border-bottom: 1px solid lightgray;
+}
+.teams_tab .tname {
+   width: 70%;
+   height: auto;
+   text-align: left;
+   display: flex;
+   -webkit-align-items: center;
+   align-items: center;
+}
+
+.teams_tab .team:hover { background-color: #EAEDED }
+.teams_tab .highlight_listitem { font-weight: bold; }
+.teams_tab .listitem_warning { color: red }
+
+.teams_tab button {
+   margin: .2em;
+   padding: .5em;
+   background: white;
+}
+.teams_tab button:focus{ outline: none; }
+
+.teamsearch {
+   font-size: 1em;
+   margin-bottom: 1em;
+}
 
 /* events */
+
 .events {
    padding: 0px;
    background-color: white;
@@ -545,7 +661,7 @@
    vertical-align: middle;
 }
 
-.event_details {
+.event_details, .team_details {
    width: 100%;
    padding: .2em;
    display: none;
@@ -555,7 +671,7 @@
    justify-content: flex-start;
 }
 
-.event_details .detail_header {
+.event_details .detail_header, .team_details .detail_header {
    width: 100%;
    padding: .3em;
    display: flex;
@@ -566,22 +682,34 @@
    background-color: #F9FAFD;
 }
 
-.event_details .detail_header .event_name {
+.event_details .event_name, .team_details .team_name {
    text-align: left;
 }
 
-.event_details .detail_header .event_name .event_type {
+.event_details .event_type {
    font-weight: bold;
    color: #2E2EFE;
 }
 
 .event_details .detail_body {
    padding: .3em;
+   text-align: left;
    width: 100%;
    display: flex;
    flex-direction: row;
    -webkit-flex-direction: row;
 }
+
+.team_details .detail_body {
+   padding: .3em;
+   text-align: left;
+   width: 100%;
+   display: flex;
+   flex-wrap: wrap;
+   flex-direction: row;
+   -webkit-flex-direction: row;
+}
+
 .event_details .detail_body .detail_config {
    display: flex;
    -webkit-flex-direction: column;

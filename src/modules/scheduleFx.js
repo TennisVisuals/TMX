@@ -208,10 +208,16 @@ export const scheduleFx = function() {
          return html;
       }).join('');
 
+      let displaydocs = editable && fx.fx.env().documentation ? 'flex' : 'none';
       let html = `
          <div class='schedule_scroll_contaienr'>
             <div class='schedule_grid'>
-               <div class='schedule_slots'><div class='oop_round_header'></div>${oop_round}</div>
+               <div class='schedule_slots'>
+                  <div class='oop_round_header'>
+                     <div class='doclink' url='tmx_tournament_schedule'><div class='tiny_docs_icon' style='display: ${displaydocs}'></div></div>
+                  </div>
+                  ${oop_round}
+               </div>
                <div class='tournament_schedule'> ${columns.join('')}</div>
             </div>
          </div>
@@ -255,7 +261,7 @@ export const scheduleFx = function() {
             index='${index}'
             court='${court}' 
             oop_round='${oop_round}' 
-            class='sb schedule_box${dragdrop} ${statuscolor}' 
+            class='sb schedule_box${dragdrop} ${statuscolor}'
             ${draggable}${droptarget}> ${content}
          </div>
       `;

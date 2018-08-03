@@ -52,7 +52,6 @@ export const staging = function() {
    }
 
    function processDirective(data) {
-      db.addDev({data});
       let json_data = attemptJSONparse(data);
 
       if (json_data && json_data.directive) {
@@ -62,6 +61,10 @@ export const staging = function() {
          if (json_data.directive == 'new version') {
             displayGen.homeIconState('update');
             fetchFx.update = json_data.notice || lang.tr('newversion');
+         }
+         if (json_data.directive == 'team data') {
+            console.log('team data received;', json_data);
+            db.addDev({json_data});
          }
          if (json_data.directive == 'load data' && json_data.content) { importFx.loadJSON(json_data.content); }
          if (json_data.directive == 'reset db' && json_data.content) { resetDB(); }

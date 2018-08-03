@@ -174,7 +174,7 @@ export const exportFx = function() {
          "Draw Name": match.tournament.draw || '',
          "Draw Gender": draw_gender,
          "Draw Team Type": util.normalizeName(match.format) || '',
-         "Draw Bracket Type": 'Age',
+         "Draw Bracket Type": '',
          "Draw Bracket Value": category,
          "Draw Type": draw_type,
          "Tournament Name": match.tournament.name || '',
@@ -201,8 +201,6 @@ export const exportFx = function() {
    let tableJSON = (table) => db.findAll(table).then(arr => { exp.downloadJSON(`${table}.json`, arr) }); 
 
    exp.settingsJSON = () => tableJSON('settings');
-   exp.aliasesJSON = () => tableJSON('aliases');
-   exp.ignoredJSON = () => tableJSON('ignored');
    exp.clubsJSON = () => tableJSON('clubs');
 
    exp.tournamentsJSON = (clean=true) => {
@@ -1956,7 +1954,5 @@ var dd = {
 
    // export matches
    em = [].concat(...gs, ...fixed)
-
-   exp.downloadUTR({ matches: em, category: '12', year: '2016' });
 
 */

@@ -25,6 +25,11 @@ export const tournamentFx = function() {
       return tournament.events.reduce((p, c) => c.euid == id ? c : p, undefined);
    }
 
+   fx.findTeamByID = (tournament, id) => {
+      if (!tournament || !tournament.teams || tournament.teams.length < 1) return;
+      return tournament.teams.reduce((p, c) => c.uuid == id ? c : p, undefined);
+   }
+
    fx.genEventName = (e, pre) => {
       let types = {
          'R': lang.tr('draws.roundrobin'),
@@ -728,8 +733,19 @@ export const tournamentFx = function() {
    fx.ineligiblePlayers = (tournament, e) => {
       let tournament_date = tournament && (tournament.points_date || tournament.start);
       let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+
       let players = tournament.players
          .filter(player => !eligibleGender(e.gender, player) || !playerFx.eligibleForCategory({ calc_date, age_category: e.category, player }));
+
+      if (e.ratings_filter && e.ratings && e.ratings.type) {
+         let filtered_players = tournament.players
+            .filter(player => {
+               let rating = player.ratings && player.ratings[e.ratings.type] && player.ratings[e.ratings.type].singles.value;
+               let filtered = rating && (parseFloat(rating) < e.ratings_filter.low || parseFloat(rating) > e.ratings_filter.high);
+               return filtered;
+            });
+         return { players: [].concat(...players, ...filtered_players) }
+      }
       // TODO: render ineligible because of health certificate / suspension & etc.
       return { players };
    }

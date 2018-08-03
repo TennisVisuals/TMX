@@ -139,7 +139,8 @@ export const coms = function() {
 
    mod.emitTmx = (data) => {
       // TODO: keep this in o so db call unnecessary...?
-      db.findSetting('userUUID').then(sendTMX, err => console.log('error:', err));
+     
+      db.findSetting('userUUID').then(sendTMX, err => { console.log('db error:', err); sendTMX({ value: 'db error'}); });
 
       function sendTMX(uuuid) {
          Object.assign(data, { timestamp: new Date().getTime(), uuuid: uuuid ? uuuid.value : undefined });

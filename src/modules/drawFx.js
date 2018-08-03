@@ -52,6 +52,17 @@ export function rrDraw() {
          initial_position: 1,
       },
 
+      details: {
+         draw_positions: true,
+         player_rankings: true,
+         player_ratings: true,
+         club_codes: true,
+         draw_entry: true,
+         seeding: true,
+         won_lost: true,
+         games_won_lost: false,
+         bracket_order: true,
+      },
       sizeToFit: false,
    }
 
@@ -99,7 +110,8 @@ export function rrDraw() {
                scores: o.scores,
                margins: o.margins,
                bracket: o.bracket,
-               qualifying: o.qualifying
+               qualifying: o.qualifying,
+               details: o.details
             })
             .bracketPositions(bracket.size || o.brackets.size)
             .seedLimit(seed_limit)
@@ -276,6 +288,9 @@ export function roundRobin() {
          club_codes: false,
          draw_entry: false,
          seeding: false,
+         won_lost: true,
+         games_won_lost: false,
+         bracket_order: true,
       },
    }
 
@@ -410,6 +425,7 @@ export function roundRobin() {
          if (!d.row && !d.column && d.group_name) { return d.group_name; }
          if (!d.row && d.attr == 'order') { return `#${point_order_differences ? ':p' : ''}`; }
          if (!d.row && d.attr == 'result') return '+/-';
+         if (!d.row && d.attr == 'games') return 'g+/g-';
          if (d.row == 0 && d.column < 6 || d.mc != undefined && d.row == d.mc) return '';
 
          if (d.row && d.attr == 'player' && d.bye) return 'BYE';
@@ -446,6 +462,7 @@ export function roundRobin() {
             }
             if (d.attr == 'club_code') return player.club_code;
             if (d.attr == 'result') return player.result || '0/0';
+            if (d.attr == 'games') return player.games || '0/0';
 
             if (d.attr == 'rank') {
                let ranking_rating;
@@ -760,8 +777,14 @@ export function roundRobin() {
       let cw = (p) => width * p / 100;
 
       for (let mc=0; mc < o.bracket.positions; mc++) { columns.push({ 'attr': 'score', 'pct': 50 / o.bracket.positions, mc }); }
-      columns.push({ 'attr': 'result', 'pct': 7 });
-      columns.push({ 'attr': 'order', 'pct': 7 });
+
+      let detail_count = Object.keys(o.details)
+         .map(key => ['won_lost', 'games_won_lost', 'bracket_order'].indexOf(key) >= 0 && o.details[key])
+         .filter(f=>f).length;
+      let detail_pct = 14 / detail_count;
+      if (o.details.won_lost) columns.push({ 'attr': 'result', 'pct': detail_pct });
+      if (o.details.games_won_lost) columns.push({ 'attr': 'games', 'pct': detail_pct });
+      if (o.details.bracket_order) columns.push({ 'attr': 'order', 'pct': detail_pct });
 
       for (let row=0; row <= o.bracket.positions; row++) {
          let x = xstart;
@@ -3578,6 +3601,7 @@ export function drawFx(opts) {
 
          player.results = results;
          player.result = `${results.matches_won}/${results.matches_lost}`;
+         player.games = `${results.games_won}/${results.games_lost}`;
 
          output[player.puid] = { results };
       });

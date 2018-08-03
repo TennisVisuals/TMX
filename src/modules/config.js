@@ -60,11 +60,13 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.0.0.1.2',
+      version: '1.0.11.14.7.q',
       version_check: undefined,
       reset_new_versions: false,
 
+      ioc: 'gbr',
       orientation: undefined,
+      documentation: true,
 
       org: {
          name: undefined,
@@ -100,12 +102,6 @@ export const config = function() {
          map: undefined,
          map_provider: undefined, // 'google' or 'leaflet'
       },
-      // broadcast: true,
-      // livescore: false,
-      // autodraw: true,
-      // geolocate: true,
-      // map: undefined,
-      // map_provider: undefined, // 'google' or 'leaflet'
       calendar: {
          start: undefined,
          end: undefined,
@@ -114,12 +110,18 @@ export const config = function() {
       },
       players: { identify: true },
       points: { walkover_wins: ['F'] },
+      tournaments: {
+         dual: false,
+         team: false,
+         league: false
+      },
       drawFx: {
          auto_byes: true,
          ll_all_rounds: false,
          auto_qualifiers: false,
          fixed_bye_order: true,
          consolation_seeding: false,
+         consolation_wildcards: false,
          consolation_alternates: false,
          compressed_draw_formats: true,
          qualifying_bracket_seeding: true,
@@ -196,6 +198,17 @@ export const config = function() {
                singles: 3,
                doubles: 3
             },
+            details: {
+               draw_positions: true,
+               player_rankings: true,
+               player_ratings: true,
+               club_codes: true,
+               draw_entry: true,
+               seeding: true,
+               won_lost: true,
+               games_won_lost: false,
+               bracket_order: true,
+            },
             brackets: {
                min_bracket_size: 3,
                default_bracket_size: 4,
@@ -230,8 +243,6 @@ export const config = function() {
       notifications: undefined,
    }
 
-   // don't want accessor to be able to modify original
-   // fx.env = () => JSON.parse(JSON.stringify(env));
    fx.env = () => env;
 
    fx.setCalendar = (obj) => Object.keys(obj).forEach(key => { if (Object.keys(env.calendar).indexOf(key) >= 0) env.calendar[key] = obj[key]; });
@@ -279,17 +290,14 @@ export const config = function() {
    // not visible/accesible outside of this module
    var o = {
       components: {
-         players: { add: false },
-         rankings: { calcs: false, ranklist: false },
+         players: { add: false, teams: false, leagues: false, calcs: false, ranklist: false },
          tournaments: true,
-         teams: false,
          clubs: false,
          tournament_search: true,
          club_search: true,
          settings: true,
          documentation: true,
          importexport: true,
-         autodraw: true,
          keys: true
       },
       settings_tabs: {
@@ -308,6 +316,7 @@ export const config = function() {
             tables : {
                default: {
                   categories: {
+                     "All": { ratings: { type:  'utr' }, },
                      "U10": { ages: { from:  7, to: 10 }, },
                      "U12": { ages: { from:  9, to: 12 }, },
                      "U14": { ages: { from: 10, to: 14 }, },
@@ -352,7 +361,7 @@ export const config = function() {
    function changeIdiom(ioc) {
       if (lang.set(ioc)) {
          fx.idiom_ddlb.setValue(ioc, 'black');
-         // fx.idiom_ddlb.selectionBackground('black');
+         env.ioc = ioc;
          splash();
       } else {
          if (ioc && ioc.length == '3') coms.sendKey(`${ioc}.idiom`);
@@ -381,16 +390,16 @@ export const config = function() {
    function idiomSelector() {
       return new Promise((resolve, reject) => {
          function setupIdioms(params) {
-            let ioc = params ? params.ioc : 'gbr';
-            idiomSelectorOptions(ioc);
+            env.ioc = params ? params.ioc : 'gbr';
+            idiomSelectorOptions(env.ioc);
 
             // if there is no default setting, make it visible
             if (!params) {
                document.getElementById('idiomatic').style.opacity = 1;
                // save this as default so that flag is "subtle" for next visit
                changeIdiom('gbr');
-            } else if (!lang.set(ioc)) {
-               coms.sendKey(`${ioc}.idiom`);
+            } else if (!lang.set(env.ioc)) {
+               coms.sendKey(`${env.ioc}.idiom`);
             }
 
             resolve();
@@ -597,6 +606,10 @@ export const config = function() {
             container.first_day.element.addEventListener('click', firstDay);
             container.first_day.element.checked = env.calendar.first_day;
             function firstDay(evt) { env.calendar.first_day = container.first_day.element.checked ? 1 : 0; }
+
+            container.documentation.element.addEventListener('click', showDocs);
+            container.documentation.element.checked = env.documentation;
+            function showDocs(evt) { env.documentation = container.documentation.element.checked ? 1 : 0; }
          }
 
          if (v.schedule) {
@@ -635,7 +648,7 @@ export const config = function() {
             settings.push({ key: 'drawSettings', settings: env.draws });
             settings.push({ key: 'scheduleSettings', settings: env.schedule });
             settings.push({ key: 'drawFx', settings: env.drawFx });
-            settings.push({ key: 'envSettings', settings: { calendar: { first_day: env.calendar.first_day }} });
+            settings.push({ key: 'envSettings', settings: { documentation: env.documentation, calendar: { first_day: env.calendar.first_day }} });
 
             if (v.org) {
                settings.push(getImage('orgLogo', 'org_logo_display'));
@@ -795,7 +808,8 @@ export const config = function() {
    }
 
    function initDB() {
-      db.initDB().then(checkQueryString).then(envSettings).then(DBReady);
+      db.initDB().then(checkQueryString, dbUpgrade).then(envSettings).then(DBReady);
+      function dbUpgrade() { displayGen.showConfigModal('<h2>Database Upgraded</h2><div style="margin: 1em;">Please refresh your cache or load tmx+</div>'); }
 
       function DBReady() {
          persistStorage();
@@ -823,8 +837,13 @@ export const config = function() {
       db.findSetting('keys').then(updateKey, updateKey);
       function updateKey(setting={key: 'keys', keys:[]}) {
          setting.keys = setting.keys.filter(k=>k.keyid != data.keyid);
-         setting.keys.push({ keyid: data.keyid, description: data.description });
-         if (data.description) db.addSetting(setting).then(update, update);
+         if (data.keyid && data.description) {
+            setting.keys.push({ keyid: data.keyid, description: data.description });
+            db.addSetting(setting).then(update, update);
+         } else if (!Array.isArray(data.content)) {
+            util.boolAttrs(data.content);
+            util.keyWalk(data.content, env);
+         }
       }
       function update() { updateSettings(data.content).then(()=>envSettings().then(settingsReceived, util.logError), util.logError); }
       function settingsReceived() { settingsLoaded(); setIdiom(); }
@@ -846,7 +865,6 @@ export const config = function() {
             if (app && app.components) {
                util.boolAttrs(app.components);
                util.keyWalk(app.components, o.components);
-               env.draws.autodraw = o.components.autodraw != undefined ? o.components.autodraw : true;
             }
 
             let org = getKey('orgData');
@@ -947,6 +965,7 @@ export const config = function() {
    var device = {
       isStandalone: 'standalone' in window.navigator && window.navigator.standalone,
       isIDevice: (/iphone|ipod|ipad/i).test(window.navigator.userAgent),
+      isIpad: (/iPad/i).test(window.navigator.userAgent),
       isWindows: (/indows/i).test(window.navigator.userAgent),
       isMobile: /Mobi/.test(navigator.userAgent),
       geoposition: {},
@@ -1033,6 +1052,7 @@ export const config = function() {
 
    function persistStorage() {
       if (navigator.storage && navigator.storage.persist) {
+         navigator.storage.estimate().then(e=>console.log('storage estimate:', e));
          navigator.storage.persist().then(persistent => {
             env.storage = persistent ? true : 'user agent control'
             coms.emitTmx({ 
@@ -1098,12 +1118,19 @@ export const config = function() {
    }
 
    fx.init = () => {
-
       displayGen.initModals();
-      if (device.isMobile || device.isIDevice) {
-         displayGen.showModal('<h2>Mobile Support Soon!</h2>', false);
+      let supported_device = true;
+      if (device.isIpad && window.location.host == 'hiveeye.net') {
+         console.log('mobile device allowed');
+      } else if (device.isMobile || device.isIDevice) {
+         supported_device = false;
+      }
+
+      if (!supported_device) {
+         displayGen.showModal(`${env.version}<h2>Mobile Support Soon!</h2>${window.location.host}`, false);
          return;
       }
+      env.isMobile = device.isIDevice || device.isMobile;
 
       // remove config dependence on displayGen so this can be removed
       configufeDependents();
@@ -1325,10 +1352,10 @@ export const config = function() {
       let container = displayGen.splashScreen(o.components, o.settings_tabs);
 
       splashEvent(container, 'tournaments', tournamentDisplay.displayCalendar);
-      splashEvent(container, 'rankings', displayRankings);
+      splashEvent(container, 'players', displayPlayers);
       splashEvent(container, 'clubs', displayClubs);
       splashEvent(container, 'settings', editSettings);
-      splashEvent(container, 'documentation', ()=>window.open('/docs', '_blank'));
+      splashEvent(container, 'documentation', ()=>window.open(`/docs/${env.ioc}`, '_blank'));
       splashEvent(container, 'importexport', displayImportExport);
       splashEvent(container, 'keys', displayKeyActions);
 
@@ -1487,9 +1514,13 @@ export const config = function() {
          });
 
          function downloadUTRmatches(matches) {
-            let match_records = exportFx.matchRecords(matches);
-            let csv = exportFx.json2csv(match_records);
-            exportFx.downloadText('UTR-Matches.csv', csv);
+            if (!env.exports.utr) {
+               displayGen.popUpMessage('UTR Match Export disabled'); 
+            } else {
+               let match_records = exportFx.matchRecords(matches);
+               let csv = exportFx.json2csv(match_records);
+               exportFx.downloadText('UTR-Matches.csv', csv);
+            }
          }
       }
 
@@ -1499,15 +1530,33 @@ export const config = function() {
       let actions = displayGen.teamActions(); 
    }
 
-   function displayRankings() {
-      let actions = displayGen.rankingsActions(); 
+   function displayTeams() {
+      console.log('display teams');
+   }
 
-      if (o.components.rankings && o.components.rankings.calcs) {
+   function viewPlayers() {
+      console.log('view players');
+   }
+
+   function displayPlayers() {
+      let actions = displayGen.playersActions(); 
+
+      if (o.components.players && o.components.players.add) {
+         actions.add.element.style.display = 'flex';
+         actions.add.element.addEventListener('click', () => viewPlayers());
+      }
+
+      if (o.components.players && o.components.players.teams) {
+         actions.teams.element.style.display = 'flex';
+         actions.teams.element.addEventListener('click', () => displayTeams());
+      }
+
+      if (o.components.players && o.components.players.calcs) {
          actions.pointCalc.element.style.display = 'flex';
          actions.pointCalc.element.addEventListener('click', () => configureCalc('points'));
       }
 
-      if (o.components.rankings && o.components.rankings.ranklist) {
+      if (o.components.players && o.components.players.ranklist) {
          actions.rankCalc.element.style.display = 'flex';
          actions.rankCalc.element.addEventListener('click', () => configureCalc('rankings'));
       }

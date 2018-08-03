@@ -37,9 +37,10 @@ export const importFx = function() {
    let cache = {};
    load.loadCache = () => {
       cache.aliases = {};
+      cache.ignored = {};
       db.findAllClubs().then(arr => cache.club_codes = arr.map(club => club.code));
-      db.findAllAliases().then(arr => arr.forEach(row => cache.aliases[row.alias] = row.hash));
-      db.findAllIgnored().then(arr => cache.ignored = arr.map(row => `${row.hash}-IOC-${row.ioc}`));
+      // db.findAllAliases().then(arr => arr.forEach(row => cache.aliases[row.alias] = row.hash));
+      // db.findAllIgnored().then(arr => cache.ignored = arr.map(row => `${row.hash}-IOC-${row.ioc}`));
    }
 
    let validExtension = (filename) => {
@@ -749,8 +750,8 @@ export const importFx = function() {
 
       let loadType = {
          draws() { loadDraws(json); },
-         aliases() { loadAliases(json); },
-         ignored() { loadIgnored(json); },
+         // aliases() { loadAliases(json); },
+         // ignored() { loadIgnored(json); },
          matches() { loadMatches(json); },
          clubs() { importClubsJSON(json); },
          settings() { loadSettings(json); },
@@ -781,9 +782,9 @@ export const importFx = function() {
       if (keys.length && ['clay', 'hard', 'carpet'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'clubsCSV';
 
       if (keys.length && ['key', 'category'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'settings';
-      if (keys.length && ['hash', 'alias'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'aliases';
+      // if (keys.length && ['hash', 'alias'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'aliases';
       if (keys.length && ['sex', 'puid'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'players';
-      if (keys.length && ['hash', 'ioc'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'ignored';
+      // if (keys.length && ['hash', 'ioc'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'ignored';
       if (keys.length && ['muid', 'puids', 'score'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'matches';
       if (keys.length && ['muid', 'puid', 'points'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'points';
 
@@ -803,22 +804,26 @@ export const importFx = function() {
       }
    }
 
+   /*
    load.addAlias = ({alias, hash}) => {
       cache.aliases[alias] = hash;
       return db.addAlias({alias, hash});
    }
+   */
 
+   /*
    load.addIgnore = ({hash, ioc}) => {
       let stored = `${hash}-IOC-${ioc}`;
       cache.ignored.push(stored);
       return db.addIgnore({hash, ioc});
    }
+   */
 
    function addDraw(draw) { console.log(draw); }
 
    function loadDraws(arr) { loadTask(addDraw, arr, 'Draws'); };
-   function loadAliases(arr) { loadTask(load.addAlias, arr, 'Aliases'); };
-   function loadIgnored(arr) { loadTask(load.addIgnore, arr, 'Ignored'); };
+   // function loadAliases(arr) { loadTask(load.addAlias, arr, 'Aliases'); };
+   // function loadIgnored(arr) { loadTask(load.addIgnore, arr, 'Ignored'); };
    function loadSettings(arr) {
       loadTask(db.addSetting, arr, 'Settings', reload);
    }

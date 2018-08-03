@@ -184,6 +184,11 @@ export const util = function() {
 
    // DOM
    util.getParent = (elem, class_name) => Array.from(elem.classList).indexOf(class_name) >= 0 ? elem : findUpClass(elem, class_name);
+   util.eachElementClass = (elem, cls, fx) => {
+         if (!elem || !cls || !fx || typeof fx != 'function') return;
+         try { Array.from(elem.querySelectorAll(`.${cls}`)).forEach(fx); }
+         catch (err) { console.log('eachElementClass error:', err); }
+      }
 
    /*
    util.selectParent = (elem, class_name) => {

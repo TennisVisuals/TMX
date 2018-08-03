@@ -56,6 +56,16 @@
    align-content: center;
    -webkit-align-content: center;
 }
+.player_view_players {
+   width: 1.5em;
+   height: 0;
+   padding-bottom: 1.5em;
+   margin-left: .3em;
+   margin-right: .3em;
+   background-image: url("img/player.png");
+   background-size: 100%;
+}
+
 .player_add_player {
    width: 1.5em;
    height: 0;
@@ -63,6 +73,16 @@
    margin-left: .3em;
    margin-right: .3em;
    background-image: url("img/addplayer.png");
+   background-size: 100%;
+}
+
+.player_teams {
+   width: 1.5em;
+   height: 0;
+   padding-bottom: 1.5em;
+   margin-left: .3em;
+   margin-right: .3em;
+   background-image: url("img/teams.png");
    background-size: 100%;
 }
 

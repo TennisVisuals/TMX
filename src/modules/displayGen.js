@@ -280,7 +280,6 @@ export const displayGen = function() {
       if (!gen.modal) document.body.style.overflow  = null;
       gen.escapeFx = undefined;
       gen.disable_keypress = false;
-      searchBox.focus();
    }
 
    gen.inExisting = (content) => {
@@ -1365,6 +1364,7 @@ export const displayGen = function() {
    gen.generalSettings = () => {
       let ids = {
          first_day: displayFx.uuid(),
+         documentation: displayFx.uuid()
       };
       let ddlb = [];
       let html = `
@@ -1375,6 +1375,10 @@ export const displayGen = function() {
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.firstday')}</label>
                     <input type='checkbox' id="${ids.first_day}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.documentation')}</label>
+                    <input type='checkbox' id="${ids.documentation}">
                 </div>
              </div>
          </div>
@@ -1566,7 +1570,9 @@ export const displayGen = function() {
 
    gen.createNewTournament = (title, tournament = {}) => {
       let ids = {
+         form: displayFx.uuid(),
          name: displayFx.uuid(),
+         tournament_type: displayFx.uuid(),
          association: displayFx.uuid(),
          organization: displayFx.uuid(),
          category: displayFx.uuid(),
@@ -1590,9 +1596,10 @@ export const displayGen = function() {
       let html = `
          <div class='add_tournament' style='margin: 2em; width: auto'>
             ${header}
-            <div class='add_tournament_form'>
+            <div id='${ids.form}' class='add_tournament_form'>
                <div class='rowcol'>
                   <div class='flexcol tournamentattrs'>
+                     <div class='tournamentattr tournament_types' style='display: none'>${lang.tr('tournaments.type')}:</div>
                      <div class='tournamentattr'>${lang.tr('nm')}:</div>
                      <div class='tournamentattr'>${lang.tr('cat')}:</div>
                      <div class='tournamentattr'>${lang.tr('asn')}:</div>
@@ -1604,11 +1611,14 @@ export const displayGen = function() {
                      <div class='tournamentattr'>${lang.tr('drz')}:</div>
                   </div>
                   <div class='flexcol tournamentattrvalues'>
+                     <div class='flexrow tournamentattrddlb tournament_types' style='display: none'>
+                        <div id='${ids.tournament_type}' class='flexjustifystart'> </div>
+                     </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.name}' value='${tournament.name || ''}'>
                      </div>
                      <div class='flexrow tournamentattrddlb'>
-                        <div id='${ids.category}' class='flexjustifystart categoryddlb'> </div>
+                        <div id='${ids.category}' class='flexjustifystart'> </div>
                         <div id='${ids.rank}' class='flexjustifystart rankddlb' style='margin-left: 1em;'> </div>
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
@@ -1624,8 +1634,8 @@ export const displayGen = function() {
                         <input id='${ids.end}' value='${end}' placeholder='YYYY-MM-DD'>
                      </div>
                      <div class='flexrow tournamentattrddlb'>
-                        <div id='${ids.inout}' class='flexjustifystart categoryddlb'> </div>
-                        <div id='${ids.surface}' class='flexjustifystart categoryddlb' style='margin-left: 1em;'> </div>
+                        <div id='${ids.inout}' class='flexjustifystart'> </div>
+                        <div id='${ids.surface}' class='flexjustifystart' style='margin-left: 1em;'> </div>
                      </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.judge}' value='${tournament.judge || ''}'>
@@ -2266,12 +2276,16 @@ export const displayGen = function() {
          draws: displayFx.uuid(),
          points: displayFx.uuid(),
          matches: displayFx.uuid(),
+         dual: displayFx.uuid(),
+         event_tab: displayFx.uuid(),
          events: displayFx.uuid(),
          select_draw: displayFx.uuid(),
          compass: displayFx.uuid(),
          compass_direction: displayFx.uuid(),
          events_actions: displayFx.uuid(),
          event_details: displayFx.uuid(),
+         event_display_name: displayFx.uuid(),
+         event_edit_name: displayFx.uuid(),
          detail_fields: displayFx.uuid(),
          draw_config: displayFx.uuid(),
          detail_players: displayFx.uuid(),
@@ -2327,6 +2341,12 @@ export const displayGen = function() {
          pubTrnyInfo: displayFx.uuid(),
          pubStateTrnyInfo: displayFx.uuid(),
          tournament_attrs: displayFx.uuid(),
+         teams: displayFx.uuid(),
+         teams_actions: displayFx.uuid(),
+         team_details: displayFx.uuid(),
+         team_display_name: displayFx.uuid(),
+         team_edit_name: displayFx.uuid(),
+         team_attributes: displayFx.uuid(),
       }
 
       let classes = {
@@ -2336,7 +2356,7 @@ export const displayGen = function() {
          filter_d: displayFx.uuid(), // doubles
          auto_draw: displayFx.uuid(),
          gem_seeding: displayFx.uuid(),
-         player_filter: displayFx.uuid(),
+         ratings_filter: displayFx.uuid(),
          print_draw: displayFx.uuid(),
          print_sign_in: displayFx.uuid(),
          ranking_order: displayFx.uuid(),
@@ -2419,6 +2439,9 @@ export const displayGen = function() {
             </div>
 
          </div>
+         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='doclink' url='tmx_tournament_information'><div class='tiny_docs_icon' style='display: none'></div></div>
+         </div>
       `;
 
       let points_tab = `
@@ -2464,13 +2487,13 @@ export const displayGen = function() {
                <div id='${ids.events}' class='event_rows'> </div>
             </div>
             <div id='${ids.event_details}' class='event_details' style='display: none'>
-
                <div class='detail_header'>
-                  <div class='event_name flexcenter'>${lang.tr('events.newevent')}</div>
+                  <div id='${ids.event_display_name}' class='event_name flexcenter'>${lang.tr('events.newevent')}</div>
+                  <input id='${ids.event_edit_name}' style='display: none; width: 50%; height: 1.5em; font-size: larger;'> 
                   <div class='flexrow'>
                      <div class='${classes.auto_draw} info' style='display: none;' label='${lang.tr("adr")}'><div class='automation_icon automated_draw_pause'></div></div>
                      <div class='${classes.gem_seeding} info' style='display: inline;' label='${lang.tr("draws.gemseeding")}'><div class='gem_icon gem_inactive'></div></div>
-                     <div class='${classes.player_filter} info' style='display: inline;' label='${lang.tr("draws.playerfilter")}'><div class='filter_icon filter_inactive'></div></div>
+                     <div class='${classes.ratings_filter} info' style='display: inline;' label='${lang.tr("draws.playerfilter")}'><div class='filter_icon filter_inactive'></div></div>
                      <!--
                      <div class='${classes.print_draw_order} info' label='${lang.tr("mdo")}' style='display: none'><div class='print action_icon'></div></div>
                      -->
@@ -2485,6 +2508,31 @@ export const displayGen = function() {
                   <div class='detail_selections'>
                      <div id='${ids.detail_players}' class='detail_players'> </div>
                   </div>
+               </div>
+            </div>
+         </div>
+         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='doclink' url='tmx_events_management'><div class='tiny_docs_icon' style='display: none'></div></div>
+         </div>
+      `;
+
+      let add_team = ` <button type="button" class='btn add'>${lang.tr('actions.add_team')}</button> `;
+      let del_team = ` <button type="button" class='btn del' style='display: none'>${lang.tr('actions.delete_team')}</button> `;
+      let save_team = ` <button type="button" class='btn save' style='display: none'>${lang.tr('actions.save_team')}</button> `;
+      let teams_tab = `
+         <div class='teams_tab'>
+            <div class='team_list'>
+               <div id='${ids.teams_actions}' class='teams_actions flexrow' style="display: none;"> ${add_team} </div>
+               <div id='${ids.teams}' class='team_rows'></div>
+            </div>
+            <div id='${ids.team_details}' class='team_details' style='display: none'>
+               <div class='detail_header'>
+                  <div id='${ids.team_display_name}' class='team_display_name flexcenter'>${lang.tr('teams.newteam')}</div>
+                  <input id='${ids.team_edit_name}' style='display: none; width: 50%; height: 1.5em; font-size: larger;'> 
+                  <div class='flexrow'></div>
+                  <div>${del_team}${done}${save_team}${cancel}</div>
+               </div>
+               <div id='${ids.team_attributes}' class='detail_body'>
                </div>
             </div>
          </div>
@@ -2514,6 +2562,9 @@ export const displayGen = function() {
                   </div>
                </div>
             </div>
+         </div>
+         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='doclink' url='tmx_tournament_courts'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
 
@@ -2575,6 +2626,9 @@ export const displayGen = function() {
             </div>
             <div id='${ids.matches}' class='tournament_match flexcol flexcenter'> </div>
          </div>
+         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='doclink' url='tmx_tournament_matches'><div class='tiny_docs_icon' style='display: none'></div></div>
+         </div>
       `;
 
       let draws_tab = `
@@ -2599,6 +2653,9 @@ export const displayGen = function() {
                </div>
             </div>
             <div id='${ids.draws}' class='tournament_match flexcol flexcenter drawdraw'> </div>
+         </div>
+         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='doclink' url='tmx_tournament_draws'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
 
@@ -2628,23 +2685,26 @@ export const displayGen = function() {
             <div id='${ids.players}' class='registered_players flexcol flexcenter'> </div>
 
          </div>
+         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='doclink' url='tmx_tournament_players'><div class='tiny_docs_icon' style='display: none'></div></div>
+         </div>
       `;
 
-      let ptab = `<div class='icon ${gen.info} flexcenter' label='${lang.tr("events.opponents")}'><div class='tab_icon opponents_header'></div></div>`;
-      let mtab = `<div class='icon ${gen.info} flexcenter' label='${lang.tr("mts")}'><div class='tab_icon matches_header'></div></div>`;
+      let event_tab = ` <div id='${ids.event_tab}' class='flexcol flexcenter'> </div> `;
+      let dual_tab = ` <div id='${ids.dual}' class='flexcol flexcenter'> </div> `;
+
       let tabdata = [
          { ref: 'tournament', tab: lang.tr('trn'), content: tournament_tab, id: `TT${ids.container}` },
-         { ref: 'players',    tab: lang.tr('pyr'), content: players_tab, id: `YT${ids.container}`, display: 'none' },
          { ref: 'courts',     tab: lang.tr('crt'), content: courts_tab, id: `CT${ids.container}`, display: 'none' },
+         { ref: 'players',    tab: lang.tr('pyr'), content: players_tab, id: `YT${ids.container}`, display: 'none' },
+         { ref: 'teams',      tab: lang.tr('tmz'), content: teams_tab, id: `TM${ids.container}`, display: 'none' },
+         { ref: 'event',      tab: lang.tr('ent'), content: event_tab, id: `EN${ids.container}`, display: 'none' },
          { ref: 'events',     tab: lang.tr('evt'), content: events_tab, id: `ET${ids.container}`, display: 'none' },
          { ref: 'draws',      tab: lang.tr('drz'), content: draws_tab, id: `DT${ids.container}`, display: 'none' },
+         { ref: 'dual',       tab: lang.tr('dlm'), content: dual_tab, id: `DL${ids.container}`, display: 'none' },
          { ref: 'schedule',   tab: lang.tr('sch'), content: schedule_tab, id: `ST${ids.container}`, display: 'none' },
          { ref: 'matches',    tab: lang.tr('mts'), content: matches_tab, id: `MT${ids.container}`, display: 'none' },
          { ref: 'points',     tab: lang.tr('pts'), content: points_tab, id: `PT${ids.container}`, display: 'none' },
-
-      // icons instead of text?
-      //   { ref: 'matches',    tab: mtab, content: matches_tab, id: `MT${ids.container}`, display: 'none' },
-      //   { ref: 'players',    tab: ptab, content: players_tab, id: `YT${ids.container}`, display: 'none' },
 
       ];
       let tabs = jsTabs.generate(tabdata);
@@ -2656,7 +2716,7 @@ export const displayGen = function() {
          </div>
       `;
       let cloudfetch_button = `
-         <div id='${ids.cloudfetch}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.fetch")}' style='display: none;'>
+         <div id='${ids.cloudfetch}' class='contextAction link ${gen.infoleft}' label='${lang.tr("tournaments.fetch")}' style='display: none;' contextaction='requestTournamentEvents'>
             <img src='./icons/cloudfetch.png' class='club_link'>
          </div>
       `;
@@ -2864,6 +2924,36 @@ export const displayGen = function() {
       return { ids, html };
    }
 
+   gen.ratingsFilterValues = ({ coords, ratings_filter }) => {
+      let mp_ids = {
+         entry_field: displayFx.uuid(),
+      }
+
+      let entry_field = d3.select('body')
+         .append('div')
+         .attr('class', 'modal')
+         .attr('id', mp_ids.entry_field);
+
+      let { ids, html } = generateRatingsEntry({ ratings_filter });
+      let entry = floatingEntry().selector('#' + mp_ids.entry_field)
+      entry(coords[0], coords[1] - window.scrollY, html);
+
+      Object.assign(ids, mp_ids);
+      let id_obj = displayFx.idObj(ids);
+      return id_obj;
+   }
+
+   function generateRatingsEntry({ ratings_filter }) {
+      let ids = {
+         player_index: displayFx.uuid(),
+         player_search: displayFx.uuid(),
+      }
+      let html = `
+         Boo!
+      `;
+      return { ids, html };
+   }
+
    gen.manualPlayerPosition = ({ container, position }) => {
       let mp_ids = {
          entry_field: displayFx.uuid(),
@@ -2975,6 +3065,34 @@ export const displayGen = function() {
       return html;
    }
 
+   gen.teamList = (container, teams, highlighted) => {
+      let display = teams && teams.length;
+      let html = !display ? '' : `
+         <div class='team_row team_header'>
+            <div class='cell tname'>${lang.tr('teams.name')}</div>
+            <div class='cell team_data icon ${gen.info} flexcenter' label='${lang.tr("teams.members")}'><div class='event_icon opponents_header'></div></div>
+            <div class='cell team_data icon ${gen.info} flexcenter' label='${lang.tr("teams.matches")}'><div class='event_icon matches_header'></div></div>
+            <div class='cell team_data icon ${gen.info} flexcenter' label='${lang.tr("teams.winloss")}'><div class='event_icon winloss_header'></div></div>
+         </div>
+      `;
+      if (display) html += teams.map((team, i) => teamRow(team, i, highlighted)).join('');
+      d3.select(container.teams.element).style('display', display ? 'flex' : 'none').html(html);
+      d3.select('#TM' + container.container.id).style('display', 'flex');
+   }
+
+   function teamRow(team, i, highlighted) {
+      let highlight = highlighted != undefined && highlighted == team.uuid ? ' highlight_listitem' : '';
+      let html = `
+         <div class='teamrow teamid team_row ${highlight}' index='${i}' uuid='${team.uuid}'>
+            <div class='teamrow tname'>${team.name}</div>
+            <div class='teamrow team_data flexcenter'>${team.members}</div>
+            <div class='teamrow team_data flexcenter'>${team.total_matches || 0}</div>
+            <div class='teamrow team_data flexcenter'>${team.winloss}</div>
+         </div>
+      `;
+
+      return html;
+   }
    gen.eventList = (container, events, highlight_euid) => {
       let display = events && events.length;
       let html = !display ? '' : `
@@ -3039,6 +3157,12 @@ export const displayGen = function() {
       `;
 
       return html;
+   }
+
+   gen.hideTeamDetails = (container) => {
+      d3.select(container.team_details.element).style('display', 'none');
+      Array.from(container.teams.element.querySelectorAll('.highlight_listitem'))
+         .forEach(elem => elem.classList.remove('highlight_listitem'));
    }
 
    gen.hideEventDetails = (container) => {
@@ -3292,24 +3416,10 @@ export const displayGen = function() {
       return displayFx.idObj(ids);
    }
 
-   /*
-   gen.genEventName = (e, pre) => {
-      let types = {
-         'R': lang.tr('draws.roundrobin'),
-         'C': lang.tr('draws.consolation'),
-         'Q': lang.tr('draws.qualification'),
-         'P': lang.tr('pyo'),
-      }
-      let type = pre ? lang.tr('draws.preround'): types[e.draw_type] || lang.tr('draws.maindraw');
-      let name = `${e.name}&nbsp;<span class='event_type'>${type}</span>`;
-      return { type, name }
-   }
-   */
-
    gen.setEventName = (container, e) => {
       let { type, name } = tournamentFx.genEventName(e);
       let event_details = d3.select(container.event_details.element);
-      let full_name = `${e.name}&nbsp;<span class='event_type'>${type}</span>`;
+      let full_name = `${e.custom_category ? e.custom_category + ' ' : ''}${e.name}&nbsp;<span class='event_type'>${type}</span>`;
       event_details.select('.event_name').html(full_name);
    }
 
@@ -3509,8 +3619,7 @@ export const displayGen = function() {
       let ids = { 
          org: displayFx.uuid(),
          clubs: displayFx.uuid(),
-         teams: displayFx.uuid(),
-         rankings: displayFx.uuid(),
+         players: displayFx.uuid(),
          settings: displayFx.uuid(),
          tournaments: displayFx.uuid(),
          documentation: displayFx.uuid(),
@@ -3521,11 +3630,10 @@ export const displayGen = function() {
 
       let settings_tabs_count = Object.keys(settings_tabs).map(k=>settings_tabs[k]).reduce((p, c) => p || c);
       let settings = action(components.settings && settings_tabs_count, ids.settings, lang.tr('set'), 'splash_settings');
-
-      let rankings = action(components.rankings, ids.rankings, lang.tr('rnkz'), 'splash_rankings');
+      let players_actions = components.players && Object.keys(components.players).map(k=>components.players[k]).reduce((p, c) => p || c, false);
+      let players = action(players_actions, ids.players, lang.tr('pyr'), 'splash_players');
       let clubs = action(components.clubs, ids.clubs, lang.tr('clb'), 'splash_clubs');
       let tournaments = action(components.tournaments, ids.tournaments, lang.tr('trn'), 'splash_tournament');
-      let teams = action(components.teams, ids.teams, lang.tr('tmz'), 'splash_teams');
       let importexport = action(components.importexport, ids.importexport, lang.tr('importexport'), 'splash_importexport');
       let documentation = action(components.documentation, ids.documentation, lang.tr('documentation'), 'splash_documentation');
       let keys = action(components.keys, ids.keys, lang.tr('keys'), 'splash_keys');
@@ -3533,7 +3641,7 @@ export const displayGen = function() {
       let html = `
          <div class='splash_screen'>
             <div class='splash_org flexcenter' id='${ids.org}'></div>
-            <div class='actions container'>${rankings}${clubs}${tournaments}${teams}${settings}${documentation}${importexport}${keys}</div>
+            <div class='actions container'>${players}${clubs}${tournaments}${settings}${documentation}${importexport}${keys}</div>
          </div>
       `;
 
@@ -3545,6 +3653,100 @@ export const displayGen = function() {
          if (!bool) return '';
          return `<div id='${id}' class='${gen.info} action' label="${label}"><div class='splash_icon ${icon}'></div></div>`;
       }
+   }
+
+   gen.addTeamOptions = () => {
+      if (searchBox.element) searchBox.element.blur();
+      let ids = {
+         teamsearch: displayFx.uuid(),
+         createnew: displayFx.uuid(),
+         submitkey: displayFx.uuid(),
+         cancel: displayFx.uuid()
+      }
+      let html = `
+         <div class='flexcol' style='margin-left: 1em; margin-right: 1em;'>
+            <h2>${lang.tr('actions.add_team')}</h2>
+            <div class='flexrow' style='width: 100%;'>
+               <input id='${ids.teamsearch}' class='teamsearch' style='width: 100%' placeholder='${lang.tr("teams.nameorkey")}'>
+            </div>
+            <div class='flexcenter' style='margin-bottom: 2em;'>
+               <button id='${ids.createnew}' class='btn btn-small edit-submit' style='margin-right: 2em'>${lang.tr('teams.createnew')}</button>
+               <button id='${ids.submitkey}' class='btn btn-small edit-submit' style='margin-right: 2em'>${lang.tr('teams.submitkey')}</button>
+               <button id='${ids.cancel}' class='btn btn-small edit-cancel'>${lang.tr('actions.cancel')}</button>
+            </div>
+         </div>
+      `;
+      document.body.style.overflow  = 'hidden';
+      document.getElementById('processing').style.display = "flex";
+      document.getElementById('processingtext').innerHTML = html;
+      displayGen.escapeModal();
+      let id_obj = displayFx.idObj(ids);
+      if (id_obj.cancel) id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
+      return id_obj;
+   }
+
+   gen.displayTeamDetails = (container, team) => {
+      // ddlb to select club, country, college, school
+      let ids = {
+         abbreviation: displayFx.uuid(),
+         club: displayFx.uuid(),
+         school: displayFx.uuid(),
+         ioc: displayFx.uuid(),
+         coach: displayFx.uuid(),
+         players: displayFx.uuid(),
+      };
+      let html = `
+         <div class='attributes'>
+            <div style='display: grid'>
+               <div class='teamattr'>${lang.tr('teams.abbreviation')}:</div>
+               <div class='teamattr'>${lang.tr('teams.club')}:</div>
+               <div class='teamattr'>${lang.tr('teams.school')}:</div>
+               <div class='teamattr'>${lang.tr('teams.ioc')}:</div>
+               <div class='teamattr'>${lang.tr('teams.coaches')}:</div>
+            </div>
+            <div style='display: grid' >
+               <input class='team_attr_edit' id='${ids.abbreviation}'> 
+               <input class='team_attr_edit' id='${ids.club}'> 
+               <input class='team_attr_edit' id='${ids.school}'> 
+               <input class='team_attr_edit' id='${ids.ioc}'> 
+               <input class='team_attr_edit' id='${ids.coach}'> 
+            </div>
+         </div>
+         <div id='${ids.players}' class='team_players'>
+         </div>
+      `;
+      
+      d3.select(container.team_attributes.element).html(html);
+      return displayFx.idObj(ids);
+   }
+
+   gen.displayTeamPlayers = (elem, players=[]) => {
+      let html = `
+         <div class='team_player team_header'>
+            <div class='flexrow'>
+               <div class='rankrow manualorder'>#</div>
+               <div>${lang.tr('pyr')}</div>
+            </div>
+            <div class='event_icon opponents_header'></div>
+         </div>
+      `;
+      let display_order = {};
+      html += players.map((player, i) => {
+         let font_color = !player.sex ? 'black' : player.sex == 'W' ? '#840076' : '#00368c'; 
+         let style = `style='color: ${font_color};'`;
+         let phtml = `
+            <div class='team_player' ${style}>
+               <div class='flexrow'>
+                  <input puid='${player.puid}' order='${i}' class='rankrow manualorder' value='${player.order || ""}'>
+                  <div>${player.last_name.toUpperCase()}, ${player.first_name} </div>
+               </div>
+               <div style='padding-right: 2px;'>${player.sex}</div>
+            </div>
+         `;
+         display_order[p.puid] = i;
+         return phtml;
+      }).join('');
+      elem.innerHTML = html;
    }
 
    gen.importPlayers = () => {
@@ -3607,17 +3809,25 @@ export const displayGen = function() {
       return displayFx.idObj(ids);
    }
 
-   gen.rankingsActions = () => {
+   gen.playersActions = () => {
       let ids = { 
          add: displayFx.uuid(),
+         teams: displayFx.uuid(),
          pointCalc: displayFx.uuid(),
          rankCalc: displayFx.uuid(),
       }
       let html = `<div class='flexcenter container'>
 
          <div class='actions'>
+            <div id='${ids.add}' class='${gen.info} action' label='${lang.tr("actions.manage_players")}' style='display: none'>
+               <div class='player_view_players'></div>
+            </div>
+            <div id='${ids.teams}' class='${gen.info} action' label='${lang.tr("actions.manage_teams")}' style='display: none'>
+               <div class='player_teams'></div>
+            </div>
             <div id='${ids.pointCalc}' class='${gen.info} action' label='${lang.tr("phrases.calculateranking")}' style='display: none'>
-               <div class='player_calc_points'></div></div>
+               <div class='player_calc_points'></div>
+            </div>
             <div id='${ids.rankCalc}' class='${gen.info} action' label='${lang.tr("phrases.generateranklist")}' style='display: none'>
                <div class='player_calc_ranks'></div>
             </div>

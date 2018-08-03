@@ -1,6 +1,7 @@
 export const eventManager = function() {
 
-   let em = { elapsed: 100000 };
+   let touchTimer;
+   let em = { elapsed: 100000, held: undefined, touched: undefined, hold_time: 800, holdAction: undefined };
    let keys = {};
    let registeredFunctions = {};
    let intersection = (a, b) => a.filter(n => b.indexOf(n) !== -1).filter((e, i, c) => c.indexOf(e) === i);
@@ -43,15 +44,24 @@ export const eventManager = function() {
 
    function callFunction(cls, target, evnt) { registeredFunctions[evnt][cls].fx(target) }
 
+   document.addEventListener('touchstart', function(event) {
+      em.touched = event.target;
+      if (em.touched) { touchTimer = setTimeout(function(){ holdAction(); }, em.hold_time); }
+   }, false);
+   document.addEventListener('touchend', function(event) { touchleave(); }, false);
+   document.addEventListener('touchmove', function(event) { if (em.touched !== event.target) touchleave(); }, false);
+   function touchleave() { clearTimeout(touchTimer) }
+   function holdAction() { if (typeof em.holdAction == 'function') { em.held = em.touched; em.holdAction(em.held); } }
+
    (function(){
-      var isTouch = false //var to indicate current input type (is touch versus no touch) 
-      var isTouchTimer 
-      var curRootClass = '' //var indicating current document root class ("can-touch" or "")
+      var isTouch = false; //var to indicate current input type (is touch versus no touch) 
+      var isTouchTimer; 
+      var curRootClass = ''; //var indicating current document root class ("can-touch" or "")
         
       function addtouchclass(e) {
-         console.log('adding touch class');
+         // console.log('adding touch class');
          clearTimeout(isTouchTimer)
-         isTouch = true
+         isTouch = true;
          if (curRootClass != 'can-touch') { //add "can-touch' class if it's not already present
             curRootClass = 'can-touch'
             document.documentElement.classList.add(curRootClass)
@@ -60,15 +70,16 @@ export const eventManager = function() {
       }
         
       function removetouchclass(e) {
+         // console.log('removing touch class');
          if (!isTouch && curRootClass == 'can-touch') { //remove 'can-touch' class if not triggered by a touch event and class is present
-            isTouch = false
-            curRootClass = ''
-            document.documentElement.classList.remove('can-touch')
+            isTouch = false;
+            curRootClass = '';
+            document.documentElement.classList.remove('can-touch');
          }
       }
         
-      document.addEventListener('touchstart', addtouchclass, false) //this event only gets called when input type is touch
-      document.addEventListener('mouseover', removetouchclass, false) //this event gets called when input type is everything from touch to mouse/ trackpad
+      document.addEventListener('touchstart', addtouchclass, false); //this event only gets called when input type is touch
+      document.addEventListener('mouseover', removetouchclass, false); //this event gets called when input type is everything from touch to mouse/ trackpad
    })();
 
    return em;

@@ -22,6 +22,7 @@ import { scheduleFx } from './scheduleFx';
 import { scoreBoard } from './scoreBoard';
 import { contextMenu } from './contextMenu';
 import { tournamentFx } from './tournamentFx';
+import { eventManager } from './eventManager';
 import { rrDraw, treeDraw, drawFx } from './drawFx';
 
 // TODO: remove use of tournament.sid
@@ -35,7 +36,7 @@ export const tournamentDisplay = function() {
 
    let o = {
       sign_in: { rapid: true, },
-      byes_with_byes: true,
+      byes_with_byes: false,
       byes_with_unseeded: true,
       focus: { place_player: undefined },
    }
@@ -188,10 +189,10 @@ export const tournamentDisplay = function() {
       calendar_container.category.ddlb.selectionBackground('white');
       category = staging.legacyCategory(category);
 
-      calendar_container.add.element.addEventListener('click', () => {
+      calendar_container.add.element.addEventListener('click', (evt) => {
+         if (evt.ctrlKey || evt.shiftKey) return fetchFx.fetchTournament();
          createNewTournament({ title: lang.tr('tournaments.new'), callback: modifyTournament })
       });
-
       calendar_container.add.element.addEventListener('contextmenu', () => fetchFx.fetchTournament());
 
       function modifyTournament(tournament) {
@@ -227,7 +228,10 @@ export const tournamentDisplay = function() {
 
             displayGen.calendarRows(calendar_container.rows.element, tournaments);
 
-            function dt(evt) { return displayTournament({tuid: util.getParent(evt.target, 'calendar_click').getAttribute('tuid')}); }
+            function dt(evt) {
+               if (evt.ctrlKey || evt.shiftKey) return tournamentContextOptions(evt);
+               return displayTournament({tuid: util.getParent(evt.target, 'calendar_click').getAttribute('tuid')});
+            }
             function tournamentContextOptions(evt) {
                var mouse = { x: evt.clientX, y: evt.clientY }
                var tuid = util.getParent(evt.target, 'calendar_click').getAttribute('tuid');
@@ -363,9 +367,14 @@ export const tournamentDisplay = function() {
 
    function createTournamentContainer({tournament, dbmatches, selected_tab, display_points = false, editing}) {
 
+      let holdActions = {
+         "requestTournamentEvents": () => coms.requestTournamentEvents(tournament.tuid)
+      };
+
+      db.addDev({tournament});
+
       // START setup
       let state = {
-         // edit: false,
          edit: editing,
          manual_ranking: false,
       }
@@ -384,33 +393,49 @@ export const tournamentDisplay = function() {
       //       => it can be removed once the legacy DDLB are removed
       tournamentGenders(tournament, dbmatches);
 
+      let env = fx.fx.env() || {};
+
       let { groups: match_groups, group_draws } = groupMatches(dbmatches);
       let { container, classes, displayTab, display_context, tab_ref } = displayGen.tournamentContainer({ tournament, tabCallback });
 
-      db.addDev({tournament});
+      eventManager.register('tiny_docs_icon', 'tap', contextDocs);
+      eventManager.holdAction = (target) => {
+         let click_context = util.getParent(target, 'contextAction');
+         let action = click_context && click_context.getAttribute('contextaction');
+         if (holdActions[action]) holdActions[action](target);
+      }
+
+      function contextDocs(target) {
+         let click_context = util.getParent(target, 'doclink');
+         let url = click_context.getAttribute('url');
+         if (url) window.open(`/docs/${env.ioc}/${url}.html`, '_blank');
+      }
 
       container.edit.element.style.display = sameOrg(tournament) && !tournament.delegated ? 'inline' : 'none';
       if (tournament.delegated && sameOrg(tournament)) displayGen.delegated(container, true);
 
+
       // create and initialize draw objects
       let rr_draw = rrDraw();
-      let tree_draw = treeDraw().dfxOptions(fx.fx.env().drawFx);
+      let tree_draw = treeDraw().dfxOptions(env.drawFx);
 
       draws_context[display_context] = { roundrobin: rr_draw, tree: tree_draw };
 
       tree_draw.options({ addByes: false, cleanup: true });
       tree_draw.options({ sizeToFit: false, });
       tree_draw.options({ minWidth: 400, minHeight: 100 });
-      tree_draw.options({ flags: { path: fx.fx.env().assets.flags }});
-      tree_draw.events({'player1': { 'click': d => playerClick(d, 0) }});
-      tree_draw.events({'player2': { 'click': d => playerClick(d, 1) }});
+      tree_draw.options({ flags: { path: env.assets.flags }});
+
+      // formerly used to display player profile when clicking in tree draws
+      // tree_draw.events({'player1': { 'click': d => playerClick(d, 0) }});
+      // tree_draw.events({'player2': { 'click': d => playerClick(d, 1) }});
 
       tree_draw.options({
          minPlayerHeight: 30,
          details: { club_codes: true, draw_positions: true, player_rankings: true, player_ratings: true, draw_entry: true, seeding: true },
       });
 
-      rr_draw.options({ min_width: 300 });
+      rr_draw.options({ min_width: 300, details: { games_won_lost: env.draws.rr_draw.details.games_won_lost } });
       // end draw object creation/initialization
 
       function deleteMatch(muid) {
@@ -423,11 +448,14 @@ export const tournamentDisplay = function() {
 
       util.addEventToClass(classes.auto_draw, toggleAutoDraw);
       util.addEventToClass(classes.gem_seeding, toggleGemSeeding);
-      util.addEventToClass(classes.player_filter, togglePlayerFilter);
+      util.addEventToClass(classes.ratings_filter, toggleRatingsFilter);
 
       attachFilterToggles(classes, updateFilters);
       util.addEventToClass(classes.ranking_order, () => enableManualRankings());
-      util.addEventToClass(classes.refresh_registrations, () => updateRegisteredPlayers(true, true));
+      util.addEventToClass(classes.refresh_registrations, (evt) => {
+         if (evt.ctrlKey || evt.shiftKey) return replaceRegisteredPlayers(true, true);
+         updateRegisteredPlayers(true, true);
+      });
       util.addEventToClass(classes.refresh_registrations, () => replaceRegisteredPlayers(true, true), undefined, 'contextmenu');
 
       // set up printing events
@@ -493,6 +521,10 @@ export const tournamentDisplay = function() {
          }
       }
 
+      util.addEventToClass(classes.publish_schedule, (evt) => {
+         if (evt.ctrlKey || evt.shiftKey) return unPublishSchedule();
+         publishSchedule();
+      });
       util.addEventToClass(classes.publish_schedule, unPublishSchedule, undefined, 'contextmenu');
       function unPublishSchedule() {
          if (!state.edit || !tournament.schedule || !tournament.schedule.published) return;
@@ -519,7 +551,6 @@ export const tournamentDisplay = function() {
          }
       }
 
-      util.addEventToClass(classes.publish_schedule, publishSchedule);
       /**
        * @param   {boolean}   update_time    whether or not to update the schedule publish time
        */
@@ -831,12 +862,17 @@ export const tournamentDisplay = function() {
       }
 
       container.push2cloud.element.addEventListener('click', () => { if (!tournament.pushed2cloud) pushTournament2Cloud(tournament); });
-      container.pubTrnyInfo.element.addEventListener('click', () => publishTournamentInfo(tournament));
+      container.pubTrnyInfo.element.addEventListener('click', (evt) => {
+         if (evt.ctrlKey || evt.shiftKey) return unpublishTournamentInfo();
+         publishTournamentInfo(tournament);
+      });
       container.pubTrnyInfo.element.addEventListener('contextmenu', () => unpublishTournamentInfo(tournament));
 
       container.localdownload.element.addEventListener('click', () => {
-         let ouid = fx.fx.env().org && fx.fx.env().org.ouid;
-         if (!tournament.ouid) tournament.ouid = ouid;
+         // let ouid = fx.fx.env().org && fx.fx.env().org.ouid;
+         // if (!tournament.ouid) tournament.ouid = ouid;
+         let org = fx.fx.env().org;
+         if (!tournament.org) tournament.org = org;
 
          exportFx.downloadCircularJSON(`${tournament.tuid}.circular.json`, tournament);
          tournament.saved_locally = true;
@@ -899,26 +935,29 @@ export const tournamentDisplay = function() {
          }
       });
 
-      container.publish_draw.element.addEventListener('contextmenu', () => {
-         if (!displayed_draw_event || !displayed_draw_event.published) return;
-         displayGen.okCancelMessage(lang.tr('draws.unpublish'), unpublishDraw, () => displayGen.closeModal());
+      container.publish_draw.element.addEventListener('contextmenu', unpublishDraw);
 
-         function unpublishDraw() {
+      function unpublishDraw() {
+         if (!displayed_draw_event || !displayed_draw_event.published) return;
+         displayGen.okCancelMessage(lang.tr('draws.unpublish'), upd, () => displayGen.closeModal());
+
+         function upd() {
             unpublishEventDraw(displayed_draw_event);
             displayGen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
             enableTournamentOptions();
             displayGen.closeModal();
          }
-      });
-
-      function unpublishEventDraw(evt) {
-         evt.published = false;
-         evt.up_to_date = false;
-         saveTournament(tournament);
-         deletePublishedEvent(tournament, evt);
       }
 
-      container.publish_draw.element.addEventListener('click', () => {
+      function unpublishEventDraw(evnt) {
+         evnt.published = false;
+         evnt.up_to_date = false;
+         saveTournament(tournament);
+         deletePublishedEvent(tournament, evnt);
+      }
+
+      container.publish_draw.element.addEventListener('click', (evt) => {
+         if (evt.ctrlKey || evt.shiftKey) return unpublishDraw();
          if (fx.fx.env().publishing.require_confirmation) {
             displayGen.okCancelMessage(lang.tr('draws.publishQ'), broadcast, () => displayGen.closeModal());
          } else {
@@ -1020,12 +1059,16 @@ export const tournamentDisplay = function() {
          }
       });
 
-      container.clearschedule.element.addEventListener('click', clearScheduleDay);
+      container.clearschedule.element.addEventListener('click', (evt) => {
+         if (evt.ctrlKey || evt.shiftKey) return resetSchedule();
+         clearScheduleDay();
+      });
       container.clearschedule.element.addEventListener('contextmenu', resetSchedule);
       container.autoschedule.element.addEventListener('click', autoSchedule);
       container.schedulelimit.element.addEventListener('click', limitAutoSchedule);
       container.events_actions.element.addEventListener('click', newTournamentEvent);
       container.locations_actions.element.addEventListener('click', newLocation);
+      container.teams_actions.element.addEventListener('click', addTeam);
 
       function cMenu({ selector, coords, options, clickAction }) {
          let font_size = options.length < 7 ? 18 : 16;
@@ -1104,7 +1147,7 @@ export const tournamentDisplay = function() {
          // TODO: change the button to show the limit that has been set
       }
 
-      function autoSchedule(ev) {
+      function autoSchedule(evt) {
          let order_priority = false;
 
          let luids = tournament.locations.map(l=>l.luid);
@@ -1252,6 +1295,9 @@ export const tournamentDisplay = function() {
 
       tournamentTab();
       drawsTab();
+      teamsTab();
+      eventTab();
+      dualTab();
       eventsTab();
       courtsTab();
       scheduleTab();
@@ -1542,8 +1588,8 @@ export const tournamentDisplay = function() {
          return Array.from(elem.firstChild.classList).indexOf('gem_active') >= 0 ? true : false;
       }
 
-      function playerFilterActive() {
-         let elem = document.querySelector('.' + classes.player_filter);
+      function ratingsFilterActive() {
+         let elem = document.querySelector('.' + classes.ratings_filter);
          if (!elem) return;
          return Array.from(elem.firstChild.classList).indexOf('filter_active') >= 0 ? true : false;
       }
@@ -1592,21 +1638,22 @@ export const tournamentDisplay = function() {
          }
       }
 
-      function togglePlayerFilter(active) {
+      function toggleRatingsFilter(active) {
          let e = tfx.findEventByID(tournament, displayed_event);
-         let filter_active = playerFilterActive();
+         let filter_active = ratingsFilterActive();
          let toggleFilterActive = () => {
             // toggle the two possible options
-            let elem = document.querySelector('.' + classes.player_filter);
+            let elem = document.querySelector('.' + classes.ratings_filter);
             elem.firstChild.classList.toggle('filter_inactive');
             elem.firstChild.classList.toggle('filter_active');
             saveTournament(tournament);
          }
 
-         if ((active == true && filter_active) || (active == false && !filter_active)) return;
+         let filter_on = active && (active.high || active.low);
+         if ((filter_on && filter_active) || (active == false && !filter_active)) return;
 
          // if not true/false it may be MouseEvent, so needs to be explicit
-         if (active == true || active == false) {
+         if (filter_on || active == false) {
             toggleFilterActive();
             return;
          }
@@ -1616,11 +1663,19 @@ export const tournamentDisplay = function() {
          toggleFilterActive();
 
          if (e) {
-            if (e.player_filter) {
-               delete e.player_filter
+            if (e.ratings_filter) {
+               delete e.ratings_filter
             } else {
-               console.log('define filter');
+               setFilter();
             }
+            displayEvent({e});
+         }
+
+         function setFilter() {
+            console.log('define filter');
+            e.ratings_filter = { high: 12.5, low: 11.1 }
+            var coords = { x: active.clientX, y: active.clientY }
+            let id_obje = displayGen.ratingsFilterValues({ coords, ratings_filter: e.ratings_filter });
          }
       }
 
@@ -1698,6 +1753,8 @@ export const tournamentDisplay = function() {
          document.querySelector('.' + classes.print_sign_in).style.display = display ? 'inline' : 'none';
       }
 
+      function schedulingActive() { return container.scheduling.element.style.display != 'none'; }
+
       function scheduleActions({ changed=false } = {}) {
          let display = state.edit ? true : false;
          container.schedule_tab.element.querySelector('.' + classes.print_schedule).style.display = display ? 'inline' : 'none';
@@ -1719,6 +1776,11 @@ export const tournamentDisplay = function() {
          container.schedule_tab.element.querySelector('.' + classes.publish_schedule).style.display = display_publish_icon ? 'inline' : 'none';
       }
 
+      function teamEditState(el, bool) {
+         el.disabled = !bool;
+         // el.style.border = bool ? '1px solid lightgray' : '0';
+      }
+
       function activateEdit() {
          state.edit = true;
          displayGen.escapeFx = undefined;
@@ -1734,12 +1796,18 @@ export const tournamentDisplay = function() {
             draws_context[display_context] = { roundrobin: rr_draw, tree: tree_draw };
          }
 
+         util.eachElementClass(container.team_details.element, 'team_attr_edit', (el) => teamEditState(el, true));
+
          setEditState();
 
          if (current_tab == 'schedule') scheduleTab();
          if (current_tab == 'players') {
             displayedPlayers();
             enableAddPlayer();
+         }
+         if (current_tab == 'teams') {
+            console.log('teams tab');
+            enableAddTeamPlayer();
          }
 
          if (document.body.scrollIntoView) document.body.scrollIntoView();
@@ -1748,6 +1816,8 @@ export const tournamentDisplay = function() {
          let tournament_date = tournament && tournament.start;
          let calc_date = tournament_date ? new Date(tournament_date) : new Date();
          let categories = fx.fx.orgCategories({calc_date});
+
+         // TODO: this shouldn't be done *every* time that edit state is activated
          fetchFx.fetchRankLists(categories).then(maxInternationalRankings, maxInternationalRankings);
       }
 
@@ -1767,6 +1837,7 @@ export const tournamentDisplay = function() {
       function deactivateEdit() {
          state.edit = false;
          document.querySelector('.ranking_order').style.opacity = 0;
+         util.eachElementClass(container.team_details.element, 'team_attr_edit', (el) => teamEditState(el, false));
          saveTournament(tournament);
          setEditState();
       }
@@ -1780,6 +1851,24 @@ export const tournamentDisplay = function() {
             coms.emitTmx({ revokeAuthorization });
             displayGen.closeModal();
          }
+      }
+
+      db.addDev({sendTeam});
+      function sendTeam(team) {
+         let key_uuid = UUID.generate();
+         let pushKey = {
+            key_uuid,
+            content: {
+                  "onetime": true,
+                  "directive": "sendKey",
+                  "key": team.uuid
+               }
+         }
+         let ctext = lang.tr('phrases.keycopied');
+         coms.emitTmx({ pushKey });
+         displayGen.escapeModal();
+         let msg = displayGen.okCancelMessage(ctext, () => displayGen.closeModal());
+         copyClick(key_uuid);
       }
 
       function authorizeUser() {
@@ -1810,10 +1899,18 @@ export const tournamentDisplay = function() {
          
          container.edit.element.addEventListener('click', () => { if (!state.edit) activateEdit(); });
          container.finish.element.addEventListener('click', () => { deactivateEdit(); });
-         container.cloudfetch.element.addEventListener('contextmenu', () => { coms.requestTournamentEvents(tournament.tuid); });
-         container.cloudfetch.element.addEventListener('click', () => { coms.requestTournament(tournament.tuid); });
+         container.cloudfetch.element.addEventListener('contextmenu', () => {
+            if (!env.isMobile) coms.requestTournamentEvents(tournament.tuid);
+         });
+         container.cloudfetch.element.addEventListener('click', (evt) => {
+            if (evt.ctrlKey || evt.shiftKey) return coms.requestTournamentEvents(tournament.tuid);
+            coms.requestTournament(tournament.tuid);
+         });
          container.authorize.element.addEventListener('contextmenu', revokeAuthorization);
-         container.authorize.element.addEventListener('click', authorizeUser);
+         container.authorize.element.addEventListener('click', (evt) => {
+            if (evt.ctrlKey || evt.shiftKey) return revokeAuthorization();
+            authorizeUser();
+         });
       }
 
       function copyClick(message) {
@@ -1851,7 +1948,8 @@ export const tournamentDisplay = function() {
       }
 
       function setEditState() {
-         let ouid = fx.fx.env().org && fx.fx.env().org.ouid;
+         let env = fx.fx.env();
+         let ouid = env.org && env.org.ouid;
          let same_org = sameOrg(tournament);
 
          container.authorize.element.style.display = 'none';
@@ -1867,6 +1965,9 @@ export const tournamentDisplay = function() {
          document.querySelector('.refresh_registrations').style.opacity = state.edit ? 1 : 0;
          document.querySelector('.' + classes.refresh_registrations).classList[state.edit ? 'add' : 'remove']('info');
 
+         let view_docs = state.edit && env.documentation ? 'flex' : 'none';
+         Array.from(document.querySelectorAll('.tiny_docs_icon')).forEach(e=>e.style.display=view_docs)
+
          signInSheet();
          scheduleActions();
          penaltyReportIcon();
@@ -1876,6 +1977,9 @@ export const tournamentDisplay = function() {
          // any change of edit state hides notes entry
          // container.notes.element.style.display = 'none';
 
+         eventTab();
+         teamsTab();
+         dualTab();
          eventsTab();
          courtsTab();
          playersTab();
@@ -2091,9 +2195,41 @@ export const tournamentDisplay = function() {
          });
       }
 
+      function eventTab() {
+         let visible = (['dual', 'team'].indexOf(tournament.type) >= 0 && tournament.teams && tournament.teams.length > 1 ) || false;
+         tabVisible(container, 'EN', visible); 
+      }
+
+      function teamsTab() {
+         let visible = (['dual', 'team'].indexOf(tournament.type) >= 0 && (state.edit || (tournament.teams && tournament.teams.length))) || false;
+         tabVisible(container, 'TM', visible); 
+         let actions = d3.select(container.teams_actions.element);
+
+         if (state.edit) {
+            actions.style('display', 'flex');
+            actions.select('.add').style('display', 'inline');
+         } else {
+            actions.style('display', 'none');
+            actions.select('.add').style('display', 'none');
+            let detail_actions = d3.select(container.team_details.element);
+            detail_actions.select('.save').style('display', 'none');
+            detail_actions.select('.del').style('display', 'none');
+         }
+
+         teamList();
+      }
+
+      function dualTab() {
+         let visible = (['dual', 'team'].indexOf(tournament.type) >= 0 && tournament.events && tournament.events[0].draw) || false;
+         tabVisible(container, 'DL', visible); 
+      }
+
       function eventsTab() {
-         if (!state.edit && (!tournament.events || !tournament.events.length)) {
+         if (!state.edit && (!tournament.events || !tournament.events.length) || (tournament.type && tournament.type != 'standard')) {
             // hide events tab if there are no events and not in edit mode
+            // also hide events tab if tournament type is not "standard", i.e.
+            // if dual matches or a team tournament, which only have one event (at present)
+            
             tabVisible(container, 'ET', false);
             // revert to the first tab (in this case tournament overview);
             displayTab(0);
@@ -2199,9 +2335,46 @@ export const tournamentDisplay = function() {
          displayGen.hideEventDetails(container);
       }
 
+      function closeTeamDetails() {
+         searchBox.normalFunction();
+         displayGen.hideTeamDetails(container);
+      }
+
       function closeLocationDetails() {
          searchBox.normalFunction();
          displayGen.hideLocationDetails(container);
+      }
+
+      function enableAddTeamPlayer(team) {
+         if (!team || searchBox.irregular_search_list == 'enableTeamPlayer') return;
+
+         let all_team_player_puids = !tournament.teams || !tournament.teams.length ? [] :
+            [].concat(...tournament.teams.map(t=>t && t.players)).filter(f=>f).map(p=>p.puid);
+
+         db.findAllPlayers().then(arr => {
+            if (arr.length) {
+               // exclude players that are on other teams...
+               searchBox.typeAhead.list = arr.filter(notTeamMember).map(valueLabel);
+
+               searchBox.category = 'players';
+               searchBox.category_switching = false;
+               searchBox.setSearchCategory(lang.tr('search.add2team'));
+               searchBox.irregular_search_list = 'addTeamPlayer';
+
+               playerFx.override = (plyr) => {
+                  if (!team.players) team.players = [];
+                  let order = team.players.length;
+                  team.players.push({ puid: plyr.puid, order });
+                  if (!tournament.players) tournament.players = [];
+                  if (!tournament.players.map(p=>p.puid).indexOf(plyr.puid) >= 0) tournament.players.push(plyr);
+                  all_team_player_puids = all_team_player_puids.filter(puid=>puid != plyr.puid);
+                  displayTeam({ team });
+                  teamList();
+               }
+            }
+         });
+
+         function notTeamMember(player) { return all_team_player_puids.indexOf(player.puid) < 0; }
       }
 
       function enableApprovePlayer(e) {
@@ -2269,6 +2442,44 @@ export const tournamentDisplay = function() {
          }
       }
 
+      function teamList() {
+         if (!tournament.teams) return;
+         let teams = tournament.teams.map((team, i) => {
+            let team_meta = {
+               name: team.name,
+               uuid: team.uuid,
+               winloss: '0/0',
+               members: team.players.length,
+               total_matches: 0
+            }
+            return team_meta;
+         });
+
+         let highlighted = container.team_details.element.style.display != 'none' && container.team_details.element.getAttribute('uuid');
+         displayGen.teamList(container, teams, highlighted);
+
+         function teamDetails(target) {
+            let clicked_team = util.getParent(target, 'teamid');
+            let class_list = clicked_team.classList;
+            if (class_list.contains('highlight_listitem')) {
+               closeTeamDetails();
+            } else {
+               util.eachElementClass(container.teams.element, 'teamid', (i) => i.classList.remove('highlight_listitem'));
+               class_list.add('highlight_listitem');
+               let uuid = clicked_team.getAttribute('uuid');
+               let team = tfx.findTeamByID(tournament, uuid);
+               displayTeam({ team });
+            }
+         }
+         eventManager.register('teamrow', 'tap', teamDetails);
+      }
+
+      function eachElementClass(elem, cls, fx) {
+         if (!elem || !cls || !fx || typeof fx != 'function') return;
+         try { Array.from(elem.querySelectorAll(`.${cls}`)).forEach(fx); }
+         catch (err) { console.log('eachElementClass error:', err); }
+      }
+
       function eventList(regen_drawstab = false) {
          let events = [];
          let highlight_euid;
@@ -2283,7 +2494,7 @@ export const tournamentDisplay = function() {
 
                let draw_type_name = tfx.isPreRound({ env: fx.fx.env(), e }) ? lang.tr('draws.preround') : getKey(draw_types, e.draw_type); 
 
-               return {
+               let event_meta = {
                   scheduled,
                   euid: e.euid,
                   name: e.name,
@@ -2305,6 +2516,8 @@ export const tournamentDisplay = function() {
                   draw_type_name,
                   opponents: e.approved.length + (e.draw_type == 'E' ? (e.qualifiers || 0) : 0),
                };
+
+               return event_meta;
             });
          }
 
@@ -2326,6 +2539,7 @@ export const tournamentDisplay = function() {
          util.addEventToClass('event', customEventCategory, container.events.element, 'contextmenu');
          util.addEventToClass('pubstate', eventPubState, container.events.element);
          util.addEventToClass('published_header', unpublishAllEvents, document, 'contextmenu');
+         util.addEventToClass('published_header', (evt) => { if (evt.ctrlKey || evt.shiftKey) return unpublishAllEvents(); });
          if (regen_drawstab) drawsTab();
          enableTournamentOptions();
       }
@@ -2336,7 +2550,6 @@ export const tournamentDisplay = function() {
          let evnt = tfx.findEventByID(tournament, euid);
          if (state.edit) {
             var coords = { x: evt.clientX, y: evt.clientY }
-            // let coords = d3.mouse(selector);
             let cec_name_obj = displayGen.entryModal('nm', false, coords);
             displayGen.escapeModal();
 
@@ -2361,6 +2574,7 @@ export const tournamentDisplay = function() {
                evnt.custom_category = name;
                evnt.broadcast_name = `${evnt.custom_category || evnt.category || ''} ${getKey(genders, evnt.gender)} ${getKey(formats, evnt.format)}`;
                saveTournament(tournament);
+               displayGen.setEventName(container, evnt);
                eventList(true);
             }
          }
@@ -2406,6 +2620,68 @@ export const tournamentDisplay = function() {
             displayGen.drawBroadcastState(container.publish_state.element);
             unPublishOOP(tournament);
             eventList();
+         }
+      }
+
+      function addTeam() {
+         let added_team = displayGen.addTeamOptions();
+         let teamsearch = added_team.teamsearch.element;
+
+         added_team.createnew.element.addEventListener('click', createNew);
+         added_team.submitkey.element.addEventListener('click', submitTeamKey);
+
+         db.findAllTeams().then(selectionBox, util.logError);
+
+         function selectionBox(teams) {
+            let selection_flag = false;
+            let team_list = teams.map(t=>({ value: t.uuid, label: t.name }));
+            let type_ahead = new Awesomplete(teamsearch, { list: team_list });
+            teamsearch.addEventListener("awesomplete-selectcomplete", function(e) { selection_flag = true; teamSelected(this.value); }, false);
+            teamsearch.addEventListener('keydown', catchTab , false);
+            teamsearch.addEventListener("keyup", function(e) { 
+               // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
+               if (e.which == 13 && !selection_flag) {
+                  if (type_ahead.suggestions && type_ahead.suggestions.length) {
+                     type_ahead.next();
+                     type_ahead.select(0);
+                  } else {
+                     createNew();
+                  }
+               }
+               selection_flag = false;
+            });
+            teamsearch.focus();
+         }
+
+         function teamSelected(uuid) {
+            displayGen.closeModal();
+
+            if (!uuid) return;
+            teamsearch.value = '';
+            let team = db.findTeam(uuid);
+            displayTeam({ team });
+         }
+
+         function submitTeamKey() {
+            displayGen.closeModal();
+            let key = teamsearch.value;
+            if (!key || !key.trim()) return;
+            console.log('submitting team key:', key);
+            coms.sendKey(key.trim());
+         }
+
+         function createNew() {
+            displayGen.closeModal();
+
+            let team = {
+               name: teamsearch.value,
+               uuid: UUID.new(),
+               abbr: '',
+               coach: '',
+               players: []
+            }
+
+            displayTeam({ team });
          }
       }
 
@@ -2499,10 +2775,10 @@ export const tournamentDisplay = function() {
          auto_setting.style.display = e.structure == 'feed' || e.active || !state.edit || !fx.fx.env().draws.autodraw ? 'none' : 'inline';
       }
 
-      function playerFilterVisibility(e) {
-         let player_filter = document.querySelector('.' + classes.player_filter);
+      function ratingsFilterVisibility(e) {
+         let ratings_filter = document.querySelector('.' + classes.ratings_filter);
          let display = !e.ratings || e.active || !state.edit ? 'none' : 'inline';
-         player_filter.style.display = display;
+         ratings_filter.style.display = display;
       }
 
       function getCategoryRatings(category) {
@@ -2512,6 +2788,211 @@ export const tournamentDisplay = function() {
          let ctgs = points_table && points_table.categories;
          let ratings = ctgs && ctgs[category] && ctgs[category].ratings;
          return ratings;
+      }
+
+      container.team_edit_name.element.addEventListener('keyup', function(k) { 
+         if (k.which == 13) {
+            container.team_edit_name.element.style.display = 'none';
+            let value = container.team_edit_name.element.value;
+            if (value) {
+               container.team_display_name.element.innerHTML = value;
+               let uuid = container.team_details.element.getAttribute('uuid');
+               let team = tfx.findTeamByID(tournament, uuid);
+               team.name = value;
+               saveTournament(tournament);
+               teamList();
+            }
+            container.team_display_name.element.style.display = 'flex';
+         }
+      });
+
+      container.team_display_name.element.addEventListener('click', editTeamName);
+
+      function editTeamName() {
+         if (!state.edit) return;
+         container.team_display_name.element.style.display = 'none';
+         container.team_edit_name.element.style.display = 'flex';
+         container.team_edit_name.element.focus();
+      }
+
+      function displayTeam({ team, index } = {}) {
+         if (!team) return;
+
+         let team_index = tournament.teams && tournament.teams.map(t=>t.uuid).indexOf(team.uuid);
+         index = index || (team_index >= 0 ? team_index : undefined);
+
+         let team_details = displayGen.displayTeamDetails(container, team);
+         team_details.abbreviation.element.value = team.abbr || '';
+         team_details.coach.element.value = team.coach || '';
+
+         util.eachElementClass(container.team_details.element, 'team_attr_edit', (el) => teamEditState(el, state.edit));
+
+         let field_order = [ 'abbreviation', 'club', 'school', 'ioc', 'coach'];
+         let nextFieldFocus = (field) => {
+            let next_field = field_order.indexOf(field) + 1;
+            if (next_field == field_order.length) next_field = 0;
+            team_details[field_order[next_field]].element.focus(); 
+         }
+
+         let defineAttr = (attr, evt, required, elem) => {
+            team[attr] = elem ? elem.value : evt ? evt.target.value : undefined;
+            if ((!evt || evt.which == 13 || evt.which == 9) && (!required || (required && team[attr]))) return nextFieldFocus(attr);
+         }
+
+         team_details.abbreviation.element.addEventListener('keydown', catchTab);
+         team_details.abbreviation.element.addEventListener('keyup', (evt) => defineAttr('abbreviation', evt));
+         team_details.school.element.addEventListener('keydown', catchTab);
+         team_details.school.element.addEventListener('keyup', (evt) => defineAttr('school', evt));
+         team_details.coach.element.addEventListener('keydown', catchTab);
+         team_details.coach.element.addEventListener('keyup', (evt) => defineAttr('coach', evt));
+
+         // IOC Awesomplete
+         d3.json('./assets/ioc_codes.json', data => {
+            let list = data.map(d => ({ label: d.name, value: d.ioc }));
+            team_details.ioc.typeAhead = new Awesomplete(team_details.ioc.element, { list });
+
+            let selection_flag = false;
+            let selectComplete = (c) => { 
+               selection_flag = true; 
+               team.ioc = c.text.value; 
+               team_details.ioc.element.value = c.text.label;
+            }
+            team_details.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
+            team_details.ioc.element.addEventListener('keydown', catchTab , false);
+            team_details.ioc.element.addEventListener('keyup', catchTab , false);
+            team_details.ioc.element.addEventListener("keyup", function(evt) { 
+               // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
+               if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
+                  if (team_details.ioc.typeAhead.suggestions && team_details.ioc.typeAhead.suggestions.length) {
+                     team_details.ioc.typeAhead.next();
+                     team_details.ioc.typeAhead.select(0);
+                  } else {
+                     team_details.ioc.element.value = '';
+                     team_details.ioc.element.style.background = 'yellow';
+                  }
+                  nextFieldFocus(evt.shiftKey ? 'school' : 'ioc');
+               }
+               selection_flag = false;
+            });
+         });
+
+         // Club Awesomplete
+         db.findAllClubs().then(clubs => {
+            let list = clubs.map(club => ({ label: club.name, value: club }));
+            team_details.club.typeAhead = new Awesomplete(team_details.club.element, { list });
+
+            let selection_flag = false;
+            let selectComplete = (c) => { 
+               selection_flag = true; 
+               team.club = c.text.value.id; 
+               team.club_code = c.text.value.code; 
+               team_details.club.element.value = c.text.label;
+            }
+            team_details.club.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
+            team_details.club.element.addEventListener('keydown', catchTab , false);
+            team_details.club.element.addEventListener('keyup', catchTab , false);
+            team_details.club.element.addEventListener("keyup", function(evt) { 
+               // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
+               if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
+                  if (team_details.club.typeAhead.suggestions && team_details.club.typeAhead.suggestions.length) {
+                     team_details.club.typeAhead.next();
+                     team_details.club.typeAhead.select(0);
+                  } else {
+                     team.club_name = team_details.club.element.value;
+                  }
+                  nextFieldFocus(evt.shiftKey ? 'abbreviation' : 'club');
+               }
+               selection_flag = false;
+            });
+         });
+
+         let players = team.players
+            .map(player => tournament.players.reduce((p, c) => c.puid == player.puid ? c : p, undefined))
+            .filter(f=>f)
+         displayGen.displayTeamPlayers(team_details.players.element, players);
+
+         container.team_details.element.style.display = 'flex';
+         container.team_details.element.setAttribute('uuid', team.uuid);
+         container.team_display_name.element.style.display = 'flex';
+         container.team_display_name.element.innerHTML = team.name;
+         container.team_edit_name.element.style.display = 'none';
+         container.team_edit_name.element.value = team.name;
+
+         let actions = d3.select(container.team_details.element);
+
+         if (state.edit) {
+
+            if (index != undefined) {
+               // don't enable add players until team is saved...
+               enableAddTeamPlayer(team);
+               actions.select('.save').style('display', 'none');
+               actions.select('.cancel').style('display', 'none');
+               actions.select('.del').style('display', 'inline')
+                  .on('click', () => {
+                     displayGen.escapeModal();
+                     let message = `${lang.tr('actions.delete_team')}: ${team.name}?`;
+                     displayGen.okCancelMessage(message, deleteTeam, () => displayGen.closeModal());
+               });
+               actions.select('.done').style('display', 'inline')
+                  .on('click', () => {
+                     closeTeamDetails();
+                     saveTournament(tournament);
+                  });
+            } else {
+               actions.select('.del').style('display', 'none');
+               actions.select('.done').style('display', 'none');
+               actions.select('.save').style('display', 'inline')
+                  .on('click', () => { 
+                     if (!tournament.teams) tournament.teams = [];
+                     tournament.teams.push(team);
+
+                     let i = tournament.teams.length - 1;
+                     displayTeam({ team, index: i });
+                     teamList();
+                     saveTournament(tournament);
+                  });
+               actions.select('.cancel')
+                  .style('display', 'inline')
+                  .on('click', () => { closeTeamDetails(); });
+            }
+         } else {
+            actions.select('.done')
+               .style('display', 'inline')
+               .on('click', closeTeamDetails);
+         }
+
+         function deleteTeam() {
+            console.log('delete team');
+            closeTeamDetails();
+            displayGen.closeModal();
+
+            // first check whether team can be deleted
+            tournament.teams.splice(index, 1);
+            saveTournament(tournament);
+            teamList();
+         }
+      }
+
+      container.event_edit_name.element.addEventListener('keyup', function(k) { 
+         if (k.which == 13) {
+            container.event_edit_name.element.style.display = 'none';
+            let value = container.event_edit_name.element.value;
+            let euid = container.event_details.element.getAttribute('euid');
+            let evt = tfx.findEventByID(tournament, euid);
+            evt.custom_category = value;
+            eventName(evt);
+            saveTournament(tournament);
+            container.event_display_name.element.style.display = 'flex';
+         }
+      });
+
+      container.event_display_name.element.addEventListener('click', editEventName);
+
+      function editEventName() {
+         if (!state.edit) return;
+         container.event_display_name.element.style.display = 'none';
+         container.event_edit_name.element.style.display = 'flex';
+         container.event_edit_name.element.focus();
       }
 
       function displayEvent({ e, index } = {}) {
@@ -2527,21 +3008,28 @@ export const tournamentDisplay = function() {
          let actions = d3.select(container.event_details.element);
 
          autoDrawVisibility(e);
-         playerFilterVisibility(e);
+         ratingsFilterVisibility(e);
          eventBackground(e);
          toggleAutoDraw(e.automated);
 
          // by default hidden
          let gem_seeding = document.querySelector('.' + classes.gem_seeding);
          if (gem_seeding) gem_seeding.style.display = 'none';
+
          // only toggle it if there is a true/false value
          if (e.gem_seeding != undefined) toggleGemSeeding(e.gem_seeding);
-         if (e.player_filter != undefined) toggleGemSeeding(e.player_filter);
+         if (e.ratings_filter != undefined) toggleRatingsFilter(e.ratings_filter);
 
          displayed_event = e.euid;
          configureEventSelections(e);
          enableEventTeams(e);
          actions.style('display', 'flex');
+
+         container.event_details.element.style.display = 'flex';
+         container.event_details.element.setAttribute('euid', e.euid);
+         container.event_display_name.element.style.display = 'flex';
+         container.event_edit_name.element.style.display = 'none';
+         container.event_edit_name.element.value = e.custom_category || '';
 
          if (state.edit) {
             if (index != undefined) {
@@ -2864,10 +3352,16 @@ export const tournamentDisplay = function() {
 
          function setFeedRounds(value) {
             e.feed_rounds = value;
+            e.regenerate = 'feed rounds';
+            drawsTab();
+            saveTournament(tournament);
          }
 
          function setSkipRounds(value) {
             e.skip_rounds = value;
+            e.regenerate = 'skip rounds';
+            drawsTab();
+            saveTournament(tournament);
          }
 
          function setRoundLimit(value) {
@@ -2890,10 +3384,10 @@ export const tournamentDisplay = function() {
             e.regenerate = 'linkChanged';
 
             if (e.draw_type == 'R' && linked) tfx.determineRRqualifiers(tournament, e);
-            saveTournament(tournament);
 
             setTimeout(function() { event_config.qualifiers.ddlb.selectionBackground(!e.qualifiers ? 'red' : 'white'); }, 300);
             drawsTab();
+            saveTournament(tournament);
          }
 
          function removeStructure() {
@@ -3106,8 +3600,27 @@ export const tournamentDisplay = function() {
          }
       }
 
-      function luckyLosersOption(evt,e) {
-         if (!e || !e.draw || e.draw_type == 'C') return;
+      function consolationWildcards(evt, e) {
+         if (!fx.fx.env().drawFx.consolation_wildcards) return;
+         let linked = Object.keys(e.links)[0];
+         let linked_event = linked && tfx.findEventByID(tournament, e.links[linked]);
+         let filter_group = linked_event ? linked_event.approved : e.approved;
+         let wcteams = tournament.players.filter(p=>filter_group.indexOf(p.id)<0).map(p=>[p]);
+         let teams = optionNames(wcteams, 'WC');
+         let clickAction = (d, i) => {
+            let wcteam = wcteams[i].map(player => Object.assign({}, player))[0];
+            if (!e.wildcards) e.wildcards = [];
+            e.wildcards.push(wcteam.id);
+            modifyApproved.push(e, wcteam.id);
+            saveTournament(tournament);
+            outOfDate(e);
+         }
+         displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options: teams, callback: clickAction });
+      }
+
+      function eligibleOptions(evt, e) {
+         if (!e || !e.draw) return;
+         if (e.draw_type == 'C') return consolationWildcards(evt, e);
          let competitors = [].concat(...e.draw.opponents.map(team=>team.map(p=>p.id)));
          let linkedQ = tfx.findEventByID(tournament, e.links['Q']) || tfx.findEventByID(tournament, e.links['R']);
          let linked_info = linkedQ && linkedQ.draw ? dfx.drawInfo(linkedQ.draw) : undefined;
@@ -3140,7 +3653,7 @@ export const tournamentDisplay = function() {
          // if qualification draw is round-robin, sort losers by GEM score
          if (e.links['R']) losers.sort((a, b) => ((b[0].results && b[0].results.ratio_hash) || 0) - ((a[0].results && a[0].results.ratio_hash) || 0) );
 
-         let teams = optionNames(losers, true);
+         let teams = optionNames(losers, 'LL');
          let clickAction = (d, i) => {
             let loser = losers[i].map(player => Object.assign({}, player))[0];
             if (!e.luckylosers) e.luckylosers = [];
@@ -3149,7 +3662,6 @@ export const tournamentDisplay = function() {
             saveTournament(tournament);
             outOfDate(e);
          }
-         let bod = d3.select('body').node();
          displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options: teams, callback: clickAction });
       }
 
@@ -3196,7 +3708,8 @@ export const tournamentDisplay = function() {
          let removeAll = () => modifyApproved.removeAll(e);
          let promoteAll = () => promoteTeams(e);
 
-         container.eligible.element.addEventListener('contextmenu', evt=>luckyLosersOption(evt,e));
+         container.eligible.element.addEventListener('contextmenu', evt=>eligibleOptions(evt,e));
+         container.eligible.element.addEventListener('click', (evt) => { if (evt.ctrlKey || evt.shiftKey) return eligibleOptions(evt, e); });
 
          util.addEventToClass('addall', addAll, container.detail_players.element);
          util.addEventToClass('removeall', removeAll, container.detail_players.element);
@@ -3887,6 +4400,7 @@ export const tournamentDisplay = function() {
 
          function changeGroup(evt) {
             if (!state.edit || e.active) return;
+            if (evt.ctrlKey || evt.shiftKey) return playerOptions(evt);
             let grouping = util.getParent(evt.target, 'player_container').getAttribute('grouping');
             let elem = util.getParent(evt.target, 'player_click');
             let puid = elem.getAttribute('puid');
@@ -3927,6 +4441,7 @@ export const tournamentDisplay = function() {
 
          function removeTeam(evt) {
             if (!state.edit || e.active) return;
+            if (evt.ctrlKey || evt.shiftKey) return teamContextClick(evt);
             let grouping = util.getParent(evt.target, 'player_container').getAttribute('grouping');
             let elem = util.getParent(evt.target, 'team_click');
             let team_id = elem.getAttribute('team_id');
@@ -4292,8 +4807,9 @@ export const tournamentDisplay = function() {
             util.addEventToClass('dragdrop', drop, container.schedule.element, 'drop');
 
             util.addEventToClass('oop_round', roundContext, container.schedule.element, 'contextmenu');
+            util.addEventToClass('oop_round', roundContext, container.schedule.element, 'click');
             util.addEventToClass('schedule_box', gridContext, container.schedule.element, 'contextmenu');
-            util.addEventToClass('schedule_box', selectMatch, container.schedule.element, 'click');
+            util.addEventToClass('schedule_box', gridClick, container.schedule.element, 'click');
             scheduleActions();
             checkConflicts(day_matches);
          }
@@ -4329,7 +4845,7 @@ export const tournamentDisplay = function() {
          }
 
          function returnToUnscheduled(match, element) {
-            if (!match || !match.schedule || !match.schedule.court) return;
+            if (!match || !match.schedule || !match.schedule.court || !element) return;
 
             element.setAttribute('muid', '');
             element.setAttribute('draggable', 'false');
@@ -4357,6 +4873,7 @@ export const tournamentDisplay = function() {
 
          // ability to "pull" matches into schedule cells
          function showSearch(evt) {
+            if (!schedulingActive()) return;
             let opponent_search = evt.target.querySelector('.opponentsearch'); 
             if (!opponent_search) return;
 
@@ -4566,7 +5083,7 @@ export const tournamentDisplay = function() {
          }
 
          function roundContext(ev) {
-            if (!state.edit) return;
+            if (!state.edit || !schedulingActive()) return;
 
             let { oop_round } = identifyRound(ev);
             if (oop_round) {
@@ -4645,16 +5162,31 @@ export const tournamentDisplay = function() {
             }
          }
 
-         function identifyMatch(ev) {
-            let target = util.getParent(ev.target, 'schedule_box');
+         function identifyMatch({ evt, target }) {
+            if (!target) target = util.getParent(evt.target, 'schedule_box');
             let muid = target.getAttribute('muid');
             return { match: muid_key[muid], muid, target };
          }
 
-         function gridContext(ev) {
+         // if not a mobile device then event support 'contextmenu'
+         function gridContext(evt) {
+            if (!state.edit) return;
+            let modifier = evt.ctrlKey || evt.shiftKey;
+            if (schedulingActive() && !modifier) return scoreGridMatch(evt);
+            scheduleGridMatch({evt});
+         }
+
+         function gridClick(evt) {
+            if (!state.edit) return;
+            let modifier = evt.ctrlKey || evt.shiftKey;
+            if (schedulingActive() && !modifier) return scheduleGridMatch({evt});
+            scoreGridMatch(evt);
+         }
+
+         function scheduleGridMatch({ evt, target }) {
             if (!state.edit) return;
 
-            let { match, target } = identifyMatch(ev);
+            let { match } = identifyMatch({ evt, target });
             let complete = match && match.winner != undefined;
             if (match) {
                let options = [];
@@ -4679,7 +5211,7 @@ export const tournamentDisplay = function() {
                ];
                options = options.concat(...opts);
 
-               displayGen.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: modifySchedule });
+               displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options, callback: modifySchedule });
 
                function modifySchedule(choice, index) {
                   if (choice.key == 'matchtime') {
@@ -4700,7 +5232,7 @@ export const tournamentDisplay = function() {
                         lang.tr('schedule.nextavailable'),
                         lang.tr('schedule.clear'),
                      ];
-                     displayGen.svgModal({ x: ev.clientX, y: ev.clientY, options: headings, callback: timeHeading });
+                     displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options: headings, callback: timeHeading });
                   } else if (choice.key == 'changestatus') {
                      let statuses = [
                         { label: lang.tr('schedule.called'),  value: 'called' },
@@ -4710,7 +5242,7 @@ export const tournamentDisplay = function() {
                         { label: lang.tr('schedule.raindelay'),  value: 'raindelay' },
                         { label: lang.tr('schedule.clear'),  value: 'clear' },
                      ];
-                     displayGen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: matchStatus });
+                     displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options: statuses, callback: matchStatus });
                   } else if (choice.key == 'umpire') {
                      addUmpire(match, 'schedule');
                      return;
@@ -4728,8 +5260,9 @@ export const tournamentDisplay = function() {
                         { label: lang.tr('penalties.latearrival'), value: 'latearrival' },
                         { label: lang.tr('penalties.fail2signout'), value: 'fail2signout' },
                      ];
-                     displayGen.svgModal({ x: ev.clientX, y: ev.clientY, options: statuses, callback: assessPenalty });
+                     displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options: statuses, callback: assessPenalty });
                   } else if (choice.key == 'remove') {
+                     if (!target) target = util.getParent(evt.target, 'schedule_box');
                      returnToUnscheduled(match, target);
                      return;
                   }
@@ -4740,7 +5273,7 @@ export const tournamentDisplay = function() {
                function setEnd(value) { modifyMatchSchedule([{ attr: 'end', value }]); }
                function assessPenalty(penalty, penalty_index, penalty_value) {
                   let players = match.players.map(p=>p.full_name);
-                  displayGen.svgModal({ x: ev.clientX, y: ev.clientY, options: players, callback: playerPenalty });
+                  displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options: players, callback: playerPenalty });
                   function playerPenalty(player, index, value) {
                      let puid = match.players[index].puid;
                      let tournament_player = tournament.players.reduce((p, s) => s.puid == puid ? s : p);
@@ -4820,8 +5353,9 @@ export const tournamentDisplay = function() {
                }
             }
          }
-         function selectMatch(ev) {
-            let { match, target } = identifyMatch(ev);
+
+         function scoreGridMatch(evt) {
+            let { match, target } = identifyMatch({ evt });
 
             if (state.edit && match) {
                let e = tfx.findEventByID(tournament, match.event.euid);
@@ -5192,6 +5726,7 @@ export const tournamentDisplay = function() {
          let signInState = (evt) => {
             // if modifying rankings, disable!
             if (state.manual_ranking) return;
+            if (evt.ctrlKey || evt.shiftKey) return tournamentPlayerContext(evt);
 
             let element = util.getParent(evt.target, 'player_click');
             let puid = element.getAttribute('puid');
@@ -5590,6 +6125,7 @@ export const tournamentDisplay = function() {
          }
 
          function matchClicked(evt) {
+            if (evt.ctrlKey || evt.shiftKey) return matchContext(evt);
             let muid = evt.target.getAttribute('muid');
             let euid = evt.target.getAttribute('euid');
             if (!muid || !euid) return;
@@ -5603,9 +6139,6 @@ export const tournamentDisplay = function() {
                }
             }
          }
-         util.addEventToClass('cell_singles', matchClicked, container.matches.element);
-         util.addEventToClass('cell_doubles', matchClicked, container.matches.element);
-
          function playerInMatchContext(evt) {
             let puid = evt.target.getAttribute('puid');
             let row = util.getParent(evt.target, 'matchrow');
@@ -5629,6 +6162,9 @@ export const tournamentDisplay = function() {
                matchesTabContext(e, mouse, match.match, puid);
             }
          }
+
+         util.addEventToClass('cell_singles', matchClicked, container.matches.element);
+         util.addEventToClass('cell_doubles', matchClicked, container.matches.element);
          util.addEventToClass('cell_singles', matchContext, container.matches.element, 'contextmenu');
          util.addEventToClass('cell_doubles', matchContext, container.matches.element, 'contextmenu');
 
@@ -6003,9 +6539,11 @@ export const tournamentDisplay = function() {
                'click': compassClick,
             },
             'player1': {
+               'click': captureContextPopUp,
                'contextmenu': contextPopUp,
             },
             'player2': {
+               'click': captureContextPopUp,
                'contextmenu': contextPopUp,
             },
             'score': { 
@@ -6256,6 +6794,14 @@ export const tournamentDisplay = function() {
                   contextPopUp(d);
                } else {
                   treePositionClick(d);
+               }
+            }
+         }
+
+         function captureContextPopUp(d) {
+            if (state.edit) {
+               if (d3.event.ctrlKey || d3.event.shiftKey) {
+                  contextPopUp(d);
                }
             }
          }
@@ -7212,8 +7758,11 @@ export const tournamentDisplay = function() {
                let finished_options = [];
                let options = unfinished ? unfinished_options : finished_options;
 
+
                // 1. check whether there are any alternate players
-               // 2. check that the player advanced by BYE isn't in any scored matches
+               // 2. check that the player advanced by BYE isn't in any scored matches 
+               console.log('WHAT:', what);
+
                let alternates = true;
                if (alternates) {
                   finished_options = ['Alternate'];
@@ -8294,11 +8843,10 @@ export const tournamentDisplay = function() {
       displayGen.escapeModal();
 
       let env = fx.fx.env();
-      let ouid = env.org && env.org.ouid;
       let format_version = env.metadata && env.metadata.exchange_formats && env.metadata.exchange_formats.tournaments;
 
       var trny = Object.assign({}, tournament_data);
-      if (!trny.ouid) trny.ouid = ouid;
+      if (!trny.org) trny.org = env.org;
       if (!trny.metadata) trny.metadata = { format_version };
 
       var { container } = displayGen.createNewTournament(title, trny);
@@ -8310,6 +8858,22 @@ export const tournamentDisplay = function() {
          if (next_field == field_order.length) next_field = 0;
          container[field_order[next_field]].element.focus(); 
       }
+
+      function setTournamentType(value) {
+         trny.type = value;
+      }
+
+      if (env.tournaments && Object.keys(env.tournaments).reduce((p, c) => p || c)) {
+         Array.from(container.form.element.querySelectorAll('.tournament_types')).forEach(elmnt => elmnt.style.display = 'flex');
+      }
+      var tournament_type_options = [{ key: lang.tr('tournaments.standard'), value: 'standard' }];
+      if (env.tournaments.dual) tournament_type_options.push({ key: lang.tr('tournaments.dual'), value: 'dual' });
+      if (env.tournaments.team) tournament_type_options.push({ key: lang.tr('tournaments.team'), value: 'team' });
+
+      dd.attachDropDown({ id: container.tournament_type.id, options: tournament_type_options });
+      container.tournament_type.ddlb = new dd.DropDown({ element: container.tournament_type.element, onChange: setTournamentType });
+      container.tournament_type.ddlb.selectionBackground('white');
+      if (!trny.type) trny.type = 'standard';
 
       function setCategory(value) {
          // setTimeout(function() { container.category.ddlb.selectionBackground(value ? 'white' : 'yellow'); }, 200);
@@ -8514,7 +9078,8 @@ export const tournamentDisplay = function() {
 
    function sameOrg(tournament) {
       let ouid = fx.fx.env().org && fx.fx.env().org.ouid;
-      return !tournament.ouid || (tournament.ouid && tournament.ouid == ouid);
+      // return !tournament.ouid || (tournament.ouid && tournament.ouid == ouid);
+      return (!tournament.org || !tournament.org.ouid) || (tournament.org.ouid && tournament.org.ouid == ouid);
    }
 
    function legacyTournament(tournament, container) {
@@ -8587,20 +9152,20 @@ export const tournamentDisplay = function() {
       }
    }
 
-   function optionNames(teams, luckyloser=false) {
+   function optionNames(teams, designator) {
       let lastName = (player) => player.last_name.toUpperCase();
       return teams.map(team => {
-         let seed = team[0].seed && !luckyloser ? ` [${team[0].seed}]` : '';
+         let seed = team[0].seed && !designator ? ` [${team[0].seed}]` : '';
 
          // draw_order is order in ranked list of event players
-         let draw_order = seed ? '' : team[0].draw_order && !luckyloser ? ` (${team[0].draw_order})` : '';
+         let draw_order = seed ? '' : team[0].draw_order && !designator ? ` (${team[0].draw_order})` : '';
 
-         let lucky = luckyloser ? ' [LL]' : '';
+         let info = designator ? ` [${designator}]` : '';
          if (team.length == 1) {
             let first_name = util.normalizeName(team[0].first_name, false);
-            return `${lastName(team[0])}, ${first_name}${seed}${draw_order}${lucky}`
+            return `${lastName(team[0])}, ${first_name}${seed}${draw_order}${info}`
          }
-         return `${lastName(team[0])}/${lastName(team[1])}${seed}${lucky}`
+         return `${lastName(team[0])}/${lastName(team[1])}${seed}${info}`
          
       });
    }

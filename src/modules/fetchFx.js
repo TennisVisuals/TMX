@@ -449,7 +449,7 @@ export const fetchFx = function() {
             id = nums[0];
          } else {
             let message = `<h2>${lang.tr('phrases.locallycreated')}</h2><h3><i>${lang.tr('phrases.noremote')}</i></h3>`;
-            displayGen.actionMessage({ message, actionFx: okAction, action: lang.tr('actions.ok'), cancel: 'Load Players', cancelAction: loadAction });
+            displayGen.actionMessage({ message, actionFx: okAction, action: lang.tr('actions.ok'), cancel: lang.tr('phrases.loadplayers'), cancelAction: loadAction });
             return;
          }
 
@@ -465,6 +465,7 @@ export const fetchFx = function() {
          }
 
          function loadAction() {
+            displayGen.closeModal();
             let id_obj = displayGen.importPlayers();
             let callback = (players) => {
                players.forEach(player => { player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; });
