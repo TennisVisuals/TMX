@@ -21,12 +21,12 @@ export const tournamentFx = function() {
    fx.settingsLoaded = (env) => { dfx.options(env.drawFx); }
 
    fx.findEventByID = (tournament, id) => {
-      if (!tournament || !tournament.events || tournament.events.length < 1) return;
+      if (!id || !tournament || !tournament.events || tournament.events.length < 1) return;
       return tournament.events.reduce((p, c) => c.euid == id ? c : p, undefined);
    }
 
    fx.findTeamByID = (tournament, id) => {
-      if (!tournament || !tournament.teams || tournament.teams.length < 1) return;
+      if (!id || !tournament || !tournament.teams || tournament.teams.length < 1) return;
       return tournament.teams.reduce((p, c) => c.uuid == id ? c : p, undefined);
    }
 
@@ -446,7 +446,7 @@ export const tournamentFx = function() {
       if (qual_hash.indexOf(teamHash(team_copy)) >= 0) return;
       e.qualified.push(team_copy);
 
-      let elimination_event = fx.findEventByID(tournament, e.links['E']);
+      let elimination_event = fx.findEventByID(tournament, e.links['E']) || fx.findEventByID(tournament, e.links['S']);
       if (!elimination_event) return;
 
       let previously_qualified = elimination_event.approved.indexOf(teamHash(team_copy)) >= 0;
@@ -456,8 +456,9 @@ export const tournamentFx = function() {
       fx.setDrawSize(tournament, elimination_event);
 
       let position = null;
+      let edraw = elimination_event.draw && elimination_event.draw.compass ? elimination_event.draw.east : elimination_event.draw;
       // remove qualifier position from main draw and get position
-      let info = elimination_event.draw ? dfx.drawInfo(elimination_event.draw) : undefined;
+      let info = edraw ? dfx.drawInfo(edraw) : undefined;
       if (info && info.qualifiers && info.qualifiers.length) {
          // let qp = info.qualifiers.pop();
          let qp = util.randomPop(info.qualifiers);
@@ -470,17 +471,17 @@ export const tournamentFx = function() {
 
       // if the draw is active or if there are no unassigned teams
       // then place the team in a qualifier position
-      if (elimination_event.draw && (elimination_event.active || !info.unassigned.length)) {
-         dfx.assignPosition({ node: elimination_event.draw, position, team: team_copy, propagate: true });
-         elimination_event.draw.unseeded_placements.push({ id: team_copy[0].id, position });
+      if (edraw && (elimination_event.active || !info.unassigned.length)) {
+         dfx.assignPosition({ node: edraw, position, team: team_copy, propagate: true });
+         edraw.unseeded_placements.push({ id: team_copy[0].id, position });
       }
 
-      if (elimination_event.draw) {
-         let info = elimination_event.draw ? dfx.drawInfo(elimination_event.draw) : undefined;
+      if (edraw) {
+         let info = edraw ? dfx.drawInfo(edraw) : undefined;
          let approved_opponents = fx.approvedOpponents({ tournament, env, e: elimination_event });
          approved_opponents.forEach(team=>team.forEach(player=>player.draw_position = info.assigned_positions[player.id]));
-         elimination_event.draw.opponents = approved_opponents;
-         elimination_event.draw.unseeded_teams = fx.teamSort(approved_opponents.filter(f=>!f[0].seed));
+         edraw.opponents = approved_opponents;
+         edraw.unseeded_teams = fx.teamSort(approved_opponents.filter(f=>!f[0].seed));
       }
    }
 
@@ -676,31 +677,16 @@ export const tournamentFx = function() {
             let players = e.approved && e.approved.length ? e.approved.length : 0;
 
             // add positions for qualifiers into the draw
-
-            if (e.links['Q']) {
-               // TODO: this code can be cleaned up!
-               let linked = fx.findEventByID(tournament, e.links['Q']);
-               if (linked && linked.qualifiers) qualifiers = linked.qualifiers;
-
-               let qualified = linked && linked.qualified ? linked.qualified.map(teamHash) : [];
-               if (linked && linked.qualifiers) qualifiers = linked.qualifiers - qualified.length;
-
-            }
-            if (e.links['R']) {
-               // TODO: this code can be cleaned up!
-               let linked = fx.findEventByID(tournament, e.links['R']);
-               if (linked && linked.qualifiers) qualifiers = linked.qualifiers;
-
-               let qualified = linked && linked.qualified ? linked.qualified.map(teamHash) : [];
-               if (linked && linked.qualifiers) qualifiers = linked.qualifiers - qualified.length;
-            }
+            let linked = fx.findEventByID(tournament, e.links['Q']) || fx.findEventByID(tournament, e.links['R']);
+            if (linked && linked.qualifiers) qualifiers = linked.qualifiers;
+            let qualified = linked && linked.qualified ? linked.qualified.map(teamHash) : [];
+            if (linked && linked.qualifiers) qualifiers = linked.qualifiers - qualified.length;
 
             let total = players + qualifiers;
             let new_draw_size = total ? dfx.acceptedDrawSizes(total) : 0;
             e.draw_size = new_draw_size;
             e.qualifiers = qualifiers;
             if (e.draw) e.draw.qualifiers = qualifiers;
-
          },
          R() {
             e.draw_size = e.brackets * e.bracket_size;
@@ -714,12 +700,23 @@ export const tournamentFx = function() {
             e.draw_size = draw_size;
          },
          S() {
+            let qualifiers = 0;
+            let players = e.approved && e.approved.length ? e.approved.length : 0;
+
+            // add positions for qualifiers into the draw
+            let linked = fx.findEventByID(tournament, e.links['Q']) || fx.findEventByID(tournament, e.links['R']);
+            if (linked && linked.qualifiers) qualifiers = linked.qualifiers;
+            let qualified = linked && linked.qualified ? linked.qualified.map(teamHash) : [];
+            if (linked && linked.qualifiers) qualifiers = linked.qualifiers - qualified.length;
+
             if (!e.draw || !e.draw.east) {
                e.draw_size = 0;
             } else {
-               let directions = ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'];
-               let draw_size = directions.filter(d=>e.draw[d]).reduce((p, c) => p + dfx.drawInfo(e.draw[c]).draw_positions.length, 0);
-               e.draw_size = draw_size;
+               let total = players + qualifiers;
+               let new_draw_size = total ? dfx.acceptedDrawSizes(total) : 0;
+               e.draw_size = new_draw_size;
+               e.qualifiers = qualifiers;
+               if (e.draw) e.draw.east.qualifiers = qualifiers;
             }
          },
          F() {
@@ -1140,8 +1137,9 @@ export const tournamentFx = function() {
          qlink.approved = qlink.approved.filter(a=>team_ids.indexOf(a) < 0);
          qlink.up_to_date = false;
 
+         let qdraw = qlink.draw.compass ? qlink.draw.east : qlink.draw;
          if (qlinkinfo) {
-            qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), team_ids).length == 0);
+            qdraw.opponents = qdraw.opponents.filter(o=>util.intersection(o.map(m=>m.id), team_ids).length == 0);
             qlinkinfo.nodes.forEach(node => {
                if (node.data.team && util.intersection(node.data.team.map(t=>t.id), team_ids).length) {
                   node.data.qualifier = true;
