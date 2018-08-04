@@ -468,10 +468,18 @@ export const tournamentDisplay = function() {
       function scheduleMatches() {
          let scheduling_height = '40em';
          let schedule_grid = container.container.element.querySelector('.schedule_sheet');
-         let scheduling_active = schedule_grid.style.maxHeight == scheduling_height;
 
+         let scheduling_active = schedulingActive();
          schedule_grid.style.maxHeight = scheduling_active ? '' : scheduling_height;
          container.scheduling.element.style.display = scheduling_active ? 'none' : 'flex';
+
+         if (scheduling_active) {
+            // scheduling was active when the button was clicked
+            // find and remove awesomeplete in schedule_scroll_container
+            let search_field = container.schedule.element.querySelector('.awesomplete');
+            let search_box = search_field && util.getParent(search_field, 'schedule_box');
+            if (search_box) search_box.innerHTML = scheduleFx.opponentSearch();
+         }
 
          let schedule_matches = document.querySelector(`.${classes.schedule_matches}`);
          schedule_matches.querySelector('div').classList.toggle('matches_header_inactive');
@@ -1649,11 +1657,10 @@ export const tournamentDisplay = function() {
             saveTournament(tournament);
          }
 
-         let filter_on = active && (active.high || active.low);
-         if ((filter_on && filter_active) || (active == false && !filter_active)) return;
+         if ((active == true && filter_active) || (active == false && !filter_active)) return;
 
          // if not true/false it may be MouseEvent, so needs to be explicit
-         if (filter_on || active == false) {
+         if (active == true || active == false) {
             toggleFilterActive();
             return;
          }
@@ -1662,21 +1669,54 @@ export const tournamentDisplay = function() {
 
          toggleFilterActive();
 
-         if (e) {
-            if (e.ratings_filter) {
-               delete e.ratings_filter
-            } else {
-               setFilter();
-            }
-            displayEvent({e});
-         }
+         if (e) { setFilter(); }
+
+         let new_rating = Object.assign({}, e.ratings_filter);
 
          function setFilter() {
-            console.log('define filter');
-            e.ratings_filter = { high: 12.5, low: 11.1 }
-            var coords = { x: active.clientX, y: active.clientY }
-            let id_obje = displayGen.ratingsFilterValues({ coords, ratings_filter: e.ratings_filter });
+            let id_obj = displayGen.ratingsFilterValues({ ratings_filter: e.ratings_filter });
+            let entry_modal = d3.select(id_obj.entry_modal.element);
+            id_obj.low.element.value = (e.ratings_filter && e.ratings_filter.low) || '';
+            id_obj.high.element.value = (e.ratings_filter && e.ratings_filter.high) || '';
+            id_obj.low.element.addEventListener("keyup", e => getValidValue(e, 'low'));
+            id_obj.high.element.addEventListener("keyup", e => getValidValue(e, 'high'));
+            id_obj.clear.element.addEventListener("click", clearRatingsRange);
+            id_obj.submit.element.addEventListener("click", setRatingsRange);
+            id_obj.low.element.focus();
+
+            function clearRatingsRange() {
+               delete e.ratings_filter;
+               saveTournament(tournament);
+               displayEvent({e});
+               removeRatingsModal();
+            }
+
+            function setRatingsRange() {
+               if (new_rating.low || new_rating.high) {
+                  e.ratings_filter = new_rating;
+                  saveTournament(tournament);
+               }
+               displayEvent({e});
+               removeRatingsModal();
+            }
+
+            function removeRatingsModal() {
+               entry_modal.remove();
+               document.body.style.overflow = null;
+               displayGen.escapeFx = undefined;
+            }
+
+            function getValidValue(e, attr) {
+               if (e.which == 13) {
+                  if (attr == 'low') id_obj.high.element.focus();
+                  if (attr == 'high') setRatingsRange();
+               }
+               let value = id_obj[attr].element.value;
+               let floatval = parseFloat(value);
+               new_rating[attr] = !isNaN(floatval) ? floatval : '';
+            }
          }
+
       }
 
       function toggleGemSeeding(active) {
@@ -3018,7 +3058,7 @@ export const tournamentDisplay = function() {
 
          // only toggle it if there is a true/false value
          if (e.gem_seeding != undefined) toggleGemSeeding(e.gem_seeding);
-         if (e.ratings_filter != undefined) toggleRatingsFilter(e.ratings_filter);
+         toggleRatingsFilter(e.ratings_filter ? true : false);
 
          displayed_event = e.euid;
          configureEventSelections(e);
@@ -3192,10 +3232,6 @@ export const tournamentDisplay = function() {
             let previous_link = e.links[linkType(type)];
             let linked_event = tfx.findEventByID(tournament, value);
 
-            if (linked_event.draw_type == 'R' && linked_event.draw) {
-               dfx.tallyBracketResults({ players: linked_event.draw.opponents, matches: linked_event.matches, qualifying: true });
-            }
-
             if (e.draw_type == 'R' && e.draw && linked_event.draw_type == 'E') {
                dfx.tallyBracketResults({ players: e.draw.opponents, matches: e.matches, qualifying: true });
             }
@@ -3205,6 +3241,10 @@ export const tournamentDisplay = function() {
 
             // link in the opposite direction as well...
             if (linked_event) {
+               if (linked_event.draw_type == 'R' && linked_event.draw) {
+                  dfx.tallyBracketResults({ players: linked_event.draw.opponents, matches: linked_event.matches, qualifying: true });
+               }
+
                linked_event.links[e.draw_type] = e.euid;
                if (linked_event.draw_type == 'E' && e.draw_type != 'C') { linked_event.regenerate = 'setLink'; }
                if (linked_event.draw_type == 'R') { tfx.determineRRqualifiers(tournament, linked_event); }
@@ -3536,6 +3576,7 @@ export const tournamentDisplay = function() {
          var drawTypes = {
             'R': () => setRoundRobinConfig(),
             'E': () => setEliminationConfig(),
+            'S': () => setEliminationConfig(),
             'C': () => setConsolationConfig(),
             'Q': () => setQualificationConfig(),
             'P': () => setPlayoffConfig(),
@@ -4308,7 +4349,7 @@ export const tournamentDisplay = function() {
             'R': () => roundrobin(),
             'C': () => consolation(),
             'P': () => consolation(), // playoff
-            'S': () => compass(), // playoff
+            'S': () => compass(),
          }
 
          if (drawTypes[e.draw_type] && !e.active) drawTypes[e.draw_type](); 
@@ -4396,7 +4437,26 @@ export const tournamentDisplay = function() {
             }
          }
 
-         displayGen.displayEventPlayers({ container, approved, teams, eligible: eligible_players, ineligible: ineligible_players, unavailable: unavailable_players });
+         if (e.ratings_filter && e.ratings && e.ratings.type) {
+            eligible_players = eligible_players
+               .filter(player => {
+                  let rating = player.ratings && player.ratings[e.ratings.type] && player.ratings[e.ratings.type].singles.value;
+                  let floatrating = !isNaN(parseFloat(rating)) ? parseFloat(rating) : false;
+                  let rating_in_range = floatrating && 
+                     ((!e.ratings_filter.low || floatrating >= e.ratings_filter.low) && (!e.ratings_filter.high || floatrating <= e.ratings_filter.high));
+                  return rating_in_range;
+               });
+         }
+
+         displayGen.displayEventPlayers({
+            teams,
+            approved,
+            container,
+            ratings: e.ratings,
+            eligible: eligible_players,
+            ineligible: ineligible_players,
+            unavailable: unavailable_players
+         });
 
          function changeGroup(evt) {
             if (!state.edit || e.active) return;
@@ -6616,7 +6676,6 @@ export const tournamentDisplay = function() {
                let player = displayed_draw_event.draw.brackets[d.bracket].players.reduce((p, c) => c.draw_position == d.row ? c : p, undefined);
                let content = displayGen.roundRobinResults(player.results);
                displayGen.floatingModal({ label: `${player.first_name} ${player.last_name}`, mouse: true, content });
-               displayGen.escapeModal();
             }
          }
 
