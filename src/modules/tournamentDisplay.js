@@ -3006,7 +3006,7 @@ export const tournamentDisplay = function() {
             closeTeamDetails();
             displayGen.closeModal();
 
-            // first check whether team can be deleted
+            // TODO: ?? first check whether team can be deleted
             tournament.teams.splice(index, 1);
             saveTournament(tournament);
             teamList();
@@ -6894,6 +6894,7 @@ export const tournamentDisplay = function() {
 
             let existing_scores;
             let team_match = dfx.teamMatch(d);
+            console.log('team match:', team_match);
             if (d.data.match && d.data.match.score) {
                existing_scores = scoreBoard.convertStringScore({
                   string_score: d.data.match.score,
@@ -6921,7 +6922,7 @@ export const tournamentDisplay = function() {
                let score_format = (d.data.match && d.data.match.score_format) || evnt.score_format || {};
                if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
 
-               scoreBoard.setMatchScore({
+               let submission = {
                   muid,
                   container,
                   round_name,
@@ -6930,7 +6931,8 @@ export const tournamentDisplay = function() {
                   teams: team_match,
                   callback: scoreSubmitted,
                   flags: fx.fx.env().assets.flags,
-               });
+               };
+               scoreBoard.setMatchScore(submission);
             }
          }
 
@@ -7447,10 +7449,10 @@ export const tournamentDisplay = function() {
          }
 
          // select either lucky losers or alternates
-         function luckyAlternates({ selector, info, position, node, coords, draw, options, entry, bye_advanced }) {
+         function luckyAlternates({ selector, info, position, node, coords, draw, options, entry, bye_advanced, callback }) {
             let teams = optionNames(options);
             let clickAction = (d, i) => {
-               let team = options[i].map(player => Object.assign({}, player));
+               let team = options[i].map(playerFx.playerCopy);
                team.forEach(player => {
                   player.draw_position = position;
                   delete player.seed;
@@ -7466,12 +7468,14 @@ export const tournamentDisplay = function() {
 
                if (bye_advanced) {
                   delete node.data.bye;
-                  delete node.data.dp;
                   let advnode = info.nodes.reduce((p, c) => c.height == 1 && c.data && c.data.dp==bye_advanced ? c : p);
-                  if (advnode && advnode.data) delete advnode.data.team;
-                  db.addDev({info});
+                  if (advnode && advnode.data) {
+                     delete advnode.data.team;
+                     delete advnode.data.dp;
+                  }
                }
 
+               if (typeof callback == 'function') callback();
                tree_draw.data(draw)();
                saveTournament(tournament);
                outOfDate(displayed_draw_event, true);
@@ -7757,7 +7761,31 @@ export const tournamentDisplay = function() {
             // var possible_to_remove = d.data.ancestor && (!d.data.ancestor || !d.data.ancestor.team);
 
             if (d.data.bye) {
-               console.log('check whether possible to replace BYE');
+               let paired_positions = info.nodes.filter(f=>f.height == 1 && f.children).map(m=>[].concat(...m.children.map(c=>c.data.dp)));
+               let bye_positions = info.byes.map(b=>b.data.dp);
+               let paired_with_bye = paired_positions.filter(p=>util.intersection(p, bye_positions).length);
+               let position_paired_with_bye = paired_with_bye.filter(p=>p.indexOf(position) >= 0).length > 0;
+
+               let advanced_positions = info.match_nodes.filter(n=>n.data.match && n.data.match.players);
+               let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
+
+               let approved = [].concat(...displayed_draw_event.approved);
+               let unapproved_teams = !info.doubles ? [] : displayed_draw_event.teams.filter(t=>util.intersection(approved, t).length == 0)
+               let doubles_alternates = unapproved_teams.map(team=>tournament.players.filter(p=>team.indexOf(p.id) >= 0));
+               let alternates = info.doubles ? doubles_alternates : tfx.eligiblePlayers(tournament, displayed_draw_event).players.map(p=>[p]);
+               let bye_advanced = paired_with_bye.reduce((p, c) => c.indexOf(position)>=0 ? c : p, []).filter(p=>p!=position)[0];
+
+               let possible_to_replace = active_player_positions.indexOf(bye_advanced) < 0;
+               if (possible_to_replace) {
+                  let options = [{ option: lang.tr('draws.alternate'), key: 'alt' }];
+                  let clickAction = (k, i) => {
+                     if (k.key == 'alt') {
+                        let callback = () => mfx.eventMatches(e, tournament);
+                        luckyAlternates({ selector, info, position, node: d, coords, draw: current_draw, options: alternates, entry: 'A', bye_advanced, callback });
+                     }
+                  }
+                  cMenu({ selector, coords, options, clickAction })
+               }
             } else if (match_score && possible_to_remove && !active_in_linked) {
                let options = [`${lang.tr('draws.remove')}: ${lang.tr('mtc')}`];
 
@@ -7871,16 +7899,12 @@ export const tournamentDisplay = function() {
                      node.data.qualifier = false;
                      delete node.data.team;
                   } else {
-                     if (d.key == 'alt') {
-                        if (what == 'BYE') {
-                           let bye_advanced = paired_with_bye.reduce((p, c) => c.indexOf(position)>=0 ? c : p, []).filter(p=>p!=position)[0];
-                           return luckyAlternates({ selector, info, position, node, coords, draw, options: alternates, entry: 'A', bye_advanced });
-                        }
+                     if (d.key == 'alt' && what == 'BYE') {
+                        let callback = () => mfx.eventMatches(e, tournament);
+                        let bye_advanced = paired_with_bye.reduce((p, c) => c.indexOf(position)>=0 ? c : p, []).filter(p=>p!=position)[0];
+                        luckyAlternates({ selector, info, position, node, coords, draw, options: alternates, entry: 'A', bye_advanced, callback });
                      }
                   }
-
-                  saveTournament(tournament);
-                  tree_draw();
                }
 
                if (unfinished || finished_options.length) {
