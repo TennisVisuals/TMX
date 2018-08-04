@@ -575,6 +575,40 @@
    border: 1px solid lightgray;
 }
 
+.rating_field {
+   display: flex;
+   padding: .5em;
+   flex-direction: row;
+	flex-wrap: nowrap;
+	align-content: center;
+	justify-content: center;
+   -webkit-align-content: center;
+   -webkit-justify-content: center;
+   background-color: #2f2f2f;
+   color: white;
+}
+
+button.ratings-clear { background: gray; }
+button.ratings-clear:hover { background: #FF0; }
+button.ratings-submit { background: gray; }
+button.ratings-submit:hover { background: #68FF33; }
+.rating_range_entry {
+   padding: .5em;
+   display: flex;
+   background-color: #000;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+}
+.rating_range input {
+   border: 0;
+	border-radius: .1em;
+   width: 3em;
+   height: 1.5em;
+   margin: .5em;
+   font-size: 1em;
+   text-align: center;
+}
+
 .event_list {
    width: 100%;
    padding: .2em;
