@@ -11,7 +11,7 @@ export const floatingEntry = function() {
       'cleanup': undefined,
    };
 
-   function entry(x, y, html) {
+   function entry(x=0, y=0, html) {
       let root = d3.select(o.selector || 'body');
 
       root.selectAll(".floating-entry").remove();
@@ -39,8 +39,23 @@ export const floatingEntry = function() {
          .style('left', x + 'px')
    }
 
-   entry.destroy = function() { d3.select(o.selector || 'body').selectAll(".floating-entry").remove(); }
-   
+   entry.destroy = function() { d3.select(o.selector || 'body').selectAll('.floating-entry').remove(); }
+  
+   entry.center = function() {
+      let fe = document.querySelector('.floating-entry');
+      if (!fe) { console.log('floating entry not found!'); }
+      let style = window.getComputedStyle(fe, null);
+      let width = parseFloat(style.width);
+      let height = parseFloat(style.height);
+
+      let x = window.innerWidth/2 - width/2;
+      let y = window.innerHeight/2 - height/2;
+
+      floater
+         .style('top', y + 'px')
+         .style('left', x + 'px')
+   }
+
    entry.items = function(e) {
       if (!arguments.length) return items;
       for (i in arguments) items.push(arguments[i]);
