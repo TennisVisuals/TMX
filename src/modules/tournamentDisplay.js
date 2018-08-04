@@ -3191,10 +3191,9 @@ export const tournamentDisplay = function() {
 
          var types = {
             'Q': ['Q', 'R'],
-            'E': ['E'],
+            'E': ['E', 'S'],
             'C': ['C'],
             'F': ['F'],
-            'S': ['S'],
             'P': ['P'],
             'R': ['Q'],
          }
@@ -7681,7 +7680,9 @@ export const tournamentDisplay = function() {
             var position = d.data.dp;
 
             var info = dfx.drawInfo(current_draw);
-            var linked = tfx.findEventByID(tournament, e.links['E']);
+
+            // TODO: are consolation draws considered??
+            var linked = tfx.findEventByID(tournament, e.links['E']) || tfx.findEventByID(tournament, e.links['S']);
             var linked_info = null;
             var target_draw = null;
 
