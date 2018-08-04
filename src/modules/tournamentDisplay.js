@@ -3242,9 +3242,8 @@ export const tournamentDisplay = function() {
             if (previous_link) {
                let previous_linked_event = tfx.findEventByID(tournament, previous_link);
                previous_linked_event.links[e.draw_type] = undefined;
-               previous_linked_event.regenerate = 'previousLink';
                if (previous_linked_event.draw_type == 'R' && previous_linked_event.draw) {
-                  dfx.tallyBracketResults({ players: previous_linked_event.draw.opponents, matches: previous_linked_draw.matches, qualifying: false });
+                  dfx.tallyBracketResults({ players: previous_linked_event.draw.opponents, matches: previous_linked_event.draw.matches, qualifying: false });
                }
                if (['R', 'Q'].indexOf(previous_linked_event.draw_type) >= 0) {
                   let edraw = e.draw && e.draw.compass ? e.draw.east : e.draw;
@@ -3256,6 +3255,9 @@ export const tournamentDisplay = function() {
                         }
                      });
                   }
+                  if (['E', 'S'].indexOf(e.draw_type) >= 0) { e.regenerate = 'previousLink'; }
+               } else if (['E', 'S'].indexOf(previous_linked_event.draw_type) >= 0) {
+                  if (['R', 'Q'].indexOf(e.draw_type) >= 0) previous_linked_event.regenerate = 'previousLink';
                }
             }
 
@@ -3372,15 +3374,20 @@ export const tournamentDisplay = function() {
          return { options, size_options }
       }
 
-      function setRRQualifiers(e) {
+      function setRRqualifierRange(e) {
          let min_qualifiers = (e.approved && e.approved.length ? 1 : 0) * e.brackets;
          let max_qualifiers = min_qualifiers * 3;
          let range = util.range(min_qualifiers, max_qualifiers + 1);
          let options = range.map(c => ({ key: c, value: c }));
          event_config.qualifiers.ddlb.setOptions(options);
          if (e.qualifiers > max_qualifiers) e.qualifiers = max_qualifiers;
-         event_config.qualifiers.ddlb.setValue(e.qualifiers);
-         event_config.qualifiers.ddlb.selectionBackground(!e.qualifiers ? 'red' : 'white');
+         if (['Q', 'R'].indexOf(e.draw_type) >= 0) {
+            event_config.qualifiers.ddlb.setValue(e.qualifiers);
+            event_config.qualifiers.ddlb.selectionBackground(!e.qualifiers ? 'red' : 'white');
+         } else if (['E', 'S'].indexOf(e.draw_type) >= 0 && e.links && e.links['R']) {
+            let linked = tfx.findEventByID(tournament, e.links['R']);
+            if (linked) event_config.qualifiers.ddlb.setValue(linked.qualifiers);
+         }
       }
 
       function configDrawType(e) {
@@ -3430,23 +3437,30 @@ export const tournamentDisplay = function() {
          }
 
          function setQualifiers(value) {
-            e.qualifiers = +value;
-            eventName(e);
+            if (['Q', 'R'].indexOf(e.draw_type) >= 0) {
+               e.qualifiers = +value;
+               eventName(e);
 
-            let linked = tfx.findEventByID(tournament, e.links['E']);
-            if (linked) {
-               // remove any qualified players from linked draw approved
-               let qual_hash = !e.qualified ? [] : e.qualified.map(teamHash);
-               linked.approved = linked.approved.filter(a=>qual_hash.indexOf(a) < 0);
-               linked.regenerate = 'linkChanged linked';
+               let linked = tfx.findEventByID(tournament, e.links['E']);
+               if (linked) {
+                  // remove any qualified players from linked draw approved
+                  let qual_hash = !e.qualified ? [] : e.qualified.map(teamHash);
+                  linked.approved = linked.approved.filter(a=>qual_hash.indexOf(a) < 0);
+                  linked.regenerate = 'linkChanged linked';
+               }
+
+               e.qualified = [];
+               // only need to regenerate if it is a tree structure qualification
+               if (e.draw_type == 'Q') e.regenerate = 'linkChanged';
+               if (e.draw_type == 'R' && linked) tfx.determineRRqualifiers(tournament, e);
+
+               setTimeout(function() { event_config.qualifiers.ddlb.selectionBackground(!e.qualifiers ? 'red' : 'white'); }, 300);
+
+            } else if (e.draw_type == 'E') {
+               let link_types = Object.keys(e.links);
+               console.log('set qualifiers for linked RR Draw *only*');
             }
 
-            e.qualified = [];
-            e.regenerate = 'linkChanged';
-
-            if (e.draw_type == 'R' && linked) tfx.determineRRqualifiers(tournament, e);
-
-            setTimeout(function() { event_config.qualifiers.ddlb.selectionBackground(!e.qualifiers ? 'red' : 'white'); }, 300);
             drawsTab();
             saveTournament(tournament);
          }
@@ -3482,6 +3496,9 @@ export const tournamentDisplay = function() {
             event_config.structure.ddlb = new dd.DropDown({ element: event_config.structure.element, onChange: setStructure });
             event_config.structure.ddlb.setValue(e.structure || 'standard', 'white');
 
+            event_config.qualifiers.ddlb = new dd.DropDown({ element: event_config.qualifiers.element, onChange: setQualifiers });
+            event_config.qualifiers.ddlb.setValue(e.qualifiers || 0, 'white');
+
             if (e.feed_rounds == undefined) e.feed_rounds = 0;
             event_config.feedrounds.ddlb = new dd.DropDown({ element: event_config.feedrounds.element, onChange: setFeedRounds });
             event_config.feedrounds.ddlb.setValue(e.feed_rounds, 'white');
@@ -3490,8 +3507,24 @@ export const tournamentDisplay = function() {
             event_config.sequential.ddlb = new dd.DropDown({ element: event_config.sequential.element, onChange: setSkipRounds });
             event_config.sequential.ddlb.setValue(e.sequential || 1, 'white');
 
-            determineLinkedDraw(tournament, e, 'Q', linkChanged);
+            // special override for elimination draws
+            let linkValue = () => {
+               displayQualifiers();
+               linkChanged();
+            }
+
+            determineLinkedDraw(tournament, e, 'Q', linkValue);
             if (fx.fx.env().drawFx.consolation_from_elimination) determineLinkedDraw(tournament, e, 'C', linkChanged);
+
+            function displayQualifiers() {
+               let display = e.links && e.links['R'] ? 'flex' : 'none';
+               let cfg = d3.select(container.draw_config.element);
+               cfg.selectAll('.qualifiers').style('display', display);
+               setRRqualifierRange(e);
+               eventList(true);
+            }
+
+            displayQualifiers();
          }
 
          function setPlayoffConfig() {
@@ -3560,7 +3593,7 @@ export const tournamentDisplay = function() {
 
                e.qualifiers = e.brackets;
 
-               setRRQualifiers(e);
+               setRRqualifierRange(e);
                e.regenerate = 'bracketSize';
                eventList(true);
             }
@@ -3568,7 +3601,7 @@ export const tournamentDisplay = function() {
             let setBrackets = (value) => {
                e.brackets = value;
                e.qualifiers = e.brackets;
-               setRRQualifiers(e);
+               setRRqualifierRange(e);
                e.regenerate = 'setBrackets';
                eventList(true);
             }
@@ -3583,7 +3616,7 @@ export const tournamentDisplay = function() {
                let display = bool ? 'flex' : 'none';
                let cfg = d3.select(container.draw_config.element);
                cfg.selectAll('.qualifiers').style('display', display);
-               setRRQualifiers(e);
+               setRRqualifierRange(e);
                eventList(true);
             }
             let linkValue = (value) => {
@@ -4676,7 +4709,7 @@ export const tournamentDisplay = function() {
                event_config.bracket_size.ddlb.setOptions(size_options);
                event_config.bracket_size.ddlb.setValue(e.bracket_size, 'white');
             }
-            setRRQualifiers(e);
+            setRRqualifierRange(e);
          }
          eventList(true);
          tournament.categories = tfx.tournamentCategories(tournament);
@@ -6894,7 +6927,6 @@ export const tournamentDisplay = function() {
 
             let existing_scores;
             let team_match = dfx.teamMatch(d);
-            console.log('team match:', team_match);
             if (d.data.match && d.data.match.score) {
                existing_scores = scoreBoard.convertStringScore({
                   string_score: d.data.match.score,

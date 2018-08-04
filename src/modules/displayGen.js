@@ -3323,6 +3323,7 @@ export const displayGen = function() {
       let ids = {
          roundlimit: displayFx.uuid(),
          structure: displayFx.uuid(),
+         qualifiers: displayFx.uuid(),
          qualification: displayFx.uuid(),
          consolation: displayFx.uuid(),
          elimination: displayFx.uuid(),
@@ -3334,18 +3335,20 @@ export const displayGen = function() {
       let config = `
          <div class='detail_fields'>
             <div class='column'>
-               <div class='entry_label roundlimit' style='display: none'>${lang.tr('draws.roundlimit')}</div>
+               <div class='entry_label roundlimit' style='display: none;'>${lang.tr('draws.roundlimit')}</div>
                <div class='entry_label'>${lang.tr('draws.structure')}</div>
-               <div class='entry_label feedconfig' style='display: none'>${lang.tr('draws.skiprounds')}</div>
-               <div class='entry_label feedconfig' style='display: none'>${lang.tr('draws.feedrounds')}</div>
-               <div class='entry_label feedconfig' style='display: none'>${lang.tr('draws.sequential')}</div>
+               <div class='entry_label feedconfig' style='display: none;'>${lang.tr('draws.skiprounds')}</div>
+               <div class='entry_label feedconfig' style='display: none;'>${lang.tr('draws.feedrounds')}</div>
+               <div class='entry_label feedconfig' style='display: none;'>${lang.tr('draws.sequential')}</div>
+               <div class='entry_label qualifiers' style='display: none;'>${lang.tr('qualifiers')}</div>
             </div>
             <div class='column'>
-               <div class='entry_field roundlimit' id='${ids.roundlimit}' style='display: none'></div>
+               <div class='entry_field roundlimit' id='${ids.roundlimit}' style='display: none;'></div>
                <div class='entry_field' id='${ids.structure}'></div>
-               <div class='entry_field feedconfig' style='display: none' id='${ids.skiprounds}'></div>
-               <div class='entry_field feedconfig' style='display: none' id='${ids.feedrounds}'></div>
-               <div class='entry_field feedconfig' style='display: none' id='${ids.sequential}'></div>
+               <div class='entry_field feedconfig' style='display: none;' id='${ids.skiprounds}'></div>
+               <div class='entry_field feedconfig' style='display: none;' id='${ids.feedrounds}'></div>
+               <div class='entry_field feedconfig' style='display: none;' id='${ids.sequential}'></div>
+               <div class='entry_field qualifiers' style='display: none;' id='${ids.qualifiers}'></div>
             </div>
          </div>
          <div class='linked_draw qualification' style='display: none'>
@@ -3364,6 +3367,7 @@ export const displayGen = function() {
       d3.select(container.draw_config.element).html(config);
 
       dd.attachDropDown({ id: ids.roundlimit });
+      dd.attachDropDown({ id: ids.qualifiers });
       dd.attachDropDown({ id: ids.structure,  options: structure_options });
       dd.attachDropDown({ id: ids.skiprounds, options: skip_options });
       dd.attachDropDown({ id: ids.feedrounds, options: feed_options });
