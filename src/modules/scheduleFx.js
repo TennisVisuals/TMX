@@ -210,7 +210,7 @@ export const scheduleFx = function() {
 
       let displaydocs = editable && fx.fx.env().documentation ? 'flex' : 'none';
       let html = `
-         <div class='schedule_scroll_contaienr'>
+         <div class='schedule_scroll_container'>
             <div class='schedule_grid'>
                <div class='schedule_slots'>
                   <div class='oop_round_header'>
