@@ -2832,7 +2832,7 @@ export const displayGen = function() {
    gen.floatingModal = ({ label, mouse, coords, content }) => {
       let su_ids = { floating_modal: displayFx.uuid(), }
 
-      d3.select('body')
+      let floating = d3.select('body')
          .append('div')
          .attr('class', 'modal')
          .attr('id', su_ids.floating_modal);
@@ -2845,7 +2845,8 @@ export const displayGen = function() {
       Object.assign(ids, su_ids);
       let id_obj = displayFx.idObj(ids);
 
-      id_obj.floating_modal.element.addEventListener('click', () => gen.closeModal());
+      id_obj.floating_modal.element.addEventListener('click', () => { gen.closeModal(); floating.remove(); });
+      gen.escapeModal(() => { floating.remove() });
 
       return id_obj;
    }
@@ -2924,32 +2925,52 @@ export const displayGen = function() {
       return { ids, html };
    }
 
-   gen.ratingsFilterValues = ({ coords, ratings_filter }) => {
+   gen.ratingsFilterValues = ({ ratings_filter }) => {
       let mp_ids = {
-         entry_field: displayFx.uuid(),
+         entry_modal: displayFx.uuid(),
       }
 
-      let entry_field = d3.select('body')
+      document.body.style.overflow  = 'hidden';
+      let entry_modal = d3.select('body')
          .append('div')
          .attr('class', 'modal')
-         .attr('id', mp_ids.entry_field);
+         .attr('id', mp_ids.entry_modal);
 
       let { ids, html } = generateRatingsEntry({ ratings_filter });
-      let entry = floatingEntry().selector('#' + mp_ids.entry_field)
-      entry(coords[0], coords[1] - window.scrollY, html);
+      let entry = floatingEntry().selector('#' + mp_ids.entry_modal);
+
+      entry(0, 0, html);
+      entry.center();
+      entry_modal.on('click', () => {
+         d3.event.stopPropagation();
+         entry_modal.remove();
+         gen.closeModal();
+      });
 
       Object.assign(ids, mp_ids);
       let id_obj = displayFx.idObj(ids);
+      gen.escapeModal(() => { entry_modal.remove() });
       return id_obj;
    }
 
    function generateRatingsEntry({ ratings_filter }) {
       let ids = {
-         player_index: displayFx.uuid(),
-         player_search: displayFx.uuid(),
+         low: displayFx.uuid(),
+         high: displayFx.uuid(),
+         clear: displayFx.uuid(),
+         submit: displayFx.uuid(),
       }
       let html = `
-         Boo!
+         <div class="rating_range_entry noselect">
+            <div class="rating_field">
+               <div class="rating_range">${lang.tr('frm')}: <input id='${ids.low}' value='${(ratings_filter && ratings_filter.flow) || ""}'> </div>
+               <div class="rating_range">${lang.tr('to')}: <input id='${ids.high}' value='${(ratings_filter && ratings_filter.high) || ""}'> </div>
+            </div>
+            <div class="rating_field">
+               <button id='${ids.clear}' class='btn btn-small ratings-clear' style='margin-right: 1em;'>${lang.tr('clr')}</button>
+               <button id='${ids.submit}' class='btn btn-small ratings-submit'>${lang.tr('sbt')}</button>
+            </div>
+         </div>
       `;
       return { ids, html };
    }
@@ -2959,6 +2980,7 @@ export const displayGen = function() {
          entry_field: displayFx.uuid(),
       }
 
+      document.body.style.overflow  = 'hidden';
       let entry_field = d3.select('body')
          .append('div')
          .attr('class', 'modal')
@@ -3423,7 +3445,7 @@ export const displayGen = function() {
       event_details.select('.event_name').html(full_name);
    }
 
-   gen.displayEventPlayers = ({ container, approved, teams, eligible }) => {
+   gen.displayEventPlayers = ({ container, approved, teams, eligible, ratings }) => {
       genGrouping(approved, 'approved');
       genGrouping(teams, 'team');
       genGrouping(eligible, 'eligible');
@@ -3444,6 +3466,15 @@ export const displayGen = function() {
          let subrank = team.subrank ? `/${team.subrank}` : '';
          let dblsrank = team.players && team.combined_dbls_rank && team.combined_dbls_rank < 9999 ? `${team.combined_dbls_rank}/` : '';
          let rank = team.rank < 9999 ? `(${dblsrank}${team.rank}${subrank})` : '';
+
+         let format = team.players ? 'doubles' : 'singles';
+         let rating_type = ratings && ratings.type;
+         let rating = team.ratings &&
+            team.ratings[rating_type] &&
+            team.ratings[rating_type][format] &&
+            team.ratings[rating_type][format] ?
+            `&nbsp;{${team.ratings[rating_type][format].value}}` : '';
+
          let combined_ranking = team.players && team.rank ? `<div class="border_padding"><i>${rank}</i></div>` : '';
          let team_seed = team.players && team.seed ? `<div class="border_padding"><b>[${team.seed}]</b></div>` : '';
          let wildcard = team.players && team.wildcard ? `<div class="border_padding"><b>[WC]</b></div>` : '';
@@ -3461,7 +3492,7 @@ export const displayGen = function() {
                         <div class='flexcol${border_padding}'${dragdrop}>`;
          html += team.players ? team.players.map(p => playerRow(p)).join('') : playerRow(team, true);
          html += `      </div>
-                        ${wildcard || team_seed} ${combined_ranking}
+                        ${wildcard || team_seed} ${combined_ranking || rating}
                      </div>`;
          return html;
       }
