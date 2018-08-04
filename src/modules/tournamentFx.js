@@ -737,15 +737,6 @@ export const tournamentFx = function() {
       let players = tournament.players
          .filter(player => !eligibleGender(e.gender, player) || !playerFx.eligibleForCategory({ calc_date, age_category: e.category, player }));
 
-      if (e.ratings_filter && e.ratings && e.ratings.type) {
-         let filtered_players = tournament.players
-            .filter(player => {
-               let rating = player.ratings && player.ratings[e.ratings.type] && player.ratings[e.ratings.type].singles.value;
-               let filtered = rating && (parseFloat(rating) < e.ratings_filter.low || parseFloat(rating) > e.ratings_filter.high);
-               return filtered;
-            });
-         return { players: [].concat(...players, ...filtered_players) }
-      }
       // TODO: render ineligible because of health certificate / suspension & etc.
       return { players };
    }
@@ -754,7 +745,7 @@ export const tournamentFx = function() {
 
    fx.unavailablePlayers = (tournament, e) => {
       if (!e.links) return { players: [] };
-      if (e.draw_type  == 'E') {
+      if (['E', 'S'].indexOf(e.draw_type) >= 0) {
          // elimination events can't have approved players who are also approved in linked qualifying events
          // though qualifying players *WILL* appear in elimination approved players list
          if (e.links['Q']) {
