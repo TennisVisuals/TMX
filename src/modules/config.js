@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.0.11.14.7.q',
+      version: '1.0.12.15.10',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -1052,7 +1052,13 @@ export const config = function() {
 
    function persistStorage() {
       if (navigator.storage && navigator.storage.persist) {
-         navigator.storage.estimate().then(e=>console.log('storage estimate:', e));
+         navigator.storage.estimate().then(s => {
+            s.remaining = s.quota - s.usage;
+            coms.emitTmx({ 
+               event: 'Storage',
+               notice: `Storage (Quota: ${s.quota}, Usage: ${s.usage}, Remaining: ${s.remaining})`
+            });
+         });
          navigator.storage.persist().then(persistent => {
             env.storage = persistent ? true : 'user agent control'
             coms.emitTmx({ 
