@@ -3456,7 +3456,7 @@ export const tournamentDisplay = function() {
 
                setTimeout(function() { event_config.qualifiers.ddlb.selectionBackground(!e.qualifiers ? 'red' : 'white'); }, 300);
 
-            } else if (e.draw_type == 'E') {
+            } else if (['E', 'S'].indexOf(e.draw_type) >= 0) {
                let link_types = Object.keys(e.links);
                console.log('set qualifiers for linked RR Draw *only*');
             }
@@ -4003,7 +4003,7 @@ export const tournamentDisplay = function() {
             details.draw_type.ddlb.lock();
             if (event_config) {
                Object.keys(event_config).forEach(key => { 
-                  let lock = (!state.edit && e.draw_type == 'R' && key == 'qualifiers') ? false : true;
+                  let lock = (state.edit && ['R', 'E', 'S'].indexOf(e.draw_type) >= 0 && key == 'qualifiers') ? false : true;
                   if (event_config[key].ddlb && lock) event_config[key].ddlb.lock(); 
                });
             }
