@@ -44,7 +44,7 @@ export const scoreBoard = function() {
    let options = {
       bestof: [1, 3, 5],
       setsto: [4, 6, 8],
-      tiebreaksto: [7, 12],
+      tiebreaksto: [5, 7, 12],
       supertiebreakto: [7, 10, 21]
    }
 
