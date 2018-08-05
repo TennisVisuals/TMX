@@ -2074,7 +2074,9 @@ export function drawFx(opts) {
       let match_nodes = nodes.filter(n=>matchNode(n));
       let bye_nodes = match_nodes.filter(n=>!teamMatch(n));
       let all_matches = nodes.filter(n=>n.children && n.children.length == 2 && (!draw.max_round || n.height <= draw.max_round));
-      var upcoming_match_nodes = all_matches.filter(n=>n.children && (qualifierChild(n) || (!matchNode(n) && upcomingChild(n) || upcomingFeedNode(n))));
+      var upcoming_match_nodes = all_matches
+         // .filter(n=>n.children && (qualifierChild(n) || (!matchNode(n) && upcomingChild(n) || upcomingFeedNode(n))));
+         .filter(n=>n.children && (qualifierChild(n) || !matchNode(n)));
       let doubles = nodes
          .map(n => n.data.team ? n.data.team.length > 1 : false)
          .reduce((a, b) => a || b);
