@@ -3366,12 +3366,12 @@ export const displayGen = function() {
       `;
       d3.select(container.draw_config.element).html(config);
 
-      dd.attachDropDown({ id: ids.roundlimit });
-      dd.attachDropDown({ id: ids.qualifiers });
-      dd.attachDropDown({ id: ids.structure,  options: structure_options });
-      dd.attachDropDown({ id: ids.skiprounds, options: skip_options });
-      dd.attachDropDown({ id: ids.feedrounds, options: feed_options });
-      dd.attachDropDown({ id: ids.sequential, options: sequential_options });
+      dd.attachDropDown({ id: ids.roundlimit, display: 'none' });
+      dd.attachDropDown({ id: ids.qualifiers, display: 'none' });
+      dd.attachDropDown({ id: ids.structure, options: structure_options });
+      dd.attachDropDown({ id: ids.skiprounds, display: 'none', options: skip_options });
+      dd.attachDropDown({ id: ids.feedrounds, display: 'none', options: feed_options });
+      dd.attachDropDown({ id: ids.sequential, display: 'none', options: sequential_options });
       dd.attachDropDown({ id: ids.qualification, options: [{ key: lang.tr('none'), value: ''}] });
       dd.attachDropDown({ id: ids.consolation, options: [{ key: lang.tr('none'), value: ''}] });
       dd.attachDropDown({ id: ids.elimination, options: [{ key: lang.tr('none'), value: ''}] });

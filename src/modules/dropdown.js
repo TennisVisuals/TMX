@@ -91,7 +91,7 @@ export const dd = function() {
    DropDown.prototype = {
        initEvents() {
            let obj = this;
-           obj.el.style.display = 'flex';
+           // obj.el.style.display = 'flex';
            addClick(obj);
            addOptClicks(obj);
        },
@@ -180,11 +180,11 @@ export const dd = function() {
       return html;
    }
 
-   fx.attachDropDown = ({ element, id, label = '', options, selected = 0, css_class, border, style, floatleft }) => {
+   fx.attachDropDown = ({ element, id, label = '', options, selected = 0, css_class, border, style, floatleft, display='flex' }) => {
       if (!id && !element) return;
       // elements will not be visible until new DropDown()
       element = element || document.getElementById(id);
-      element.style.display = 'none';
+      element.style.display = display;
       element.classList.add(css_class || "dd");
       element.innerHTML = dropDownHTML(label, options, selected, border, style, floatleft);
    }
