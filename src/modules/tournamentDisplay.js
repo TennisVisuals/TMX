@@ -3375,6 +3375,7 @@ export const tournamentDisplay = function() {
       }
 
       function setRRqualifierRange(e) {
+         if (!e) return;
          let min_qualifiers = (e.approved && e.approved.length ? 1 : 0) * e.brackets;
          let max_qualifiers = min_qualifiers * 3;
          let range = util.range(min_qualifiers, max_qualifiers + 1);
@@ -3534,7 +3535,7 @@ export const tournamentDisplay = function() {
                eventList(true);
             }
 
-            displayQualifiers();
+            if (e.links && e.links['R']) displayQualifiers();
          }
 
          function setPlayoffConfig() {
