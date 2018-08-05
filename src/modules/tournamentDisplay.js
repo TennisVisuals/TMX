@@ -4003,7 +4003,7 @@ export const tournamentDisplay = function() {
             details.draw_type.ddlb.lock();
             if (event_config) {
                Object.keys(event_config).forEach(key => { 
-                  let lock = (e.draw_type == 'R' && key == 'qualifiers') ? false : true;
+                  let lock = (!state.edit && e.draw_type == 'R' && key == 'qualifiers') ? false : true;
                   if (event_config[key].ddlb && lock) event_config[key].ddlb.lock(); 
                });
             }
