@@ -3439,14 +3439,13 @@ export const tournamentDisplay = function() {
          function setQualifiers(value) {
             if (['Q', 'R'].indexOf(e.draw_type) >= 0) {
                e.qualifiers = +value;
-               eventName(e);
 
                let linked = tfx.findEventByID(tournament, e.links['E']);
                if (linked) {
                   // remove any qualified players from linked draw approved
                   let qual_hash = !e.qualified ? [] : e.qualified.map(teamHash);
                   linked.approved = linked.approved.filter(a=>qual_hash.indexOf(a) < 0);
-                  linked.regenerate = 'linkChanged linked';
+                  linked.regenerate = 'linkChanged number qualifiers';
                }
 
                e.qualified = [];
@@ -3458,9 +3457,19 @@ export const tournamentDisplay = function() {
 
             } else if (['E', 'S'].indexOf(e.draw_type) >= 0) {
                let link_types = Object.keys(e.links);
-               console.log('set qualifiers for linked RR Draw *only*');
+               let linkedRR = tfx.findEventByID(tournament, e.links['R']);
+               if (linkedRR) {
+                  linkedRR.qualifiers = +value;
+                  // remove any qualified players from elimination draw
+                  let qual_hash = !linkedRR.qualified ? [] : linkedRR.qualified.map(teamHash);
+                  e.approved = e.approved.filter(a=>qual_hash.indexOf(a) < 0);
+                  e.regenerate = 'linkChanged number qualifiers';
+                  tfx.determineRRqualifiers(tournament, linkedRR);
+               }
+               displayEvent({e});
             }
 
+            eventName(e);
             drawsTab();
             saveTournament(tournament);
          }
@@ -3520,7 +3529,8 @@ export const tournamentDisplay = function() {
                let display = e.links && e.links['R'] ? 'flex' : 'none';
                let cfg = d3.select(container.draw_config.element);
                cfg.selectAll('.qualifiers').style('display', display);
-               setRRqualifierRange(e);
+               let linkedRR = tfx.findEventByID(tournament, e.links['R']);
+               setRRqualifierRange(linkedRR);
                eventList(true);
             }
 
