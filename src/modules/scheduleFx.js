@@ -1,3 +1,4 @@
+import { db } from './db'
 import { util } from './util';
 import { drawFx } from './drawFx';
 import { lang } from './translator';
@@ -120,7 +121,9 @@ export const scheduleFx = function() {
       };
 
       matches.forEach(match => {
-         let potential_puids = !match.potentials ? [] : [].concat(...match.potentials.map(p=>[].concat(...p.map(t=>t.map(p=>p.puid)))));
+         let potential_puids = !match.potentials || !match.potentials.length
+            ? []
+            : [].concat(...match.potentials.map(p=>[].concat(...(!p ? [] : p.map(t=>!t ? [] : t.map(p=>p.puid))) )));
          let puids = match.puids.concat(potential_puids).filter(f=>f);
          puids.forEach(puid => {
             if (!puid_analysis[puid]) puid_analysis[puid] = { matches: [] };
@@ -333,11 +336,14 @@ export const scheduleFx = function() {
          if (!match.potentials) return '';
          let index = match.potentials[pindex] ? pindex : 0;
          let potentials = match.potentials[index];
-         if (!potentials) return '';
-         let blocks = potentials.map(p=>stack(p.map(potentialBlock))).join(`<div class='potential_separator flexcenter'><span>${lang.tr('or')}</span></div>`);
+         if (!potentials || potentials.filter(f=>f).length == 0) return unknown();
+         let blocks = potentials
+            .map(p=>stack(!p ? [unknown()] : p.map(potentialBlock)))
+            .join(`<div class='potential_separator flexcenter'><span>${lang.tr('or')}</span></div>`);
          return `<div class='flexrow'>${blocks}</div>`;
 
          function stack(potential_team) { return `<div class='flexcol'>${potential_team.join('')}</div>`; }
+         function unknown() { return `<div class='potential'>Unknown</div>`; }
       }
    }
 

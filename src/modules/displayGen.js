@@ -877,11 +877,14 @@ export const displayGen = function() {
          if (!match.potentials) return '';
          var index = match.potentials[pindex] ? pindex : 0;
          var potentials = match.potentials[index];
-         if (!potentials) return '';
-         var blocks = potentials.map(p=>stack(p.map(b=>potentialBlock(b, side)))).join(`<div class='potential_separator flexcenter'><span>${lang.tr('or')}</span></div>`);
+         if (!potentials || potentials.filter(f=>f).length == 0) return unknown();
+         var blocks = potentials
+            .map(p=>stack(!p ? [unknown()] : p.map(b=>potentialBlock(b, side))))
+            .join(`<div class='potential_separator flexcenter'><span>${lang.tr('or')}</span></div>`);
          return `<div class='potential_${side}'>${blocks}</div>`;
 
          function stack(potential_team) { return `<div class='flexcol'>${potential_team.join('')}</div>`; }
+         function unknown() { return `<div class='potential'>Unknown</div>`; }
       }
 
       var player_position = puid ? match.outcome.winning_puids.indexOf(puid) >= 0 ? 'left' : 'right' : '';

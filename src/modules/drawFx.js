@@ -2074,7 +2074,7 @@ export function drawFx(opts) {
       let match_nodes = nodes.filter(n=>matchNode(n));
       let bye_nodes = match_nodes.filter(n=>!teamMatch(n));
       let all_matches = nodes.filter(n=>n.children && n.children.length == 2 && (!draw.max_round || n.height <= draw.max_round));
-      var upcoming_match_nodes = all_matches.filter(n=>n.children && (qualifierChild(n) || (!matchNode(n) && upcomingChild(n))));
+      var upcoming_match_nodes = all_matches.filter(n=>n.children && (qualifierChild(n) || (!matchNode(n) && upcomingChild(n) || upcomingFeedNode(n))));
       let doubles = nodes
          .map(n => n.data.team ? n.data.team.length > 1 : false)
          .reduce((a, b) => a || b);
@@ -3280,6 +3280,28 @@ export function drawFx(opts) {
       return (teams.length == 2) ? teams : false;
    }
 
+   fx.upcomingFeedNode = upcomingFeedNode;
+   function upcomingFeedNode(node) {
+      if (!node || !node.data || !node.data.children) return false;
+      let feed_arms = node.data.children.map(m=>m.feed).filter(f=>f);
+      let teams = node.data.children.map(m=>m.team).filter(f=>f);
+      let matchnodes = node.children.map(matchNode).filter(f=>f);
+      return (feed_arms.length == 1 && teams.length == 1 && matchnodes.length == 0) ? true : false;
+   }
+
+   fx.upcomingFeedNodes = upcomingFeedNodes;
+   function upcomingFeedNodes(nodes) { return nodes.filter(upcomingFeedNode); }
+
+   fx.feedNode = feedNode;
+   function feedNode(node) {
+      if (!node || !node.data || !node.data.children) return false;
+      let feed_arms = node.data.children.map(m=>m.feed).filter(f=>f);
+      return (feed_arms.length == 1) ? true : false;
+   }
+
+   fx.feedNodes = feedNodes;
+   function feedNodes(nodes) { return nodes.filter(feedNode); }
+
    fx.byeTeams = byeTeams;
    function byeTeams(node) {
       if (!node.data.children) return false;
@@ -3372,7 +3394,7 @@ export function drawFx(opts) {
             if (calculated_round_name) node.data.calculated_round_name = calculated_round_name;
 
             if (node.data.match && round_name) node.data.match.round_name = round_name;
-            let potentials = node.data.children.filter(c=>!c.team).map(p=>p.children ? p.children.map(l=>l.team) : undefined).filter(f=>f);
+            let potentials = node.data.children.filter(c=>!c.team).map(p=>p.children ? p.children.map(l=>l.team) : undefined);
             let dependencies = node.data.children.filter(c=>!c.team).map(d=>d.match && d.match.muid);
             let dependent = node.parent && node.parent.data && node.parent.data.match && node.parent.data.match.muid;
             return {
