@@ -1027,21 +1027,23 @@ export const tournamentFx = function() {
    fx.firstQualifiers = (evt) => {
       if (!evt || !evt.draw) return [];
       let opponents = evt.draw.opponents;
-      return opponents.filter(o=> {
-         if (o[0].order == 1 && o[0].sub_order == undefined) return true;
+      let ordered_opponents = opponents.filter(o=> {
+         if (o[0].order == 1 && !o[0].sub_order) return true;
          if (o[0].order == 1 && o[0].sub_order == 1) return true;
       })
       .sort(rrQualSort);
+      return ordered_opponents;
    }
 
    fx.secondQualifiers = (evt) => {
       if (!evt || !evt.draw) return [];
       let opponents = evt.draw.opponents;
-      let ordered_opponents = opponents.filter(o=> {
-         if (o[0].order == 1 && o[0].sub_order == 2) return true;
-         if (o[0].order == 2 && o[0].sub_order == undefined) return true;
-         if (o[0].order == 2 && o[0].sub_order == 1) return true;
-      })
+      let ordered_opponents = opponents
+         .filter(o=> {
+            if (o[0].order == 1 && o[0].sub_order == 2) return true;
+            if (o[0].order == 2 && !o[0].sub_order) return true;
+            if (o[0].order == 2 && o[0].sub_order == 1) return true;
+         })
       .sort(rrQualSort);
       return ordered_opponents;
    }
@@ -1049,12 +1051,13 @@ export const tournamentFx = function() {
    fx.thirdQualifiers = (evt) => {
       if (!evt || !evt.draw) return [];
       let opponents = evt.draw.opponents;
-      return opponents.filter(o => {
-            if (o[0].order == 1 && o[0].sub_order == 3) return true;
-            if (o[0].order == 2 && o[0].sub_order == 2) return true;
-            if (o[0].order == 3 && o[0].sub_order == undefined) return true;
-            if (o[0].order == 3 && o[0].sub_order == 1) return true;
-      })
+      return opponents
+         .filter(o => {
+               if (o[0].order == 1 && o[0].sub_order == 3) return true;
+               if (o[0].order == 2 && o[0].sub_order == 2) return true;
+               if (o[0].order == 3 && !o[0].sub_order) return true;
+               if (o[0].order == 3 && o[0].sub_order == 1) return true;
+         })
       .sort(rrQualSort);
    }
 
