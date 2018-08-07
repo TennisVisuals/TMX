@@ -9019,12 +9019,15 @@ export const tournamentDisplay = function() {
 
       var { container } = displayGen.createNewTournament(title, trny);
 
-      var field_order = [ 'name', 'association', 'organization', 'start', 'end', 'judge', 'draws', 'cancel', 'save' ];
+      var field_order = [ 'name', 'association', 'organization', 'start', 'none', 'judge', 'draws', 'cancel', 'save' ];
 
       function nextFieldFocus(field) {
-         let next_field = field_order.indexOf(field) + 1;
+         let this_field = field_order.indexOf(field);
+         let next_field = this_field >= 0 ? this_field + 1 : 0;
          if (next_field == field_order.length) next_field = 0;
-         container[field_order[next_field]].element.focus(); 
+         let next_obj = container[field_order[next_field]];
+         if (next_obj) next_obj.element.focus(); 
+         if (field_order[next_field] == 'none') container.judge.element.focus();
       }
 
       function setTournamentType(value) {
@@ -9099,7 +9102,9 @@ export const tournamentDisplay = function() {
             }
             container[attr].element.style.background = valid ? 'white' : 'yellow';
          }
-         if ((!evt || evt.which == 13 || evt.which == 9) && (!required || (required && valid))) nextFieldFocus(attr);
+         if ((!evt || evt.which == 13 || evt.which == 9) && (!required || (required && valid))) {
+            nextFieldFocus(attr);
+         }
       }
 
       let saveTrny = () => { 
