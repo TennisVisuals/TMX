@@ -1,4 +1,3 @@
-import { db } from './db'
 import { util } from './util';
 import { drawFx } from './drawFx';
 import { lang } from './translator';
