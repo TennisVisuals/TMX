@@ -468,6 +468,7 @@ export const fetchFx = function() {
             displayGen.closeModal();
             let id_obj = displayGen.importPlayers();
             let callback = (players) => {
+               if (players && !players.length) return displayGen.popUpMessage('Players not found: Check Headers/Tab Names.');
                players.forEach(player => { player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; });
                resolve(players);
             }
