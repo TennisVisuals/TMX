@@ -34,10 +34,9 @@ export const importFx = function() {
    load.reset();
    let displayMessage = (msg) => { console.log(msg); }
 
-   let cache = {};
+   let cache = { ignored: [] };
    load.loadCache = () => {
       cache.aliases = {};
-      cache.ignored = {};
       db.findAllClubs().then(arr => cache.club_codes = arr.map(club => club.code));
       // db.findAllAliases().then(arr => arr.forEach(row => cache.aliases[row.alias] = row.hash));
       // db.findAllIgnored().then(arr => cache.ignored = arr.map(row => `${row.hash}-IOC-${row.ioc}`));
@@ -617,7 +616,7 @@ export const importFx = function() {
          if (!file_content.length) return;
 
          if (load.loaded.meta.filetype.indexOf('xls') >= 0) {
-            loadWorkbook(file_content, callback);
+            loadWorkbook({ file_content, callback, accepted_types: ['UTR', 'CHi'] });
          } else if (load.loaded.meta.filetype == 'csv') {
             console.log('loadCSV');
             // loadJSON(CSV2JSON(file_content));
@@ -710,7 +709,7 @@ export const importFx = function() {
          if (!file_content.length) return;
 
          if (load.loaded.meta.filetype.indexOf('xls') >= 0) {
-            loadWorkbook(file_content);
+            loadWorkbook({ file_content });
          } else if (load.loaded.meta.filetype == 'csv') {
             loadJSON(CSV2JSON(file_content));
          } else if (load.loaded.meta.filetype.indexOf('json') >= 0) {
@@ -804,20 +803,16 @@ export const importFx = function() {
       }
    }
 
-   /*
    load.addAlias = ({alias, hash}) => {
       cache.aliases[alias] = hash;
-      return db.addAlias({alias, hash});
+//      return db.addAlias({alias, hash});
    }
-   */
 
-   /*
    load.addIgnore = ({hash, ioc}) => {
       let stored = `${hash}-IOC-${ioc}`;
       cache.ignored.push(stored);
-      return db.addIgnore({hash, ioc});
+   //   return db.addIgnore({hash, ioc});
    }
-   */
 
    function addDraw(draw) { console.log(draw); }
 
@@ -839,11 +834,14 @@ export const importFx = function() {
    let validMatch = (match) => match.players.length == [].concat(...match.teams).length;
    function loadMatches(match_array) { loadTask(db.addMatch, match_array.filter(m => validMatch(m)), 'Matches'); }
 
-   function loadWorkbook(file_content, callback) {
+   function loadWorkbook({ file_content, callback, accepted_types }) {
       var workbook = XLSX.read(file_content, {type: 'binary'});
       load.loaded.workbook = workbook;
 
       let workbook_type = identifyWorkbook(workbook);
+      if (accepted_types && accepted_types.indexOf(workbook_type) < 0) {
+         return (typeof callback == 'function') ? callback([]) : false;
+      }
 
       if (workbook_type == 'UTR') {
          let players = extractPlayers(workbook);
@@ -856,7 +854,7 @@ export const importFx = function() {
          load.findTournament().then(process, util.logError);
       }
 
-      if (workbook_type == 'courthive_imports') {
+      if (workbook_type == 'CHi') {
          let id = displayGen.busy.message('<p>Loading...</p>', reload);
 
          let players = extractPlayers(workbook);
@@ -1022,7 +1020,7 @@ export const importFx = function() {
 
    function identifyWorkbook(workbook) {
       let sheets = workbook.SheetNames;
-      if (util.intersection(sheets, ['CourtHive', 'Players']).length == 2) return 'courthive_imports';
+      if (util.intersection(sheets, ['CourtHive', 'Players']).length == 2) return 'CHi';
       if (util.intersection(sheets, ['Registrants', 'Matched Players']).length == 1) return 'UTR';
       return 'tournament';
    }
