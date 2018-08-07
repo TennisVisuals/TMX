@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.0.15.17.16',
+      version: '1.0.17.18.19',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -185,8 +185,9 @@ export const config = function() {
          tree_draw: {
             flags: { display: true },
             schedule: {
-               courts: true,
-               after: true
+               dates: false,
+               courts: false,
+               after: false
             },
             minimums: {
                singles: 2,
@@ -552,6 +553,10 @@ export const config = function() {
                   container.after_matches.element.checked = false;
                }
             }
+
+            container.match_date.element.addEventListener('click', displayMatchDates);
+            container.match_date.element.checked = util.string2boolean(env.draws.tree_draw.schedule.dates);
+            function displayMatchDates(evt) { env.draws.tree_draw.schedule.dates = container.match_date.element.checked; }
          }
 
          if (v.search) {

@@ -218,6 +218,7 @@ export const lang = function() {
          separate_by_club: 'Auto Separate Players by Club',
          fixedbyes: 'Fixed Bye Order',
          courtdetail: 'Court Details',
+         matchdates: 'Match Dates',
          firstday: 'Week Starts Monday',
          draworderscores: 'Scores in Draw Order',
          schedulecompleted: 'Schedule Completed Matches',

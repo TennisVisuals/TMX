@@ -1295,6 +1295,7 @@ export const displayGen = function() {
          consolationalts: displayFx.uuid(),
          consolationseeds: displayFx.uuid(),
          display_flags: displayFx.uuid(),
+         match_date: displayFx.uuid(),
          court_detail: displayFx.uuid(),
          after_matches: displayFx.uuid(),
       };
@@ -1355,6 +1356,10 @@ export const displayGen = function() {
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.matchesbefore')}:</label>
                     <input type='checkbox' id="${ids.after_matches}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.matchdates')}:</label>
+                    <input type='checkbox' id="${ids.match_date}">
                 </div>
              </div>
          </div>

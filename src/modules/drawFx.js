@@ -870,6 +870,7 @@ export function treeDraw() {
       },
 
       schedule: {
+         dates: true,
          after: true,
          courts: true
       },
@@ -942,6 +943,14 @@ export function treeDraw() {
          display: true,
          offset: 15,
          color: '#777777',
+      },
+
+      matchdates: {
+         display: true,
+         offset: 15,
+         color: '#000',
+         start_monday: false,
+         day_abbrs : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
       }
    }
 
@@ -969,6 +978,7 @@ export function treeDraw() {
       'compass' :  { 'mouseover': null, 'mouseout': null, 'click': null, 'contextmenu': null },
       'score'    : { 'mouseover': null, 'mouseout': null, 'click': null, 'contextmenu': null },
       'umpire'   : { 'mouseover': null, 'mouseout': null, 'click': null, 'contextmenu': null },
+      'matchdate': { 'mouseover': null, 'mouseout': null, 'click': null, 'contextmenu': null },
       'sizing'   : { 'width': null, },  // optional functions for sizeToFit
    };
 
@@ -1427,22 +1437,50 @@ export function treeDraw() {
              .on('contextmenu', events.umpire.contextmenu);
       }
 
+      if (o.matchdates.display) {
+         node.append("text")
+             .attr("x", playerBaseX)
+             .attr("y", o.matchdates.offset)
+             .attr("text-anchor", "start")
+             .attr("dy", ".71em")
+             .text(dateDetail)
+             .style("fill", o.matchdates.color)
+             .style("shape-rendering", "geometricPrecision")
+             .style("font-size", scoreSize)
+             .style("font-style", 'italic')
+             .on('click', events.matchdate.click)
+             .on('mouseover', events.matchdate.mouseover)
+             .on('mouseout', events.matchdate.mouseout)
+             .on('contextmenu', events.matchdate.contextmenu);
+      }
+
       function matchDetail(d) {
          if (!d.data.match) return;
          if (d.data.match.score) return d.data.match.score;
-         if (d.data.match.schedule) {
-            let schedule = d.data.match.schedule;
+         let schedule = d.data.match.schedule;
+         if (schedule) {
 
             let time_string = [(schedule.time && schedule.time_prefix) || '', schedule.time || ''].join(' ');
             let schedule_after = o.schedule.after && schedule.after ? `~${schedule.after}` : '';
             let court_info = !o.schedule.courts ? '' : [schedule.court || '', schedule_after].join(' ');
             return [time_string || '', court_info || ''].join(' ');
          }
+         return '';
       }
 
       function umpireDetail(d) {
          if (!d.data.match) return;
          if (d.data.match.umpire) return d.data.match.umpire.toUpperCase();
+      }
+
+      function dateDetail(d) {
+         if (!d.data.match || d.data.match.score || (o.umpires.display && d.data.match.umpire)) return;
+         let schedule = d.data.match.schedule;
+         if (o.schedule.dates && schedule && schedule.day) {
+            let weekday = new Date(schedule.day).getDay();
+            let day_abbr = o.matchdates.day_abbrs[weekday].toUpperCase();
+            return `${day_abbr} ${schedule.day}`;
+         }
       }
 
       function nameSize(d) {
@@ -1573,7 +1611,7 @@ export function treeDraw() {
       }
 
       function clubCode(d, which=0) {
-         if (d.height || !d.data.team || !d.data.team[which]) return '';
+         if (d.height || !d.data.team || !d.data.team[which] || d.data.feed) return '';
          if (!d.data.team[which].club_code || d.data.team[which].club_code.length > 3) return '';
          // reverse the display order of players if doubles
          if (d.data.team.length == 2) which = 1 - which;
@@ -2075,7 +2113,6 @@ export function drawFx(opts) {
       let bye_nodes = match_nodes.filter(n=>!teamMatch(n));
       let all_matches = nodes.filter(n=>n.children && n.children.length == 2 && (!draw.max_round || n.height <= draw.max_round));
       var upcoming_match_nodes = all_matches
-         // .filter(n=>n.children && (qualifierChild(n) || (!matchNode(n) && upcomingChild(n) || upcomingFeedNode(n))));
          .filter(n=>n.children && (qualifierChild(n) || !matchNode(n)));
       let doubles = nodes
          .map(n => n.data.team ? n.data.team.length > 1 : false)
@@ -3282,6 +3319,7 @@ export function drawFx(opts) {
       return (teams.length == 2) ? teams : false;
    }
 
+   /*
    fx.upcomingFeedNode = upcomingFeedNode;
    function upcomingFeedNode(node) {
       if (!node || !node.data || !node.data.children) return false;
@@ -3293,6 +3331,7 @@ export function drawFx(opts) {
 
    fx.upcomingFeedNodes = upcomingFeedNodes;
    function upcomingFeedNodes(nodes) { return nodes.filter(upcomingFeedNode); }
+   */
 
    fx.feedNode = feedNode;
    function feedNode(node) {
@@ -3438,6 +3477,19 @@ export function drawFx(opts) {
       }));
 
       return matches;
+   }
+
+   fx.extractDrawPlayers = (draw) => {
+      let players = [];
+      let draw_positions = [];
+      [].concat(...fx.drawInfo(draw).nodes.map(n=>n.data && n.data.team))
+         .forEach(p => {
+            if (draw_positions.indexOf(p.draw_position)<0) {
+               draw_positions.push(p.draw_position);
+               players.push(p);
+            }
+         });
+      return players;
    }
 
    fx.matches = matches;
