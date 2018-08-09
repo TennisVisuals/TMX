@@ -27,6 +27,7 @@ export const playerFx = function() {
 
    fx.resetPlayerAction = () => {
       fx.action = undefined;
+      fx.notInDB = undefined;
       fx.override = undefined;
       fx.displayFx = undefined;
    }
@@ -86,9 +87,8 @@ export const playerFx = function() {
             searchBox.active.player = player;
 
             if (player) {
-
                // club and points are not important
-               if (fx.override) { return resolve(fx.override(player)); }
+               if (fx.override) { return resolve(fx.override({ player })); }
 
                db.findClub(player.club + '').then(club => {
                   container = displayGen.playerProfile(fx.displayFx);
@@ -126,7 +126,8 @@ export const playerFx = function() {
                   container.info.element.innerHTML = displayGen.playerInfo(fallback, {});
                   return resolve(fx.actions[fx.action](container, fallback));
                }
-               if (fallback && fx.override) { return resolve(fx.override(fallback)); }
+               if (fx.override && fallback) { return resolve(fx.override({ player: fallback })); }
+               if (fx.override && fx.notInDB) { return resolve(fx.override({ puid, notInDB: true })); }
                console.log('player not found. PUID:', puid);
                reject({ error: 'Player Not Found' });
             }
