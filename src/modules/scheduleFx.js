@@ -286,7 +286,7 @@ export const scheduleFx = function() {
       if (score && winner_index && reverse_scores) score = dfx.reverseScore(score);
 
       let match_status = match.status ? `<div class='match_status'>${match.status}</div>` : '&nbsp;';
-      let category = match.event ? match.event.category : '';
+      let category = (match.event && match.event.category) || '';
       let displayed_score = score ? `<div class='match_score${complete ? ' complete' : ''}'>${score}</div>` : match_status;
       let status_message = (match.status && match.score && !match.umpire) ? match.status : '';
       let umpire = match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : status_message;
@@ -297,14 +297,23 @@ export const scheduleFx = function() {
       let header = time_icon || `${heading}${time_prefix}${match.schedule.time || '&nbsp;'}`;
       let font_sizes = ['1em', '1em'];
       let round_name = match.round_name || '';
-      if (match.consolation) round_name = `C-${round_name}`;
-      let html = `
-         <div class='header flexrow'>${header}</div> 
+      let category_row = `
          <div class='catround'>
             <div class='category'>${match.gender || ''} ${category}</div>
             <div class='format'>${format}</div>
             <div class='round'>${round_name}</div>
          </div>
+      `;
+      if (match.event && match.event.custom_category) category_row = `
+         <div class='catround'>
+            <div class='category'>${match.event.custom_category}</div>
+            <div class='round'>${round_name}</div>
+         </div>
+      `;
+      if (match.consolation) round_name = `C-${round_name}`;
+      let html = `
+         <div class='header flexrow'>${header}</div> 
+         ${category_row}
          <div class='scheduled_teams'>
             <div class='scheduled_team' style='font-size: ${font_sizes[0]}'>${first_team || ''}</div>
             <div class='divider'>${first_team || second_team ? divider : ''}</div>
