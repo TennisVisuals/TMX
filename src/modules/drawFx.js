@@ -458,6 +458,7 @@ export function roundRobin() {
                let order = player[d.attr];
                if (player.sub_order) order += `-${player.sub_order}`;
                if (player.points_order && point_order_differences) order += `:${player.points_order}`;
+               if (player.assigned_order) return player.assigned_order;
                return order;
             }
             if (d.attr == 'club_code') return player.club_code;
