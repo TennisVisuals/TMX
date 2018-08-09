@@ -324,6 +324,7 @@ export const lang = function() {
 
       teams: {
          name: 'Name',
+         rankings: 'Team Rankings',
          members: 'Members',
          matches: 'Matches',
          winloss: 'Won/Lost',
