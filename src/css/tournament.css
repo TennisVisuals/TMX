@@ -464,6 +464,8 @@
 .teams_tab .manualorder {
    border: 0;
    width: 3em;
+   text-align: center;
+   font-size: .8em;
 }
 
 .teams_tab .team_header { 
