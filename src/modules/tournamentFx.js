@@ -282,7 +282,7 @@ export const tournamentFx = function() {
       result.muid = match.muid;
 
       match.score = outcome.score;
-      if (outcome.score) match.status = '';
+      match.status = (outcome.score) ? '' : match.status;
       match.winner_index = outcome.winner;
       match.score_format = outcome.score_format;
 
@@ -397,7 +397,7 @@ export const tournamentFx = function() {
       result.muid = match.muid;
 
       match.score = outcome.score;
-      if (outcome.score) match.status = '';
+      match.status = (outcome.score) ? '' : match.status;
       match.winner_index = outcome.winner;
       match.score_format = outcome.score_format;
 
