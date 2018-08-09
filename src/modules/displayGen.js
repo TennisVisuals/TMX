@@ -2368,6 +2368,7 @@ export const displayGen = function() {
          print_draw: displayFx.uuid(),
          print_sign_in: displayFx.uuid(),
          ranking_order: displayFx.uuid(),
+         team_rankings: displayFx.uuid(),
          print_draw_order: displayFx.uuid(),
          refresh_registrations: displayFx.uuid(),
          print_schedule: displayFx.uuid(),
@@ -2537,7 +2538,11 @@ export const displayGen = function() {
                <div class='detail_header'>
                   <div id='${ids.team_display_name}' class='team_display_name flexcenter'>${lang.tr('teams.newteam')}</div>
                   <input id='${ids.team_edit_name}' style='display: none; width: 50%; height: 1.5em; font-size: larger;'> 
-                  <div class='flexrow'></div>
+                  <div class='flexrow'>
+                     <div class='${classes.team_rankings} info' label='${lang.tr("teams.rankings")}'>
+                        <div class='action_icon ranking_order ranking_order_inactive'></div>
+                     </div>
+                  </div>
                   <div>${del_team}${done}${save_team}${cancel}</div>
                </div>
                <div id='${ids.team_attributes}' class='detail_body'>
@@ -2788,7 +2793,7 @@ export const displayGen = function() {
       let draggable = `draggable="true"`;
 
       let content = `
-         <div class='event_name'>${match.event.name}</div>
+         <div class='event_name'>${match.event.custom_category || match.event.name}</div>
          <div class='event_round'>${match.round_name}</div>
          <div class='left_team'>${formatTeams({match, which: 'left'})}</div>
          <div>&nbsp;-&nbsp;</div>
@@ -3780,10 +3785,10 @@ export const displayGen = function() {
          let phtml = `
             <div class='team_player' ${style}>
                <div class='flexrow'>
-                  <input puid='${player.puid}' order='${i}' class='rankrow manualorder' value='${player.order || ""}'>
-                  <div>${player.last_name.toUpperCase()}, ${player.first_name} </div>
+                  <input puid='${player.puid}' order='${i}' class='rankrow manualorder' value='${player.order || ""}' disabled>
+                  <div class='flexcenter'>${player.last_name.toUpperCase()}, ${player.first_name} </div>
                </div>
-               <div style='padding-right: 2px;'>${player.sex}</div>
+               <div class='flexcenter' style='padding-right: 2px;'>${player.sex}</div>
             </div>
          `;
          display_order[p.puid] = i;
