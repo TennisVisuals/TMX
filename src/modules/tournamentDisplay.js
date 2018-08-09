@@ -368,7 +368,8 @@ export const tournamentDisplay = function() {
    function createTournamentContainer({tournament, dbmatches, selected_tab, display_points = false, editing}) {
 
       let holdActions = {
-         "requestTournamentEvents": () => coms.requestTournamentEvents(tournament.tuid)
+         "requestTournamentEvents": () => coms.requestTournamentEvents(tournament.tuid),
+         "tournamentPlayers": tournamentPlayers,
       };
 
       db.addDev({tournament});
@@ -6071,6 +6072,9 @@ export const tournamentDisplay = function() {
          util.addEventToClass('manualrating', catchTab, container.players.element, 'keydown');
          util.addEventToClass('subrank', catchTab, container.players.element, 'keydown');
 
+         util.addEventToClass('tournamentPlayers', tournamentPlayersClick, container.players.element);
+         util.addEventToClass('tournamentPlayers', tournamentPlayers, container.players.element, 'contextmenu');
+
          util.addEventToClass('player_click', signInState, container.players.element);
          util.addEventToClass('player_click', tournamentPlayerContext, container.players.element, 'contextmenu');
          util.addEventToClass('ranksub', stopPropagation, container.players.element);
@@ -6083,6 +6087,21 @@ export const tournamentDisplay = function() {
          util.addEventToClass('rankbyrating', rankByRating, container.players.element, 'contextmenu');
          checkDuplicateRankings(display_order);
          signInSheet();
+      }
+
+      function tournamentPlayersClick(evt) {
+         if (evt.ctrlKey || evt.shiftKey) return tournamentPlayers();
+      }
+
+      function tournamentPlayers() {
+         if (state.edit && tournament.players && tournament.players.length) {
+            let message = 'Add Tournament Players to Database?';
+            displayGen.okCancelMessage(message, addPlayers, () => displayGen.closeModal());
+            function addPlayers() {
+               tournament.players.forEach(p => db.addPlayer(p).then(()=>{}, util.logError));
+               displayGen.closeModal();
+            }
+         }
       }
 
       function displayedPlayers() {

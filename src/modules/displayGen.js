@@ -2074,7 +2074,7 @@ export const displayGen = function() {
       let html = `
          <div class='signin-row flexrow signin-header'>
             <div class='registered_count flexjustifystart'><b>#</b></div>
-            <div class='registered_player flexjustifystart'><b>${lang.tr('ply')}</b></div>
+            <div class='registered_player flexjustifystart contextAction tournamentPlayers' contextaction='tournamentPlayers'><b>${lang.tr('ply')}</b></div>
             ${additional}${rating}
             <div class='registered_attr flexcenter'><b>${lang.tr('prnk')}</b></div>
             ${years} ${clubs} ${countries} ${schools}
