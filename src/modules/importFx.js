@@ -839,12 +839,14 @@ export const importFx = function() {
       load.loaded.workbook = workbook;
 
       let workbook_type = identifyWorkbook(workbook);
+
       if (accepted_types && accepted_types.indexOf(workbook_type) < 0) {
          return (typeof callback == 'function') ? callback([]) : false;
       }
 
       if (workbook_type == 'UTR') {
          let players = extractPlayers(workbook);
+         // UTR format players don't get added to Player Database...  they can only be added to Tournament Players
          return (typeof callback == 'function') ? callback(players) : true;
       }
 
