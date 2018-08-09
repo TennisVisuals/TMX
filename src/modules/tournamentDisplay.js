@@ -1520,6 +1520,7 @@ export const tournamentDisplay = function() {
       function disablePlayerOverrides(current_tab, next_tab) {
          if (current_tab == 'events' && next_tab != 'events') {
             delete playerFx.override;
+            delete playerFx.notInDB;
             if (next_tab != 'players') resetSearch();
          } else if (current_tab == 'players' && next_tab != 'players') {
             playerFx.action = undefined;
@@ -1648,75 +1649,75 @@ export const tournamentDisplay = function() {
 
       function toggleRatingsFilter(active) {
          let e = tfx.findEventByID(tournament, displayed_event);
-         let filter_active = ratingsFilterActive();
-         let toggleFilterActive = () => {
-            // toggle the two possible options
-            let elem = document.querySelector('.' + classes.ratings_filter);
-            elem.firstChild.classList.toggle('filter_inactive');
-            elem.firstChild.classList.toggle('filter_active');
-            saveTournament(tournament);
-         }
-
-         if ((active == true && filter_active) || (active == false && !filter_active)) return;
-
-         // if not true/false it may be MouseEvent, so needs to be explicit
-         if (active == true || active == false) {
-            toggleFilterActive();
-            return;
-         }
-
-         if (!state.edit || (e && e.active)) return;
-
-         toggleFilterActive();
-
-         if (e) { setFilter(); }
-
-         let new_rating = Object.assign({}, e.ratings_filter);
-
-         function setFilter() {
-            let id_obj = displayGen.ratingsFilterValues({ ratings_filter: e.ratings_filter });
-            let entry_modal = d3.select(id_obj.entry_modal.element);
-            id_obj.low.element.value = (e.ratings_filter && e.ratings_filter.low) || '';
-            id_obj.high.element.value = (e.ratings_filter && e.ratings_filter.high) || '';
-            id_obj.low.element.addEventListener("keyup", e => getValidValue(e, 'low'));
-            id_obj.high.element.addEventListener("keyup", e => getValidValue(e, 'high'));
-            id_obj.clear.element.addEventListener("click", clearRatingsRange);
-            id_obj.submit.element.addEventListener("click", setRatingsRange);
-            id_obj.low.element.focus();
-
-            function clearRatingsRange() {
-               delete e.ratings_filter;
+         if (e) {
+            let filter_active = ratingsFilterActive();
+            let toggleFilterActive = () => {
+               // toggle the two possible options
+               let elem = document.querySelector('.' + classes.ratings_filter);
+               elem.firstChild.classList.toggle('filter_inactive');
+               elem.firstChild.classList.toggle('filter_active');
                saveTournament(tournament);
-               displayEvent({e});
-               removeRatingsModal();
             }
 
-            function setRatingsRange() {
-               if (new_rating.low || new_rating.high) {
-                  e.ratings_filter = new_rating;
+            if ((active == true && filter_active) || (active == false && !filter_active)) return;
+
+            // if not true/false it may be MouseEvent, so needs to be explicit
+            if (active == true || active == false) {
+               toggleFilterActive();
+               return;
+            }
+
+            if (!state.edit || (e && e.active)) return;
+
+            toggleFilterActive();
+            setFilter();
+
+            let new_rating = Object.assign({}, (e && e.ratings_filter) || {});
+
+            function setFilter() {
+               let id_obj = displayGen.ratingsFilterValues({ ratings_filter: e.ratings_filter });
+               let entry_modal = d3.select(id_obj.entry_modal.element);
+               id_obj.low.element.value = (e.ratings_filter && e.ratings_filter.low) || '';
+               id_obj.high.element.value = (e.ratings_filter && e.ratings_filter.high) || '';
+               id_obj.low.element.addEventListener("keyup", e => getValidValue(e, 'low'));
+               id_obj.high.element.addEventListener("keyup", e => getValidValue(e, 'high'));
+               id_obj.clear.element.addEventListener("click", clearRatingsRange);
+               id_obj.submit.element.addEventListener("click", setRatingsRange);
+               id_obj.low.element.focus();
+
+               function clearRatingsRange() {
+                  delete e.ratings_filter;
                   saveTournament(tournament);
+                  displayEvent({e});
+                  removeRatingsModal();
                }
-               displayEvent({e});
-               removeRatingsModal();
-            }
 
-            function removeRatingsModal() {
-               entry_modal.remove();
-               document.body.style.overflow = null;
-               displayGen.escapeFx = undefined;
-            }
-
-            function getValidValue(e, attr) {
-               if (e.which == 13) {
-                  if (attr == 'low') id_obj.high.element.focus();
-                  if (attr == 'high') setRatingsRange();
+               function setRatingsRange() {
+                  if (new_rating.low || new_rating.high) {
+                     e.ratings_filter = new_rating;
+                     saveTournament(tournament);
+                  }
+                  displayEvent({e});
+                  removeRatingsModal();
                }
-               let value = id_obj[attr].element.value;
-               let floatval = parseFloat(value);
-               new_rating[attr] = !isNaN(floatval) ? floatval : '';
+
+               function removeRatingsModal() {
+                  entry_modal.remove();
+                  document.body.style.overflow = null;
+                  displayGen.escapeFx = undefined;
+               }
+
+               function getValidValue(e, attr) {
+                  if (e.which == 13) {
+                     if (attr == 'low') id_obj.high.element.focus();
+                     if (attr == 'high') setRatingsRange();
+                  }
+                  let value = id_obj[attr].element.value;
+                  let floatval = parseFloat(value);
+                  new_rating[attr] = !isNaN(floatval) ? floatval : '';
+               }
             }
          }
-
       }
 
       function toggleGemSeeding(active) {
@@ -1818,7 +1819,6 @@ export const tournamentDisplay = function() {
 
       function teamEditState(el, bool) {
          el.disabled = !bool;
-         // el.style.border = bool ? '1px solid lightgray' : '0';
       }
 
       function activateEdit() {
@@ -1836,8 +1836,6 @@ export const tournamentDisplay = function() {
             draws_context[display_context] = { roundrobin: rr_draw, tree: tree_draw };
          }
 
-         util.eachElementClass(container.team_details.element, 'team_attr_edit', (el) => teamEditState(el, true));
-
          setEditState();
 
          if (current_tab == 'schedule') scheduleTab();
@@ -1846,7 +1844,6 @@ export const tournamentDisplay = function() {
             enableAddPlayer();
          }
          if (current_tab == 'teams') {
-            console.log('teams tab');
             enableAddTeamPlayer();
          }
 
@@ -1877,7 +1874,6 @@ export const tournamentDisplay = function() {
       function deactivateEdit() {
          state.edit = false;
          document.querySelector('.ranking_order').style.opacity = 0;
-         util.eachElementClass(container.team_details.element, 'team_attr_edit', (el) => teamEditState(el, false));
          saveTournament(tournament);
          setEditState();
       }
@@ -2005,8 +2001,11 @@ export const tournamentDisplay = function() {
          document.querySelector('.refresh_registrations').style.opacity = state.edit ? 1 : 0;
          document.querySelector('.' + classes.refresh_registrations).classList[state.edit ? 'add' : 'remove']('info');
 
+         util.eachElementClass(container.team_details.element, 'team_attr_edit', (el) => teamEditState(el, state.edit));
+         util.eachElementClass(container.team_details.element, 'manualorder', (el) => teamEditState(el, state.edit));
+
          let view_docs = state.edit && env.documentation ? 'flex' : 'none';
-         Array.from(document.querySelectorAll('.tiny_docs_icon')).forEach(e=>e.style.display=view_docs)
+         util.eachElementClass(document, 'tiny_docs_icon', (el) => el.style.display=view_docs);
 
          signInSheet();
          scheduleActions();
@@ -2014,8 +2013,10 @@ export const tournamentDisplay = function() {
          enableDrawActions();
          enableTournamentOptions();
 
-         // any change of edit state hides notes entry
-         // container.notes.element.style.display = 'none';
+         container.notes_entry.element.style.display = 'none';
+         container.notes_container.element.style.display = 'inline';
+         container.tournament_attrs.element.style.display = 'flex';
+         fillNotes();
 
          eventTab();
          teamsTab();
@@ -2313,6 +2314,16 @@ export const tournamentDisplay = function() {
          }
       }
 
+      function filteredEligible(e, eligible) {
+         return !eligible ? [] : eligible.filter(player => {
+            let rating = player.ratings && player.ratings[e.ratings.type] && player.ratings[e.ratings.type].singles.value;
+            let floatrating = !isNaN(parseFloat(rating)) ? parseFloat(rating) : false;
+            let rating_in_range = floatrating && 
+               ((!e.ratings_filter.low || floatrating >= e.ratings_filter.low) && (!e.ratings_filter.high || floatrating <= e.ratings_filter.high));
+            return rating_in_range;
+         });
+      }
+
       var modifyApproved = {
          push: function(e, id) {
             if (!state.edit || e.active) return;
@@ -2336,7 +2347,10 @@ export const tournamentDisplay = function() {
             if (!state.edit || e.active) return;
             warnIfCreated(e).then(doIt, () => { return; });
             function doIt() {
-               e.approved = [].concat(...e.approved, ...tfx.eligiblePlayers(tournament, e).players.map(p=>p.id));
+               // e.approved = [].concat(...e.approved, ...tfx.eligiblePlayers(tournament, e).players.map(p=>p.id));
+               let eligible_players = tfx.eligiblePlayers(tournament, e).players;
+               let filtered_eligible = filteredEligible(e, eligible_players);
+               e.approved = [].concat(...e.approved, ...filtered_eligible.map(p=>p.id));
                saveTournament(tournament);
                outOfDate(e);
                e.regenerate = 'modify: addAll';
@@ -2392,22 +2406,29 @@ export const tournamentDisplay = function() {
             [].concat(...tournament.teams.map(t=>t && t.players)).filter(f=>f).map(p=>p.puid);
 
          db.findAllPlayers().then(arr => {
-            if (arr.length) {
+            let puids = arr.map(p=>p.puid);
+            tournament.players.forEach(p=>{ if (puids.indexOf(p.puid) < 0) arr.push(p); });
+            let available = arr.filter(notTeamMember);
+            if (available.length) {
                // exclude players that are on other teams...
-               searchBox.typeAhead.list = arr.filter(notTeamMember).map(valueLabel);
+               searchBox.typeAhead.list = available.map(valueLabel);
 
                searchBox.category = 'players';
                searchBox.category_switching = false;
                searchBox.setSearchCategory(lang.tr('search.add2team'));
                searchBox.irregular_search_list = 'addTeamPlayer';
 
-               playerFx.override = (plyr) => {
+               playerFx.notInDB = true;
+               playerFx.override = ({ player, puid, notInDB }) => {
                   if (!team.players) team.players = [];
+                  if (notInDB && puid) player = tournament.players.reduce((p, c) => c.puid == puid ? c : p, undefined);
+                  if (!player) return;
                   let order = team.players.length;
-                  team.players.push({ puid: plyr.puid, order });
+                  team.players.push({ puid: player.puid, order });
                   if (!tournament.players) tournament.players = [];
-                  if (!tournament.players.map(p=>p.puid).indexOf(plyr.puid) >= 0) tournament.players.push(plyr);
-                  all_team_player_puids = all_team_player_puids.filter(puid=>puid != plyr.puid);
+                  if (!tournament.players.map(p=>p.puid).indexOf(player.puid) < 0) tournament.players.push(player);
+                  all_team_player_puids = all_team_player_puids.filter(puid=>puid != player.puid);
+                  saveTournament(tournament);
                   displayTeam({ team });
                   teamList();
                }
@@ -2438,7 +2459,7 @@ export const tournamentDisplay = function() {
          searchBox.typeAhead.list = searchable_players.map(valueLabel);
          searchBox.irregular_search_list = true;
 
-         playerFx.override = (plyr) => {
+         playerFx.override = ({ player }) => {
             let ineligible_players = tfx.ineligiblePlayers(tournament, e).players;
             let unavailable_players = tfx.unavailablePlayers(tournament, e).players;
 
@@ -2448,27 +2469,27 @@ export const tournamentDisplay = function() {
 
             let el = eligible.map(e=>e.puid);
 
-            if (eligible.map(e=>e.puid).indexOf(plyr.puid) >= 0) {
+            if (eligible.map(e=>e.puid).indexOf(player.puid) >= 0) {
                if (e.format == 'S') {
-                  modifyApproved.push(e, plyr.id);
+                  modifyApproved.push(e, player.id);
                } else {
                   if (!e.teams) e.teams = [];
                   // return the index of any team that only has one player
                   let single = e.teams.map((t, i)=>t.length == 1 ? i : undefined).filter(f=>f!=undefined);
 
                   if (single.length) {
-                     e.teams[single[0]].push(plyr.id);
+                     e.teams[single[0]].push(player.id);
                   } else {
-                     e.teams.push([plyr.id]);
+                     e.teams.push([player.id]);
                   }
                   approvedChanged(e, true);
                }
-            } else if (e.approved.indexOf(plyr.id) >= 0) {
-                  modifyApproved.removeID(e, plyr.id);
+            } else if (e.approved.indexOf(player.id) >= 0) {
+                  modifyApproved.removeID(e, player.id);
             } else {
                if (e.format == 'D') {
-                  let approved_team = e.approved.reduce((p, c) => { return (c.indexOf(plyr.id + '') >= 0) ? c : p; }, undefined);
-                  let built_team = e.teams.reduce((p, c) => { return (c.indexOf(plyr.id + '') >= 0) ? c : p; }, undefined);
+                  let approved_team = e.approved.reduce((p, c) => { return (c.indexOf(player.id + '') >= 0) ? c : p; }, undefined);
+                  let built_team = e.teams.reduce((p, c) => { return (c.indexOf(player.id + '') >= 0) ? c : p; }, undefined);
 
                   if (built_team && !approved_team) {
                      e.teams = e.teams.filter(team => util.intersection(built_team, team).length != 2);
@@ -2480,6 +2501,16 @@ export const tournamentDisplay = function() {
                }
             }
          }
+      }
+
+      util.addEventToClass(classes.team_rankings, () => enableTeamRankings());
+
+      function enableTeamRankings() {
+         let team_ranking_order = container.team_details.element.querySelector('.ranking_order');
+         let active = team_ranking_order.classList.contains('ranking_order_active');
+         team_ranking_order.classList[!active ? 'remove' : 'add'](`ranking_order_inactive`);
+         team_ranking_order.classList[!active ? 'add' : 'remove'](`ranking_order_active`);
+         util.eachElementClass(container.team_details.element, 'manualorder', (el) => teamEditState(el, !active));
       }
 
       function teamList() {
@@ -2497,6 +2528,10 @@ export const tournamentDisplay = function() {
 
          let highlighted = container.team_details.element.style.display != 'none' && container.team_details.element.getAttribute('uuid');
          displayGen.teamList(container, teams, highlighted);
+
+         let opacity = (state.edit && teams.length) ? 1 : 0;
+         container.team_details.element.querySelector('.ranking_order').style.opacity = opacity;
+         container.team_details.element.querySelector('.' + classes.team_rankings).classList[opacity ? 'add' : 'remove']('infoleft');
 
          function teamDetails(target) {
             let clicked_team = util.getParent(target, 'teamid');
@@ -2961,7 +2996,6 @@ export const tournamentDisplay = function() {
          let actions = d3.select(container.team_details.element);
 
          if (state.edit) {
-
             if (index != undefined) {
                // don't enable add players until team is saved...
                enableAddTeamPlayer(team);
@@ -3411,9 +3445,20 @@ export const tournamentDisplay = function() {
             toggleStructureConfig();
             eventList(true);
             autoDrawVisibility(e);
+            e.regenerate = 'structure change';
+            drawsTab();
+            saveTournament(tournament);
+         }
+
+         function removeStructure() {
+            delete e.structure;
+            delete e.feed_rounds;
+            delete e.skip_rounds;
+            delete e.sequential;
          }
 
          function toggleStructureConfig() {
+            if (e.structure != 'feed') removeStructure();
             let disp = e.structure == 'feed' ? 'flex' : 'none';
             Array.from(container.draw_config.element.querySelectorAll('.feedconfig'))
                .forEach(o=>o.style.display = disp);
@@ -3475,15 +3520,7 @@ export const tournamentDisplay = function() {
             saveTournament(tournament);
          }
 
-         function removeStructure() {
-            delete e.structure;
-            delete e.feed_rounds;
-            delete e.skip_rounds;
-            delete e.sequential;
-         }
-
          function setQualificationConfig() {
-            if (e.structure == 'feed') removeStructure();
             let structure_options = [{ key: lang.tr('draws.standard'), value: 'standard' }];
 
             let { max_qualifiers, options } = qualifyingDrawSizeOptions(e);
@@ -3539,7 +3576,6 @@ export const tournamentDisplay = function() {
          }
 
          function setPlayoffConfig() {
-            if (e.structure == 'feed') removeStructure();
             let structures = [{ key: lang.tr('draws.standard'), value: 'standard' }];
 
             event_config = displayGen.configTreeDraw({ container, e, structure_options: structures });
@@ -3579,7 +3615,6 @@ export const tournamentDisplay = function() {
          }
 
          function setRoundRobinConfig() {
-            if (e.structure == 'feed') removeStructure();
             let { options, size_options } = roundRobinDrawBracketOptions(e);
 
             event_config = displayGen.configRoundRobinDraw(container, e, options, size_options);
@@ -4503,6 +4538,8 @@ export const tournamentDisplay = function() {
          }
 
          if (e.ratings_filter && e.ratings && e.ratings.type) {
+            eligible_players = filteredEligible(e, eligible_players);
+            /*
             eligible_players = eligible_players
                .filter(player => {
                   let rating = player.ratings && player.ratings[e.ratings.type] && player.ratings[e.ratings.type].singles.value;
@@ -4511,6 +4548,7 @@ export const tournamentDisplay = function() {
                      ((!e.ratings_filter.low || floatrating >= e.ratings_filter.low) && (!e.ratings_filter.high || floatrating <= e.ratings_filter.high));
                   return rating_in_range;
                });
+            */
          }
 
          displayGen.displayEventPlayers({
@@ -5710,6 +5748,8 @@ export const tournamentDisplay = function() {
       function playersTab() {
          if (state.edit) enableAddPlayer();
          if (!tournament.categories) tournament.categories = [tournament.category];
+         toggleManualRank(false);
+         state.manual_ranking = undefined;
 
          // create an array of ids of all players who are selected for any event
          // used to prevent sign-out of approved players
@@ -6619,6 +6659,7 @@ export const tournamentDisplay = function() {
       }
 
       function rrPlayerOrder(d) {
+         if (!state.edit) return;
          let bracket = displayed_draw_event.draw.brackets[d.bracket];
          let player = bracket.players.reduce((p, c) => c.draw_position == d.row ? c : p, undefined);
          let tied = bracket.players.filter(p=>p.order == player.order);
@@ -6699,6 +6740,7 @@ export const tournamentDisplay = function() {
                'contextmenu': rrScoreAction,
             },
             'order': {
+               'click': rrPlayerOrder,
                'contextmenu': rrPlayerOrder,
             },
             'result': {
