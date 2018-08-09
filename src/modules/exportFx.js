@@ -421,6 +421,8 @@ export const exportFx = function() {
          colorscore: match.winner_index != undefined ? 'green' : 'black',
          boldscore: match.winner_index != undefined ? true : false
       }
+      if (match.event && match.event.custom_category) display.round = `${match.event.custom_category} ${match.round_name || ''}`;
+
       var x = ' ';
       var cell = {
          table: {
@@ -659,6 +661,7 @@ export const exportFx = function() {
             draw.options({names: { length_divisor: 23 }});
             draw.options({names:  { max_font_size: 50, min_font_size: 50 }});
             draw.options({umpires: { offset: 45 }});
+            draw.options({matchdates: { offset: 45 }});
             draw.options({detail_offsets: { base: 80, width: 65 }});
             draw.options({lines: { stroke_width: 4 }});
             draw.options({minPlayerHeight: 130});
@@ -667,6 +670,7 @@ export const exportFx = function() {
          } else if (opponent_count <= 24) {
             draw.options({names: { length_divisor: 23 }});
             draw.options({umpires: { offset: 45 }});
+            draw.options({matchdates: { offset: 45 }});
             draw.options({detail_offsets: { base: 80, width: 65 }});
             draw.options({lines: { stroke_width: 4 }});
             draw.options({minPlayerHeight: 130});
@@ -675,6 +679,7 @@ export const exportFx = function() {
          } else if (opponent_count <= 32) {
             draw.options({names: { length_divisor: 23 }});
             draw.options({umpires: { offset: 45 }});
+            draw.options({matchdates: { offset: 45 }});
             draw.options({detail_offsets: { base: 80, width: 60 }});
             draw.options({lines: { stroke_width: 4 }});
             draw.options({minPlayerHeight: 100 });
@@ -683,6 +688,7 @@ export const exportFx = function() {
          } else if (opponent_count <= 48) {
             draw.options({names: { length_divisor: 23 }});
             draw.options({umpires: { offset: 45 }});
+            draw.options({matchdates: { offset: 45 }});
             draw.options({detail_offsets: { base: 80, width: 60 }});
             draw.options({lines: { stroke_width: 4 }});
             draw.options({minPlayerHeight: 70 });
@@ -691,6 +697,7 @@ export const exportFx = function() {
          } else if (opponent_count <= 64) {
             draw.options({names: { length_divisor: 23 }});
             draw.options({umpires: { offset: 45 }});
+            draw.options({matchdates: { offset: 45 }});
             draw.options({detail_offsets: { base: 80, width: 60 }});
             draw.options({lines: { stroke_width: 4 }});
             draw.options({minPlayerHeight: 50 });
