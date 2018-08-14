@@ -897,7 +897,7 @@ export const scoreBoard = function() {
          // add spacer for score without tiebreak score
          if (tbscore !== null) {
             let min_games = Math.min(...scores.map(s=>s.games));
-            scores.forEach(s => { if (sf.games == min_games) { sf.tiebreak = tbscore } else { sf.spacer = tbscore; } });
+            scores.forEach(sf => { if (sf.games == min_games) { sf.tiebreak = tbscore } else { sf.spacer = tbscore; } });
          }
 
          return scores;
