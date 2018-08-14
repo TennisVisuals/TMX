@@ -36,6 +36,8 @@ export const tournamentFx = function() {
          'C': lang.tr('draws.consolation'),
          'Q': lang.tr('draws.qualification'),
          'S': lang.tr('draws.compass'),
+         'L': lang.tr('draws.dualmatches'),
+         'T': lang.tr('draws.teamtourny'),
          'F': lang.tr('draws.feedin'),
          'P': lang.tr('pyo'),
       }
