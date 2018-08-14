@@ -84,6 +84,7 @@
 .ranking_order_inactive { background-image: url("img/rank_gray.png"); opacity: 0; }
 .ranking_order_active { background-image: url("img/rank.png"); opacity: 0; }
 .refresh_registrations { background-image: url("img/refresh_black.png"); opacity: 0; }
+.shareteam { background-image: url("img/shareteam.png"); }
 .filter_w_selected { background-image: url("img/w_selected.png"); }
 .filter_m_selected { background-image: url("img/m_selected.png"); }
 .filter_w_gray { background-image: url("img/w_gray.png"); }
