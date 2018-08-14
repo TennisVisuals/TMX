@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.0.31.38.33.k',
+      version: '1.0.32.38.33',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -111,7 +111,7 @@ export const config = function() {
       players: { identify: true },
       points: { walkover_wins: ['F'] },
       tournaments: {
-         dual: true,
+         dual: false,
          team: false,
          league: false
       },
@@ -324,7 +324,11 @@ export const config = function() {
                      "U14": { ages: { from: 10, to: 14 }, },
                      "U16": { ages: { from: 12, to: 16 }, },
                      "U18": { ages: { from: 13, to: 18 }, },
-                     "S":   { ages: { from: 16, to: 100 }, }
+                     "Adult":  { ages: { from: 16, to: 100 }, },
+                     "All": { "ratings": { "type": "utr" } }
+                  }
+
+                     "All":   { rating, }
                   },
                   rankings: { "1": {}, "2": {}, "3": {}, "4": {}, "5": {}, "6": {}, "7": {}, "8": {} }
                }
