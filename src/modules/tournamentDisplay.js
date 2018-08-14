@@ -3997,12 +3997,76 @@ export const tournamentDisplay = function() {
             edit: state.edit
          });
 
-         details.category.ddlb = new dd.DropDown({ element: details.category.element, onChange: filterCategory });
+         details.category.ddlb = new dd.DropDown({ element: details.category.element, onChange: filterCategory, locked: true });
          details.category.ddlb.selectionBackground('white');
-         details.rank.ddlb = new dd.DropDown({ element: details.rank.element, onChange: setRank });
-         details.rank.ddlb.selectionBackground('white');
-         details.surface.ddlb = new dd.DropDown({ element: details.surface.element, onChange: setSurface });
-         details.surface.ddlb.selectionBackground('white');
+         if (e.category || tournament.category) {
+            let ctgy = e.category || tournament.category;
+            details.category.ddlb.setValue(ctgy, 'white');
+         }
+
+         details.rank.ddlb = new dd.DropDown({ element: details.rank.element, onChange: setRank, locked: true });
+         if (e.rank) {
+            details.rank.ddlb.setValue(e.rank, 'white');
+         } else {
+            details.rank.ddlb.selectionBackground('white');
+         }
+
+         details.surface.ddlb = new dd.DropDown({ element: details.surface.element, onChange: setSurface, locked: true });
+         let preset = e.surface || tournament.surface || 'C';
+         details.surface.ddlb.setValue(preset.toUpperCase()[0], 'white');
+
+         details.inout.ddlb = new dd.DropDown({ element: details.inout.element, onChange: setInOut, locked: true });
+         details.inout.ddlb.setValue(e.inout || tournament.inout || '', 'white');
+
+         if (!e.match_limits) e.matchlimits = {};
+
+         let range = util.range(1, 10);
+         let options = range.map(c => ({ key: c, value: c }));
+         details.singles_limit.ddlb = new dd.DropDown({ element: details.singles_limit.element, onChange: singlesLimit, locked: true });
+         details.singles_limit.ddlb.setOptions(options);
+         details.singles_limit.ddlb.setValue(e.matchlimits && e.matchlimits.singles || 6, 'white');
+         details.doubles_limit.ddlb = new dd.DropDown({ element: details.doubles_limit.element, onChange: doublesLimit, locked: true });
+         details.doubles_limit.ddlb.setOptions(options);
+         details.doubles_limit.ddlb.setValue(e.matchlimits && e.matchlimits.doubles || 3, 'white');
+
+         details.singles_scoring.element.addEventListener('click', () => changeScoring('singles'));
+         details.doubles_scoring.element.addEventListener('click', () => changeScoring('doubles'));
+
+         displayScoring('singles', e.scoring_format);
+         displayScoring('doubles', e.scoring_format);
+
+         function displayScoring(format, scoring_format) {
+            let sf = scoring_format && scoring_format[format];
+            let stb = sf && sf.final_set_supertiebreak ? '/S' : '';
+            let scoring = sf ? `${sf.max_sets}/${sf.games_for_set}/${sf.tiebreak_to}T${stb}` : format=='singles' ? '3/6/7T' : '3/6/7T/S';
+            details[`${format}_scoring`].element.innerHTML = scoring;
+         }
+
+         function changeScoring(format) {
+            if (state.edit) {
+               if (!e.scoring_format) e.scoring_format = {};
+               document.body.style.overflow  = 'hidden';
+               let cfg_obj = scoreBoard.scoreBoardConfig();
+               let sb_config = d3.select(cfg_obj.config.element);
+
+               let stg = Object.assign({}, fx.fx.env().scoreboard.settings, e.scoring_format[format]);
+               scoreBoard.configureScoring({ sobj: cfg_obj, stg });
+               sb_config.on('click', removeConfigScoring);
+               cfg_obj.cancel.element.addEventListener('click', removeConfigScoring)
+               cfg_obj.accept.element.addEventListener('click', () => tfx.modifyEventScoring({ cfg_obj, tournament, evt: e, callback: finish, format }))
+
+               function finish() {
+                  saveTournament(tournament);
+                  removeConfigScoring();
+               }
+
+               function removeConfigScoring() {
+                  displayScoring(format, e.scoring_format);
+                  sb_config.remove();
+                  document.body.style.overflow = null;
+               }
+            }
+         }
 
          function filterCategory(value) {
             if (e.category != value) { e.regenerate = 'filterCategory'; }
@@ -4010,16 +4074,42 @@ export const tournamentDisplay = function() {
             e.ratings = getCategoryRatings(e.category);
             eventName(e);
          }
+
          function setRank(value) {
             e.rank = value; 
             matchesTab();
             eventList(true);
             saveTournament(tournament);
          }
+
          function setSurface(value) {
             e.surface = value; 
             eventList(true);
             saveTournament(tournament);
+         }
+
+         function setInOut(value) {
+            e.inout = value; 
+            eventList(true);
+            saveTournament(tournament);
+         }
+
+         function singlesLimit(value) { matchLimits('singles', value); }
+         function doublesLimit(value) { matchLimits('doubles', value); }
+         function matchLimits(format, value) {
+            if (!e.matchlimits) e.matchlimits = {}
+            e.matchlimits[format] = value;
+            eventList(true);
+            saveTournament(tournament);
+         }
+
+         if (state.edit || !e.active) {
+            details.category.ddlb.unlock();
+            details.surface.ddlb.unlock();
+            details.inout.ddlb.unlock();
+            details.rank.ddlb.unlock();
+            details.singles_limit.ddlb.unlock();
+            details.doubles_limit.ddlb.unlock();
          }
       }
 
@@ -4186,42 +4276,15 @@ export const tournamentDisplay = function() {
                let cfg_obj = scoreBoard.scoreBoardConfig();
                let sb_config = d3.select(cfg_obj.config.element);
 
-               let stg = Object.assign({}, e.score_format, fx.fx.env().scoreboard.settings);
+               let stg = Object.assign({}, fx.fx.env().scoreboard.settings, e.score_format);
                scoreBoard.configureScoring({ sobj: cfg_obj, stg });
                sb_config.on('click', removeConfigScoring);
                cfg_obj.cancel.element.addEventListener('click', removeConfigScoring)
-               cfg_obj.accept.element.addEventListener('click', modifyEventScoring)
+               cfg_obj.accept.element.addEventListener('click', () => tfx.modifyEventScoring({ cfg_obj, tournament, evt: e, callback: finish }))
 
-               function modifyEventScoring() {
-                  let max_sets = parseInt(cfg_obj.bestof.ddlb.getValue());
-                  let sets_to_win = Math.ceil(max_sets/2);
-                  let sf = {
-                     max_sets,
-                     sets_to_win,
-                     games_for_set: parseInt(cfg_obj.setsto.ddlb.getValue()),
-                     tiebreaks_at: parseInt(cfg_obj.tiebreaksat.ddlb.getValue()),
-                     tiebreak_to: parseInt(cfg_obj.tiebreaksto.ddlb.getValue()),
-                     supertiebreak_to: parseInt(cfg_obj.supertiebreakto.ddlb.getValue()),
-                     final_set_supertiebreak: cfg_obj.finalset.ddlb.getValue() == 'N' ? false : true,
-                  }
-                  e.score_format = sf;
-                  modifyUnscoredMatches(sf);
-                  let stb = sf.final_set_supertiebreak ? '/S' : '';
-                  e.scoring = `${sf.max_sets}/${sf.games_for_set}/${sf.tiebreak_to}T${stb}`;
-                  removeConfigScoring();
+               function finish() {
                   saveTournament(tournament);
-               }
-
-               function modifyUnscoredMatches(sf) {
-                  let info = e.draw && dfx.drawInfo(e.draw);
-                  if (info && info.match_nodes) {
-                     // update scoring format for unfinished matches
-                     info.match_nodes.forEach(node => modify(node.data.match));
-                  } else if (info && info.matches) {
-                     // update scoring format for unfinished RR matches
-                     info.matches.forEach(modify);
-                  }
-                  function modify(match) { if (!match.winner) { match.score_format = sf; } }
+                  removeConfigScoring();
                }
 
                function removeConfigScoring() {
@@ -8805,7 +8868,7 @@ export const tournamentDisplay = function() {
 
    function eventTemplate(presets) {
       let score_format = fx.fx.env().scoreboard.settings;
-      let stb = score_format.final_set_supertiebreak ? '/S' : '';
+      let stb = score_format && score_format.final_set_supertiebreak ? '/S' : '';
       let scoring = `${score_format.max_sets}/${score_format.games_for_set}/${score_format.tiebreak_to}T${stb}`;
 
       let template = {
@@ -9601,6 +9664,44 @@ export const tournamentDisplay = function() {
       // return !tournament.ouid || (tournament.ouid && tournament.ouid == ouid);
       return (!tournament.org || !tournament.org.ouid) || (tournament.org.ouid && tournament.org.ouid == ouid);
    }
+
+   /*
+   function modifyEventScoring({ cfg_obj, tournament, evt, callback, format }) {
+      let max_sets = parseInt(cfg_obj.bestof.ddlb.getValue());
+      let sets_to_win = Math.ceil(max_sets/2);
+      let sf = {
+         max_sets,
+         sets_to_win,
+         games_for_set: parseInt(cfg_obj.setsto.ddlb.getValue()),
+         tiebreaks_at: parseInt(cfg_obj.tiebreaksat.ddlb.getValue()),
+         tiebreak_to: parseInt(cfg_obj.tiebreaksto.ddlb.getValue()),
+         supertiebreak_to: parseInt(cfg_obj.supertiebreakto.ddlb.getValue()),
+         final_set_supertiebreak: cfg_obj.finalset.ddlb.getValue() == 'N' ? false : true,
+      }
+      if (format) {
+         evt.scoring_format[format] = sf;
+      } else {
+         evt.score_format = sf;
+      }
+      modifyUnscoredMatches(sf);
+      let stb = sf.final_set_supertiebreak ? '/S' : '';
+      evt.scoring = `${sf.max_sets}/${sf.games_for_set}/${sf.tiebreak_to}T${stb}`;
+      if (typeof callback == 'function') callback();
+
+      // TODO: once draw contains matches modify unscored depending on format
+      function modifyUnscoredMatches(sf) {
+         let info = evt.draw && dfx.drawInfo(evt.draw);
+         if (info && info.match_nodes) {
+            // update scoring format for unfinished matches
+            info.match_nodes.forEach(node => modify(node.data.match));
+         } else if (info && info.matches) {
+            // update scoring format for unfinished RR matches
+            info.matches.forEach(modify);
+         }
+         function modify(match) { if (!match.winner) { match.score_format = sf; } }
+      }
+   }
+   */
 
    function legacyTournament(tournament, container) {
 
