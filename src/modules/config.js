@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.0.21.24.25',
+      version: '1.0.31.35.32.j',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -100,7 +100,7 @@ export const config = function() {
       locations: {
          geolocate: true,
          map: undefined,
-         map_provider: undefined, // 'google' or 'leaflet'
+         map_provider: 'leaflet', // 'google' or 'leaflet'
       },
       calendar: {
          start: undefined,
@@ -111,7 +111,7 @@ export const config = function() {
       players: { identify: true },
       points: { walkover_wins: ['F'] },
       tournaments: {
-         dual: false,
+         dual: true,
          team: false,
          league: false
       },
@@ -185,6 +185,7 @@ export const config = function() {
          tree_draw: {
             flags: { display: true },
             schedule: {
+               times: false,
                dates: false,
                courts: false,
                after: false
@@ -247,7 +248,7 @@ export const config = function() {
    fx.env = () => env;
 
    fx.setCalendar = (obj) => Object.keys(obj).forEach(key => { if (Object.keys(env.calendar).indexOf(key) >= 0) env.calendar[key] = obj[key]; });
-   fx.setMap = (map) => env.map = map;
+   fx.setMap = (map) => env.locations.map = map;
    fx.addMessage = (msg) => {
       msg.notice = msg.notice || msg.tournament;
       if (msg.title.indexOf('unofficial') >= 0 && env.org.abbr) {
@@ -554,6 +555,10 @@ export const config = function() {
                }
             }
 
+            container.match_time.element.addEventListener('click', displayMatchTime);
+            container.match_time.element.checked = util.string2boolean(env.draws.tree_draw.schedule.times);
+            function displayMatchTime(evt) { env.draws.tree_draw.schedule.times = container.match_time.element.checked; }
+
             container.match_date.element.addEventListener('click', displayMatchDates);
             container.match_date.element.checked = util.string2boolean(env.draws.tree_draw.schedule.dates);
             function displayMatchDates(evt) { env.draws.tree_draw.schedule.dates = container.match_date.element.checked; }
@@ -813,6 +818,7 @@ export const config = function() {
    }
 
    function initDB() {
+      db.addDev({fetchFx});
       db.initDB().then(checkQueryString, dbUpgrade).then(envSettings).then(DBReady);
       function dbUpgrade() { displayGen.showConfigModal('<h2>Database Upgraded</h2><div style="margin: 1em;">Please refresh your cache or load tmx+</div>'); }
 
@@ -1131,7 +1137,7 @@ export const config = function() {
    fx.init = () => {
       displayGen.initModals();
       let supported_device = true;
-      if (device.isIpad && window.location.host == 'hiveeye.net') {
+      if (device.isIpad && (window.location.host == 'hiveeye.net' || window.location.hostname == 'localhost')) {
          console.log('mobile device allowed');
       } else if (device.isMobile || device.isIDevice) {
          supported_device = false;
