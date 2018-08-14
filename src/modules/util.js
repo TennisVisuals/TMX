@@ -54,6 +54,14 @@ export const util = function() {
             
    }
 
+   util.ymd2date = ymd2date;
+   function ymd2date(ymd) {
+      let parts = ymd.split('-');
+      if (!parts || parts.length != 3) return new Date(ymd);
+      if (isNaN(parseInt(parts[1]))) return new Date(ymd);
+      return new Date(parts[0], parseInt(parts[1]) - 1, parts[2]);
+   }
+
    util.formatDate = formatDate;
    function formatDate(date, separator = '-', format='YMD') {
       if (!date) return '';
