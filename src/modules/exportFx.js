@@ -386,7 +386,7 @@ export const exportFx = function() {
    }
 
    function potentialBlock(p) { 
-      return p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? lang.tr('qualifier') : '';
+      return p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? lang.tr('qualifier') : lang.tr('unk');
    }
 
    function scheduleCell(match, lines=false) {
@@ -455,7 +455,7 @@ export const exportFx = function() {
          unknowns.push(pindex);
          let index = match.potentials[pindex] ? pindex : 0;
          let potentials = match.potentials[index];
-         if (!potentials) return '';
+         if (!potentials || potentials.filter(f=>f).length < 2) return lang.tr('unk');
          return potentials.map(p=>p.map(potentialBlock).join('/')).join(` ${lang.tr('or')} `);
       }
 
@@ -788,7 +788,7 @@ export const exportFx = function() {
    }
 
    function drawSheetPageHeader(tournament, logo, type, selected_event, event, info) {
-      var evt = event || (tournament.events && tournament.events[selected_event]) || { name: 'Unknown' };
+      var evt = event || (tournament.events && tournament.events[selected_event]) || { name: lang.tr('unk') };
 
       var event_type = tournamentFx.genEventName(evt).type;
       var tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
@@ -877,8 +877,9 @@ export const exportFx = function() {
 
       let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
-      let weekday = localizeDate(new Date(day), { weekday: 'long' });
-      let numeric_date = localizeDate(new Date(day), { year: 'numeric', month: 'numeric', day: 'numeric' });
+      let daysdate = util.ymd2date(day);
+      let weekday = localizeDate(daysdate, { weekday: 'long' });
+      let numeric_date = localizeDate(daysdate, { year: 'numeric', month: 'numeric', day: 'numeric' });
       let start_date = localizeDate(new Date(tournament.start), { year: 'numeric', month: 'numeric', day: 'numeric' });
 
       // let organizers = tournament.organizers && tournament.organizers != tournament.name ? tournament.organizers : '';
