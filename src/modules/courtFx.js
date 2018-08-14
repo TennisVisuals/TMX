@@ -3,7 +3,7 @@ import { util } from './util';
 export const courtFx = function() {
    let fx = {};
 
-   fx.courtData = (tournament, luid) => {
+   fx.courtData = (tournament, luid, max_matches_per_court=14) => {
       let courts = [];
       tournament.locations.forEach(l => {
          let identifiers = l.identifiers ? l.identifiers.split(',').join(' ').split(' ').filter(f=>f) : [];
@@ -13,7 +13,7 @@ export const courtFx = function() {
                let court = { 
                   luid: l.luid,
                   name: `${l.abbreviation} ${identifier}`,
-                  availability: [1,2,3,4,5,6,7,8,9,10],
+                  availability: util.range(1, max_matches_per_court + 1),
                   index
                };
                courts.push(court);
