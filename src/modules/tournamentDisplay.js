@@ -187,7 +187,7 @@ export const tournamentDisplay = function() {
       }
       calendar_container.category.ddlb = new dd.DropDown({ element: calendar_container.category.element, onChange: genCal });
       calendar_container.category.ddlb.selectionBackground('white');
-      category = staging.legacyCategory(category);
+      category = staging.legacyCategory(category, true);
 
       calendar_container.add.element.addEventListener('click', (evt) => {
          if (evt.ctrlKey || evt.shiftKey) return fetchFx.fetchTournament();
@@ -3996,6 +3996,31 @@ export const tournamentDisplay = function() {
             draw_types: availableDrawTypes(e),
             edit: state.edit
          });
+
+         details.category.ddlb = new dd.DropDown({ element: details.category.element, onChange: filterCategory });
+         details.category.ddlb.selectionBackground('white');
+         details.rank.ddlb = new dd.DropDown({ element: details.rank.element, onChange: setRank });
+         details.rank.ddlb.selectionBackground('white');
+         details.surface.ddlb = new dd.DropDown({ element: details.surface.element, onChange: setSurface });
+         details.surface.ddlb.selectionBackground('white');
+
+         function filterCategory(value) {
+            if (e.category != value) { e.regenerate = 'filterCategory'; }
+            e.category = value;
+            e.ratings = getCategoryRatings(e.category);
+            eventName(e);
+         }
+         function setRank(value) {
+            e.rank = value; 
+            matchesTab();
+            eventList(true);
+            saveTournament(tournament);
+         }
+         function setSurface(value) {
+            e.surface = value; 
+            eventList(true);
+            saveTournament(tournament);
+         }
       }
 
       function configureTeamEventSelections(e) {
