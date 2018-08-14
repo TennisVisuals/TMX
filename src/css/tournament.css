@@ -394,8 +394,10 @@
    justify-content: flex-start;
    -webkit-align-content: center;
    align-content: center;
+   /*   
    -webkit-align-items: center;
    align-items: center;
+   */
 }
 
 .location_attribute {
@@ -466,6 +468,10 @@
    width: 3em;
    text-align: center;
    font-size: .8em;
+}
+
+.teams_tab .bottomborder {
+   border-bottom: 1px solid lightGrey;
 }
 
 .teams_tab .team_header { 
