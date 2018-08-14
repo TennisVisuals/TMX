@@ -282,7 +282,7 @@ export const scheduleFx = function() {
       let format = lang.tr(`formats.${match.format || ''}`);
 
       let score = match.score || '';
-      let reverse_scores = fx.fx.env && fx.fx.env().schedule && !fx.fx.env().schedule.scores_in_draw_order;
+      let reverse_scores = (options && !options.scores_in_draw_order) || (fx.fx.env && fx.fx.env().schedule && !fx.fx.env().schedule.scores_in_draw_order);
       if (score && winner_index && reverse_scores) score = dfx.reverseScore(score);
 
       let match_status = match.status ? `<div class='match_status'>${match.status}</div>` : '&nbsp;';
