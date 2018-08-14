@@ -3256,46 +3256,60 @@ export const displayGen = function() {
 
    gen.displayDualMatchDetails = ({ tournament, container, e, genders, inout, surfaces, formats, draw_types, edit }) => {
       let ids = {
-         eligible: displayFx.uuid(),
-         gender: displayFx.uuid(),
          category: displayFx.uuid(),
          rank: displayFx.uuid(),
-         format: displayFx.uuid(),
-         scoring: displayFx.uuid(),
+         singles_scoring: displayFx.uuid(),
+         doubles_scoring: displayFx.uuid(),
          surface: displayFx.uuid(),
          inout: displayFx.uuid(),
-         draw_type: displayFx.uuid(),
-         approved_count: displayFx.uuid(),
-         eligible_count: displayFx.uuid(),
+         singles_limit: displayFx.uuid(),
+         doubles_limit: displayFx.uuid(),
       }
       let detail_fields = `
             <div class='column'>
-               <div class='entry_label' style='text-align: right'>${lang.tr('gdr')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('cat')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('events.rank')}</div>
-               <div class='entry_label' style='text-align: right'>${lang.tr('fmt')}</div>
-               <div class='entry_label' style='text-align: right'>${lang.tr('scoring')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('events.surface')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('inout')}</div>
-               <div class='entry_label' style='text-align: right'>${lang.tr('dtp')}</div>
+               <div class='entry_label' style='text-align: right'><b>${lang.tr('emts')}:</b></div>
+               <div class='entry_label' style='text-align: right'>${lang.tr('sgl')}</div>
+               <div class='entry_label' style='text-align: right'>${lang.tr('dbl')}</div>
+               <div class='entry_label' style='text-align: right'><b>${lang.tr('scoring')}:</b></div>
+               <div class='entry_label' style='text-align: right'>${lang.tr('sgl')}</div>
+               <div class='entry_label' style='text-align: right'>${lang.tr('dbl')}</div>
             </div>
             <div class='column'>
-               <div class='entry_field' id='${ids.gender}'></div>
                <div class='entry_field' id='${ids.category}'></div>
                <div class='entry_field' id='${ids.rank}'></div>
-               <div class='entry_field' id='${ids.format}'></div>
+               <div class='entry_field' id='${ids.surface}'></div>
+               <div class='entry_field' id='${ids.inout}'></div>
+               <div class='entry_field'></div>
+               <div class='entry_field' id='${ids.singles_limit}'></div>
+               <div class='entry_field' id='${ids.doubles_limit}'></div>
+               <div class='entry_field'></div>
                <div class='entry_field dd'>
                   <div class='label'></div>
                   <div class='options' style='border: 1px solid #000'>
-                     <div class='scoringformat' id='${ids.scoring}'></div>
+                     <div class='scoringformat' id='${ids.singles_scoring}'></div>
                   </div>
                </div>
-               <div class='entry_field' id='${ids.surface}'></div>
-               <div class='entry_field' id='${ids.inout}'></div>
-               <div class='entry_field' id='${ids.draw_type}'></div>
+               <div class='entry_field dd'>
+                  <div class='label'></div>
+                  <div class='options' style='border: 1px solid #000'>
+                     <div class='scoringformat' id='${ids.doubles_scoring}'></div>
+                  </div>
+               </div>
             </div>
       `;
       container.detail_fields.element.innerHTML = detail_fields;
+      gen.setEventName(container, e);
+
+      dd.attachDropDown({ id: ids.category,  options: getCategories(tournament) });
+      dd.attachDropDown({ id: ids.rank,  options: getRanks(tournament) });
+      dd.attachDropDown({ id: ids.surface,  options: surfaces });
+      dd.attachDropDown({ id: ids.inout,  options: inout });
+      dd.attachDropDown({ id: ids.singles_limit });
+      dd.attachDropDown({ id: ids.doubles_limit });
       return displayFx.idObj(ids);
    }
 
@@ -3340,7 +3354,7 @@ export const displayGen = function() {
                <div class='entry_field' id='${ids.draw_type}'></div>
             </div>
       `;
-      d3.select(container.detail_fields.element).html(detail_fields);
+      container.detail_fields.element.innerHTML = detail_fields;
 
       let removeall = !edit ? '' : `<div class='removeall ${gen.infoleft}' label='${lang.tr("tournaments.removeall")}'>-</div>`;
       let addall = !edit ? '' : `<div class='addall ${gen.infoleft}' label='${lang.tr("tournaments.addall")}'>+</div>`;
@@ -3367,7 +3381,7 @@ export const displayGen = function() {
          </div>
          <div grouping='eligible' class='eligible_players player_container'></div>
       `;
-      d3.select(container.detail_players.element).html(detail_players);
+      container.detail_players.element.innerHTML = detail_players;
 
       gen.setEventName(container, e);
 
