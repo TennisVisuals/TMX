@@ -11,6 +11,7 @@ export const fetchFx = function() {
    let fx = {
       update: undefined,  // used to store received messages
    }
+   let bearer_token = 'c611a05e-019e-4594-9578-e7a602125112';
 
    // AJAX REQUESTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -44,7 +45,13 @@ export const fetchFx = function() {
 
    function fetchJSON(url) {
       return new Promise((resolve, reject) => {
-            let request_object = { url: url };
+            let request_object = {
+               url: url,
+               headers: {
+                  "Authorization": "Bearer " + bearer_token, 
+                  "Accept": "application/json"
+               }
+            };
             let request = JSON.stringify(request_object);
 
             function responseHandler(result) {
@@ -191,7 +198,13 @@ export const fetchFx = function() {
                return reject('No Parameters. ' +  lang.tr('phrases.notconfigured'));
             }
 
-            let request_object = { [params.type]: params.url };
+            let request_object = {
+               [params.type]: params.url,
+               headers: {
+                  "Authorization": "Bearer " + bearer_token, 
+                  "Accept": "application/json"
+               }
+            };
             let request = JSON.stringify(request_object);
 
             function responseHandler(result) {
@@ -221,9 +234,21 @@ export const fetchFx = function() {
             let max_id = Math.max(0, ...clbz.map(c=>!isNaN(+c.id) ? +c.id : 0));
 
             // 'fetchNewClubs'
-            // let request_object = { [params.type]: params.url + max_id };
+            // let request_object = {
+            //     [params.type]: params.url + max_id
+            //      headers: {
+            //         "Authorization": "Bearer " + bearer_token, 
+            //         "Accept": "application/json"
+            //      }
+            // };
 
-            let request_object = { [params.type]: params.url };
+            let request_object = {
+               [params.type]: params.url,
+               headers: {
+                  "Authorization": "Bearer " + bearer_token, 
+                  "Accept": "application/json"
+               }
+            };
             let request = JSON.stringify(request_object);
 
             function responseHandler(result) {
@@ -255,7 +280,13 @@ export const fetchFx = function() {
             let tids = trnys.filter(t=>t.sid && t.sid == config.env().org.abbr).map(t=>t.tuid.replace(t.sid, ''));
             let max_id = (!merge && Math.max(...tids, 0)) || 0;
 
-            let request_object = { [params.type]: params.url + max_id };
+            let request_object = {
+               [params.type]: params.url + max_id,
+               headers: {
+                  "Authorization": "Bearer " + bearer_token, 
+                  "Accept": "application/json"
+               }
+            };
             let request = JSON.stringify(request_object);
             function responseHandler(result) {
                if (result.json) {
@@ -299,7 +330,13 @@ export const fetchFx = function() {
             let increment_url = params.increment == 'false' ? false : true;
             let request_url = params.url;
             if (increment_url) request_url += max_id;
-            let request_object = { [params.type]: request_url };
+            let request_object = {
+               [params.type]: request_url,
+               headers: {
+                  "Authorization": "Bearer " + bearer_token, 
+                  "Accept": "application/json"
+               }
+            };
             let request = JSON.stringify(request_object);
             function responseHandler(result) {
                if (result.json) {
@@ -419,7 +456,13 @@ export const fetchFx = function() {
             // Legacy to avoid call when no list is available
             if (config.env().org.abbr == 'HTS' && category == '10') return reject();
             
-            let request_object = { [params.type]: params.url + category };
+            let request_object = {
+               [params.type]: params.url + category,
+               headers: {
+                  "Authorization": "Bearer " + bearer_token, 
+                  "Accept": "application/json"
+               }
+            };
             let request = JSON.stringify(request_object);
             function responseHandler(data) {
                if (data && data.json && Array.isArray(data.json)) {
@@ -493,7 +536,13 @@ export const fetchFx = function() {
          }
 
          function remoteRequest(params) {
-            let request_object = { [params.type]: params.url + id };
+            let request_object = {
+               [params.type]: params.url + id,
+               headers: {
+                  "Authorization": "Bearer " + bearer_token, 
+                  "Accept": "application/json"
+               }
+            };
             let request = JSON.stringify(request_object);
 
             function responseHandler(result) {
