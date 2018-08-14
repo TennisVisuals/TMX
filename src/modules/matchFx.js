@@ -288,7 +288,8 @@ export const matchFx = function() {
       } else if (e.draw.brackets) {
          e.draw.brackets.forEach(bracket => bracket.matches.forEach(match => { if (!match.muid) match.muid = UUID.new(); }));
       } else {
-         dfx.drawInfo(current_draw).nodes.forEach(addMUID);
+         let info = dfx.drawInfo(current_draw);
+         if (info && info.nodes) info.nodes.forEach(addMUID);
       }
 
       function addMUID(node) {
