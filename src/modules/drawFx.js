@@ -871,6 +871,7 @@ export function treeDraw() {
       },
 
       schedule: {
+         times: true,
          dates: true,
          after: true,
          courts: true
@@ -1461,7 +1462,7 @@ export function treeDraw() {
          let schedule = d.data.match.schedule;
          if (schedule) {
 
-            let time_string = [(schedule.time && schedule.time_prefix) || '', schedule.time || ''].join(' ');
+            let time_string = !o.schedule.times ? '' : [(schedule.time && schedule.time_prefix) || '', schedule.time || ''].join(' ');
             let schedule_after = o.schedule.after && schedule.after ? `~${schedule.after}` : '';
             let court_info = !o.schedule.courts ? '' : [schedule.court || '', schedule_after].join(' ');
             return [time_string || '', court_info || ''].join(' ');
@@ -1478,10 +1479,17 @@ export function treeDraw() {
          if (!d.data.match || d.data.match.score || (o.umpires.display && d.data.match.umpire)) return;
          let schedule = d.data.match.schedule;
          if (o.schedule.dates && schedule && schedule.day) {
-            let weekday = new Date(schedule.day).getDay();
+            let weekday = ymd2date(schedule.day).getDay();
             let day_abbr = o.matchdates.day_abbrs[weekday].toUpperCase();
             return `${day_abbr} ${schedule.day}`;
          }
+      }
+
+      function ymd2date(ymd) {
+         let parts = ymd.split('-');
+         if (!parts || parts.length != 3) return new Date(ymd);
+         if (isNaN(parseInt(parts[1]))) return new Date(ymd);
+         return new Date(parts[0], parseInt(parts[1]) - 1, parts[2]);
       }
 
       function nameSize(d) {
@@ -1613,7 +1621,10 @@ export function treeDraw() {
 
       function clubCode(d, which=0) {
          if (d.height || !d.data.team || !d.data.team[which] || d.data.feed) return '';
-         if (!d.data.team[which].club_code || d.data.team[which].club_code.length > 3) return '';
+         if (!d.data.team[which].club_code || d.data.team[which].club_code.length > 3) {
+            if (!o.flags.display && d.data.team[which].ioc) return d.data.team[which].ioc;
+            return '';
+         }
          // reverse the display order of players if doubles
          if (d.data.team.length == 2) which = 1 - which;
          return d.data.team[which].club_code;
@@ -3319,20 +3330,6 @@ export function drawFx(opts) {
       let teams = node.data.children.map(m=>m.team).filter(f=>f);
       return (teams.length == 2) ? teams : false;
    }
-
-   /*
-   fx.upcomingFeedNode = upcomingFeedNode;
-   function upcomingFeedNode(node) {
-      if (!node || !node.data || !node.data.children) return false;
-      let feed_arms = node.data.children.map(m=>m.feed).filter(f=>f);
-      let teams = node.data.children.map(m=>m.team).filter(f=>f);
-      let matchnodes = node.children.map(matchNode).filter(f=>f);
-      return (feed_arms.length == 1 && teams.length == 1 && matchnodes.length == 0) ? true : false;
-   }
-
-   fx.upcomingFeedNodes = upcomingFeedNodes;
-   function upcomingFeedNodes(nodes) { return nodes.filter(upcomingFeedNode); }
-   */
 
    fx.feedNode = feedNode;
    function feedNode(node) {
