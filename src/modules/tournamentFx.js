@@ -671,6 +671,41 @@ export const tournamentFx = function() {
       return approved_players;
    }
 
+   fx.modifyEventScoring = ({ cfg_obj, tournament, evt, callback, format }) => {
+      let max_sets = parseInt(cfg_obj.bestof.ddlb.getValue());
+      let sets_to_win = Math.ceil(max_sets/2);
+      let sf = {
+         max_sets,
+         sets_to_win,
+         games_for_set: parseInt(cfg_obj.setsto.ddlb.getValue()),
+         tiebreaks_at: parseInt(cfg_obj.tiebreaksat.ddlb.getValue()),
+         tiebreak_to: parseInt(cfg_obj.tiebreaksto.ddlb.getValue()),
+         supertiebreak_to: parseInt(cfg_obj.supertiebreakto.ddlb.getValue()),
+         final_set_supertiebreak: cfg_obj.finalset.ddlb.getValue() == 'N' ? false : true,
+      }
+      if (format) {
+         evt.scoring_format[format] = sf;
+      } else {
+         evt.score_format = sf;
+      }
+      modifyUnscoredMatches(sf);
+      let stb = sf.final_set_supertiebreak ? '/S' : '';
+      evt.scoring = `${sf.max_sets}/${sf.games_for_set}/${sf.tiebreak_to}T${stb}`;
+      if (typeof callback == 'function') callback();
+
+      // TODO: once draw contains matches modify unscored depending on format
+      function modifyUnscoredMatches(sf) {
+         let info = evt.draw && dfx.drawInfo(evt.draw);
+         if (info && info.match_nodes) {
+            // update scoring format for unfinished matches
+            info.match_nodes.forEach(node => modify(node.data.match));
+         } else if (info && info.matches) {
+            // update scoring format for unfinished RR matches
+            info.matches.forEach(modify);
+         }
+         function modify(match) { if (!match.winner) { match.score_format = sf; } }
+      }
+   }
    fx.setDrawSize = (tournament, e) => {
       if (e.active) return;
       let drawTypes = {
