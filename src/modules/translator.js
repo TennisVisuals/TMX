@@ -218,6 +218,7 @@ export const lang = function() {
          separate_by_club: 'Auto Separate Players by Club',
          fixedbyes: 'Fixed Bye Order',
          courtdetail: 'Court Details',
+         matchtimes: 'Match Times',
          matchdates: 'Match Dates',
          firstday: 'Week Starts Monday',
          draworderscores: 'Scores in Draw Order',
@@ -273,6 +274,7 @@ export const lang = function() {
          bracketsize: 'Bracket Size',
          roundrobin: 'Round Robin',
          elimination: 'Elimination',
+         dualmatches: 'Dual Matches',
          consolation: 'Consolation',
          qualification: 'Qualification',
          preround: 'Pre-Round',
@@ -324,6 +326,7 @@ export const lang = function() {
 
       teams: {
          name: 'Name',
+         share: 'Share Team',
          rankings: 'Team Rankings',
          members: 'Members',
          matches: 'Matches',
@@ -374,6 +377,7 @@ export const lang = function() {
       },
 
       phrases: {
+         matches2clear: 'Matches to be cleared from the schedule',
          changeapproved: 'Changing Approved will reset the draw and clear the schedule.',
          qualincomplete: 'Qualifying Draw is Incomplete',
          delegate: 'Delegate',
@@ -448,6 +452,7 @@ export const lang = function() {
       events: {
          name: 'Name',
          newevent: 'New Event',
+         teamevent: 'Team Event',
          opponents: 'Opponents',
          teams: 'Teams',
          draw_type: 'Draw Type',
@@ -534,6 +539,7 @@ export const lang = function() {
       },
 
       schedule: {
+         startrow: 'Start Row',
          allevents: 'All Events',
          allrounds: 'All Rounds',
          allcourts: 'All Courts',
@@ -560,7 +566,8 @@ export const lang = function() {
          vs: 'vs.',
          umpirenotes: 'Umpire Notes (PDF Footer)',
          notice: 'Schedule Notice (PDF Header)',
-         opponentname: 'Opponent Name'
+         opponentname: 'Opponent Name',
+         scheduled: 'Scheduled'
       },
       
       refresh: {
