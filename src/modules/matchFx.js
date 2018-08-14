@@ -243,8 +243,11 @@ export const matchFx = function() {
       addMUIDs(e);
 
       let court_names = {};
+      let max_matches_per_court = 14; // TODO: this setting is in config.env()
       if (!tournament.locations) tournament.locations = [];
-      tournament.locations.map(l=>l.luid).forEach(luid => courtFx.courtData(tournament, luid).forEach(ct => court_names[courtFx.ctuuid(ct)] = ct.name));
+      tournament.locations
+         .map(l=>l.luid)
+         .forEach(luid => courtFx.courtData(tournament, luid, max_matches_per_court).forEach(ct => court_names[courtFx.ctuuid(ct)] = ct.name));
 
       matches.forEach(match => {
          let schedule = match.match && match.match.schedule;
@@ -270,26 +273,30 @@ export const matchFx = function() {
       return losing_players;
    }
 
+   fx.addMUIDs = addMUIDs;
    function addMUIDs(e) {
       if (!e.draw) return;
       let current_draw = e.draw.compass ? e.draw[e.draw.compass] : e.draw;
       if (!current_draw) return;
       if (e.draw.compass && !current_draw.matches) current_draw.matches = {};
 
-      if (e.draw.brackets) {
-         e.draw.brackets.forEach(bracket => bracket.matches.forEach(match => {
-            if (!match.muid) match.muid = UUID.new();
-         }));
-      } else {
+      if (e.draw.compass) {
+         dfx.compassInfo(e.draw).all_matches.forEach(addMUID); 
          dfx.drawInfo(current_draw).nodes.forEach(node => { 
-            if (node.children && !dfx.byeTeams(node)) {
-               if (!node.data.match) node.data.match = {};
-               if (!node.data.match.muid) node.data.match.muid = UUID.new();
-               if (!node.data.match.euid) node.data.match.euid = e.euid;
-               // TODO: future match information should live in matches object
-               if (e.draw.compass) current_draw.matches[node.data.match.muid] = true;
-            }
+            if (node.data && node.data.match && node.data.match.muid) current_draw.matches[node.data.match.muid] = true;
          });
+      } else if (e.draw.brackets) {
+         e.draw.brackets.forEach(bracket => bracket.matches.forEach(match => { if (!match.muid) match.muid = UUID.new(); }));
+      } else {
+         dfx.drawInfo(current_draw).nodes.forEach(addMUID);
+      }
+
+      function addMUID(node) {
+         if (node.children && !dfx.byeNode(node)) {
+            if (!node.data.match) node.data.match = {};
+            if (!node.data.match.muid) node.data.match.muid = UUID.new();
+            if (!node.data.match.euid) node.data.match.euid = e.euid;
+         }
       }
    }
 
