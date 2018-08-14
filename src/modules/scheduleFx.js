@@ -336,7 +336,7 @@ export const scheduleFx = function() {
       }
 
       function potentialBlock(p) {
-         let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? lang.tr('qualifier') : '';
+         let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? lang.tr('qualifier') : lang.tr('unk');
          return `<div puid='${p.puid}' class='player_click cell_player potential'>${last_name}</div>`;
       }
 
@@ -344,14 +344,14 @@ export const scheduleFx = function() {
          if (!match.potentials) return '';
          let index = match.potentials[pindex] ? pindex : 0;
          let potentials = match.potentials[index];
-         if (!potentials || potentials.filter(f=>f).length == 0) return unknown();
+         if (!potentials || potentials.filter(f=>f).length < 2) return unknown();
          let blocks = potentials
             .map(p=>stack(!p ? [unknown()] : p.map(potentialBlock)))
             .join(`<div class='potential_separator flexcenter'><span>${lang.tr('or')}</span></div>`);
          return `<div class='flexrow'>${blocks}</div>`;
 
          function stack(potential_team) { return `<div class='flexcol'>${potential_team.join('')}</div>`; }
-         function unknown() { return `<div class='potential'>Unknown</div>`; }
+         function unknown() { return `<div class='potential'>${lang.tr('unk')}</div>`; }
       }
    }
 
@@ -437,7 +437,11 @@ export const scheduleFx = function() {
 
       var om_muids = ordered_matches.map(o=>o.muid);
       var upcoming_unscheduled = group_muids.filter(m=>om_muids.indexOf(m) < 0);
+
+      // upcoming unscheduled *should* be sorted by round name and not scheduled by order
       var uu_matches = upcoming_unscheduled.map(muid => muid_lookup[muid]);
+      uu_matches.sort((a, b) => priority.indexOf(b.round_name) - priority.indexOf(a.round_name));
+
       var to_be_scheduled = ordered_matches.concat(...uu_matches);
 
       return to_be_scheduled;
