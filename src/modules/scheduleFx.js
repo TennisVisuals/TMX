@@ -244,7 +244,7 @@ export const scheduleFx = function() {
       let conflict = match.scheduling == 'conflict';
       let timepressure = match.scheduling == 'timepressure';
       let statuscolor = conflict ? 'conflict' : abandoned ? 'abandoned' : timepressure ? 'warning' : inprogress ? 'inprogress' : complete ? 'complete' : 'neutral';
-      let droptarget = `ondragover="event.preventDefault();"`;
+      let droptarget = court ? `ondragover="event.preventDefault();"` : '';
       let dragdrop = ' dragdrop';
       let draggable = editable && !offgrid && !empty ? ` draggable="true"` : '';
       let content = offgrid ? '' : !empty ? scheduledMatchHTML(match, options) : fx.emptyOOPround(editable);
