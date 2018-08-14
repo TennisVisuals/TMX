@@ -1169,7 +1169,7 @@ export const displayGen = function() {
          </div>
       `;
       
-      gen.showModal(html, false);
+      gen.showModal(html, true);
 
       Object.assign(ids, submit.ids, existing.ids);
       let id_obj = displayFx.idObj(ids);
