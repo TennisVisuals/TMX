@@ -2442,7 +2442,7 @@ export const tournamentDisplay = function() {
             let team_uuid = container.team_details.element && container.team_details.element.getAttribute('uuid');
             team = tfx.findTeamByID(tournament, team_uuid);
          }
-         if (!state.edit || !team || searchBox.irregular_search_list == 'enableTeamPlayer') return;
+         if (!tournament.players || !state.edit || !team || searchBox.irregular_search_list == 'enableTeamPlayer') return;
 
          let all_team_player_puids = !tournament.teams || !tournament.teams.length ? [] :
             [].concat(...tournament.teams.map(t=>t && t.players && Object.keys(t.players))).filter(f=>f);
@@ -2619,8 +2619,17 @@ export const tournamentDisplay = function() {
 
                let event_matches = mfx.eventMatches(e, tournament);
                let scheduled = event_matches.filter(m=>m.match && m.match.schedule && m.match.schedule.court).length;
-
                let draw_type_name = tfx.isPreRound({ env: fx.fx.env(), e }) ? lang.tr('draws.preround') : getKey(draw_types, e.draw_type); 
+               let total_matches = info.total_matches || (e.matchlimits ? Object.keys(e.matchlimits).map(k=>e.matchlimits[k]).reduce((a, b) => a + b, 0) : 0);
+
+               let draw_size = isTeam(tournament) ? total_matches : e.draw_size || '0';
+
+               let opponents = 0;
+               if (tournament.teams) {
+                  opponents = tournament.teams.map(team=>(team.players ? Object.keys(team.players).length : 0)).reduce((a, b) => a + b, 0);
+               } else {
+                  opponents = e.approved.length + (['E', 'S'].indexOf(e.draw_type) >= 0 ? (e.qualifiers || 0) : 0);
+               }
 
                let event_meta = {
                   scheduled,
@@ -2633,14 +2642,14 @@ export const tournamentDisplay = function() {
                   published: e.published,
                   up_to_date: e.up_to_date,
                   draw_created: drawIsCreated(e),
-                  draw_size: e.draw_size || '0',  
-                  total_matches: info.total_matches,
+                  draw_size,
+                  total_matches,
                   inout: e.inout,
                   surface: e.surface,
                   warning: e.draw_type == 'Q' && e.approved && e.approved.length && !e.qualifiers,
                   draw_type: e.draw_type,
                   draw_type_name,
-                  opponents: e.approved.length + (['E', 'S'].indexOf(e.draw_type) >= 0 ? (e.qualifiers || 0) : 0),
+                  opponents
                };
 
                return event_meta;
@@ -3113,6 +3122,17 @@ export const tournamentDisplay = function() {
                .style('display', 'inline')
                .on('click', closeTeamDetails);
          }
+
+         function deleteTeam() {
+            console.log('delete team... delete players from tournament players??');
+            closeTeamDetails();
+            displayGen.closeModal();
+
+            // TODO: ?? first check whether team can be deleted
+            tournament.teams.splice(index, 1);
+            saveTournament(tournament);
+            teamList();
+         }
       }
 
       function teamPlayerHoldAction(target) {
@@ -3154,17 +3174,6 @@ export const tournamentDisplay = function() {
                }
             }
          }
-      }
-
-      function deleteTeam() {
-         console.log('delete team... delete players from tournament players??');
-         closeTeamDetails();
-         displayGen.closeModal();
-
-         // TODO: ?? first check whether team can be deleted
-         tournament.teams.splice(index, 1);
-         saveTournament(tournament);
-         teamList();
       }
 
       container.event_edit_name.element.addEventListener('keyup', function(k) { 
@@ -4018,8 +4027,6 @@ export const tournamentDisplay = function() {
          details.inout.ddlb = new dd.DropDown({ element: details.inout.element, onChange: setInOut, locked: true });
          details.inout.ddlb.setValue(e.inout || tournament.inout || '', 'white');
 
-         if (!e.match_limits) e.matchlimits = {};
-
          let range = util.range(1, 10);
          let options = range.map(c => ({ key: c, value: c }));
          details.singles_limit.ddlb = new dd.DropDown({ element: details.singles_limit.element, onChange: singlesLimit, locked: true });
@@ -4098,7 +4105,7 @@ export const tournamentDisplay = function() {
          function doublesLimit(value) { matchLimits('doubles', value); }
          function matchLimits(format, value) {
             if (!e.matchlimits) e.matchlimits = {}
-            e.matchlimits[format] = value;
+            e.matchlimits[format] = parseInt(value);
             eventList(true);
             saveTournament(tournament);
          }
