@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.0.32.38.33',
+      version: '1.0.34.43.34.m',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -324,11 +324,8 @@ export const config = function() {
                      "U14": { ages: { from: 10, to: 14 }, },
                      "U16": { ages: { from: 12, to: 16 }, },
                      "U18": { ages: { from: 13, to: 18 }, },
-                     "Adult":  { ages: { from: 16, to: 100 }, },
-                     "All": { "ratings": { "type": "utr" } }
-                  }
-
-                     "All":   { rating, }
+                     "Adult":  { ages: { from: 16, to: 40 }, },
+                     "Senior":  { ages: { from: 35, to: 100 }, },
                   },
                   rankings: { "1": {}, "2": {}, "3": {}, "4": {}, "5": {}, "6": {}, "7": {}, "8": {} }
                }
@@ -1141,8 +1138,8 @@ export const config = function() {
    fx.init = () => {
       displayGen.initModals();
       let supported_device = true;
-      if (device.isIpad && (window.location.host == 'hiveeye.net' || window.location.hostname == 'localhost')) {
-         console.log('mobile device allowed');
+      if (device.isIpad || (window.innerWidth > 700 && window.innerHeight > 700)) {
+         supported_device = true;
       } else if (device.isMobile || device.isIDevice) {
          supported_device = false;
       }
