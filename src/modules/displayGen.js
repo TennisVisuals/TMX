@@ -1152,7 +1152,7 @@ export const displayGen = function() {
 
       let tabdata = [ { tab: lang.tr('add'), content: submit.html } ];
       if (keys.length) tabdata.push({ tab: lang.tr('existing'), content: existing.html });
-      let tabs = jsTabs.generate(tabdata);
+      let tabs = jsTabs.generate({ tabs: tabdata });
 
       let cancel = `
          <div id='${ids.cancel}' class='link ${gen.info}' style='margin-left: 1em;'>
@@ -1195,7 +1195,7 @@ export const displayGen = function() {
          container: displayFx.uuid(),
       }
 
-      let jtabs = jsTabs.generate(tabdata);
+      let jtabs = jsTabs.generate({ tabs: tabdata });
 
       let cancel = `
          <div id='${ids.cancel}' class='link' style='margin-left: 1em;'>
@@ -1879,7 +1879,7 @@ export const displayGen = function() {
          container.rankings.element.innerHTML = `<h2 class="flexcenter">${lang.tr('phrases.norankingdata')}</h2>`;
          return;
       }
-      let html = ` <div>${jsTabs.generate(tabdata)}</div> `;
+      let html = ` <div>${jsTabs.generate({ tabs: tabdata })}</div> `;
       container.rankings.element.innerHTML = html;
       jsTabs.load(container.rankings.element);
    }
@@ -1894,7 +1894,7 @@ export const displayGen = function() {
       if (singles.length) tabdata.push({ tab: lang.tr('dbl'), content: matchBlock({ matches: doubles, type: 'historical', puid }) });
 
       if (singles.length) tabdata.push({ tab: lang.tr('h2h'), content: gen.playerHead2Head(singles, puid) });
-      let tabs = jsTabs.generate(tabdata);
+      let tabs = jsTabs.generate({ tabs: tabdata });
       let html = `
          <h2>${lang.tr('emts')}</h2>
          <div>${tabs}</div>
@@ -2303,7 +2303,7 @@ export const displayGen = function() {
          event_edit_name: displayFx.uuid(),
          detail_fields: displayFx.uuid(),
          draw_config: displayFx.uuid(),
-         detail_players: displayFx.uuid(),
+         detail_opponents: displayFx.uuid(),
          courts: displayFx.uuid(),
          schedule: displayFx.uuid(),
          scheduling: displayFx.uuid(),
@@ -2357,6 +2357,7 @@ export const displayGen = function() {
          pubStateTrnyInfo: displayFx.uuid(),
          tournament_attrs: displayFx.uuid(),
          teams: displayFx.uuid(),
+         add_team: displayFx.uuid(),
          teams_actions: displayFx.uuid(),
          team_details: displayFx.uuid(),
          team_display_name: displayFx.uuid(),
@@ -2520,7 +2521,7 @@ export const displayGen = function() {
                      <div id='${ids.draw_config}' class='detail_column'></div>
                   </div>
                   <div class='detail_selections'>
-                     <div id='${ids.detail_players}' class='detail_players'> </div>
+                     <div id='${ids.detail_opponents}' class='detail_opponents'> </div>
                   </div>
                </div>
             </div>
@@ -2530,7 +2531,7 @@ export const displayGen = function() {
          </div>
       `;
 
-      let add_team = ` <button type="button" class='btn add'>${lang.tr('actions.add_team')}</button> `;
+      let add_team = ` <button id='${ids.add_team}' type="button" class='btn add'>${lang.tr('actions.add_team')}</button> `;
       let del_team = ` <button type="button" class='btn del' style='display: none'>${lang.tr('actions.delete_team')}</button> `;
       let save_team = ` <button type="button" class='btn save' style='display: none'>${lang.tr('actions.save_team')}</button> `;
       let teams_tab = `
@@ -2726,7 +2727,7 @@ export const displayGen = function() {
          { ref: 'points',     tab: lang.tr('pts'), content: points_tab, id: `PT${ids.container}`, display: 'none' },
 
       ];
-      let tabs = jsTabs.generate(tabdata);
+      let tabs = jsTabs.generate({ tabs: tabdata });
       let tab_refs = Object.assign({}, ...tabdata.map((t, i)=>({[t.ref]: i})));
 
       let authorize_button = `
@@ -3254,7 +3255,7 @@ export const displayGen = function() {
       return displayFx.idObj(ids);
    }
 
-   gen.displayDualMatchDetails = ({ tournament, container, e, genders, inout, surfaces, formats, draw_types, edit }) => {
+   gen.displayDualMatchConfig = ({ tournament, container, e, inout, surfaces, formats, draw_types, edit }) => {
       let ids = {
          category: displayFx.uuid(),
          rank: displayFx.uuid(),
@@ -3313,6 +3314,45 @@ export const displayGen = function() {
       return displayFx.idObj(ids);
    }
 
+   gen.displayDualMatchDetails = ({ container, e, matchorder, edit }) => {
+      let draggable = edit ? ` draggable = "true"` : '';
+      let counters = { singles: 0, doubles: 0 };
+      let matches = matchorder.map((m, i) => {
+         counters[m.format] += 1;
+         let format = (m.format == 'doubles') ? lang.tr('dbl') : lang.tr('sgl');
+         let matchblock = `
+            <li class="team_match"${draggable}>
+               <div class='matchname ${m.format}'>#${counters[m.format]} ${format}</div>
+               <div class='value ${m.format}'><input index='${i}' class='${m.format} matchvalue' value='${m.value}' disabled></div>
+            </li>`;
+         return matchblock;
+      }).join('');
+
+      let match_priority = `
+         <div style='margin: 1em;'>
+            <ul class="noindent noliststyle"> ${matches} </ul>
+            <div style='margin-top: 1em;'><i>Drag to Reorder</i></div>
+         </div>
+      `;
+
+      let match_points = `
+         <div style='margin: 1em;'>
+            <div style='margin-bottom: 1em;'><b>Doubles Best-of Scoring</b></div>
+            <div style='margin-bottom: 1em;'><b>GEM Scores decide Ties</b></div>
+         </div>
+      `;
+
+      // container.detail_opponents.element.innerHTML = match_priority;
+
+      // bug where selecting tab displays tab from another instance of jsTabs...
+      let tabdata = [];
+      tabdata.push({ tab: 'Match Priority', content: match_priority });
+      tabdata.push({ tab: 'Match Points', content: match_points });
+
+      container.detail_opponents.element.innerHTML = jsTabs.generate({ tabs: tabdata, shadow: false });
+      jsTabs.load(container.detail_opponents.element);
+   }
+
    gen.displayEventDetails = ({ tournament, container, e, genders, inout, surfaces, formats, draw_types, edit }) => {
       let ids = {
          eligible: displayFx.uuid(),
@@ -3362,7 +3402,7 @@ export const displayGen = function() {
       let approved_count = e && e.approved && e.approved.length ? `(${e.approved.length})` : '';
       let eligible_count = '';
 
-      let detail_players = `
+      let detail_opponents = `
          <div class='flexrow divider approved'>
             <div>${lang.tr('events.approved')} <span id='${ids.approved_count}'>${approved_count}</span></div>
             ${removeall}
@@ -3381,7 +3421,7 @@ export const displayGen = function() {
          </div>
          <div grouping='eligible' class='eligible_players player_container'></div>
       `;
-      container.detail_players.element.innerHTML = detail_players;
+      container.detail_opponents.element.innerHTML = detail_opponents;
 
       gen.setEventName(container, e);
 
@@ -4080,7 +4120,7 @@ export const displayGen = function() {
          </div>
       `;
       let tabdata = tabRankLists(categories, week, year);
-      let tabs = jsTabs.generate(tabdata);
+      let tabs = jsTabs.generate({ tabs: tabdata });
       let html = `
          <div id='${ids.container}' class='rank_container'>
             ${rank_info}${tabs}
@@ -4571,7 +4611,7 @@ export const displayGen = function() {
       tabdata.push({ tab: 'Rankings', content: `<div>Table of Ranked club players</div>` });
 
       if (tabdata) {
-         id_obj.tabs.element.innerHTML = jsTabs.generate(tabdata);
+         id_obj.tabs.element.innerHTML = jsTabs.generate({ tabs: tabdata });
          jsTabs.load(id_obj.tabs.element);
       }
 
