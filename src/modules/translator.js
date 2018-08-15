@@ -497,7 +497,6 @@ export const lang = function() {
 
       actions: {
          ok: 'OK',
-         add_team: 'Add Team',
          add_event: 'Add Event',
          save_event: 'Save Event',
          save_team: 'Save Team',
