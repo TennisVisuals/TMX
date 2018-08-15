@@ -447,6 +447,79 @@
    align-self: center;
 }
 
+[draggable] {
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* Required to make elements draggable in old WebKit */
+  -khtml-user-drag: element;
+  -webkit-user-drag: element;
+}
+
+ul.noliststyle { list-style-type: none; }
+ul.noindent { margin: 0; padding: 0; }
+
+.team_match {
+   max-width: 22em;
+   padding-top: .2em;
+   text-align: center;
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+}
+.team_match .matchname {
+   min-width: 20em;
+   height: 1.5em;
+   text-align: center;
+   color: #494949;
+   font-weight: bold;
+   border-bottom: 1px solid #cccccc;
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+
+.team_match .value {
+   height: 1.5em;
+   min-width: 2em;
+   text-align: center;
+   color: #494949;
+   font-weight: bold;
+   border-left: 1px solid #cccccc;
+   border-bottom: 1px solid #cccccc;
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+.team_match .matchvalue {
+   width: 3em;
+   margin-right: .5em;
+   text-align: center;
+   color: #494949;
+   font-weight: bold;
+   font-size: .8em;
+   border: none;
+}
+
+.team_match .singles { background-color: #e5e5e5; }
+.team_match .doubles { background-color: darkgray; }
+
+.team_match.over {
+   min-width: 22em;
+   border-top: 2px solid blue;
+}
+
 .teams_tab {
    padding: 0px;
    background-color: white;
