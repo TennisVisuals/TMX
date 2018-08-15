@@ -1077,7 +1077,7 @@ export const tournamentDisplay = function() {
       // container.schedulelimit.element.addEventListener('click', limitAutoSchedule);
       container.events_add.element.addEventListener('click', newTournamentEvent);
       container.locations_actions.element.addEventListener('click', newLocation);
-      container.teams_actions.element.addEventListener('click', addTeam);
+      container.add_team.element.addEventListener('click', addTeam);
 
       function cMenu({ selector, coords, options, clickAction }) {
          let font_size = options.length < 7 ? 18 : 16;
@@ -2282,18 +2282,6 @@ export const tournamentDisplay = function() {
       function teamsTab() {
          let visible = (isTeam(tournament) && (state.edit || (tournament.teams && tournament.teams.length))) || false;
          tabVisible(container, 'TM', visible); 
-         let actions = d3.select(container.teams_actions.element);
-
-         if (state.edit) {
-            actions.style('display', 'flex');
-            actions.select('.add').style('display', 'inline');
-         } else {
-            actions.style('display', 'none');
-            actions.select('.add').style('display', 'none');
-            let detail_actions = d3.select(container.team_details.element);
-            detail_actions.select('.save').style('display', 'none');
-            detail_actions.select('.del').style('display', 'none');
-         }
 
          teamList();
       }
@@ -2567,39 +2555,53 @@ export const tournamentDisplay = function() {
       }
 
       function teamList() {
-         if (!tournament.teams) return;
-         let teams = tournament.teams.map((team, i) => {
-            let team_meta = {
-               name: team.name,
-               uuid: team.uuid,
-               winloss: '0/0',
-               members: team.players ? Object.keys(team.players).length : 0,
-               total_matches: 0
-            }
-            return team_meta;
-         });
-
-         let highlighted = container.team_details.element.style.display != 'none' && container.team_details.element.getAttribute('uuid');
-         displayGen.teamList(container, teams, highlighted);
-
-         let opacity = (state.edit && teams.length) ? 1 : 0;
-         container.team_details.element.querySelector('.ranking_order').style.opacity = opacity;
-         container.team_details.element.querySelector('.' + classes.team_rankings).classList[opacity ? 'add' : 'remove']('infoleft');
-
-         function teamDetails(target) {
-            let clicked_team = util.getParent(target, 'teamid');
-            let class_list = clicked_team.classList;
-            if (class_list.contains('highlight_listitem')) {
-               closeTeamDetails();
-            } else {
-               util.eachElementClass(container.teams.element, 'teamid', (i) => i.classList.remove('highlight_listitem'));
-               class_list.add('highlight_listitem');
-               let uuid = clicked_team.getAttribute('uuid');
-               let team = tfx.findTeamByID(tournament, uuid);
-               displayTeam({ team });
-            }
+         let team_limit = tournament.type == 'dual' && tournament.teams && tournament.teams.length == 2 ? true : false;
+         let actions = d3.select(container.teams_actions.element);
+         if (state.edit) {
+            actions.style('display', team_limit ? 'none' : 'flex');
+            actions.select('.add').style('display', team_limit ? 'none' : 'inline');
+         } else {
+            actions.style('display', 'none');
+            actions.select('.add').style('display', 'none');
+            let detail_actions = d3.select(container.team_details.element);
+            detail_actions.select('.save').style('display', 'none');
+            detail_actions.select('.del').style('display', 'none');
          }
-         eventManager.register('teamrow', 'tap', teamDetails);
+
+         if (tournament.teams) {
+            let teams = tournament.teams.map((team, i) => {
+               let team_meta = {
+                  name: team.name,
+                  uuid: team.uuid,
+                  winloss: '0/0',
+                  members: team.players ? Object.keys(team.players).length : 0,
+                  total_matches: 0
+               }
+               return team_meta;
+            });
+
+            let highlighted = container.team_details.element.style.display != 'none' && container.team_details.element.getAttribute('uuid');
+            displayGen.teamList(container, teams, highlighted);
+
+            let opacity = (state.edit && teams.length) ? 1 : 0;
+            container.team_details.element.querySelector('.ranking_order').style.opacity = opacity;
+            container.team_details.element.querySelector('.' + classes.team_rankings).classList[opacity ? 'add' : 'remove']('infoleft');
+
+            function teamDetails(target) {
+               let clicked_team = util.getParent(target, 'teamid');
+               let class_list = clicked_team.classList;
+               if (class_list.contains('highlight_listitem')) {
+                  closeTeamDetails();
+               } else {
+                  util.eachElementClass(container.teams.element, 'teamid', (i) => i.classList.remove('highlight_listitem'));
+                  class_list.add('highlight_listitem');
+                  let uuid = clicked_team.getAttribute('uuid');
+                  let team = tfx.findTeamByID(tournament, uuid);
+                  displayTeam({ team });
+               }
+            }
+            eventManager.register('teamrow', 'tap', teamDetails);
+         }
       }
 
       function eachElementClass(elem, cls, fx) {
@@ -2870,7 +2872,7 @@ export const tournamentDisplay = function() {
       }
 
       function enableEventTeams(e) {
-         let player_detail = d3.select(container.detail_players.element);
+         let player_detail = d3.select(container.detail_opponents.element);
          player_detail.select('.event_teams').style('display', e.format == 'D' ? 'flex' : 'none');
          player_detail.select('.team_players').style('display', e.format == 'D' ? 'flex' : 'none');
          player_detail.select('.eligible').select('.addall').style('display', e.format == 'S' ? 'flex' : 'none');
@@ -3994,17 +3996,34 @@ export const tournamentDisplay = function() {
       }
 
       function configureDualEventSelections(e) {
-         let details = displayGen.displayDualMatchDetails({
+         if (!e.matchlimits) e.matchlimits = { singles: 6, doubles: 3 };
+         if (!e.matchorder) {
+            e.matchorder = [
+               { format: 'singles', value: 1 },
+               { format: 'singles', value: 1 },
+               { format: 'singles', value: 1 },
+               { format: 'singles', value: 1 },
+               { format: 'singles', value: 1 },
+               { format: 'singles', value: 1 },
+               { format: 'doubles', value: 1 },
+               { format: 'doubles', value: 1 },
+               { format: 'doubles', value: 1 },
+            ];
+         }
+
+         let details = displayGen.displayDualMatchConfig({
             tournament,
             container,
             e,
-            genders,
+            matchorder: e.matchorder,
             inout,
             surfaces,
             formats,
             draw_types: availableDrawTypes(e),
             edit: state.edit
          });
+
+         updateDualMatchDetails();
 
          details.category.ddlb = new dd.DropDown({ element: details.category.element, onChange: filterCategory, locked: true });
          details.category.ddlb.selectionBackground('white');
@@ -4031,10 +4050,10 @@ export const tournamentDisplay = function() {
          let options = range.map(c => ({ key: c, value: c }));
          details.singles_limit.ddlb = new dd.DropDown({ element: details.singles_limit.element, onChange: singlesLimit, locked: true });
          details.singles_limit.ddlb.setOptions(options);
-         details.singles_limit.ddlb.setValue(e.matchlimits && e.matchlimits.singles || 6, 'white');
+         details.singles_limit.ddlb.setValue(e.matchlimits.singles, 'white');
          details.doubles_limit.ddlb = new dd.DropDown({ element: details.doubles_limit.element, onChange: doublesLimit, locked: true });
          details.doubles_limit.ddlb.setOptions(options);
-         details.doubles_limit.ddlb.setValue(e.matchlimits && e.matchlimits.doubles || 3, 'white');
+         details.doubles_limit.ddlb.setValue(e.matchlimits.doubles, 'white');
 
          details.singles_scoring.element.addEventListener('click', () => changeScoring('singles'));
          details.doubles_scoring.element.addEventListener('click', () => changeScoring('doubles'));
@@ -4106,8 +4125,20 @@ export const tournamentDisplay = function() {
          function matchLimits(format, value) {
             if (!e.matchlimits) e.matchlimits = {}
             e.matchlimits[format] = parseInt(value);
+            modifyMatchOrder(format, parseInt(value));
             eventList(true);
             saveTournament(tournament);
+         }
+
+         function modifyMatchOrder(format, limit) {
+            let counter = 0;
+            let matchorder = e.matchorder.filter(m => {
+               counter += m.format == format;
+               return (m.format == format && counter > limit) ? false : true;
+            });
+            util.range(1, limit - counter + 1).forEach(n => matchorder.push({ format, value: 1 }));
+            e.matchorder = matchorder;
+            updateDualMatchDetails();
          }
 
          if (state.edit || !e.active) {
@@ -4117,6 +4148,124 @@ export const tournamentDisplay = function() {
             details.rank.ddlb.unlock();
             details.singles_limit.ddlb.unlock();
             details.doubles_limit.ddlb.unlock();
+         }
+
+         function updateDualMatchDetails() {
+            displayGen.displayDualMatchDetails({ container, e, matchorder: e.matchorder, edit: state.edit });
+
+            var dragSrcEl = null;
+
+            function handleDragStart(e) {
+              dragSrcEl = this;
+              e.dataTransfer.effectAllowed = 'move';
+              e.dataTransfer.setData('text/html', this.outerHTML);
+            }
+            function handleDragOver(e) {
+              if (e.preventDefault) e.preventDefault();
+              this.classList.add('over');
+              e.dataTransfer.dropEffect = 'move';
+              return false;
+            }
+
+            function handleDragEnter(e) {
+              // this / e.target is the current hover target.
+            }
+
+            function handleDragLeave(e) { this.classList.remove('over'); }
+
+            function handleDrop(e) {
+               if (e.stopPropagation) { e.stopPropagation(); }
+
+               if (dragSrcEl != this) {
+                  this.parentNode.removeChild(dragSrcEl);
+                  var dropHTML = e.dataTransfer.getData('text/html');
+                  this.insertAdjacentHTML('beforebegin',dropHTML);
+                  var dropElem = this.previousSibling;
+                  addDnDHandlers(dropElem);
+               }
+               this.classList.remove('over');
+
+               dropElem.addEventListener('keyup', matchValue);
+               dropElem.addEventListener('click', enableMatchValue);
+               dropElem.addEventListener('keydown', catchTab);
+
+               renameMatchBlocks();
+               return false;
+            }
+
+            function renameMatchBlocks() {
+               let matchorder = [];
+               let matchblocks = Array.from(container.detail_opponents.element.querySelectorAll('.team_match'));
+               let counters = { singles: 0, doubles: 0 };
+               matchblocks.forEach((b, i) => {
+                  let matchname = b.querySelector('.matchname');
+                  let format = matchname.classList.contains('doubles') ? 'doubles' : 'singles';
+                  let display_format = format == 'doubles' ? lang.tr('dbl') : lang.tr('sgl');
+                  counters[format] += 1;
+                  matchname.innerText = `#${counters[format]} ${display_format}`;
+                  let matchvalue = b.querySelector('.matchvalue');
+                  matchvalue.setAttribute('index', i);
+                  matchorder.push({ format, value: matchvalue.value });
+               });
+               e.matchorder = matchorder;
+               saveTournament(tournament);
+            }
+
+            function handleDragEnd(e) { this.classList.remove('over'); }
+
+            function addDnDHandlers(elem) {
+              elem.addEventListener('dragstart', handleDragStart, false);
+              elem.addEventListener('dragenter', handleDragEnter, false)
+              elem.addEventListener('dragover', handleDragOver, false);
+              elem.addEventListener('dragleave', handleDragLeave, false);
+              elem.addEventListener('drop', handleDrop, false);
+              elem.addEventListener('dragend', handleDragEnd, false);
+            }
+
+            var tmatches = container.detail_opponents.element.querySelectorAll('.team_match');
+            [].forEach.call(tmatches, addDnDHandlers);
+
+            util.addEventToClass('matchvalue', matchValue, container.detail_opponents.element, 'keyup');
+            util.addEventToClass('matchvalue', catchTab, container.detail_opponents.element, 'keydown');
+            util.addEventToClass('team_match', enableMatchValue, container.detail_opponents.element, 'click');
+
+            function enableMatchValue(evt) {
+               if (state.edit) {
+                  let team_match = util.getParent(evt.target, 'team_match');
+                  let matchvalue = team_match && team_match.querySelector('.matchvalue');
+                  if (matchvalue) {
+                     if (matchvalue.disabled) {
+                        disableAll();
+                        matchvalue.disabled = false;
+                        matchvalue.style.background = 'white';
+                        matchvalue.focus();
+                        matchvalue.select();
+                     } else {
+                        matchvalue.disabled = true;
+                        matchvalue.style.background = '';
+                        clearSelection();
+                     }
+                  }
+               }
+            }
+
+            function disableAll() {
+               Array.from(container.detail_opponents.element.querySelectorAll('.matchvalue'))
+                  .forEach(elem=>{ elem.disabled=true; elem.style.background = ''; });
+            }
+
+            function matchValue(evt) {
+               if (evt.which == 13 || evt.which == 9) {
+                  evt.target.style.background = '';
+                  evt.target.disabled = true;
+                  let index = evt.target.getAttribute('index');
+                  e.matchorder[index].value = evt.target.value;
+                  saveTournament(tournament);
+                  clearSelection();
+               }
+               evt.target.value = util.numeric(evt.target.value) || '';
+               evt.target.setAttribute('value', util.numeric(evt.target.value) || '');
+            }
          }
       }
 
@@ -4147,9 +4296,9 @@ export const tournamentDisplay = function() {
          container.eligible.element.addEventListener('contextmenu', evt=>eligibleOptions(evt,e));
          container.eligible.element.addEventListener('click', (evt) => { if (evt.ctrlKey || evt.shiftKey) return eligibleOptions(evt, e); });
 
-         util.addEventToClass('addall', addAll, container.detail_players.element);
-         util.addEventToClass('removeall', removeAll, container.detail_players.element);
-         util.addEventToClass('promoteall', promoteAll, container.detail_players.element);
+         util.addEventToClass('addall', addAll, container.detail_opponents.element);
+         util.addEventToClass('removeall', removeAll, container.detail_opponents.element);
+         util.addEventToClass('promoteall', promoteAll, container.detail_opponents.element);
 
          let filterGender = (value) => {
             if (e.gender != value) { e.regenerate = 'filterGender'; }
@@ -4157,6 +4306,7 @@ export const tournamentDisplay = function() {
             configDrawType(e);
             eventPlayers(e);
             eventName(e);
+            saveTournament(tournament);
          }
          details.gender.ddlb = new dd.DropDown({ element: details.gender.element, onChange: filterGender });
          details.gender.ddlb.setValue(e.gender || '', 'white');
@@ -4167,6 +4317,7 @@ export const tournamentDisplay = function() {
             e.ratings = getCategoryRatings(e.category);
             eventPlayers(e);
             eventName(e);
+            saveTournament(tournament);
          }
          details.category.ddlb = new dd.DropDown({ element: details.category.element, onChange: filterCategory });
          details.category.ddlb.selectionBackground('white');
@@ -4748,6 +4899,7 @@ export const tournamentDisplay = function() {
          let eligible_players = eligible.players || [];
 
          let approved_changed = ineligible.changed || unavailable.changed || eligible.changed;
+
          if (approved_changed) approvedChanged(e);
 
          let linkedQ = tfx.findEventByID(tournament, e.links['Q']) || tfx.findEventByID(tournament, e.links['R']);
@@ -5110,7 +5262,8 @@ export const tournamentDisplay = function() {
          container.schedule_day.ddlb.setValue(displayed_schedule_day, 'white');
 
          function eventOption(evt) {
-            let type = evt.draw_type == 'E' ? '' : evt.draw_type == 'C' ? ` ${lang.tr('draws.consolation')}` : evt.draw_type == 'R' ? ' RR' : ' Q';
+            // let type = evt.draw_type == 'E' ? '' : evt.draw_type == 'C' ? ` ${lang.tr('draws.consolation')}` : evt.draw_type == 'R' ? ' RR' : ' Q';
+            let type = ['E', 'L', 'T'].indexOf(evt.draw_type) >= 0 ? '' : evt.draw_type == 'C' ? ` ${lang.tr('draws.consolation')}` : evt.draw_type == 'R' ? ' RR' : ' Q';
             let category = evt.custom_category ? `${evt.custom_category} ` : evt.category ? `${evt.category} ` : '';
             return { key: `${category}${evt.name}${type}`, value: evt.euid }
          }
@@ -6051,7 +6204,7 @@ export const tournamentDisplay = function() {
          let ratings = ctgs && ctgs[current_value] && ctgs[current_value].ratings;
          let ratings_type = ratings && ratings.type;
 
-         if (!t_players.length && !state.edit) {
+         if ((!tournament.players || !tournament.players.length) && !state.edit) {
             d3.select('#YT' + container.container.id).style('display', 'none');
             return;
          }
@@ -9805,6 +9958,8 @@ export const tournamentDisplay = function() {
       let created = (info.unassigned && !info.unassigned.length) || info.positions_filled;
       return created ? new Date().getTime() : undefined;
    }
+
+   function clearSelection() { if (window.getSelection) window.getSelection().removeAllRanges(); }
 
    return fx;
 }();
