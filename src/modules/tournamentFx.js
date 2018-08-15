@@ -769,7 +769,7 @@ export const tournamentFx = function() {
       let calc_date = tournament_date ? new Date(tournament_date) : new Date();
 
       let players = tournament.players
-         .filter(player => !eligibleGender(e.gender, player) || !playerFx.eligibleForCategory({ calc_date, age_category: e.category, player }));
+         .filter(player => !eligibleGender(e.gender, player) || !playerFx.eligibleForCategory({ calc_date, category: e.category, player }));
 
       // TODO: render ineligible because of health certificate / suspension & etc.
       return { players };
