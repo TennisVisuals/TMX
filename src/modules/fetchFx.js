@@ -27,10 +27,11 @@ export const fetchFx = function() {
       remote.open(type, url, true);
       remote.setRequestHeader("Content-Type", "application/json");
       remote.onload = function() { 
-
          let result = JSON.parse(remote.responseText);
          let data = result.data ? result.data.split('').filter(f=>f.charCodeAt() > 13).join('') : undefined;
          let json_data = attemptJSONparse(data);
+         let parseable = attemptJSONparse(json_data);
+         json_data = (parseable && parseable.data) || json_data;
          callback( json_data ? { json: json_data } : { result }); 
       }
       remote.send(request);
@@ -193,13 +194,13 @@ export const fetchFx = function() {
       return new Promise((resolve, reject) => {
          db.findSetting('fetchPlayerDates').then(fetchNew, reject);
 
-         function fetchNew(params) {
-            if (!params) {
+         function fetchNew(fetchobj) {
+            if (!fetchobj) {
                return reject('No Parameters. ' +  lang.tr('phrases.notconfigured'));
             }
 
             let request_object = {
-               [params.type]: params.url,
+               [fetchobj.type]: fetchobj.url,
                headers: {
                   "Authorization": "Bearer " + bearer_token, 
                   "Accept": "application/json"
@@ -224,18 +225,19 @@ export const fetchFx = function() {
       return new Promise((resolve, reject) => {
          db.findSetting('fetchClubs').then(checkSettings, reject);
 
-         function checkSettings(params) {
-            if (!params) return reject({ error: lang.tr('phrases.notconfigured') });
-            db.findAllClubs().then(clbz => fetchNew(clbz, params));
+         function checkSettings(fetchobj) {
+            if (!fetchobj) return reject({ error: lang.tr('phrases.notconfigured') });
+            fetchobj.url = checkURL(fetchobj.url);
+            db.findAllClubs().then(clbz => fetchNew(clbz, fetchobj));
          }
 
-         function fetchNew(clbz, params) {
+         function fetchNew(clbz, fetchobj) {
             let cids = clbz.map(c=>+c.id);
             let max_id = Math.max(0, ...clbz.map(c=>!isNaN(+c.id) ? +c.id : 0));
 
             // 'fetchNewClubs'
             // let request_object = {
-            //     [params.type]: params.url + max_id
+            //     [fetchobj.type]: fetchobj.url + max_id
             //      headers: {
             //         "Authorization": "Bearer " + bearer_token, 
             //         "Accept": "application/json"
@@ -243,7 +245,7 @@ export const fetchFx = function() {
             // };
 
             let request_object = {
-               [params.type]: params.url,
+               [fetchobj.type]: fetchobj.url,
                headers: {
                   "Authorization": "Bearer " + bearer_token, 
                   "Accept": "application/json"
@@ -269,19 +271,20 @@ export const fetchFx = function() {
       return new Promise((resolve, reject) => {
          db.findSetting('fetchNewTournaments').then(checkSettings, reject);
 
-         function checkSettings(params) {
-            if (!params) { return reject({ error: lang.tr('phrases.notconfigured') }); }
-            db.findAllTournaments().then(trnys => fetchNew(trnys, params));
+         function checkSettings(fetchobj) {
+            if (!fetchobj) { return reject({ error: lang.tr('phrases.notconfigured') }); }
+            fetchobj.url = checkURL(fetchobj.url);
+            util.boolAttrs(fetchobj);
+            db.findAllTournaments().then(trnys => fetchNew(trnys, fetchobj));
          }
 
-         function fetchNew(trnys, params) {
-
+         function fetchNew(trnys, fetchobj) {
             // for tournaments to be updated automatically they must have an .sid attribute equal to config.env().org.abbr
             let tids = trnys.filter(t=>t.sid && t.sid == config.env().org.abbr).map(t=>t.tuid.replace(t.sid, ''));
-            let max_id = (!merge && Math.max(...tids, 0)) || 0;
+            let max_id = fetchobj.max_id != false ? ((!merge && Math.max(...tids, 0)) || 0) : '';
 
             let request_object = {
-               [params.type]: params.url + max_id,
+               [fetchobj.type]: fetchobj.url + max_id,
                headers: {
                   "Authorization": "Bearer " + bearer_token, 
                   "Accept": "application/json"
@@ -290,7 +293,7 @@ export const fetchFx = function() {
             let request = JSON.stringify(request_object);
             function responseHandler(result) {
                if (result.json) {
-                  normalizeTournaments(result.json);
+                  normalizeTournaments(result.json, fetchobj);
                } else {
                   return reject(result.err || 'Error');
                }
@@ -298,17 +301,28 @@ export const fetchFx = function() {
             ajax('/api/match/request', request, 'POST', responseHandler);
          }
 
-         function normalizeTournaments(trnys) {
+         function normalizeTournaments(trnys, fetchobj) {
+            let parser = fetchobj.parser && fetchobj.parser.fx && util.createFx(fetchobj.parser.fx);
             let ouid = config.env().org && config.env().org.ouid;
-            trnys.forEach(t => {
-               t.start = util.validDate(t.start) ? new Date(t.start).getTime() : undefined;
-               t.end = util.validDate(t.end) ? new Date(t.end).getTime() : (t.start || undefined);
-               if (!t.ouid) t.ouid = ouid;
+            if (Array.isArray(trnys)) {
+               let tt = trnys.map(t => {
+                  let trny = Object.assign({}, t);
+                  if (parser) {
+                     let pt = parser(t);
+                     Object.assign(trny, pt);
+                  }
+                  trny.start = util.validDate(trny.start) ? new Date(trny.start).getTime() : trny.start;
+                  trny.end = util.validDate(trny.end) ? new Date(trny.end).getTime() : (trny.start || trny.end);
+                  if (!trny.ouid) trny.ouid = ouid;
 
-               // TODO: This needs to be a configured SID (Site ID?) and not config.env().org (HTS)
-               t.tuid = `${config.env().org.abbr}${t.tuid}`;
-            });
-            resolve(trnys);
+                  // TODO: This needs to be a configured SID (Site ID?) and not config.env().org (HTS)
+                  trny.tuid = `${config.env().org.abbr}${t.tuid || t.id}`;
+                  return trny;
+               });
+               resolve(tt);
+            } else {
+               resolve([]);
+            }
          }
 
       });
@@ -319,19 +333,20 @@ export const fetchFx = function() {
       return new Promise((resolve, reject) => {
          db.findSetting('fetchNewPlayers').then(checkSettings, reject);
 
-         function checkSettings(params) {
-            if (!params) return reject({ error: lang.tr('phrases.notconfigured') });
-            db.findAllPlayers().then(plyrz => fetchNew(plyrz, params));
+         function checkSettings(fetchobj) {
+            if (!fetchobj) return reject({ error: lang.tr('phrases.notconfigured') });
+            fetchobj.url = checkURL(fetchobj.url);
+            db.findAllPlayers().then(plyrz => fetchNew(plyrz, fetchobj));
          }
 
-         function fetchNew(plyrz, params) {
+         function fetchNew(plyrz, fetchobj) {
             // maximum player record determined by numeric ids; others excluded
             let max_id = Math.max(0, ...plyrz.map(p=>!isNaN(+p.id) ? +p.id : 0));
-            let increment_url = params.increment == 'false' ? false : true;
-            let request_url = params.url;
+            let increment_url = fetchobj.increment == 'false' ? false : true;
+            let request_url = fetchobj.url;
             if (increment_url) request_url += max_id;
             let request_object = {
-               [params.type]: request_url,
+               [fetchobj.type]: request_url,
                headers: {
                   "Authorization": "Bearer " + bearer_token, 
                   "Accept": "application/json"
@@ -354,6 +369,8 @@ export const fetchFx = function() {
          // TODO: PUID generation should occur on the remote server, not in this script!
          // nameHash should be elminated...
          function normalizePlayers(players) {
+            let parser = fetchobj.parser && fetchobj.parser.fx && util.createFx(fetchobj.parser.fx);
+
             players.forEach(player => {
                let rtp_date = new Date(player.right_to_play_until);
                player.right_to_play_until = (rtp_date != 'Invalid Date') ? rtp_date.getTime() : undefined;
@@ -447,17 +464,18 @@ export const fetchFx = function() {
             }
          }
 
-         function checkSettings(params) {
-            if (!params || !params.url) return reject({ error: lang.tr('phrases.notconfigured') });
-            fetchList(params);
+         function checkSettings(fetchobj) {
+            if (!fetchobj || !fetchobj.url) return reject({ error: lang.tr('phrases.notconfigured') });
+            fetchobj.url = checkURL(fetchobj.url);
+            fetchList(fetchobj);
          }
 
-         function fetchList(params) {
+         function fetchList(fetchobj) {
             // Legacy to avoid call when no list is available
             if (config.env().org.abbr == 'HTS' && category == '10') return reject();
             
             let request_object = {
-               [params.type]: params.url + category,
+               [fetchobj.type]: fetchobj.url + category,
                headers: {
                   "Authorization": "Bearer " + bearer_token, 
                   "Accept": "application/json"
@@ -479,24 +497,11 @@ export const fetchFx = function() {
    }
 
    fx.fetchRegisteredPlayers = fetchRegisteredPlayers;
-   function fetchRegisteredPlayers(tuid, category, remote_request) {
+   function fetchRegisteredPlayers(tuid, category) {
       return new Promise((resolve, reject) => {
          if (!tuid) return reject('No Tournament ID');
 
-         let id = tuid;
-
-         // TODO: remove specific requests to HTS
-         if (tuid.indexOf('HTS') == 0) {
-            let nums = tuid.match(/\d+/);
-            if (!nums.length) return reject('No Tournament ID');
-            id = nums[0];
-         } else {
-            let message = `<h2>${lang.tr('phrases.locallycreated')}</h2><h3><i>${lang.tr('phrases.noremote')}</i></h3>`;
-            displayGen.actionMessage({ message, actionFx: okAction, action: lang.tr('actions.ok'), cancel: lang.tr('phrases.loadplayers'), cancelAction: loadAction });
-            return;
-         }
-
-         if (navigator.onLine && remote_request) {
+         if (navigator.onLine) {
             db.findSetting('fetchRegisteredPlayers').then(checkSettings, reject);
          } else {
             return localRequest();
@@ -530,14 +535,30 @@ export const fetchFx = function() {
             }
          }
 
-         function checkSettings(params) {
-            if (!params) return reject({ error: lang.tr('phrases.notconfigured') });
-            remoteRequest(params);
+         function promptLoadPlayers() {
+            let message = `<h2>${lang.tr('phrases.locallycreated')}</h2><h3><i>${lang.tr('phrases.noremote')}</i></h3>`;
+            displayGen.actionMessage({ message, actionFx: okAction, action: lang.tr('actions.ok'), cancel: lang.tr('phrases.loadplayers'), cancelAction: loadAction });
          }
 
-         function remoteRequest(params) {
+         function checkSettings(fetchobj) {
+            if (!fetchobj) return promptLoadPlayers();
+
+            let uuid = tuid;
+            let preprocessor = fetchobj.preprocessor && fetchobj.preprocessor.fx && util.createFx(fetchobj.preprocessor.fx);
+            if (preprocessor) {
+               uuid = preprocessor(uuid);
+            } else if (tuid.indexOf('HTS') == 0) {
+               console.log('remove reference to HTS when preprocessor present in HTS Keys');
+               uuid = tuid.slice(3);
+            }
+
+            fetchobj.url = checkURL(fetchobj.url);
+            remoteRequest(fetchobj, uuid);
+         }
+
+         function remoteRequest(fetchobj, uuid) {
             let request_object = {
-               [params.type]: params.url + id,
+               [fetchobj.type]: fetchobj.url + uuid,
                headers: {
                   "Authorization": "Bearer " + bearer_token, 
                   "Accept": "application/json"
@@ -546,7 +567,9 @@ export const fetchFx = function() {
             let request = JSON.stringify(request_object);
 
             function responseHandler(result) {
-               if (result.json) {
+               if (!result.json) {
+                  return promptLoadPlayers();
+               } else {
                   let players = result.json.filter(p=>p.last_name);
                   players.forEach(player => {
                      player.first_name = player.first_name.trim();
@@ -569,8 +592,6 @@ export const fetchFx = function() {
                         return {};
                      }
                   })).then(dbplayers => updateLocal(dbplayers, players), reject);
-               } else {
-                  return reject(result.err || 'Error');
                }
             }
             ajax('/api/match/request', request, 'POST', responseHandler);
@@ -608,6 +629,10 @@ export const fetchFx = function() {
       script.src = 'https://maps.googleapis.com/maps/api/js?v=3' +
           '&key=' + GOOGLE_MAP_KEY;
       document.body.appendChild(script);
+   }
+
+   function checkURL(url) {
+      return (url.indexOf('http') == 0) ? url : `${window.location.origin}${url}`;
    }
 
    return fx;

@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.0.34.43.34.m',
+      version: '1.0.36.48.35.m',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -85,7 +85,6 @@ export const config = function() {
       },
       auto_update: {
          players: false,
-         registered_players: false,
       },
       metadata: {
          exchange_formats: {
@@ -110,6 +109,7 @@ export const config = function() {
       },
       players: { identify: true },
       points: { walkover_wins: ['F'] },
+      parsers: {},
       tournaments: {
          dual: false,
          team: false,
@@ -819,7 +819,6 @@ export const config = function() {
    }
 
    function initDB() {
-      db.addDev({fetchFx});
       db.initDB().then(checkQueryString, dbUpgrade).then(envSettings).then(DBReady);
       function dbUpgrade() { displayGen.showConfigModal('<h2>Database Upgraded</h2><div style="margin: 1em;">Please refresh your cache or load tmx+</div>'); }
 
@@ -872,6 +871,14 @@ export const config = function() {
          db.findAllSettings().then(setEnv, resolve);
 
          function setEnv(settings) {
+
+            /*
+            externalRequests().forEach(ex => {
+               if (ex.parser && ex.parser.fx) {
+                  env.parsers[ex.key] = util.createFx(ex.parser.fx);
+               }
+            });
+            */
 
             let app = getKey('appComponents');
             if (app && app.components) {
@@ -969,6 +976,7 @@ export const config = function() {
             // if no info displayGen.info = '';
             resolve();
 
+            // function externalRequests() { return settings.filter(s => s.category && s.category == 'externalRequest'); }
             function getKey(key) { return settings.reduce((p, c) => c.key == key ? c : p, undefined); }
          }
       });
@@ -1310,10 +1318,15 @@ export const config = function() {
             coms.emitTmx({ getOrgTournaments: { ouid: env.org.ouid, authorized: true }});
          }
       }
-      if (merge) {
-         fetchFx.fetchNewTournaments(merge).then(mergeTournaments, checkServer);
-      } else {
-         fetchFx.fetchNewTournaments().then(addNew, checkServer);
+
+      fetchFx.fetchNewTournaments(merge).then(processTournaments, checkServer);
+
+      function processTournaments(trnys) {
+         if (merge) {
+            mergeTournaments(trnys);
+         } else {
+            addNew(trnys);
+         }
       }
 
       function mergeTournament(trny) {

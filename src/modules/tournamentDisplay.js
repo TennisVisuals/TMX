@@ -455,10 +455,10 @@ export const tournamentDisplay = function() {
       attachFilterToggles(classes, updateFilters);
       util.addEventToClass(classes.ranking_order, () => enableManualRankings());
       util.addEventToClass(classes.refresh_registrations, (evt) => {
-         if (evt.ctrlKey || evt.shiftKey) return replaceRegisteredPlayers(true, true);
-         updateRegisteredPlayers(true, true);
+         if (evt.ctrlKey || evt.shiftKey) return replaceRegisteredPlayers(true);
+         updateRegisteredPlayers(true);
       });
-      util.addEventToClass(classes.refresh_registrations, () => replaceRegisteredPlayers(true, true), undefined, 'contextmenu');
+      util.addEventToClass(classes.refresh_registrations, () => replaceRegisteredPlayers(true), undefined, 'contextmenu');
 
       // set up printing events
       util.addEventToClass(classes.print_sign_in, printSignInList);
@@ -1340,10 +1340,7 @@ export const tournamentDisplay = function() {
       scheduleTab();
       filteredTabs();
       
-      if (!tMatches() || tournament.events) {
-         let remote_request = fx.fx.env().auto_update.registered_players;
-         updateRegisteredPlayers(remote_request);
-      }
+      // if (!tMatches() || tournament.events) { updateRegisteredPlayers(); }
 
       searchBox.noSuggestions = noSuggestions;
       // END setup.  
@@ -6192,7 +6189,7 @@ export const tournamentDisplay = function() {
             label: `${lang.tr('cat')}:`, 
          });
          container.category_filter.ddlb = new dd.DropDown({ element: container.category_filter.element, id: container.category_filter.id, onChange: categoryChanged });
-         container.category_filter.ddlb.setValue(prior_value || category, 'white');
+         container.category_filter.ddlb.setValue(prior_value || category || '-', 'white');
 
          // playersTab has a category DDLB... and this should be used for ordering players...
          let current_value = prior_value || tournament.categories[0];
@@ -8972,7 +8969,7 @@ export const tournamentDisplay = function() {
          elem.classList[active ? 'add' : 'remove'](`ranking_order_active`);
       }
 
-      function replaceRegisteredPlayers(remote_request, show_notice) {
+      function replaceRegisteredPlayers(show_notice) {
          if (!state.edit) return;
          let message = `${lang.tr('tournaments.renewlist')}<p><i style='color: red;'>(${lang.tr('phrases.deletereplace')})</i>`;
          displayGen.okCancelMessage(message, renewList, () => displayGen.closeModal());
@@ -8981,11 +8978,11 @@ export const tournamentDisplay = function() {
             tournament.players = [];
             playersTab();
             saveTournament(tournament);
-            updateRegisteredPlayers(remote_request, show_notice);
+            updateRegisteredPlayers(show_notice);
          }
       }
 
-      function updateRegisteredPlayers(remote_request, show_notice) {
+      function updateRegisteredPlayers(show_notice) {
          if (!state.edit) return;
          let id = show_notice ? displayGen.busy.message(`<p>${lang.tr("refresh.registered")}</p>`) : undefined;
          let done = (registered) => {
@@ -8993,7 +8990,7 @@ export const tournamentDisplay = function() {
             displayGen.busy.done(id);
          }
          let notConfigured = (err) => { displayGen.busy.done(id); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
-         fetchFx.fetchRegisteredPlayers(tournament.tuid, tournament.category, remote_request).then(done, notConfigured);
+         fetchFx.fetchRegisteredPlayers(tournament.tuid, tournament.category).then(done, notConfigured);
       }
 
       function matchEventOutOfDate(match) {
