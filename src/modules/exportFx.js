@@ -631,7 +631,6 @@ export const exportFx = function() {
 
       d3.select('body')
          .append('div')
-//            .attr('id', 'hidden')
             .attr('class', 'hidden_render')
          .append('div')
             .attr('id', render_id)
@@ -642,7 +641,6 @@ export const exportFx = function() {
       // height determine the size of the PNG generated from the SVG and
       // therefore the size of the PDF and the amount of time it takes to
       // process ...
-      // currently done in tournaments.css #offscreen
 
       let element = document.getElementById(render_id);
 
@@ -769,7 +767,6 @@ export const exportFx = function() {
 
          d3.select('body')
             .append('div')
-//               .attr('id', 'hidden')
                .attr('class', 'hidden_render')
             .append('div')
                .attr('id', render_id)
@@ -780,7 +777,6 @@ export const exportFx = function() {
          // height determine the size of the PNG generated from the SVG and
          // therefore the size of the PDF and the amount of time it takes to
          // process ...
-         // currently done in tournaments.css #offscreen
 
          let element = document.getElementById(render_id);
 
