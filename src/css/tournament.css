@@ -3,7 +3,12 @@
    position: relative;
 }
 
-#offscreen {
+.hidden_render {
+   overflow: hidden;
+   position: relative;
+}
+
+.offscreen {
    position: absolute;
    left: -8000;
    top: -8000;

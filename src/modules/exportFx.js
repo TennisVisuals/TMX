@@ -616,97 +616,118 @@ export const exportFx = function() {
    }
 
    exp.printDrawPDF = ({ tournament, data, options, selected_event, event, save }) => {
+      if (event && event.draw && event.draw.compass) {
+         console.log('compass draw');
+      }
       let info = drawFx().drawInfo(data);
       if (info.draw_type == 'tree') return exp.treeDrawPDF({ tournament, data, options, selected_event, info, event, save });
       if (info.draw_type == 'roundrobin') return exp.rrDrawPDF({ tournament, data, options, selected_event, info, event, save });
    }
 
+   function renderTreeDraw({ info, data, options, height, width }) {
+      cleanUp();
+
+      let render_id = `td${UUID.new()}`;
+
+      d3.select('body')
+         .append('div')
+//            .attr('id', 'hidden')
+            .attr('class', 'hidden_render')
+         .append('div')
+            .attr('id', render_id)
+            .attr('class', 'offscreen');
+
+      // TODO: set width and height here... and make font_size and other
+      // calculations based on the width and height... because width and
+      // height determine the size of the PNG generated from the SVG and
+      // therefore the size of the PDF and the amount of time it takes to
+      // process ...
+      // currently done in tournaments.css #offscreen
+
+      let element = document.getElementById(render_id);
+
+      // create an off-screen draw so that sizing is uninhibited by screen real-estate
+      let draw = treeDraw();
+      draw.data(data);
+      draw.options(options);
+      draw.width(width);
+
+      draw.options({edit_fields: { display: false }, flags: { display: false }});
+      if (info.draw_positions.length > 8) draw.options({invert_first: true});
+
+      draw.options({players: { offset_left: 8, offset_singles: -10, offset_doubles: -60, offset_score: 10 }});
+      draw.options({names:  { max_font_size: 40, min_font_size: 40 }});
+      draw.options({scores: { max_font_size: 40, min_font_size: 40 }});
+
+      let opponent_count = info.draw_positions.length * (event.format == 'S' ? 1 : 2);
+
+      if (opponent_count <= 16) {
+         draw.options({names: { length_divisor: 23 }});
+         draw.options({names:  { max_font_size: 50, min_font_size: 50 }});
+         draw.options({umpires: { offset: 45 }});
+         draw.options({matchdates: { offset: 45 }});
+         draw.options({detail_offsets: { base: 80, width: 65 }});
+         draw.options({lines: { stroke_width: 4 }});
+         draw.options({minPlayerHeight: 130});
+         draw.options({detail_attr: { font_size: 40 }});
+         draw.options({detail_attr: { seeding_font_size: 54 }});
+      } else if (opponent_count <= 24) {
+         draw.options({names: { length_divisor: 23 }});
+         draw.options({umpires: { offset: 45 }});
+         draw.options({matchdates: { offset: 45 }});
+         draw.options({detail_offsets: { base: 80, width: 65 }});
+         draw.options({lines: { stroke_width: 4 }});
+         draw.options({minPlayerHeight: 130});
+         draw.options({detail_attr: { font_size: 36 }});
+         draw.options({detail_attr: { seeding_font_size: 54 }});
+      } else if (opponent_count <= 32) {
+         draw.options({names: { length_divisor: 23 }});
+         draw.options({umpires: { offset: 45 }});
+         draw.options({matchdates: { offset: 45 }});
+         draw.options({detail_offsets: { base: 80, width: 60 }});
+         draw.options({lines: { stroke_width: 4 }});
+         draw.options({minPlayerHeight: 100 });
+         draw.options({detail_attr: { font_size: 30 }});
+         draw.options({detail_attr: { seeding_font_size: 45 }});
+      } else if (opponent_count <= 48) {
+         draw.options({names: { length_divisor: 23 }});
+         draw.options({umpires: { offset: 45 }});
+         draw.options({matchdates: { offset: 45 }});
+         draw.options({detail_offsets: { base: 80, width: 60 }});
+         draw.options({lines: { stroke_width: 4 }});
+         draw.options({minPlayerHeight: 70 });
+         draw.options({detail_attr: { font_size: 30 }});
+         draw.options({detail_attr: { seeding_font_size: 45 }});
+      } else if (opponent_count <= 64) {
+         draw.options({names: { length_divisor: 23 }});
+         draw.options({umpires: { offset: 45 }});
+         draw.options({matchdates: { offset: 45 }});
+         draw.options({detail_offsets: { base: 80, width: 60 }});
+         draw.options({lines: { stroke_width: 4 }});
+         draw.options({minPlayerHeight: 50 });
+         draw.options({detail_attr: { font_size: 30 }});
+         draw.options({detail_attr: { seeding_font_size: 45 }});
+      }
+
+      // render the svg
+      draw.selector(element)();
+      return element;
+   }
+
+   function treeDrawURI({ info, data, options, height, width }) {
+      return new Promise((resolve, reject) => {
+         let element = renderTreeDraw({ info, data, options, height, width });
+         exp.SVGasURI(element, images, height).then(resolve, reject);
+      });
+   }
+
    exp.treeDrawPDF = ({ tournament, data, options, images=[], selected_event, info, event, save }) => {
-      var svg_width = 3000;
-      var svg_height = 3300;
-      var qr_dim = svg_width / 6.7;
+      var width = 3000;
+      var height = 3300;
+      var qr_dim = width / 6.7;
 
       return new Promise((resolve, reject) => {
-         cleanUp();
-
-         d3.select('body')
-            .append('div').attr('id', 'hidden')
-            .append('div').attr('id', 'offscreen');
-
-         // TODO: set width and height here... and make font_size and other
-         // calculations based on the width and height... because width and
-         // height determine the size of the PNG generated from the SVG and
-         // therefore the size of the PDF and the amount of time it takes to
-         // process ...
-         // currently done in tournaments.css #offscreen
-
-         let element = document.getElementById('offscreen');
-
-         // create an off-screen draw so that sizing is uninhibited by screen real-estate
-         let draw = treeDraw();
-         draw.data(data);
-         draw.options(options);
-         draw.width(svg_width);
-
-         draw.options({edit_fields: { display: false }, flags: { display: false }});
-         if (info.draw_positions.length > 8) draw.options({invert_first: true});
-
-         draw.options({players: { offset_left: 8, offset_singles: -10, offset_doubles: -60, offset_score: 10 }});
-         draw.options({names:  { max_font_size: 40, min_font_size: 40 }});
-         draw.options({scores: { max_font_size: 40, min_font_size: 40 }});
-
-         let opponent_count = info.draw_positions.length * (event.format == 'S' ? 1 : 2);
-
-         if (opponent_count <= 16) {
-            draw.options({names: { length_divisor: 23 }});
-            draw.options({names:  { max_font_size: 50, min_font_size: 50 }});
-            draw.options({umpires: { offset: 45 }});
-            draw.options({matchdates: { offset: 45 }});
-            draw.options({detail_offsets: { base: 80, width: 65 }});
-            draw.options({lines: { stroke_width: 4 }});
-            draw.options({minPlayerHeight: 130});
-            draw.options({detail_attr: { font_size: 40 }});
-            draw.options({detail_attr: { seeding_font_size: 54 }});
-         } else if (opponent_count <= 24) {
-            draw.options({names: { length_divisor: 23 }});
-            draw.options({umpires: { offset: 45 }});
-            draw.options({matchdates: { offset: 45 }});
-            draw.options({detail_offsets: { base: 80, width: 65 }});
-            draw.options({lines: { stroke_width: 4 }});
-            draw.options({minPlayerHeight: 130});
-            draw.options({detail_attr: { font_size: 36 }});
-            draw.options({detail_attr: { seeding_font_size: 54 }});
-         } else if (opponent_count <= 32) {
-            draw.options({names: { length_divisor: 23 }});
-            draw.options({umpires: { offset: 45 }});
-            draw.options({matchdates: { offset: 45 }});
-            draw.options({detail_offsets: { base: 80, width: 60 }});
-            draw.options({lines: { stroke_width: 4 }});
-            draw.options({minPlayerHeight: 100 });
-            draw.options({detail_attr: { font_size: 30 }});
-            draw.options({detail_attr: { seeding_font_size: 45 }});
-         } else if (opponent_count <= 48) {
-            draw.options({names: { length_divisor: 23 }});
-            draw.options({umpires: { offset: 45 }});
-            draw.options({matchdates: { offset: 45 }});
-            draw.options({detail_offsets: { base: 80, width: 60 }});
-            draw.options({lines: { stroke_width: 4 }});
-            draw.options({minPlayerHeight: 70 });
-            draw.options({detail_attr: { font_size: 30 }});
-            draw.options({detail_attr: { seeding_font_size: 45 }});
-         } else if (opponent_count <= 64) {
-            draw.options({names: { length_divisor: 23 }});
-            draw.options({umpires: { offset: 45 }});
-            draw.options({matchdates: { offset: 45 }});
-            draw.options({detail_offsets: { base: 80, width: 60 }});
-            draw.options({lines: { stroke_width: 4 }});
-            draw.options({minPlayerHeight: 50 });
-            draw.options({detail_attr: { font_size: 30 }});
-            draw.options({detail_attr: { seeding_font_size: 45 }});
-         }
-
-         // render the svg
-         draw.selector(element)();
+         let element = renderTreeDraw({ info, data, options, height, width });
 
          // if event published add QR code
          if (event && event.published && tournament.org && tournament.org.abbr) {
@@ -720,7 +741,7 @@ export const exportFx = function() {
          getLogo().then(logo => showPDF(logo, images));
 
          function showPDF(logo, images) {
-            exp.SVGasURI(element, images, svg_height)
+            exp.SVGasURI(element, images, height)
                .then(src => drawSheet({ tournament, images: [{src, pct: 100}], logo, selected_event, event, info, save }), reject)
                .then(cleanUp, cleanUp);;
          }
@@ -738,15 +759,21 @@ export const exportFx = function() {
          return { src: qdu, x: qr_dim * x_offset, y: qr_dim * y_offset };
    }
 
-   function cleanUp() { d3.selectAll('#hidden').remove(); }
+   function cleanUp() { d3.selectAll('.hidden_render').remove(); }
 
    exp.rrDrawPDF = ({ tournament, data, options, selected_event, info, event, save }) => {
       return new Promise((resolve, reject) => {
          cleanUp();
 
+         let render_id = `rr${UUID.new()}`;
+
          d3.select('body')
-            .append('div').attr('id', 'hidden')
-            .append('div').attr('id', 'offscreen');
+            .append('div')
+//               .attr('id', 'hidden')
+               .attr('class', 'hidden_render')
+            .append('div')
+               .attr('id', render_id)
+               .attr('class', 'offscreen');
 
          // TODO: set width and height here... and make font_size and other
          // calculations based on the width and height... because width and
@@ -755,7 +782,7 @@ export const exportFx = function() {
          // process ...
          // currently done in tournaments.css #offscreen
 
-         let element = document.getElementById('offscreen');
+         let element = document.getElementById(render_id);
 
          // create an off-screen draw so that sizing is uninhibited by screen real-estate
          let draw = rrDraw();
