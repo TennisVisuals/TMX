@@ -439,7 +439,7 @@ export const displayGen = function() {
       gen.modal += 1;
    }
 
-   gen.showModal = (html, close = true) => {
+   gen.showModal = (html, close = true, overflow) => {
       if (searchBox.element) searchBox.element.blur();
       document.body.style.overflow  = 'hidden';
       let modaltext = document.getElementById('modaltext');
@@ -447,6 +447,8 @@ export const displayGen = function() {
       document.getElementById('close-modal').style.display = close ? 'inline' : 'none';
       document.getElementById('modal').style.display = "flex";
       if (modaltext.scrollIntoView) modaltext.scrollIntoView();
+      let content = document.querySelector('.modal-content');
+      if (overflow) content.style.overflow = overflow;
       gen.modal += 1;
    }
 
@@ -1169,7 +1171,7 @@ export const displayGen = function() {
          </div>
       `;
       
-      gen.showModal(html, true);
+      gen.showModal(html, false, 'visible');
 
       Object.assign(ids, submit.ids, existing.ids);
       let id_obj = displayFx.idObj(ids);
