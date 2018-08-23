@@ -192,6 +192,7 @@ export const exportFx = function() {
          "Tournament Event Category": category == 'Seniors' || category == 'S' ? 'Seniors' : 'Juniors',
          "Tournament Import Source": 'CourtHive',
          "Tournament Sanction Body": sanctioning,
+         "Match ID": match.muid
       }
    }
 
@@ -616,12 +617,29 @@ export const exportFx = function() {
    }
 
    exp.printDrawPDF = ({ tournament, data, options, selected_event, event, save }) => {
-      if (event && event.draw && event.draw.compass) {
+      // TODO: CURRENTLY DISABLED
+      if (false && event && event.draw && event.draw.compass) {
          console.log('compass draw');
+
+         getLogo().then(logo => showPDF(logo));
+
+         function showPDF(logo) {
+
+            // get array of all draws; render all draws as images (src);
+            // Promise.all(draws_data.map(data => treeDrawURI()))
+
+            var width = 3000;
+            var height = 3300;
+            let info = drawFx().drawInfo(data);
+            treeDrawURI({ info, data, options, height, width })
+               .then(src => drawSheet({ tournament, images: [{src, pct: 100}], logo, selected_event, event, info, save }), cleanUp)
+               .then(cleanUp, cleanUp);;
+         }
+      } else {
+         let info = drawFx().drawInfo(data);
+         if (info.draw_type == 'tree') return exp.treeDrawPDF({ tournament, data, options, selected_event, info, event, save });
+         if (info.draw_type == 'roundrobin') return exp.rrDrawPDF({ tournament, data, options, selected_event, info, event, save });
       }
-      let info = drawFx().drawInfo(data);
-      if (info.draw_type == 'tree') return exp.treeDrawPDF({ tournament, data, options, selected_event, info, event, save });
-      if (info.draw_type == 'roundrobin') return exp.rrDrawPDF({ tournament, data, options, selected_event, info, event, save });
    }
 
    function renderTreeDraw({ info, data, options, height, width }) {
@@ -715,7 +733,7 @@ export const exportFx = function() {
    function treeDrawURI({ info, data, options, height, width }) {
       return new Promise((resolve, reject) => {
          let element = renderTreeDraw({ info, data, options, height, width });
-         exp.SVGasURI(element, images, height).then(resolve, reject);
+         exp.SVGasURI(element, [], height).then(resolve, reject);
       });
    }
 
