@@ -1,9 +1,6 @@
-// TODO: on resize how to manage tab text size and wrapping of tabs to more than a single line?
-
 export const jsTabs = function() {
 
-   // TODO: rewrite this so that it is a factory such that 'events' can be
-   // defined as in the D3 Components...
+   // TODO: rewrite this so that it is a factory such that 'events' can be defined as in the D3 Components...
 
    let jsTabs = {};
 
