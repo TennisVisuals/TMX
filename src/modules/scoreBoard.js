@@ -942,6 +942,11 @@ export const scoreBoard = function() {
       return sets;
    }
 
+   fx.getScoring = (score_format) => {
+      let stb = score_format && score_format.final_set_supertiebreak ? '/S' : '';
+      return `${score_format.max_sets}/${score_format.games_for_set}/${score_format.tiebreak_to}T${stb}`;
+   }
+
    fx.reverseScore = reverseScore;
    function reverseScore(score, split=' ') {
       let irreversible = null;
@@ -1206,6 +1211,7 @@ export const scoreBoard = function() {
       let id_obj = displayFx.idObj(ids);
       return id_obj;
    }
+
    return fx;
 }();
 
