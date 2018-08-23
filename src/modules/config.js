@@ -1580,7 +1580,6 @@ export const config = function() {
 
    function displayPlayers() {
       let actions = displayGen.playersActions(); 
-      console.log(o.components.players);
 
       if (o.components.players && o.components.players.add) {
          actions.add.element.style.display = 'flex';
