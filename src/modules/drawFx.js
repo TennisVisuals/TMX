@@ -1263,7 +1263,8 @@ export function treeDraw() {
 
       if (o.edit_fields.display) {
          node.append('rect')
-             .attr("class", "edit_field")
+             .attr("class", "edit_field contextAction")
+             .attr("contextaction", "positionHoldAction")
              .attr("x", playerBaseX)
              .attr("y", -1 * playerHeight/(doubles ? 1.5 : 1.5))
              .attr("width", editWidth)
