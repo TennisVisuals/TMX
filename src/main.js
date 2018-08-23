@@ -1,5 +1,6 @@
 import { config } from './modules/config';
 import { playerFx } from './modules/playerFx';
+import { tournamentDisplay } from './modules/tournamentDisplay';
 
 if (window.attachEvent) {
    window.attachEvent('onload', start);
