@@ -2714,7 +2714,6 @@ export const displayGen = function() {
          </div>
       `;
 
-      let dual_tab = ` <div id='${ids.dual}' class='flexcol flexcenter'> </div> `;
 
       let tabdata = [
          { ref: 'tournament', tab: lang.tr('trn'), content: tournament_tab, id: `TT${ids.container}` },
@@ -2723,7 +2722,6 @@ export const displayGen = function() {
          { ref: 'teams',      tab: lang.tr('tmz'), content: teams_tab, id: `TM${ids.container}`, display: 'none' },
          { ref: 'events',     tab: lang.tr('evt'), content: events_tab, id: `ET${ids.container}`, display: 'none' },
          { ref: 'draws',      tab: lang.tr('drz'), content: draws_tab, id: `DT${ids.container}`, display: 'none' },
-         { ref: 'dual',       tab: lang.tr('dlm'), content: dual_tab, id: `DL${ids.container}`, display: 'none' },
          { ref: 'schedule',   tab: lang.tr('sch'), content: schedule_tab, id: `ST${ids.container}`, display: 'none' },
          { ref: 'matches',    tab: lang.tr('mts'), content: matches_tab, id: `MT${ids.container}`, display: 'none' },
          { ref: 'points',     tab: lang.tr('pts'), content: points_tab, id: `PT${ids.container}`, display: 'none' },
@@ -4079,6 +4077,7 @@ export const displayGen = function() {
          </div>
       `;
       gen.showConfigModal(html, 'visible');
+      document.getElementById('configmodal').addEventListener('click', () => gen.closeModal());
 
       let id_obj = displayFx.idObj(ids);
       dd.attachDropDown({ id: ids.at_row, label: `${lang.tr('schedule.startrow')}:` });
