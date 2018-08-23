@@ -501,11 +501,7 @@ export const fetchFx = function() {
       return new Promise((resolve, reject) => {
          if (!tuid) return reject('No Tournament ID');
 
-         if (navigator.onLine) {
-            db.findSetting('fetchRegisteredPlayers').then(checkSettings, reject);
-         } else {
-            return localRequest();
-         }
+         db.findSetting('fetchRegisteredPlayers').then(checkSettings, reject);
 
          function okAction() {
             displayGen.closeModal();
@@ -523,25 +519,13 @@ export const fetchFx = function() {
             importFx.loadPlayersDragAndDrop(id_obj.dropzone.element, ()=>{}, callback);
          }
 
-         function localRequest() {
-            db.findTournament(tuid).then(checkTournament, reject); 
-
-            function checkTournament(tournament) {
-               if (tournament.players) {
-                  return resolve(tournament.players);
-               } else {
-                  return resolve([]);
-               }
-            }
-         }
-
          function promptLoadPlayers() {
             let message = `<h2>${lang.tr('phrases.locallycreated')}</h2><h3><i>${lang.tr('phrases.noremote')}</i></h3>`;
             displayGen.actionMessage({ message, actionFx: okAction, action: lang.tr('actions.ok'), cancel: lang.tr('phrases.loadplayers'), cancelAction: loadAction });
          }
 
          function checkSettings(fetchobj) {
-            if (!fetchobj) return promptLoadPlayers();
+            if (!fetchobj || !navigator.onLine) return promptLoadPlayers();
 
             let uuid = tuid;
             let preprocessor = fetchobj.preprocessor && fetchobj.preprocessor.fx && util.createFx(fetchobj.preprocessor.fx);
