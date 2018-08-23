@@ -20,6 +20,13 @@ export const tournamentFx = function() {
 
    fx.settingsLoaded = (env) => { dfx.options(env.drawFx); }
 
+   fx.getScoreboardSettings = ({ format, category }) => {
+      let settings = fx.fx.env().scoreboard.settings;
+      if (format && category && settings.categories[category] && settings.categories[category][format]) return settings.categories[category][format];
+      if (format && settings[format]) return settings[format];
+      return settings.singles;
+   }
+
    fx.findEventByID = (tournament, id) => {
       if (!id || !tournament || !tournament.events || tournament.events.length < 1) return;
       return tournament.events.reduce((p, c) => c.euid == id ? c : p, undefined);
