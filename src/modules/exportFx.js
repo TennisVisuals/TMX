@@ -617,24 +617,27 @@ export const exportFx = function() {
    }
 
    exp.printDrawPDF = ({ tournament, data, options, selected_event, event, save }) => {
-      // TODO: CURRENTLY DISABLED
-      if (false && event && event.draw && event.draw.compass) {
-         console.log('compass draw');
+      if (event && event.draw && event.draw.compass) {
 
          getLogo().then(logo => showPDF(logo));
 
          function showPDF(logo) {
-
-            // get array of all draws; render all draws as images (src);
-            // Promise.all(draws_data.map(data => treeDrawURI()))
-
             var width = 3000;
-            var height = 3300;
-            let info = drawFx().drawInfo(data);
-            treeDrawURI({ info, data, options, height, width })
-               .then(src => drawSheet({ tournament, images: [{src, pct: 100}], logo, selected_event, event, info, save }), cleanUp)
-               .then(cleanUp, cleanUp);;
+            let directions = ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'];
+            let draws = directions.map(direction => event.draw[direction]).filter(f=>f);
+            Promise.all(draws.map(data => {
+               let info = drawFx().drawInfo(data);
+               let title = data.direction[0].toUpperCase() + data.direction.slice(1);
+               return treeDrawURI({ info, data, options, width, title });
+            })).then(genDrawSheet, cleanUp);
+
+            function genDrawSheet(srcs) {
+               let images = srcs.map(src => ({src, pct: 100}));
+               drawSheet({ tournament, images, logo, selected_event, event, save });
+               cleanUp();
+            }
          }
+
       } else {
          let info = drawFx().drawInfo(data);
          if (info.draw_type == 'tree') return exp.treeDrawPDF({ tournament, data, options, selected_event, info, event, save });
@@ -642,7 +645,7 @@ export const exportFx = function() {
       }
    }
 
-   function renderTreeDraw({ info, data, options, height, width }) {
+   function renderTreeDraw({ info, data, options, height, width, title }) {
       cleanUp();
 
       let render_id = `td${UUID.new()}`;
@@ -675,54 +678,71 @@ export const exportFx = function() {
       draw.options({names:  { max_font_size: 40, min_font_size: 40 }});
       draw.options({scores: { max_font_size: 40, min_font_size: 40 }});
 
-      let opponent_count = info.draw_positions.length * (event.format == 'S' ? 1 : 2);
+      let opponent_count = info.draw_positions.length * (info.doubles ? 2 : 1);
 
-      if (opponent_count <= 16) {
-         draw.options({names: { length_divisor: 23 }});
-         draw.options({names:  { max_font_size: 50, min_font_size: 50 }});
-         draw.options({umpires: { offset: 45 }});
-         draw.options({matchdates: { offset: 45 }});
-         draw.options({detail_offsets: { base: 80, width: 65 }});
-         draw.options({lines: { stroke_width: 4 }});
-         draw.options({minPlayerHeight: 130});
-         draw.options({detail_attr: { font_size: 40 }});
-         draw.options({detail_attr: { seeding_font_size: 54 }});
+      // accomodate title for compass draws
+      if (title) { draw.options({ text: {title}, margins: {top: 160}, }); }
+
+      if (opponent_count <= 4) {
+         draw.options({
+            names: { length_divisor: 23, max_font_size: 50, min_font_size: 50 },
+            umpires: { offset: 45 },
+            matchdates: { offset: 45 },
+            detail_offsets: { base: 80, width: 65 },
+            lines: { stroke_width: 4 },
+            minPlayerHeight: 180,
+            detail_attr: { font_size: 40, seeding_font_size: 54 }
+         });
+      } else if (opponent_count <= 16) {
+         draw.options({
+            names: { length_divisor: 23, max_font_size: 50, min_font_size: 50 },
+            umpires: { offset: 45 },
+            matchdates: { offset: 45 },
+            detail_offsets: { base: 80, width: 65 },
+            lines: { stroke_width: 4 },
+            minPlayerHeight: 130,
+            detail_attr: { font_size: 40, seeding_font_size: 54 }
+         });
       } else if (opponent_count <= 24) {
-         draw.options({names: { length_divisor: 23 }});
-         draw.options({umpires: { offset: 45 }});
-         draw.options({matchdates: { offset: 45 }});
-         draw.options({detail_offsets: { base: 80, width: 65 }});
-         draw.options({lines: { stroke_width: 4 }});
-         draw.options({minPlayerHeight: 130});
-         draw.options({detail_attr: { font_size: 36 }});
-         draw.options({detail_attr: { seeding_font_size: 54 }});
+         draw.options({
+            names: { length_divisor: 23 },
+            umpires: { offset: 45 },
+            matchdates: { offset: 45 },
+            detail_offsets: { base: 80, width: 65 },
+            lines: { stroke_width: 4 },
+            minPlayerHeight: 130,
+            detail_attr: { font_size: 36, seeding_font_size: 54 }
+         });
       } else if (opponent_count <= 32) {
-         draw.options({names: { length_divisor: 23 }});
-         draw.options({umpires: { offset: 45 }});
-         draw.options({matchdates: { offset: 45 }});
-         draw.options({detail_offsets: { base: 80, width: 60 }});
-         draw.options({lines: { stroke_width: 4 }});
-         draw.options({minPlayerHeight: 100 });
-         draw.options({detail_attr: { font_size: 30 }});
-         draw.options({detail_attr: { seeding_font_size: 45 }});
+         draw.options({
+            names: { length_divisor: 23 },
+            umpires: { offset: 45 },
+            matchdates: { offset: 45 },
+            detail_offsets: { base: 80, width: 60 },
+            lines: { stroke_width: 4 },
+            minPlayerHeight: 100,
+            detail_attr: { font_size: 30, seeding_font_size: 45 }
+         });
       } else if (opponent_count <= 48) {
-         draw.options({names: { length_divisor: 23 }});
-         draw.options({umpires: { offset: 45 }});
-         draw.options({matchdates: { offset: 45 }});
-         draw.options({detail_offsets: { base: 80, width: 60 }});
-         draw.options({lines: { stroke_width: 4 }});
-         draw.options({minPlayerHeight: 70 });
-         draw.options({detail_attr: { font_size: 30 }});
-         draw.options({detail_attr: { seeding_font_size: 45 }});
+         draw.options({
+            names: { length_divisor: 23 },
+            umpires: { offset: 45 },
+            matchdates: { offset: 45 },
+            detail_offsets: { base: 80, width: 60 },
+            lines: { stroke_width: 4 },
+            minPlayerHeight: 70,
+            detail_attr: { font_size: 30, seeding_font_size: 45 }
+         });
       } else if (opponent_count <= 64) {
-         draw.options({names: { length_divisor: 23 }});
-         draw.options({umpires: { offset: 45 }});
-         draw.options({matchdates: { offset: 45 }});
-         draw.options({detail_offsets: { base: 80, width: 60 }});
-         draw.options({lines: { stroke_width: 4 }});
-         draw.options({minPlayerHeight: 50 });
-         draw.options({detail_attr: { font_size: 30 }});
-         draw.options({detail_attr: { seeding_font_size: 45 }});
+         draw.options({
+            names: { length_divisor: 23 },
+            umpires: { offset: 45 },
+            matchdates: { offset: 45 },
+            detail_offsets: { base: 80, width: 60 },
+            lines: { stroke_width: 4 },
+            minPlayerHeight: 50,
+            detail_attr: { font_size: 30, seeding_font_size: 45 }
+         });
       }
 
       // render the svg
@@ -730,9 +750,9 @@ export const exportFx = function() {
       return element;
    }
 
-   function treeDrawURI({ info, data, options, height, width }) {
+   function treeDrawURI({ info, data, options, height, width, title }) {
       return new Promise((resolve, reject) => {
-         let element = renderTreeDraw({ info, data, options, height, width });
+         let element = renderTreeDraw({ info, data, options, height, width, title });
          exp.SVGasURI(element, [], height).then(resolve, reject);
       });
    }
@@ -828,7 +848,7 @@ export const exportFx = function() {
       });
    }
 
-   function drawSheetPageHeader(tournament, logo, type, selected_event, event, info) {
+   function drawSheetPageHeader(tournament, logo, type, selected_event, event) {
       var evt = event || (tournament.events && tournament.events[selected_event]) || { name: lang.tr('unk') };
 
       var event_type = tournamentFx.genEventName(evt).type;
@@ -1045,14 +1065,14 @@ export const exportFx = function() {
 
    function getRankedPlayers(evt, info) {
       let current_draw = evt.draw.compass ? evt.draw[evt.draw.compass] : evt.draw;
+      let noevent = { s1: [], s2: [], c1: [], c2: [], smin: '', smax: '', omin: '', omax: '', a1, c3, lda };
       if (!current_draw || !current_draw.opponents) return noevent;
+      if (!info) info = drawFx().drawInfo(current_draw);
 
       let blank = { text: ' ' };
       let lda = '';
       let a1 = new Array(6).fill(blank);
       let c3 = new Array(6).fill(blank);
-      
-      let noevent = { s1: [], s2: [], c1: [], c2: [], smin: '', smax: '', omin: '', omax: '', a1, c3, lda };
 
       let seeded_players = current_draw.opponents.filter(o=>o[0].seed);
       let seed_rankings = [].concat(...seeded_players.map(p=>p.map(m=>m.category_ranking)));
