@@ -861,6 +861,7 @@ export function treeDraw() {
       text: {
          bye: 'BYE',
          qualifier: 'Qualifier',
+         title: '',
       },
 
       edit_fields: {
@@ -1039,7 +1040,6 @@ export function treeDraw() {
          o.height = draw_positions.length * maxPlayerHeight;
          playerHeight = maxPlayerHeight;
       }
-
       let top_margin = Math.max(o.margins.top, doubles ? Math.abs(o.players.offset_doubles) : Math.abs(o.players.offset_singles));
       let draw_height = o.height - top_margin - o.margins.bottom;
 
@@ -1182,11 +1182,12 @@ export function treeDraw() {
 
       let svg_width = draw_width + o.margins.left + o.margins.right + left_column_offset;
       let translate_x = left_column_offset + +o.margins.left - (invert_first ? 0 : round_width);
-      let svg = root.append("svg")
+      let svg_root = root.append("svg")
           .style("shape-rendering", "crispEdges")
           .attr("width", svg_width)
-          .attr("height", max_height + top_margin + o.margins.bottom)
-        .append("g")
+          .attr("height", max_height + top_margin + o.margins.bottom);
+
+      let svg = svg_root.append("g")
           .attr("transform", "translate(" + translate_x + "," + top_margin + ")");
 
       let link = svg.selectAll(".link")
@@ -1238,6 +1239,17 @@ export function treeDraw() {
             .style("shape-rendering", "crispEdges");
       }
       */
+
+      if (o.text.title) {
+         svg_root.append("g").append("text")
+            .attr("text-anchor", "middle")
+            .attr("x", svg_width/2)
+            .attr("y", o.detail_attr.seeding_font_size * 2)
+            .html(o.text.title)
+            .style("fill", "#000")
+            .style("shape-rendering", "geometricPrecision")
+            .style("font-size", (o.detail_attr.seeding_font_size * 1.5) + "px");
+      }
 
       let node = svg.selectAll(".node")
           .data(nodes)
