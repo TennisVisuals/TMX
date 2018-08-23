@@ -46,12 +46,13 @@ export const eventManager = function() {
 
    document.addEventListener('touchstart', function(event) {
       em.touched = event.target;
+      em.coords = [event.touches[0].clientX, event.touches[0].clientY];
       if (em.touched) { touchTimer = setTimeout(function(){ holdAction(); }, em.hold_time); }
    }, false);
    document.addEventListener('touchend', function(event) { touchleave(); }, false);
    document.addEventListener('touchmove', function(event) { if (em.touched !== event.target) touchleave(); }, false);
    function touchleave() { clearTimeout(touchTimer) }
-   function holdAction() { if (typeof em.holdAction == 'function') { em.held = em.touched; em.holdAction(em.held); } }
+   function holdAction() { if (typeof em.holdAction == 'function') { em.held = em.touched; em.holdAction(em.held, em.coords); } }
 
    (function(){
       var isTouch = false; //var to indicate current input type (is touch versus no touch) 
