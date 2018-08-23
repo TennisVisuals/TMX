@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.0.36.48.35.m',
+      version: '1.0.39.53.35.m',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -148,15 +148,27 @@ export const config = function() {
             supertiebreakto: [7, 10, 21]
          },
          settings: {
-            max_sets: 3,
-            sets_to_win: 2,
-            games_for_set: 6,
-            tiebreak_to: 7,
-            tiebreaks_at: 6,
-            supertiebreak_to: 10,
-            auto_score: true,
-            final_set_tiebreak: true,
-            final_set_supertiebreak: false,
+            categories: {},
+            singles: {
+               max_sets: 3,
+               sets_to_win: 2,
+               games_for_set: 6,
+               tiebreak_to: 7,
+               tiebreaks_at: 6,
+               supertiebreak_to: 10,
+               final_set_tiebreak: true,
+               final_set_supertiebreak: false,
+            },
+            doubles: {
+               max_sets: 3,
+               sets_to_win: 2,
+               games_for_set: 6,
+               tiebreak_to: 7,
+               tiebreaks_at: 6,
+               supertiebreak_to: 10,
+               final_set_tiebreak: false,
+               final_set_supertiebreak: true,
+            },
          },
       },
       draws: {
@@ -1559,9 +1571,6 @@ export const config = function() {
 
    function displayTeams() {
       let actions = displayGen.teamActions(); 
-   }
-
-   function displayTeams() {
       console.log('display teams');
    }
 
@@ -1571,6 +1580,7 @@ export const config = function() {
 
    function displayPlayers() {
       let actions = displayGen.playersActions(); 
+      console.log(o.components.players);
 
       if (o.components.players && o.components.players.add) {
          actions.add.element.style.display = 'flex';
