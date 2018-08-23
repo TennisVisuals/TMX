@@ -2848,13 +2848,13 @@ export const tournamentDisplay = function() {
             inout: tournament.inout || '',
          };
 
-         if (isTeam(trny)) {
+         if (isTeam(tournament)) {
             presets = {
                draw_type: 'E',
-               category: trny.category || '',
-               rank: trny.rank || '',
-               surface: trny.surface || '',
-               inout: trny.inout || '',
+               category: tournament.category || '',
+               rank: tournament.rank || '',
+               surface: tournament.surface || '',
+               inout: tournament.inout || '',
             }
          }
 
@@ -7008,7 +7008,7 @@ export const tournamentDisplay = function() {
          let active = created && !visible ? true : displayed_draw_event ? displayed_draw_event.active : false;
          let svg = container.draws.element.querySelector('svg');
 
-         let pdf_function = visible || state.edit;
+         let pdf_function = sameOrg(tournament) && (visible || state.edit);
          document.querySelector('.' + classes.print_draw).style.display = pdf_function && svg ? 'inline' : 'none';
 
          // let draw_creation = fx.fx.env().publishing.publish_draw_creation;
