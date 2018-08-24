@@ -869,7 +869,7 @@ button.ratings-submit:hover { background: #68FF33; }
 .event_details .row {
    min-width: 10em;
 }
-.event_details .player_container {
+.event_details .opponent_container {
    display: flex;
    flex-direction: row;
    -webkit-flex-direction: row;
