@@ -48,20 +48,21 @@ export const jsTabs = function() {
       return displayTab;
    } 
 
-   jsTabs.generate = ({ tabs, shadow=true, baseclass='jstabs' }) => {
-      let html = `<div class="${baseclass} ${shadow ? 'shadow' : ''}"><div class='hscroll'><div class="tabs">`;
-      html += tabs.map(o => {
+   // TODO: complete position code to enable tabs to be top or bottom
+   jsTabs.generate = ({ tabs, shadow=true, baseclass='jstabs', position='top' }) => {
+      let tabs_html = `<div class="${baseclass} ${shadow ? 'shadow' : ''}"><div class='hscroll'><div class="tabs">`;
+      tabs_html += tabs.map(o => {
          let id = o.id ? ` id="${o.id}"` : '';
          let display = o.display || 'inline';
          return `<span${id} style="display: ${display}">${o.tab}</span>`
       }).join('');
-      html += `</div></div>`;
-      html += tabs.map(o => {
+      tabs_html += `</div></div>`;
+      let content_html = tabs.map(o => {
          let reference = o.ref ? ` reference='${o.ref}'` : '';
          return `<div class="tab"${reference}>${o.content}</div>`;
       }).join('');
-      html += `</div>`;
-      return html;
+      content_html += `</div>`;
+      return position == 'top' ? tabs_html + content_html : content_html + tabs_html;
    }
 
    return jsTabs;
