@@ -13,6 +13,11 @@ export const matchFx = function() {
    function tournamentEventMatches({ tournament, source }) {
       if (!tournament.events) return { completed_matches: [], pending_matches: [], upcoming_matches: [], total_matches: 0 };
 
+      if (fx.isTeam(tournament)) {
+         console.log('determine team matches');
+         return { completed_matches: [], pending_matches: [], upcoming_matches: [], total_matches: 0 };
+      }
+
       var completed_matches = [];
       var pending_matches = [];
       var upcoming_matches = [];
@@ -300,6 +305,8 @@ export const matchFx = function() {
          }
       }
    }
+
+   fx.isTeam = (t) => { return ['team', 'dual'].indexOf(t.type) >= 0; }
 
    return fx;
 }();
