@@ -1368,7 +1368,7 @@ export function treeDraw() {
           .attr("text-anchor", "start")
           .attr("x", textX)
           .attr("y", o.players.offset_singles)
-          .html(d => playerName(d, 0))
+          .html(d => opponentName(d, 0))
           .style("font-weight", playerBold)
           .style("fill", "#000")
           .style("shape-rendering", "geometricPrecision")
@@ -1383,7 +1383,7 @@ export function treeDraw() {
           .attr("text-anchor", "start")
           .attr("x", textX)
           .attr("y", o.players.offset_singles + o.players.offset_doubles)
-          .html(d => playerName(d, 1))
+          .html(d => opponentName(d, 1))
           .style("font-weight", playerBold)
           .style("fill", "#000")
           .style("shape-rendering", "geometricPrecision")
@@ -1643,36 +1643,39 @@ export function treeDraw() {
          return d.data.team[which].club_code;
       }
 
-      function playerName(d, team=0) {
+      function opponentName(d, team=0) {
          if (!d.data.team) {
-
             // don't return info into team=1 position
             if (team || !d.data.match) return '';
-
             if (d.data.match.venue) return d.data.match.venue;
-
             return '';
          }
 
-         // reverse the display order of players if doubles
+         // reverse the display order of opponent if doubles
          if (d.data.team.length == 2) team = 1 - team;
 
-         let player = d.data.team[team];
-         if (!player) return '';
-         if (player.bye) return o.text.bye;
-         if (player.qualifier && !player.last_name) return o.text.qualifier;
+         let opponent = d.data.team[team];
+         if (!opponent) return '';
+         if (opponent.bye) return o.text.bye;
+         if (opponent.qualifier && !opponent.last_name) return o.text.qualifier;
 
-         let seeded_player = player.seed && player.seed <= (o.seeds.limit || dfx.seedLimit(total_players)); 
-         let seed = (seeded_player && o.names.seed_number && !team) ? ` [${player.seed}]` : '';
+         let seeded_opponent = opponent.seed && opponent.seed <= (o.seeds.limit || dfx.seedLimit(total_players)); 
+         let seed = (seeded_opponent && o.names.seed_number && !team) ? ` [${opponent.seed}]` : '';
 
-         let first_initial = player.first_name ? `, ${player.first_name[0]}` : '';
-         let first_name = player.first_name ? `, ${player.first_name}` : '';
-         let first_first_name = player.first_name && player.first_name.split(' ').length > 1 ? `, ${player.first_name.split(' ')[0]}` : first_name;
-         let last_name = player.last_name ? player.last_name : '';
-         let last_first_i = `${last_name}${first_initial}${seed}`;
-         let text = `${last_name}${first_name}${seed}`;
-         if (text.length > length_threshold) text = `${last_name}${first_first_name}${seed}`;
-         if (o.names.first_initial || text.length > length_threshold) text = last_first_i;
+         var text;
+         if (opponent.name) {
+            text = `${opponent.name}${seed}`;
+            if (text.length > length_threshold && opponent.abbr) text = `${opponent.abbr}${seed}`;
+         } else {
+            let first_initial = opponent.first_name ? `, ${opponent.first_name[0]}` : '';
+            let first_name = opponent.first_name ? `, ${opponent.first_name}` : '';
+            let first_first_name = opponent.first_name && opponent.first_name.split(' ').length > 1 ? `, ${opponent.first_name.split(' ')[0]}` : first_name;
+            let last_name = opponent.last_name ? opponent.last_name : '';
+            let last_first_i = `${last_name}${first_initial}${seed}`;
+            text = `${last_name}${first_name}${seed}`;
+            if (text.length > length_threshold) text = `${last_name}${first_first_name}${seed}`;
+            if (o.names.first_initial || text.length > length_threshold) text = last_first_i;
+         }
 
          return text;
       }
@@ -3338,8 +3341,6 @@ export function drawFx(opts) {
    fx.matchNode = matchNode;
    function matchNode(node) {
       if (!node || !node.data || !node.data.children) return false;
-      // TODO: not a match node if position is a qualifier with no id
-      // let teams = node.data.children.map(m=>m.team && m.team[0].id ? m.team : undefined).filter(f=>f);
       let teams = node.data.children.map(m=>m.team).filter(f=>f);
       return (teams.length == 2) ? teams : false;
    }
