@@ -356,7 +356,7 @@ export const fetchFx = function() {
             function responseHandler(result) {
                if (result.json) {
                   let players = result.json.filter(p=>p.first_name && p.last_name);
-                  normalizePlayers(players);
+                  normalizePlayers(players, fetchobj);
 
                   if (max_id) updatePlayerDates();
                } else {
@@ -368,7 +368,7 @@ export const fetchFx = function() {
 
          // TODO: PUID generation should occur on the remote server, not in this script!
          // nameHash should be elminated...
-         function normalizePlayers(players) {
+         function normalizePlayers(players, fetchobj) {
             let parser = fetchobj.parser && fetchobj.parser.fx && util.createFx(fetchobj.parser.fx);
 
             players.forEach(player => {
