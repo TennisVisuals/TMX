@@ -487,14 +487,18 @@ export const tournamentFx = function() {
 
       if (edraw) {
          let info = edraw ? dfx.drawInfo(edraw) : undefined;
-         let approved_opponents = fx.approvedOpponents({ tournament, env, e: elimination_event });
+         // let approved_opponents = fx.approvedOpponents({ tournament, env, e: elimination_event });
+         let approved_opponents = fx.approvedOpponents({ tournament, e: elimination_event });
          approved_opponents.forEach(team=>team.forEach(player=>player.draw_position = info.assigned_positions[player.id]));
          edraw.opponents = approved_opponents;
          edraw.unseeded_teams = fx.teamSort(approved_opponents.filter(f=>!f[0].seed));
       }
    }
 
-   fx.approvedOpponents = ({ tournament, env, e }) => {
+   // fx.approvedOpponents = ({ tournament, env, e }) => {
+   fx.approvedOpponents = ({ tournament, e }) => {
+      let env = fx.fx.env();
+
       let approved = [];
       let entry_data = {};
 
@@ -503,25 +507,25 @@ export const tournamentFx = function() {
          e.draw.opponents.forEach(opponent=>opponent.forEach(plyr=>entry_data[plyr.id] = plyr.entry));
       }
 
-      if (e.format == 'S') { 
-         approved = fx.approvedPlayers({ tournament, env, e }).map(p=>[p]);
+      if (fx.isTeam(tournament)) {
+         approved = fx.approvedTournamentTeams({ tournament, e }).map(t=>[t]);
       } else {
-         approved = fx.approvedTeams({ tournament, e })
-            .map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));;
-         // approved = fx.approvedTeams({ tournament, e })
-         // .map(team => team.players.map(player => Object.assign(playerFx.playerCopy(player), { seed: team.seed })));;
+         if (e.format == 'S') { 
+            approved = fx.approvedPlayers({ tournament, e }).map(p=>[p]);
+         } else {
+            approved = fx.approvedDoubles({ tournament, e })
+               .map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));;
+         }
+         approved.forEach(opponent => opponent.forEach(plyr => {
+            // TODO:  should be unnecessary if players names normalized when added
+            // to database or entered via tournament registration...
+            plyr.first_name = util.normalizeName(plyr.first_name, false);
+            plyr.last_name = util.normalizeName(plyr.last_name, false);
+         }));
       }
 
       // assign any previous entry data to players
-      approved.forEach(opponent => opponent.forEach(plyr => {
-
-         // TODO:  should be unnecessary if players names normalized when added
-         // to database or entered via tournament registration...
-         plyr.first_name = util.normalizeName(plyr.first_name, false);
-         plyr.last_name = util.normalizeName(plyr.last_name, false);
-
-         if (entry_data[plyr.id]) plyr.entry = entry_data[plyr.id];
-      }));
+      approved.forEach(opponent => opponent.forEach(plyr => { if (entry_data[plyr.id]) plyr.entry = entry_data[plyr.id]; }));
 
       return approved;
    }
@@ -537,7 +541,7 @@ export const tournamentFx = function() {
       return ranked;
    }
 
-   fx.approvedTeams = ({ tournament, e }) => {
+   fx.approvedDoubles = ({ tournament, e }) => {
       if (!e.wildcards) e.wildcards = [];
       if (!e.luckylosers) e.luckylosers = [];
 
@@ -610,7 +614,23 @@ export const tournamentFx = function() {
       }
    }
 
-   fx.approvedPlayers = ({ tournament, env, e }) => {
+   fx.approvedTournamentTeams = ({ tournament, e }) => {
+      let env = fx.fx.env();
+      let approved_teams = (tournament.teams || [])
+         .filter(t => e.approved.indexOf(t.uuid) >= 0)
+         .map(teamCopy);
+      return approved_teams;
+   }
+
+   function teamCopy(team) {
+      let team_copy = Object.assign({}, team);
+      if (team.players) team_copy.players = Object.keys(team.players).map(k=>team.players[k]);
+      return team_copy;
+   }
+
+   fx.approvedPlayers = ({ tournament, e }) => {
+      let env = fx.fx.env();
+
       let approved_players = (tournament.players || [])
          .filter(p => e.approved.indexOf(p.id) >= 0)
          // make a copy of player objects to avoid changing originals
@@ -621,7 +641,8 @@ export const tournamentFx = function() {
       // Round Robins must have at least one seed per bracket
       if (e.draw_type == 'R') seed_limit = Math.max(seed_limit, e.brackets * 2);
       if (e.draw_type == 'Q') seed_limit = fx.qualifierSeedLimit({ env, e }) || seed_limit;
-      if (e.draw_type == 'C' && !fx.fx.env().drawFx.consolation_seeding) seed_limit = 0;
+      // if (e.draw_type == 'C' && !fx.fx.env().drawFx.consolation_seeding) seed_limit = 0;
+      if (e.draw_type == 'C' && !env.drawFx.consolation_seeding) seed_limit = 0;
 
       let ranked_players = approved_players.filter(a=>a.category_ranking).length;
 
@@ -650,7 +671,7 @@ export const tournamentFx = function() {
             let luckyloser = e.luckylosers && e.luckylosers.indexOf(p.id) >= 0;
             p.entry = qualifier ? 'Q' : alternate ? 'A' : wildcard ? 'WC' : luckyloser ? 'LL' : p.entry;
 
-            // TODO: implement qualifier in approvedTeams?
+            // TODO: implement qualifier in approvedDoubles?
 
             // draw_order is order in ranked list of event players
             p.draw_order = i + 1;
@@ -932,6 +953,34 @@ export const tournamentFx = function() {
       }
    }
 
+   fx.eligibleTeams = (tournament, e, ineligible_teams, unavailable_teams) => {
+      if (!unavailable_teams) {
+         let unavailable = fx.unavailableTeams(tournament, e);
+         unavailable_teams = unavailable.teams;
+      }
+
+      let unavailable_uuids = unavailable_teams.map(p=>p.uuid);
+
+      ineligible_teams = ineligible_teams || fx.ineligibleTeams(tournament, e).teams;
+      let ineligible_uuids = ineligible_teams.map(p=>p.uuid);
+
+      let available_teams = tournament.teams
+         .filter(t => ineligible_uuids.indexOf(t.uuid) < 0)
+         .map((t, i) => { return Object.assign({}, t); })
+         .filter(t => unavailable_uuids.indexOf(t.uuid) < 0)
+         .filter(t => e.approved.indexOf(t.uuid) < 0);
+
+      return { teams: available_teams }
+   }
+
+   fx.ineligibleTeams = (tournament, e) => {
+      return { teams: [] }
+   }
+
+   fx.unavailableTeams = (tournament, e) => {
+      return { teams: [] };
+   }
+
    fx.tournamentCategories = (tournament) => {
       if (!tournament.events || !tournament.events.length) return tournament.categories;
       return util.unique(tournament.events.map(e=>e.category));
@@ -1050,12 +1099,17 @@ export const tournamentFx = function() {
 
    fx.teamSort = (teams) => {
       return teams.sort((a, b) => {
-         if (!a[0].full_name) a.full_name = `${a[0].last_name.toUpperCase()}, ${util.normalizeName(a[0].first_name)}`;
-         if (!b[0].full_name) b.full_name = `${b[0].last_name.toUpperCase()}, ${util.normalizeName(b[0].first_name)}`;
+         if (!a[0].full_name) a[0].full_name = fx.fullName(a[0]);
+         if (!b[0].full_name) b[0].full_name = fx.fullName(b[0]);
          let a1 = util.replaceDiacritics(a[0].full_name);
          let b1 = util.replaceDiacritics(b[0].full_name);
          return a1 < b1 ? -1 : a1 > b1 ? 1 : 0
       });
+   }
+
+   fx.fullName = (o, noaccents=true) => {
+      if (o.last_name && o.first_name) return `${o.last_name.toUpperCase()}, ${util.normalizeName(o.first_name, noaccents)}`; 
+      return o.name || '';
    }
 
    // RR Events
@@ -1231,6 +1285,7 @@ export const tournamentFx = function() {
       evt.error_log.push({ timestamp, error: err.toString(), stack: err.stack && err.stack.toString(), context });
    }
 
+   fx.isTeam = (t) => { return ['team', 'dual'].indexOf(t.type) >= 0; }
    function internationalRanking(p) { return p.int > 0; }
    function teamHash(team) { return team.map(p=>p.id).join('|'); }
 
