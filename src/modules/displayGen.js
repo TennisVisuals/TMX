@@ -2365,6 +2365,7 @@ export const displayGen = function() {
          team_display_name: displayFx.uuid(),
          team_edit_name: displayFx.uuid(),
          team_attributes: displayFx.uuid(),
+         dual: displayFx.uuid(),
       }
 
       let classes = {
@@ -2677,6 +2678,8 @@ export const displayGen = function() {
                </div>
             </div>
             <div id='${ids.draws}' class='tournament_match flexcol flexcenter drawdraw'> </div>
+            <div id='${ids.dual}' class='tournament_match flexcol flexcenter dualmatches'>
+            </div>
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
             <div class='doclink' url='tmx_tournament_draws'><div class='tiny_docs_icon' style='display: none'></div></div>
@@ -3315,6 +3318,12 @@ export const displayGen = function() {
    }
 
    gen.displayDualMatchDetails = ({ container, e, matchorder, edit }) => {
+      let ids = {
+         eligible: displayFx.uuid(),
+         draw_type: displayFx.uuid(),
+         approved_count: displayFx.uuid(),
+         eligible_count: displayFx.uuid(),
+      }
       let draggable = edit ? ` draggable = "true"` : '';
       let counters = { singles: 0, doubles: 0 };
       let matches = matchorder.map((m, i) => {
@@ -3342,10 +3351,35 @@ export const displayGen = function() {
          </div>
       `;
 
+      let removeall = !edit ? '' : `<div class='removeall ${gen.infoleft}' label='${lang.tr("tournaments.removeall")}'>-</div>`;
+      let addall = !edit ? '' : `<div class='addall ${gen.infoleft}' label='${lang.tr("tournaments.addall")}'>+</div>`;
+      let promoteall = !edit ? '' : `<div class='promoteall ${gen.infoleft}' label='${lang.tr("tournaments.addall")}'>+</div>`;
+      let approved_count = e && e.approved && e.approved.length ? `(${e.approved.length})` : '';
+      let eligible_count = '';
+
+      let detail_opponents = `
+         <div class='flexrow divider approved'>
+            <div>${lang.tr('events.approved')} <span id='${ids.approved_count}'>${approved_count}</span></div>
+            ${removeall}
+         </div>
+         <div grouping='approved' class='approved_teams opponent_container'></div>
+
+         <div class='flexrow divider event_teams' style='display: none'>
+            <div>${lang.tr('events.teams')}</div>
+            ${promoteall}
+         </div>
+
+         <div class='flexrow divider eligible'>
+            <div id='${ids.eligible}' class='ctxclk'>${lang.tr('events.eligible')} <span id='${ids.eligible_count}'></span></div>
+            ${addall}
+         </div>
+         <div grouping='eligible' class='eligible_teams opponent_container'></div>
+      `;
       // container.detail_opponents.element.innerHTML = match_priority;
 
       // bug where selecting tab displays tab from another instance of jsTabs...
       let tabdata = [];
+      tabdata.push({ tab: 'Opponents', content: detail_opponents });
       tabdata.push({ tab: 'Match Priority', content: match_priority });
       tabdata.push({ tab: 'Match Points', content: match_points });
 
@@ -3407,19 +3441,19 @@ export const displayGen = function() {
             <div>${lang.tr('events.approved')} <span id='${ids.approved_count}'>${approved_count}</span></div>
             ${removeall}
          </div>
-         <div grouping='approved' class='approved_players player_container'></div>
+         <div grouping='approved' class='approved_players opponent_container'></div>
 
          <div class='flexrow divider event_teams' style='display: none'>
             <div>${lang.tr('events.teams')}</div>
             ${promoteall}
          </div>
-         <div grouping='team' class='team_players player_container'></div>
+         <div grouping='team' class='team_players opponent_container'></div>
 
          <div class='flexrow divider eligible'>
             <div id='${ids.eligible}' class='ctxclk'>${lang.tr('events.eligible')} <span id='${ids.eligible_count}'></span></div>
             ${addall}
          </div>
-         <div grouping='eligible' class='eligible_players player_container'></div>
+         <div grouping='eligible' class='eligible_players opponent_container'></div>
       `;
       container.detail_opponents.element.innerHTML = detail_opponents;
 
@@ -3565,7 +3599,33 @@ export const displayGen = function() {
       event_details.select('.event_name').html(full_name);
    }
 
-   gen.displayEventPlayers = ({ container, approved, teams, eligible, ratings }) => {
+   gen.displayEventTeams = ({ container, approved, eligible }) => {
+      genGrouping(approved, 'approved');
+      genGrouping(eligible, 'eligible');
+
+      function genGrouping(teams, group_class) {
+         let html = teams.map(row => opponentBox(row)).join('');
+         let elem = d3.select(container.event_details.element).select(`.${group_class}_teams`);
+         elem.html(html);
+      }
+
+      function opponentBox(team) {
+         let tt_click = team.players ? ' tt_click' : '';
+         let wildcard = team.wildcard ? `<div class="border_padding"><b>[WC]</b></div>` : '';
+         let style = !wildcard ? '' : `style='color: green'`;
+
+         let uuid = ` uuid='${team.uuid}' `;
+         let html = `<div ${style} ${uuid} class='team_box${tt_click}'>
+                        <div class='flexcol'>`;
+         html += team.name;
+         html += `      </div>
+                        ${wildcard}
+                     </div>`;
+         return html;
+      }
+   }
+
+   gen.displayEventPlayers = ({ container, teams, approved, eligible, ratings }) => {
       genGrouping(approved, 'approved');
       genGrouping(teams, 'team');
       genGrouping(eligible, 'eligible');
