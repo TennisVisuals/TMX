@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.0.41.60.39',
+      version: '1.0.42.61.40',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -1237,17 +1237,25 @@ export const config = function() {
          version: env.version
       });
 
+      function notShared() {
+         coms.emitTmx({ 
+            event: 'Connection',
+            notice: `lat/lng: Geolocation Not Shared`,
+         });
+      }
+
+      function shared(pos) {
+         device.geoposition = pos;
+         coms.emitTmx({ 
+            event: 'Connection',
+            notice: `lat/lng: ${pos.coords.latitude}, ${pos.coords.longitude}`,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+         });
+      }
       // used to locate known tournaments in vicinity; auto-fill country
       if (env.locations.geolocate && window.navigator.onLine && window.navigator.geolocation) {
-         window.navigator.geolocation.getCurrentPosition(pos => { 
-            device.geoposition = pos;
-            coms.emitTmx({ 
-               event: 'Connection',
-               notice: `lat/lng: ${pos.coords.latitude}, ${pos.coords.longitude}`,
-               latitude: pos.coords.latitude,
-               longitude: pos.coords.longitude,
-            });
-         });
+         window.navigator.geolocation.getCurrentPosition(shared, notShared);
       }
       env.version_check = new Date().getTime();
    }
