@@ -34,7 +34,8 @@ export const tournamentFx = function() {
 
    fx.findTeamByID = (tournament, id) => {
       if (!id || !tournament || !tournament.teams || tournament.teams.length < 1) return;
-      return tournament.teams.reduce((p, c) => c.uuid == id ? c : p, undefined);
+      // return tournament.teams.reduce((p, c) => c.uuid == id ? c : p, undefined);
+      return tournament.teams.reduce((p, c) => c.id == id ? c : p, undefined);
    }
 
    fx.genEventName = (e, pre) => {
@@ -617,7 +618,8 @@ export const tournamentFx = function() {
    fx.approvedTournamentTeams = ({ tournament, e }) => {
       let env = fx.fx.env();
       let approved_teams = (tournament.teams || [])
-         .filter(t => e.approved.indexOf(t.uuid) >= 0)
+         // .filter(t => e.approved.indexOf(t.uuid) >= 0)
+         .filter(t => e.approved.indexOf(t.id) >= 0)
          .map(teamCopy);
       return approved_teams;
    }
@@ -959,16 +961,21 @@ export const tournamentFx = function() {
          unavailable_teams = unavailable.teams;
       }
 
-      let unavailable_uuids = unavailable_teams.map(p=>p.uuid);
+      // let unavailable_uuids = unavailable_teams.map(p=>p.uuid);
+      let unavailable_uuids = unavailable_teams.map(p=>p.id);
 
       ineligible_teams = ineligible_teams || fx.ineligibleTeams(tournament, e).teams;
-      let ineligible_uuids = ineligible_teams.map(p=>p.uuid);
+      // let ineligible_uuids = ineligible_teams.map(p=>p.uuid);
+      let ineligible_uuids = ineligible_teams.map(p=>p.id);
 
       let available_teams = tournament.teams
-         .filter(t => ineligible_uuids.indexOf(t.uuid) < 0)
+         // .filter(t => ineligible_uuids.indexOf(t.uuid) < 0)
+         .filter(t => ineligible_uuids.indexOf(t.id) < 0)
          .map((t, i) => { return Object.assign({}, t); })
-         .filter(t => unavailable_uuids.indexOf(t.uuid) < 0)
-         .filter(t => e.approved.indexOf(t.uuid) < 0);
+         // .filter(t => unavailable_uuids.indexOf(t.uuid) < 0)
+         .filter(t => unavailable_uuids.indexOf(t.id) < 0)
+         // .filter(t => e.approved.indexOf(t.uuid) < 0);
+         .filter(t => e.approved.indexOf(t.id) < 0);
 
       return { teams: available_teams }
    }
