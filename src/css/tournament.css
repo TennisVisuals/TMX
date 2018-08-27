@@ -1176,3 +1176,25 @@ button.ratings-submit:hover { background: #68FF33; }
    font-size: 1em;
    margin: .5em;
 }
+
+/* dual matches */
+
+.dual_matches {
+   margin-top: 1.5em;
+}
+
+.team_score_display {
+   display: grid;
+   justify-items: center;
+   align-items: center;
+   grid-template-columns: 120px 60px 30px 60px 120px;
+   grid-template-areas: "a c d e b";
+   padding: 1em;
+   border: 1px solid gray;
+}
+
+.team_score_box {
+   padding: .8em;
+   font-size: 1.2em;
+   border: 1px solid gray;
+}
