@@ -693,6 +693,16 @@ export const exportFx = function() {
             minPlayerHeight: 180,
             detail_attr: { font_size: 40, seeding_font_size: 54 }
          });
+      } else if (opponent_count <= 8) {
+         draw.options({
+            names: { length_divisor: 23, max_font_size: 50, min_font_size: 50 },
+            umpires: { offset: 45 },
+            matchdates: { offset: 45 },
+            detail_offsets: { base: 80, width: 65 },
+            lines: { stroke_width: 4 },
+            minPlayerHeight: 170,
+            detail_attr: { font_size: 40, seeding_font_size: 54 }
+         });
       } else if (opponent_count <= 16) {
          draw.options({
             names: { length_divisor: 23, max_font_size: 50, min_font_size: 50 },
@@ -700,7 +710,7 @@ export const exportFx = function() {
             matchdates: { offset: 45 },
             detail_offsets: { base: 80, width: 65 },
             lines: { stroke_width: 4 },
-            minPlayerHeight: 130,
+            minPlayerHeight: 150,
             detail_attr: { font_size: 40, seeding_font_size: 54 }
          });
       } else if (opponent_count <= 24) {
