@@ -2293,7 +2293,6 @@ export const displayGen = function() {
          draws: displayFx.uuid(),
          points: displayFx.uuid(),
          matches: displayFx.uuid(),
-         dual: displayFx.uuid(),
          events: displayFx.uuid(),
          select_draw: displayFx.uuid(),
          compass: displayFx.uuid(),
@@ -2678,7 +2677,14 @@ export const displayGen = function() {
                </div>
             </div>
             <div id='${ids.draws}' class='tournament_match flexcol flexcenter drawdraw'> </div>
-            <div id='${ids.dual}' class='tournament_match flexcol flexcenter dualmatches'>
+            <div id='${ids.dual}' class='dual_matches flexcol flexcenter' style='display: none'>
+               <div class='team_score_display'>
+                  <div class='team_name team1' style='grid-area:a'></div>
+                  <div class='team_name team2' style='grid-area:b'></div>
+                  <div class='team_score' style='grid-area:c''><div class='team_score_box team1'>0</div></div>
+                  <div class='team_divider' style='grid-area:d'>vs.</div>
+                  <div class='team_score' style='grid-area:e'><div class='team_score_box team2'>0</div></div>
+               </div>
             </div>
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
@@ -3124,9 +3130,9 @@ export const displayGen = function() {
    }
 
    function teamRow(team, i, highlighted) {
-      let highlight = highlighted != undefined && highlighted == team.uuid ? ' highlight_listitem' : '';
+      let highlight = highlighted != undefined && highlighted == team.id ? ' highlight_listitem' : '';
       let html = `
-         <div class='teamrow teamid team_row ${highlight}' index='${i}' uuid='${team.uuid}'>
+         <div class='teamrow teamid team_row ${highlight}' index='${i}' uuid='${team.id}'>
             <div class='teamrow tname'>${team.name}</div>
             <div class='teamrow team_data flexcenter'>${team.members}</div>
             <div class='teamrow team_data flexcenter'>${team.total_matches || 0}</div>
@@ -3614,7 +3620,7 @@ export const displayGen = function() {
          let wildcard = team.wildcard ? `<div class="border_padding"><b>[WC]</b></div>` : '';
          let style = !wildcard ? '' : `style='color: green'`;
 
-         let uuid = ` uuid='${team.uuid}' `;
+         let uuid = ` uuid='${team.id}' `;
          let html = `<div ${style} ${uuid} class='team_box${tt_click}'>
                         <div class='flexcol'>`;
          html += team.name;
