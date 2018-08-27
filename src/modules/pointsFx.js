@@ -41,14 +41,17 @@ export const pointsFx = function() {
             let players_by_puid = Object.assign({}, ...players.map(p => { return { [p.puid]: p } }));
             let formatted_points = points.map(point => {
                let formatted_point = {};
-               if (exp.point_attributes) Object.assign(formatted_point, ...pointAttributes(point, players_by_puid[point.puid] || {}));
+               if (exp.point_attributes) Object.assign(formatted_point, ...pointAttributes(point, players_by_puid[point.puid]));
+               if (exp.player_attributes) Object.assign(formatted_point, ...playerAttributes(players_by_puid[point.puid] || {}));
                return formatted_point;
             });
 
             exportFormattedPoints({ org_abbr, formatted_points, tuid, group_size });
 
-            function pointAttributes(point) {
-               let player = players_by_puid[point.puid];
+            function playerAttributes(player) {
+               return !player ? [] : exp.player_attributes.map(attr => ({ [attr.name]: player[attr.attr] }));
+            }
+            function pointAttributes(point, player) {
                return exp.point_attributes.map(attr => ({ [attr.name]: attr.fx ? attr.fx(point, player) : '' }));
             }
          }
