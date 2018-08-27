@@ -33,6 +33,7 @@ export const tournamentDisplay = function() {
    let mfx = matchFx;
    let sfx = scheduleFx;
    let tfx = tournamentFx;
+   let dfx = drawFx();
 
    let o = {
       sign_in: { rapid: true, },
@@ -59,8 +60,11 @@ export const tournamentDisplay = function() {
       if (fx.fx.env().draws[type]) draw.options(fx.fx.env().draws[type]);
    }
 
-   let dfx = drawFx();
    db.addDev({dfx});
+   db.addDev({tfx});
+   db.addDev({mfx});
+   db.addDev({searchBox});
+   db.addDev({db});
 
    fx.settingsLoaded = (env) => {
       dfx.options(env.drawFx);
@@ -998,6 +1002,7 @@ export const tournamentDisplay = function() {
             generateDraw(evt, true);
             displayDraw({ evt });
             updateCompassDirections();
+            container.dual.element.style.display = 'none';
 
             // if (evt.published) evt.up_to_date = false;
             // displayGen.drawBroadcastState(container.publish_state.element, displayed_draw_event);
@@ -2372,7 +2377,8 @@ export const tournamentDisplay = function() {
             function doIt() {
                if (tfx.isTeam(tournament)) {
                   let eligible_teams = tfx.eligibleTeams(tournament, e).teams;
-                  e.approved = [].concat(...e.approved, ...eligible_teams.map(t=>t.uuid));
+                  // e.approved = [].concat(...e.approved, ...eligible_teams.map(t=>t.uuid));
+                  e.approved = [].concat(...e.approved, ...eligible_teams.map(t=>t.id));
                } else {
                   let eligible_players = tfx.eligiblePlayers(tournament, e).players;
                   if (e.ratings_filter && e.ratings && e.ratings.type) { eligible_players = filteredEligible(e, eligible_players); }
@@ -2583,7 +2589,8 @@ export const tournamentDisplay = function() {
             let teams = tournament.teams.map((team, i) => {
                let team_meta = {
                   name: team.name,
-                  uuid: team.uuid,
+                  id: team.id,
+                  // uuid: team.uuid,
                   winloss: '0/0',
                   members: team.players ? Object.keys(team.players).length : 0,
                   total_matches: 0
@@ -2785,7 +2792,8 @@ export const tournamentDisplay = function() {
 
          function selectionBox(teams) {
             let selection_flag = false;
-            let team_list = teams.map(t=>({ value: t.uuid, label: t.name }));
+            // let team_list = teams.map(t=>({ value: t.uuid, label: t.name }));
+            let team_list = teams.map(t=>({ value: t.id, label: t.name }));
             let type_ahead = new Awesomplete(teamsearch, { list: team_list });
             teamsearch.addEventListener("awesomplete-selectcomplete", function(e) { selection_flag = true; teamSelected(this.value); }, false);
             teamsearch.addEventListener('keydown', catchTab , false);
@@ -2826,9 +2834,11 @@ export const tournamentDisplay = function() {
 
             let team = {
                name: teamsearch.value,
-               uuid: UUID.new(),
-               abbr: '',
-               coach: '',
+               // uuid: UUID.new(),
+               id: UUID.new(),
+               abbr: undefined,
+               coach: undefined,
+               ioc: undefined,
                players: {}
             }
 
@@ -2970,10 +2980,12 @@ export const tournamentDisplay = function() {
       function displayTeam({ team, index } = {}) {
          if (!team) return;
 
-         let team_index = tournament.teams && tournament.teams.map(t=>t.uuid).indexOf(team.uuid);
+         // let team_index = tournament.teams && tournament.teams.map(t=>t.uuid).indexOf(team.uuid);
+         let team_index = tournament.teams && tournament.teams.map(t=>t.id).indexOf(team.id);
          index = index || (team_index >= 0 ? team_index : undefined);
 
          let team_details = displayGen.displayTeamDetails(container, team);
+         // TODO: team_details.ioc
          team_details.abbreviation.element.value = team.abbr || '';
          team_details.coach.element.value = team.coach || '';
 
@@ -3102,7 +3114,8 @@ export const tournamentDisplay = function() {
          util.addEventToClass('team_player', teamPlayerContext, container.team_details.element, 'contextmenu');
 
          container.team_details.element.style.display = 'flex';
-         container.team_details.element.setAttribute('uuid', team.uuid);
+         // container.team_details.element.setAttribute('uuid', team.uuid);
+         container.team_details.element.setAttribute('uuid', team.id);
          container.team_display_name.element.style.display = 'flex';
          container.team_display_name.element.innerHTML = team.name;
          container.team_edit_name.element.style.display = 'none';
@@ -6697,6 +6710,7 @@ export const tournamentDisplay = function() {
 
          // add round_name to matches
          mfx.eventMatches(e, tournament);
+         pushTournament2Cloud(tournament);
          saveTournament(tournament);
       }
 
@@ -7299,6 +7313,7 @@ export const tournamentDisplay = function() {
          if (state.edit && (!e.draw || e.regenerate)) {
             generateDraw(e);
             if (e.regenerate) {
+               container.dual.element.style.display = 'none';
                console.log('Regenerated => ', e.regenerate);
                delete e.regenerate;
             }
@@ -7314,6 +7329,8 @@ export const tournamentDisplay = function() {
          if (displayed_draw_event && e.euid == displayed_draw_event.euid) {
             displayGen.drawBroadcastState(container.publish_state.element, e);
          }
+
+         if (tfx.isTeam(tournament) && e.draw && e.draw.opponents && e.draw.opponents.length == 2) { teamTournamentScore({ data: e.draw }); }
 
          eventList();
          return;
@@ -7515,11 +7532,10 @@ export const tournamentDisplay = function() {
 
          function treePositionClick(d) {
             if (!d.height && !d.data.bye && !d.data.team) { return placeTreeDrawPlayer(d); }
+            if (tfx.isTeam(tournament)) return teamTournamentScore(d);
 
             // don't go any further if the draw is incomplete...
             if (displayed_draw_event && dfx.drawInfo(displayed_draw_event.draw).unassigned.length) { return; }
-
-            if (tfx.isTeam(tournament)) return teamTournamentScore(d);
 
             let existing_scores;
             let team_match = dfx.teamMatch(d);
@@ -7565,7 +7581,24 @@ export const tournamentDisplay = function() {
          }
 
          function teamTournamentScore(d) {
-            console.log('team tournament score:', d);
+            let teams = d && d.data && d.data.children && d.data.children.map(c=>c && c.team && c.team[0]).filter(f=>f);
+            let muid = d && d.data && d.data.match && d.data.match.muid;
+            if (teams && teams.length && teams.length == 2) { displayDualMatches(muid, teams); }
+         }
+
+         function displayDualMatches(muid, teams) {
+            let dual = container.dual.element;
+            dual.style.display = 'flex';
+            dual.querySelector('.team_name.team1').innerHTML = teams[0].name;
+            dual.querySelector('.team_name.team2').innerHTML = teams[1].name;
+
+            let e = tfx.findEventByID(tournament, displayed_event);
+            if (e) {
+               if (!e.draw.dual_matches) e.draw.dual_matches = {};
+               if (!e.draw.dual_matches[muid]) {
+                  e.draw.dual_matches[muid] = e.matchorder.map(m=>m);
+               }
+            }
          }
 
          function highlightCell(node) {
@@ -7766,10 +7799,10 @@ export const tournamentDisplay = function() {
             pobj.player_index.element.addEventListener('keyup', playerIndex , false);
 
             let selection_flag = false;
-            let playerLabel = (player) => util.normalizeName([player.first_name, player.last_name].join(' '));
+            let opponentLabel = (opponent) => util.normalizeName(opponent.name || [opponent.first_name, opponent.last_name].join(' '));
             let list = unplaced_teams.map(team => { 
-               let label = playerLabel(team[0]);
-               if (e.format == 'D') label += `/${playerLabel(team[1])}`;
+               let label = opponentLabel(team[0]);
+               if (e.format == 'D') label += `/${opponentLabel(team[1])}`;
                return { value: team[0].puid, label, }
             });
             pobj.typeAhead = new Awesomplete(pobj.player_search.element, { list });
@@ -8681,7 +8714,6 @@ export const tournamentDisplay = function() {
                }
                cMenu({ selector, coords, options, clickAction })
             }
-
          }
       }
 
