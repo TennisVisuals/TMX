@@ -439,7 +439,7 @@ export const displayGen = function() {
       gen.modal += 1;
    }
 
-   gen.showModal = (html, close = true, overflow) => {
+   gen.showModal = (html, close = true, overflow='auto') => {
       if (searchBox.element) searchBox.element.blur();
       document.body.style.overflow  = 'hidden';
       let modaltext = document.getElementById('modaltext');
@@ -448,7 +448,7 @@ export const displayGen = function() {
       document.getElementById('modal').style.display = "flex";
       if (modaltext.scrollIntoView) modaltext.scrollIntoView();
       let content = document.querySelector('.modal-content');
-      if (overflow) content.style.overflow = overflow;
+      content.style.overflow = overflow;
       gen.modal += 1;
    }
 
@@ -2684,6 +2684,8 @@ export const displayGen = function() {
                   <div class='team_score' style='grid-area:c''><div class='team_score_box team1'>0</div></div>
                   <div class='team_divider' style='grid-area:d'>vs.</div>
                   <div class='team_score' style='grid-area:e'><div class='team_score_box team2'>0</div></div>
+               </div>
+               <div class='ordered_dual_matches'>
                </div>
             </div>
          </div>
