@@ -7519,6 +7519,8 @@ export const tournamentDisplay = function() {
                } else {
                   treePositionClick(d);
                }
+            } else if (tfx.isTeam(tournament)) {
+               teamTournamentScore(d);
             }
          }
 
@@ -7582,23 +7584,36 @@ export const tournamentDisplay = function() {
 
          function teamTournamentScore(d) {
             let teams = d && d.data && d.data.children && d.data.children.map(c=>c && c.team && c.team[0]).filter(f=>f);
-            let muid = d && d.data && d.data.match && d.data.match.muid;
-            if (teams && teams.length && teams.length == 2) { displayDualMatches(muid, teams); }
+            let match = d && d.data && d.data.match;
+            if (teams && teams.length && teams.length == 2) { displayDualMatches(match, teams); }
          }
 
-         function displayDualMatches(muid, teams) {
+         function displayDualMatches(match, teams) {
             let dual = container.dual.element;
             dual.style.display = 'flex';
+            let score = match.score || [0, 0];
+
             dual.querySelector('.team_name.team1').innerHTML = teams[0].name;
             dual.querySelector('.team_name.team2').innerHTML = teams[1].name;
+            dual.querySelector('.team_score_box.team1').innerHTML = score[0];
+            dual.querySelector('.team_score_box.team2').innerHTML = score[1];
+            dual.querySelector('.team_divider').innerHTML = lang.tr('schedule.vs');
 
-            let e = tfx.findEventByID(tournament, displayed_event);
+            let e = tfx.findEventByID(tournament, match.euid);
             if (e) {
                if (!e.draw.dual_matches) e.draw.dual_matches = {};
-               if (!e.draw.dual_matches[muid]) {
-                  e.draw.dual_matches[muid] = e.matchorder.map(m=>m);
-               }
+               if (!e.draw.dual_matches[match.muid]) { e.draw.dual_matches[match.muid] = e.matchorder.map(m=>m); }
+               displayOrderedMatches(e, match.muid);
             }
+         }
+
+         function displayOrderedMatches(e, muid) {
+            console.log(e.draw, muid);
+            let elem = container.dual.element.querySelector('.ordered_dual_matches');
+            let matches = e.draw.dual_matches[muid];
+            matches.forEach(match => {
+               console.log('match:', match);
+            });
          }
 
          function highlightCell(node) {
