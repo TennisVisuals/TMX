@@ -216,7 +216,7 @@ export const tournamentFx = function() {
             }
          }
       } else {
-         active_in_linked = qlink && previous_winner && playerActiveInLinked(qlinkinfo, previous_winner);
+         active_in_linked = qlink && qlinkinfo && previous_winner && playerActiveInLinked(qlinkinfo, previous_winner);
       }
 
       let winner_changed = !previous_winner || !current_winner ? undefined : util.intersection(previous_winner, current_winner).length == 0;
@@ -1245,7 +1245,7 @@ export const tournamentFx = function() {
          qlink.approved = qlink.approved.filter(a=>team_ids.indexOf(a) < 0);
          qlink.up_to_date = false;
 
-         let qdraw = qlink.draw.compass ? qlink.draw.east : qlink.draw;
+         let qdraw = (qlink.draw && qlink.draw.compass) ? qlink.draw.east : qlink.draw;
          if (qlinkinfo) {
             qdraw.opponents = qdraw.opponents.filter(o=>util.intersection(o.map(m=>m.id), team_ids).length == 0);
             qlinkinfo.nodes.forEach(node => {
