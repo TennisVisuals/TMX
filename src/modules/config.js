@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.0.42.61.40',
+      version: '1.0.42.61.43',
       version_check: undefined,
       reset_new_versions: false,
 
