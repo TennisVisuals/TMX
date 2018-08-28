@@ -14,7 +14,7 @@ export const matchFx = function() {
       if (!tournament.events) return { completed_matches: [], pending_matches: [], upcoming_matches: [], total_matches: 0 };
 
       if (fx.isTeam(tournament)) {
-         console.log('determine team matches');
+         console.log('determine all team matches');
          return { completed_matches: [], pending_matches: [], upcoming_matches: [], total_matches: 0 };
       }
 
