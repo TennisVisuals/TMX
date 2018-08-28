@@ -114,7 +114,7 @@ export const util = function() {
       var nNames = name.split(' ').map(m => m.toLowerCase());
 
       var nName = nNames.map(function(m, i) { 
-         if (i == 0 || i == nNames.length - 1 || particles.indexOf(m.toLowerCase()) < 0) m = m[0].toUpperCase() + m.slice(1); 
+         if (i == 0 || i == nNames.length - 1 || particles.indexOf(m.toLowerCase()) < 0) m = m ? m[0].toUpperCase() + m.slice(1) : '';
          return m; 
       }).join(' ');
 
