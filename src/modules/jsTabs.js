@@ -31,7 +31,7 @@ export const jsTabs = function() {
       if (callback && typeof callback == 'function') callback(no - 2, reference);
    }
 
-   jsTabs.load = (el, callback, baseclass='jstabs') => {
+   jsTabs.load = ({ el, callback, baseclass='jstabs', tab }) => {
       let root = el || document;
       let es = root.querySelectorAll(`.${baseclass} .tabs > span`);
       for (let i = 0; i < es.length; i++) {
@@ -40,10 +40,10 @@ export const jsTabs = function() {
               el.addEventListener('click', st);
           })(es[i],i+1);
       }
-      let displayTab = (tab=0) => selectTab({ root, no: tab + 2, baseclass });
+      let displayTab = (t=0) => selectTab({ root, no: t + 2, baseclass });
 
       // by default display the first tab
-      displayTab();
+      displayTab(tab || 0);
 
       return displayTab;
    } 
