@@ -1176,7 +1176,7 @@ export const displayGen = function() {
       Object.assign(ids, submit.ids, existing.ids);
       let id_obj = displayFx.idObj(ids);
 
-      jsTabs.load(id_obj.container.element);
+      jsTabs.load({ el: id_obj.container.element });
       if (id_obj.cancel.element) id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
 
       if (keys.length) {
@@ -1223,7 +1223,7 @@ export const displayGen = function() {
 
       Object.assign(ids, ...Object.keys(tabs).filter(t=>tabs[t]).map(t=>tabs[t].ids));
       let id_obj = displayFx.idObj(ids);
-      jsTabs.load(id_obj.container.element);
+      jsTabs.load({ el: id_obj.container.element });
 
       return { container: id_obj };
    }
@@ -1883,7 +1883,7 @@ export const displayGen = function() {
       }
       let html = ` <div>${jsTabs.generate({ tabs: tabdata })}</div> `;
       container.rankings.element.innerHTML = html;
-      jsTabs.load(container.rankings.element);
+      jsTabs.load({ el: container.rankings.element });
    }
 
    gen.tabbedPlayerMatches = (puid, singles, doubles, container) => {
@@ -1902,7 +1902,7 @@ export const displayGen = function() {
          <div>${tabs}</div>
       `;
       container.matches.element.innerHTML = html;
-      jsTabs.load(container.matches.element);
+      jsTabs.load({ el: container.matches.element });
    }
 
    gen.playerHead2Head = (singles, puid) => {
@@ -2685,7 +2685,8 @@ export const displayGen = function() {
                   <div class='team_divider' style='grid-area:d'>vs.</div>
                   <div class='team_score' style='grid-area:e'><div class='team_score_box team2'>0</div></div>
                </div>
-               <div class='ordered_dual_matches'>
+               <div class='dual_matches_container'>
+                  <div class='ordered_dual_matches'></div>
                </div>
             </div>
          </div>
@@ -2785,11 +2786,24 @@ export const displayGen = function() {
       let display_context = selectDisplay(html, ['identify', 'tournament']);
 
       let id_obj = displayFx.idObj(ids);
-      let displayTab = jsTabs.load(id_obj.container.element, tabCallback);
+      let displayTab = jsTabs.load({ el: id_obj.container.element, callback: tabCallback });
 
       let class_obj = classObj(classes);
 
       return { container: id_obj, classes: class_obj, displayTab, display_context, tab_refs };
+   }
+
+   gen.orderedDualMatches = ({ element, matches }) => {
+      element.innerHTML = matches.map(dualMatch).join('');
+
+      function dualMatch(match) {
+         let html = `
+            <div class='dual_match_container'>
+               <div class='dual_match flexcenter'>${match.order}</div>
+            </div>
+         `;
+         return html;
+      }
    }
 
    gen.showLocations = ({ element, locations }) => {
@@ -3296,8 +3310,18 @@ export const displayGen = function() {
                <div class='entry_field' id='${ids.surface}'></div>
                <div class='entry_field' id='${ids.inout}'></div>
                <div class='entry_field'></div>
-               <div class='entry_field' id='${ids.singles_limit}'></div>
-               <div class='entry_field' id='${ids.doubles_limit}'></div>
+               <div class='entry_field dd'>
+                  <div class='label'></div>
+                  <div id='${ids.singles_limit}' class='scoringformat flexcenter' style='border: 1px solid #000'>
+                     <input class='matchlimit' value='0' disabled>
+                  </div>
+               </div>
+               <div class='entry_field dd'>
+                  <div class='label'></div>
+                  <div id='${ids.doubles_limit}' class='scoringformat flexcenter' style='border: 1px solid #000'>
+                     <input class='matchlimit' value='0' disabled>
+                  </div>
+               </div>
                <div class='entry_field'></div>
                <div class='entry_field dd'>
                   <div class='label'></div>
@@ -3320,12 +3344,10 @@ export const displayGen = function() {
       dd.attachDropDown({ id: ids.rank,  options: getRanks(tournament) });
       dd.attachDropDown({ id: ids.surface,  options: surfaces });
       dd.attachDropDown({ id: ids.inout,  options: inout });
-      dd.attachDropDown({ id: ids.singles_limit });
-      dd.attachDropDown({ id: ids.doubles_limit });
       return displayFx.idObj(ids);
    }
 
-   gen.displayDualMatchDetails = ({ container, e, matchorder, edit }) => {
+   gen.displayDualMatchDetails = ({ container, e, matchorder, edit, tab, tabCallback }) => {
       let ids = {
          eligible: displayFx.uuid(),
          draw_type: displayFx.uuid(),
@@ -3337,10 +3359,12 @@ export const displayGen = function() {
       let matches = matchorder.map((m, i) => {
          counters[m.format] += 1;
          let format = (m.format == 'doubles') ? lang.tr('dbl') : lang.tr('sgl');
+         let background = m.gender || m.format;
          let matchblock = `
             <li class="team_match"${draggable}>
-               <div class='matchname ${m.format}'>#${counters[m.format]} ${format}</div>
-               <div class='value ${m.format}'><input index='${i}' class='${m.format} matchvalue' value='${m.value}' disabled></div>
+               <div class='value ${background}'><input index='${i}' class='${background} matchgender' value='${m.gender || ''}' disabled></div>
+               <div class='matchname ${background}'>#${counters[m.format]} ${format}</div>
+               <div class='value ${background}'><input index='${i}' class='${background} matchvalue' value='${m.value}' disabled></div>
             </li>`;
          return matchblock;
       }).join('');
@@ -3392,7 +3416,7 @@ export const displayGen = function() {
       tabdata.push({ tab: 'Match Points', content: match_points });
 
       container.detail_opponents.element.innerHTML = jsTabs.generate({ tabs: tabdata, shadow: false });
-      jsTabs.load(container.detail_opponents.element);
+      return jsTabs.load({ el: container.detail_opponents.element, callback: tabCallback, tab });
    }
 
    gen.displayEventDetails = ({ tournament, container, e, genders, inout, surfaces, formats, draw_types, edit }) => {
@@ -4197,7 +4221,7 @@ export const displayGen = function() {
       `;
       selectDisplay(html, 'ranklists');
       let id_obj = displayFx.idObj(ids);
-      jsTabs.load(id_obj.container.element);
+      jsTabs.load({ el: id_obj.container.element });
       return id_obj;
    }
 
@@ -4681,7 +4705,7 @@ export const displayGen = function() {
 
       if (tabdata) {
          id_obj.tabs.element.innerHTML = jsTabs.generate({ tabs: tabdata });
-         jsTabs.load(id_obj.tabs.element);
+         jsTabs.load({ el: id_obj.tabs.element });
       }
 
       if (gps) {
