@@ -502,8 +502,8 @@ ul.noindent { margin: 0; padding: 0; }
    -webkit-align-items: center;
    align-items: center;
 }
-.team_match .matchvalue {
-   width: 3em;
+.team_match .matchvalue, .team_match .matchgender {
+   width: 2em;
    margin-right: .5em;
    text-align: center;
    color: #494949;
@@ -514,6 +514,10 @@ ul.noindent { margin: 0; padding: 0; }
 
 .team_match .singles { background-color: #e5e5e5; }
 .team_match .doubles { background-color: darkgray; }
+.team_match .M { background-color: lightblue; }
+.team_match .F { background-color: pink; }
+.team_match .X { background-color: #e5e5e5; }
+.team_match .white { background-color: white; }
 
 .team_match.over {
    min-width: 22em;
@@ -774,6 +778,7 @@ button.ratings-submit:hover { background: #68FF33; }
    text-align: center;
    white-space: nowrap;
    vertical-align: middle;
+   min-width: 3em;
 }
 
 .event_details, .team_details {
@@ -1197,4 +1202,48 @@ button.ratings-submit:hover { background: #68FF33; }
    padding: .8em;
    font-size: 1.2em;
    border: 1px solid gray;
+}
+
+.matchlimit {
+   width: 1.5em;
+   text-align: center;
+   border: none;
+   font-size: 1em;
+   font-color: black;
+}
+
+.dual_matches_container {
+   margin: 1em;
+   width: 100%;
+   max-width: 1200px;
+}
+
+.ordered_dual_matches {
+   width: 100%;
+   display: flex;
+	flex-wrap: wrap;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: space-around;
+   justify-content: space-around;
+}
+
+.dual_match_container {
+   flex-grow: 1;
+   margin: 1em;
+   min-width: 380px;
+   display: flex;
+   -webkit-justify-content: center;
+   justify-content: center;
+   -webkit-align-content: center;
+   align-content: center;
+   -webkit-align-items: center;
+   align-items: center;
+}
+
+.dual_match {
+   border: 1px solid gray;
+   max-width: 500px;
+   height: 5em;
+   width: 100%;
 }
