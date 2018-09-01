@@ -330,6 +330,42 @@ export const displayGen = function() {
       gen.actionMessage({ message, actionFx: okAction, action: lang.tr('actions.ok'), cancelAction });
    }
 
+   gen.buttonSelect = ({ message_ids, message, buttons, actionFx, cancel, cancelAction, alt, altAction }) => {
+      buttons = buttons || [];
+      if (searchBox.element) searchBox.element.blur();
+      if (!cancel) cancel = lang.tr('actions.cancel');
+      let ids = { cancel: displayFx.uuid() }
+      if (alt && altAction) ids.alt = displayFx.uuid();
+      let button_html = '';
+      buttons.forEach(button => {
+         ids[`btn_${button}`] = displayFx.uuid();
+         button_html += `<button id='${ids[`btn_${button}`]}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${button}</button>`;
+      });
+      if (message_ids) Object.assign(ids, message_ids);
+
+      document.body.style.overflow  = 'hidden';
+      document.getElementById('processing').style.display = "flex";
+      let alt_button = ids.alt ? `<button id='${ids.alt}' class='btn btn-medium edit-submit' style='margin-right: 1em;'>${alt}</button>` : '';
+      let html = `
+         <div style='margin: 1em'>${message}</div>
+         <div class="flexcenter" style='margin-bottom: 1em; margin-right: 1em;'> ${button_html} </div>
+         <div class="flexcenter" style='margin-bottom: 2em;'>
+            ${alt_button}
+            <button id='${ids.cancel}' class='btn btn-medium dismiss' style='display: none'>${cancel}</button>
+         </div>
+      `;
+      document.getElementById('processingtext').innerHTML = html;
+      let id_obj = displayFx.idObj(ids);
+      id_obj.cancel.element.addEventListener('click', cancelAction);
+      if (id_obj.alt) id_obj.alt.element.addEventListener('click', altAction);
+      if (actionFx && typeof actionFx == 'function') {
+         buttons.forEach(button => { id_obj[`btn_${button}`].element.addEventListener('click', () => actionFx(button)); });
+      }
+      if (typeof cancelAction == 'function') id_obj.cancel.element.style.display = 'inline';
+      gen.modal += 1;
+      return id_obj;
+   }
+
    gen.actionMessage = ({ message_ids, message, actionFx, action, cancel, cancelAction }) => {
       if (searchBox.element) searchBox.element.blur();
       if (!cancel) cancel = lang.tr('actions.cancel');
@@ -2794,15 +2830,54 @@ export const displayGen = function() {
    }
 
    gen.orderedDualMatches = ({ element, matches }) => {
-      element.innerHTML = matches.map(dualMatch).join('');
+      let chunks = util.chunkArray(matches, 2);
+      let html = chunks.map(dualMatchRow).join('');
+      element.innerHTML = html;
+
+      function dualMatchRow(matches) {
+         if (matches.length < 2) matches.push({});
+         let rows = matches.map(dualMatch).join('');
+         let html = `<div class='dual_matches_row'>${rows} </div> `;
+         return html;
+      }
 
       function dualMatch(match) {
-         let html = `
-            <div class='dual_match_container'>
-               <div class='dual_match flexcenter'>${match.order}</div>
-            </div>
-         `;
-         return html;
+         let html = '';
+         if (Object.keys(match).length) {
+            let format = match.format[0].toUpperCase() + match.format.slice(1);
+            let identifier = `#${match.sequence} ${format}`;
+            let team1 = match.teams && match.teams[0];
+            let team2 = match.teams && match.teams.length > 1 && match.teams[1];
+            let sets = ['&nbsp'].map(s => `<div class='nm emph'>${s}</div>`);
+            let score1 = ['&nbsp'].map(s => `<div class='nm dy'>${s}</div>`);
+            let score2 = ['&nbsp'].map(s => `<div class='nm dy'>${s}</div>`);
+            let opponent1 = `<input class='dual_opponent' opponent='0' placeholder='opponent' disabled>`;
+            let opponent2 = match.format == 'doubles' ? `<input class='dual_opponent' opponent='1' placeholder='opponent' disabled>` : '';
+            html = `
+               <div class='dual_match flexcenter' muid='${match.muid}'>
+                  <div class='dual_match_identifier dx ${match.gender || ''} flexcenter'>${identifier}</div>
+                  <div class='dual_match_team flexcenter dx'>
+                     <div class='dual_match_round emph'>
+                       ${match.round_name || 'Final'} 
+                     </div>
+                     <div class='dual_match_score'>${sets}</div>
+                  </div>
+                  <div class='dual_match_team dx'>
+                     <div class='dual_match_team_name' team='0'>
+                        ${team1 || opponent1}${!team1 ? opponent2 : ''}
+                     </div>
+                     <div class='dual_match_score'>${score1}</div>
+                  </div>
+                  <div class='dual_match_team dx'>
+                     <div class='dual_match_team_name' team='1'>
+                        ${team2 || opponent1}${!team2 ? opponent2: ''}
+                     </div>
+                     <div class='dual_match_score'>${score2} </div>
+                  </div>
+               </div>
+            `;
+         }
+         return ` <div class='dual_match_container'>${html}</div> `;
       }
    }
 
@@ -3249,6 +3324,7 @@ export const displayGen = function() {
          address: displayFx.uuid(),
          courts: displayFx.uuid(),
          identifiers: displayFx.uuid(),
+         map: displayFx.uuid(),
       };
       let html = `
          <div class='attribute_groups'>
@@ -3276,8 +3352,44 @@ export const displayGen = function() {
             </div>
          </div>
       `;
+            // <div style='height: 100%; width: 100%; min-width: 350px; min-height: 350px;' id='${ids.map}'></div>
       d3.select(container.location_attributes.element).html(html);
-      return displayFx.idObj(ids);
+      let id_obj = displayFx.idObj(ids);
+
+      let geoposition = gen.fx.env().locations.geoposition;
+      if (geoposition && false) {
+         gpsLocation(geoposition.coords.latitude, geoposition.coords.longitude);
+      }
+
+      function gpsLocation(lat, lng) {
+         let mapLink = '<a href="http://openstreetmap.org">OpenStreetMap</a>';
+         let layer = L.tileLayer(
+            'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+               attribution: '&copy; ' + mapLink + ' Contributors',
+               maxZoom: 18,
+            });
+         let Esri_WorldImagery = L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+         });
+         let map = L.map(id_obj.map.id).setView([+lat, +lng], 16).addLayer(Esri_WorldImagery);
+         let marker = L.marker([+lat, +lng]).addTo(map);
+         
+         setTimeout(function() { map.invalidateSize(); }, 300);
+
+         map.on('click', function(e) {
+            let lat = (e.latlng.lat);
+            let lng = (e.latlng.lng);
+            let newLatLng = new L.LatLng(lat, lng);
+            marker.setLatLng(newLatLng);
+         });
+
+         map.on("contextmenu", function (event) {
+           console.log("Coordinates: " + event.latlng.toString());
+           L.marker(event.latlng).addTo(map);
+         });
+      }
+
+      return id_obj;
    }
 
    gen.displayDualMatchConfig = ({ tournament, container, e, inout, surfaces, formats, draw_types, edit }) => {
