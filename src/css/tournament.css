@@ -507,17 +507,17 @@ ul.noindent { margin: 0; padding: 0; }
    margin-right: .5em;
    text-align: center;
    color: #494949;
+   background: transparent;
    font-weight: bold;
    font-size: .8em;
    border: none;
 }
 
-.team_match .singles { background-color: #e5e5e5; }
+.team_match .singles { background-color: gray; }
 .team_match .doubles { background-color: darkgray; }
-.team_match .M { background-color: lightblue; }
-.team_match .F { background-color: pink; }
-.team_match .X { background-color: #e5e5e5; }
-.team_match .white { background-color: white; }
+.team_match .M { background-color: #002865; color: white; }
+.team_match .F { background-color: #730675; color: white; }
+.team_match .X { background-color: darkgray; }
 
 .team_match.over {
    min-width: 22em;
@@ -1221,6 +1221,15 @@ button.ratings-submit:hover { background: #68FF33; }
 .ordered_dual_matches {
    width: 100%;
    display: flex;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   -webkit-justify-content: center;
+   justify-content: center;
+}
+
+.dual_matches_row {
+   width: 100%;
+   display: flex;
 	flex-wrap: wrap;
    -webkit-flex-direction: row;
    flex-direction: row;
@@ -1242,8 +1251,84 @@ button.ratings-submit:hover { background: #68FF33; }
 }
 
 .dual_match {
-   border: 1px solid gray;
+   min-height: 5em;
+   width: 100%;
    max-width: 500px;
-   height: 5em;
+   display: flex;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   -webkit-justify-content: center;
+   justify-content: center;
+}
+
+.dual_match_identifier {
+   width: 100%;
+   color: white;
+   background-color: gray;
+   padding: 3px;
+   font-weight: bold;
+   font-style: italic;
+}
+
+.dual_match .M { background-color: #002865; color: white; }
+.dual_match .F { background-color: #730675; color: white; }
+
+.dual_match_team {
+   width: 100%;
+   display: flex;
+	flex-wrap: nowrap;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+}
+
+.dual_match_team .emph {
+   font-weight: bold;
+   font-style: italic;
+}
+
+.dual_match_round {
+   margin-left: 2px;
+}
+
+.dual_match_team_name {
+   flex-grow: 1;
+   margin-top: 2px;
+   margin-bottom: 2px;
+   margin-left: 2px;
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+}
+
+.dual_match .dx {
+   border-bottom: 1px solid #cccccc;
+}
+
+.dual_match .nm {
+   padding: 4px 8px;
+   text-align: center;
+}
+
+.dual_match .dy {
+   border-left: 1px solid #cccccc;
+}
+
+.dual_match_score {
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: flex-end;
+   justify-content: flex-end;
+
+}
+
+.dual_opponent {
+   background: transparent;
+   border: none;
+   font-size: 1em;
    width: 100%;
 }
