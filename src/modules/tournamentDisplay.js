@@ -402,6 +402,7 @@ export const tournamentDisplay = function() {
       tournamentGenders(tournament, dbmatches);
 
       let env = fx.fx.env() || {};
+      db.addDev({env});
 
       let { groups: match_groups, group_draws } = groupMatches(dbmatches);
       let { container, classes, displayTab, display_context, tab_ref } = displayGen.tournamentContainer({ tournament, tabCallback });
@@ -1011,7 +1012,6 @@ export const tournamentDisplay = function() {
             saveTournament(tournament);
 
             outOfDate(displayed_draw_event, true);
-
             enableDrawActions();
          }
       });
@@ -1530,12 +1530,25 @@ export const tournamentDisplay = function() {
 
          playerFx.action = 'addTournamentPlayer';
          playerFx.displayGen = displayGen.showConfigModal;
+         playerFx.notInDB = true;
+         playerFx.override = ({ puid, notInDB }) => {
+            if (notInDB && puid) {
+               let player = tournament.players.reduce((p, c) => c.puid == puid ? c : p, undefined);
+               if (player) {
+                  let container = displayGen.playerProfile(playerFx.displayFx);
+                  container.info.element.innerHTML = displayGen.playerInfo(player, {});
+                  addTournamentPlayer(container, player);
+               }
+            }
+         };
 
          searchBox.category = 'players';
          searchBox.category_switching = false;
          searchBox.setSearchCategory(lang.tr("actions.add_player"));
 
          db.findAllPlayers().then(arr => {
+            let puids = arr.map(p=>p.puid);
+            tournament.players && tournament.players.forEach(p => { if(puids.indexOf(p.puid)<0) arr.push(p); });
             if (arr.length) {
                searchBox.typeAhead.list = arr.filter(categoryFilter).map(valueLabel);
                searchBox.irregular_search_list = true;
@@ -2378,7 +2391,6 @@ export const tournamentDisplay = function() {
             function doIt() {
                if (tfx.isTeam(tournament)) {
                   let eligible_teams = tfx.eligibleTeams(tournament, e).teams;
-                  // e.approved = [].concat(...e.approved, ...eligible_teams.map(t=>t.uuid));
                   e.approved = [].concat(...e.approved, ...eligible_teams.map(t=>t.id));
                } else {
                   let eligible_players = tfx.eligiblePlayers(tournament, e).players;
@@ -2525,7 +2537,6 @@ export const tournamentDisplay = function() {
          let eligible = tfx.eligiblePlayers(tournament, e, ineligible_players, unavailable_players).players;
 
          eligible.forEach(p => { if (p.order) p.full_name = `${p.full_name}&nbsp;<span class='player_order'>(${p.order})</span>`; });
-         // let approved = tfx.approvedPlayers({ tournament, env: fx.fx.env(), e });
          let approved = tfx.approvedPlayers({ tournament, e });
 
          let searchable_players = [].concat(...eligible, ...approved);
@@ -2952,8 +2963,8 @@ export const tournamentDisplay = function() {
          e = e || tfx.findEventByID(tournament, displayed_event);
          if (e.euid != displayed_event) return;
          if (!e) return;
-         if (drawIsCreated(e)) background = '#EFFBF2';
-         if (e.active) background = '#EFF5FB';
+         // if (drawIsCreated(e)) background = '#EFFBF2';
+         // if (e.active) background = '#EFF5FB';
          if (tournament.events.map(v=>v.euid).indexOf(e.euid) < 0) background = 'lightyellow';
          container.event_details.element.querySelector('.detail_body').style.background = background;
       }
@@ -4066,6 +4077,33 @@ export const tournamentDisplay = function() {
          }
       }
 
+      // modify dual matches instances to match e.matchorder
+      function orderDualMatchesDraw(e) {
+         Object.keys((e.draw && e.draw.dual_matches) || {}).forEach(muid => orderDualMatch(e, muid));
+      }
+
+      // modify dual match instance to match e.matchorder
+      function orderDualMatch(e, muid) {
+         if (e.draw && !e.active) {
+            if (!e.draw.dual_matches) e.draw.dual_matches = {};
+            if (!e.draw.dual_matches[muid]) e.draw.dual_matches[muid] = { matches: [] };
+            let omatches = e.matchorder.length;
+            // currently the matches are replaced with every change in order
+            let matches = [];
+            let counters = { singles: 0, doubles: 0 };
+            util.numArr(omatches).forEach((a, i) => {
+               let order = i;
+               let match = Object.assign({}, e.matchorder[order]);
+               counters[match.format] += 1;
+               match.sequence = counters[match.format];
+               match.muid = UUID.new();
+               match.euid = e.euid;
+               matches.push(match);
+            });
+            e.draw.dual_matches[muid].matches = matches;
+         }
+      }
+
       function configureDualEventSelections(e) {
          if (!e.matchlimits) e.matchlimits = { singles: 6, doubles: 3 };
          if (!e.matchorder) {
@@ -4236,6 +4274,7 @@ export const tournamentDisplay = function() {
             if (!e.matchlimits) e.matchlimits = {}
             e.matchlimits[format] = parseInt(value);
             modifyMatchOrder(format, parseInt(value));
+            orderDualMatchesDraw(e);
             eventList(true);
             saveTournament(tournament);
          }
@@ -4373,7 +4412,6 @@ export const tournamentDisplay = function() {
                      if (matchvalue.disabled) {
                         disableAllMatchValue();
                         matchvalue.disabled = false;
-                        matchvalue.classList.add('white');
                         matchvalue.focus();
                         matchvalue.select();
                         current_index = index;
@@ -4384,7 +4422,6 @@ export const tournamentDisplay = function() {
 
             function regenMatchValues() {
                let active = document.activeElement;
-               console.log(active);
                updateDualMatchDetails();
                eventOpponents(e);
             }
@@ -5123,7 +5160,6 @@ export const tournamentDisplay = function() {
                }
             });
 
-            // approved = tfx.approvedPlayers({ tournament, env: fx.fx.env(), e });
             approved = tfx.approvedPlayers({ tournament, e });
 
             // TODO: make this work for doubles...
@@ -6824,7 +6860,17 @@ export const tournamentDisplay = function() {
             buildDirectionDraw(e, 'south', 'southeast')
             buildDirectionDraw(e, 'north', 'northwest')
             updateCompassDirections();
+         }
+         if (e.draw) {
             mfx.addMUIDs(e);
+            let round_names = mfx.roundNames(tournament, e);
+            let matches = dfx.matches(e.draw, round_names.names, round_names.calculated_names);
+            let upcoming = dfx.upcomingMatches(e.draw, round_names.names, round_names.calculated_names);
+            if (tfx.isTeam(tournament)) {
+               let muids = [].concat(...matches.map(m=>m.match.muid), ...upcoming.map(u=>u.match.muid));
+               e.draw.dual_matches = Object.assign({}, ...muids.map(muid => ({[muid]: { matches: [] }})));
+               orderDualMatchesDraw(e);
+            }
          }
 
          // add round_name to matches
@@ -7710,7 +7756,7 @@ export const tournamentDisplay = function() {
          function displayDualMatches(match, teams) {
             let dual = container.dual.element;
             dual.style.display = 'flex';
-            let score = match.score || [0, 0];
+            let score = (match && match.score) || [0, 0];
 
             dual.querySelector('.team_name.team1').innerHTML = teams[0].name;
             dual.querySelector('.team_name.team2').innerHTML = teams[1].name;
@@ -7719,25 +7765,60 @@ export const tournamentDisplay = function() {
             dual.querySelector('.team_divider').innerHTML = lang.tr('schedule.vs');
 
             let e = tfx.findEventByID(tournament, match.euid);
-            if (e) {
-               if (!e.draw.dual_matches) e.draw.dual_matches = {};
-               if (!e.draw.dual_matches[match.muid]) { e.draw.dual_matches[match.muid] = []; }
-               displayOrderedMatches(e, match.muid);
-            }
+            if (e) { displayOrderedMatches(e, match.muid); }
          }
 
          function displayOrderedMatches(e, muid) {
             let elem = container.dual.element.querySelector('.ordered_dual_matches');
-            let matches = e.draw.dual_matches[muid] || [];
-            let omatches = e.matchorder.length;
-            let add_matches = omatches - matches.length;
-            console.log('add_matches:', add_matches);
-            util.numArr(add_matches).forEach((a, i) => {
-               let order = omatches - add_matches + i;
-               let match = Object.assign({ order }, e.matchorder[order]);
-               matches.push(match);
-            });
+            orderDualMatch(e, muid);
+            let matches = mfx.dualMatchMatches(e, muid);
             displayGen.orderedDualMatches({ element: elem, matches });
+            util.addEventToClass('dual_match', dualMatchClick);
+            util.addEventToClass('dual_match_team_name', dualMatchOpponent);
+            util.addEventToClass('dual_opponent', lostFocus, document, 'focusout');
+            util.addEventToClass('dual_opponent', catchTab, document, 'keydown');
+            util.addEventToClass('dual_opponent', processOpponent, document, 'keyup');
+
+            function processOpponent(evt) {
+               if (evt.which == 13) {
+                  let dual_match = util.getParent(evt.target, 'dual_match');
+                  let muid = dual_match && dual_match.getAttribute('muid');
+                  let team_name = util.getParent(evt.target, 'dual_match_team_name');
+                  let team = team_name && team_name.getAttribute('team');
+                  let opponent = evt.target.getAttribute('opponent');
+                  evt.target.blur();
+                  console.log('enter key', team, opponent);
+               }
+            }
+
+            function lostFocus() {
+               console.log('lost focus');
+            }
+         }
+
+         function dualMatchOpponent(evt) {
+            if (state.edit) {
+               evt.stopPropagation();
+               // if (match has a score) dualMatchClick(evt);
+               let dual_match = util.getParent(evt.target, 'dual_match');
+               let muid = dual_match.getAttribute('muid');
+               let team_name = util.getParent(evt.target, 'dual_match_team_name');
+               let team = team_name.getAttribute('team');
+               let inputs = Array.from(team_name.querySelectorAll('input'));
+
+               let opponent;
+               if (evt.target.localName == 'input') { opponent = evt.target.getAttribute('opponent'); }
+               inputs.forEach((o, i) => { o.disabled = false; });
+               inputs[opponent || 0].focus();
+            }
+         }
+
+         function dualMatchClick(evt) {
+            if (state.edit) {
+               let elem = util.getParent(evt.target, 'dual_match');
+               let muid = elem.getAttribute('muid');
+               console.log('dual match clicked:', muid);
+            }
          }
 
          function highlightCell(node) {
@@ -8705,7 +8786,15 @@ export const tournamentDisplay = function() {
                let approved = [].concat(...displayed_draw_event.approved);
                let unapproved_teams = !info.doubles ? [] : displayed_draw_event.teams.filter(t=>util.intersection(approved, t).length == 0)
                let doubles_alternates = unapproved_teams.map(team=>tournament.players.filter(p=>team.indexOf(p.id) >= 0));
-               let alternates = info.doubles ? doubles_alternates : tfx.eligiblePlayers(tournament, displayed_draw_event).players.map(p=>[p]);
+
+               let alternates;
+               if (info.doubles) {
+                  alternates = doubles_alternates;
+               } else if (tfx.isTeam(tournament)) {
+                  alternates = tfx.eligibleTeams(tournament, e).teams.map(t=>[t]);
+               } else {
+                  alternates = tfx.eligiblePlayers(tournament, e).players.map(p=>[p]);
+               }
 
                if (alternates && what == 'BYE') {
                   finished_options.push({ option: lang.tr('draws.alternate'), key: 'alt' });
