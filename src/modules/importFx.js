@@ -827,7 +827,7 @@ export const importFx = function() {
 
    function loadPlayerList(arr) { 
       let callback = () => searchBox.searchSelect('players');
-      let id = displayGen.busy.message('<p>Loading Players...</p>', callback);
+      let id = displayGen.busy.message(`<p>${lang.tr('loading')}...</p>`, callback);
       load.importPlayerList(arr, id); 
    }
 
@@ -857,7 +857,7 @@ export const importFx = function() {
       }
 
       if (workbook_type == 'CHi') {
-         let id = displayGen.busy.message('<p>Loading...</p>', reload);
+         let id = displayGen.busy.message(`<p>${lang.tr('loading')}...</p>`);
 
          let players = extractPlayers(workbook);
          let tournaments = extractTournaments(workbook);
@@ -869,7 +869,13 @@ export const importFx = function() {
          let addClubs = () => new Promise((resolve, reject) => util.performTask(db.addClub, clubs, false).then(resolve, resolve));
          let addRankings = () => importRankings(rankings);
 
-         addPlayers().then(addTournaments).then(addRankings).then(addClubs).then(()=>displayGen.busy.done(id));
+         if (typeof callback == 'function') {
+            displayGen.busy.done(id);
+            return callback(players);
+         }
+
+         addPlayers().then(addTournaments).then(addRankings).then(addClubs).then(done);
+         function done() { displayGen.busy.done(id); reload(); }
       }
    }
 
