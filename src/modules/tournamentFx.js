@@ -618,7 +618,6 @@ export const tournamentFx = function() {
    fx.approvedTournamentTeams = ({ tournament, e }) => {
       let env = fx.fx.env();
       let approved_teams = (tournament.teams || [])
-         // .filter(t => e.approved.indexOf(t.uuid) >= 0)
          .filter(t => e.approved.indexOf(t.id) >= 0)
          .map(teamCopy);
       return approved_teams;
