@@ -13,11 +13,7 @@ export const matchFx = function() {
    function tournamentEventMatches({ tournament, source }) {
       if (!tournament.events) return { completed_matches: [], pending_matches: [], upcoming_matches: [], total_matches: 0 };
 
-      if (fx.isTeam(tournament)) {
-         console.log('determine all team matches');
-         return { completed_matches: [], pending_matches: [], upcoming_matches: [], total_matches: 0 };
-      }
-
+      let total_matches = 0;
       var completed_matches = [];
       var pending_matches = [];
       var upcoming_matches = [];
@@ -38,13 +34,12 @@ export const matchFx = function() {
             incomplete.sort((a, b) => a.round_name && b.round_name && a.round_name.localeCompare(b.round_name));
             upcoming.sort((a, b) => a.round_name && b.round_name && a.round_name.localeCompare(b.round_name));
          }
-
          completed_matches = completed_matches.concat(...complete);
          pending_matches = pending_matches.concat(...incomplete);
          upcoming_matches = upcoming_matches.concat(...upcoming);
       });
 
-      let total_matches = completed_matches.length + pending_matches.length;
+      total_matches = completed_matches.length + pending_matches.length;
 
       return { completed_matches, pending_matches, upcoming_matches, total_matches }
    }
@@ -68,9 +63,10 @@ export const matchFx = function() {
       complete.forEach(match => match.outcome = matchOutcome(match));
 
       let incomplete = event_matches.filter(f => f.match && (!f.match.winner && !f.match.loser))
-         .map(m=>matchStorageObject(tournament, evt, m, source));
+         .map(m=>matchStorageObject(tournament, evt, m, source))
+         .filter(f=>f);
 
-      let upcoming = upcomingEventMatches(evt, tournament).map(m=>matchStorageObject(tournament, evt, m, source)) || [];
+      let upcoming = upcomingEventMatches(evt, tournament).map(m=>matchStorageObject(tournament, evt, m, source)).filter(f=>f) || [];
 
       return { complete, incomplete, upcoming }
    }
@@ -197,12 +193,27 @@ export const matchFx = function() {
       return checkScheduledMatches(e, tournament, matches);
    }
 
+   fx.dualMatchMatches = (e, muid) => {
+      if (!e.draw) return [];
+      if (!e.draw.dual_matches) return [];
+      if (!e.draw.dual_matches[muid]) return [];
+      return e.draw.dual_matches[muid].matches || [];
+   }
+
    fx.eventMatches = eventMatches;
    function eventMatches(e, tournament) {
       if (!e.draw) { return []; }
-      let round_names = roundNames(tournament, e);
-      let matches = dfx.matches(e.draw, round_names.names, round_names.calculated_names);
-      return checkScheduledMatches(e, tournament, matches);
+      if (fx.isTeam(tournament)) {
+         let matches = [];
+         Object.keys(e.draw.dual_matches || {}).forEach(key => {
+            matches = matches.concat(...e.draw.dual_matches[key].matches || []);
+         });
+         return matches;
+      } else {
+         let round_names = roundNames(tournament, e);
+         let matches = dfx.matches(e.draw, round_names.names, round_names.calculated_names);
+         return checkScheduledMatches(e, tournament, matches);
+      }
    }
 
    // NOTE: This function is duplicated but didn't want to introduce circular
@@ -213,6 +224,7 @@ export const matchFx = function() {
       return tournament.events.reduce((p, c) => c.euid == id ? c : p, undefined);
    }
 
+   fx.roundNames = roundNames;
    function roundNames(tournament, e) {
       var names = [];
       var calculated_names = [];
@@ -245,6 +257,7 @@ export const matchFx = function() {
    fx.checkScheduledMatches = checkScheduledMatches;
    function checkScheduledMatches(e, tournament, matches) {
       // in case there are matches without...
+      // TODO: This may no longer be necessary...
       addMUIDs(e);
 
       let court_names = {};
