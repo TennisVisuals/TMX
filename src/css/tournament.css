@@ -513,7 +513,7 @@ ul.noindent { margin: 0; padding: 0; }
    border: none;
 }
 
-.team_match .singles { background-color: gray; }
+.team_match .singles { background-color: gray; color: white; }
 .team_match .doubles { background-color: darkgray; }
 .team_match .M { background-color: #002865; color: white; }
 .team_match .F { background-color: #730675; color: white; }

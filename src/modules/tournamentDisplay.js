@@ -3331,10 +3331,10 @@ export const tournamentDisplay = function() {
 
          if (state.edit) {
             if (index != undefined) {
-               if (!tfx.isTeam(tournament)) {
-                  enableApprovePlayer(e);
-               } else {
+               if (tfx.isTeam(tournament)) {
                   enableApproveTeam(e);
+               } else {
+                  enableApprovePlayer(e);
                }
                actions.select('.save').style('display', 'none');
                actions.select('.cancel').style('display', 'none');
@@ -4091,13 +4091,18 @@ export const tournamentDisplay = function() {
             // currently the matches are replaced with every change in order
             let matches = [];
             let counters = { singles: 0, doubles: 0 };
+            let round_name = e.draw.dual_matches[muid].round_name || '';
             util.numArr(omatches).forEach((a, i) => {
                let order = i;
                let match = Object.assign({}, e.matchorder[order]);
                counters[match.format] += 1;
                match.sequence = counters[match.format];
-               match.muid = UUID.new();
-               match.euid = e.euid;
+               match.round_name = round_name;
+               match.match = {
+                  muid: UUID.new(),
+                  euid: e.euid,
+                  round_name: round_name,
+               }
                matches.push(match);
             });
             e.draw.dual_matches[muid].matches = matches;
@@ -5458,6 +5463,8 @@ export const tournamentDisplay = function() {
       function displaySchedule(currently_selected_day) {
          var { completed_matches, pending_matches, upcoming_matches } = mfx.tournamentEventMatches({ tournament, source: true });
 
+         console.log(completed_matches, pending_matches, upcoming_matches);
+
          let img = new Image();
          img.src = "./icons/dragmatch.png";
 
@@ -5557,6 +5564,7 @@ export const tournamentDisplay = function() {
 
          function filterSearchList() {
             let include_completed = fx.fx.env().schedule.completed_matches_in_search;
+            console.log('all matches:', all_matches);
             search_list = all_matches
                .filter(match => match.winner == undefined || include_completed)
                .map(match => ({ value: match.muid, label: match.team_players.map(team=>teamName(match, team, true)).join(' v. ') }) );
@@ -6864,11 +6872,11 @@ export const tournamentDisplay = function() {
          if (e.draw) {
             mfx.addMUIDs(e);
             let round_names = mfx.roundNames(tournament, e);
-            let matches = dfx.matches(e.draw, round_names.names, round_names.calculated_names);
+            let pending = dfx.matches(e.draw, round_names.names, round_names.calculated_names);
             let upcoming = dfx.upcomingMatches(e.draw, round_names.names, round_names.calculated_names);
             if (tfx.isTeam(tournament)) {
-               let muids = [].concat(...matches.map(m=>m.match.muid), ...upcoming.map(u=>u.match.muid));
-               e.draw.dual_matches = Object.assign({}, ...muids.map(muid => ({[muid]: { matches: [] }})));
+               let matches = [].concat(...pending, ...upcoming);
+               e.draw.dual_matches = Object.assign({}, ...matches.map(m => ({[m.match.muid]: { round_name: m.match.round_name, matches: [] }})));
                orderDualMatchesDraw(e);
             }
          }
@@ -8351,7 +8359,7 @@ export const tournamentDisplay = function() {
          function luckyAlternates({ selector, info, position, node, coords, draw, options, entry, bye_advanced, callback }) {
             let teams = optionNames(options);
             let clickAction = (d, i) => {
-               let team = options[i].map(playerFx.playerCopy);
+               let team = options[i].map(o => tfx.isTeam(tournament) ? playerFx.dualCopy(o) : playerFx.playerCopy(o));
                team.forEach(player => {
                   player.draw_position = position;
                   delete player.seed;
@@ -8453,7 +8461,15 @@ export const tournamentDisplay = function() {
             let approved = [].concat(...displayed_draw_event.approved);
             let unapproved_teams = !info.doubles ? [] : displayed_draw_event.teams.filter(t=>util.intersection(approved, t).length == 0)
             let doubles_alternates = unapproved_teams.map(team=>tournament.players.filter(p=>team.indexOf(p.id) >= 0));
-            let alternates = info.doubles ? doubles_alternates : tfx.eligiblePlayers(tournament, displayed_draw_event).players.map(p=>[p]);
+
+            let alternates;
+            if (info.doubles) {
+               alternates = doubles_alternates;
+            } else if (tfx.isTeam(tournament)) {
+               alternates = tfx.eligibleTeams(tournament, displayed_draw_event).teams.map(t=>[t]);
+            } else {
+               alternates = tfx.eligiblePlayers(tournament, displayed_draw_event).players.map(p=>[p]);
+            }
 
             let competitors = [].concat(...draw.opponents.map(team=>team.map(p=>p.id)));
             let linkedQ = tfx.findEventByID(tournament, displayed_draw_event.links['Q']) || tfx.findEventByID(tournament, displayed_draw_event.links['R']);
@@ -8671,7 +8687,16 @@ export const tournamentDisplay = function() {
                let approved = [].concat(...displayed_draw_event.approved);
                let unapproved_teams = !info.doubles ? [] : displayed_draw_event.teams.filter(t=>util.intersection(approved, t).length == 0)
                let doubles_alternates = unapproved_teams.map(team=>tournament.players.filter(p=>team.indexOf(p.id) >= 0));
-               let alternates = info.doubles ? doubles_alternates : tfx.eligiblePlayers(tournament, displayed_draw_event).players.map(p=>[p]);
+
+               let alternates;
+               if (info.doubles) {
+                  alternates = doubles_alternates;
+               } else if (tfx.isTeam(tournament)) {
+                  alternates = tfx.eligibleTeams(tournament, displayed_draw_event).teams.map(t=>[t]);
+               } else {
+                  alternates = tfx.eligiblePlayers(tournament, displayed_draw_event).players.map(p=>[p]);
+               }
+
                let bye_advanced = paired_with_bye.reduce((p, c) => c.indexOf(position)>=0 ? c : p, []).filter(p=>p!=position)[0];
 
                let possible_to_replace = active_player_positions.indexOf(bye_advanced) < 0;

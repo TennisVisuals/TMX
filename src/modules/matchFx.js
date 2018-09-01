@@ -63,8 +63,7 @@ export const matchFx = function() {
       complete.forEach(match => match.outcome = matchOutcome(match));
 
       let incomplete = event_matches.filter(f => f.match && (!f.match.winner && !f.match.loser))
-         .map(m=>matchStorageObject(tournament, evt, m, source))
-         .filter(f=>f);
+         .map(m=>matchStorageObject(tournament, evt, m, source));
 
       let upcoming = upcomingEventMatches(evt, tournament).map(m=>matchStorageObject(tournament, evt, m, source)).filter(f=>f) || [];
 
@@ -86,6 +85,9 @@ export const matchFx = function() {
       } else if (match.teams) {
          players = [].concat(...match.teams);
          team_players = match.teams.map((t, i) => t.map((m, j) => (i*t.length) + j));
+      } else {
+         players = [];
+         team_players = [];
       }
 
       let obj = {
@@ -188,6 +190,7 @@ export const matchFx = function() {
    fx.upcomingEventMatches = upcomingEventMatches;
    function upcomingEventMatches(e, tournament) {
       if (!e.draw) return [];
+      if (fx.isTeam(tournament)) return [];
       let round_names = roundNames(tournament, e);
       let matches = dfx.upcomingMatches(e.draw, round_names.names, round_names.calculated_names);
       return checkScheduledMatches(e, tournament, matches);

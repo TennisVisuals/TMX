@@ -813,8 +813,8 @@ export const displayGen = function() {
       /*
       if (singles.length) html += matchBlock({ title: lang.tr('sgl'), matches: singles, type: 'completed' });
       if (doubles.length) html += matchBlock({ title: lang.tr('dbl'), matches: doubles, type: 'completed' });
-      if (qualifying.length) html += matchBlock({ title: lang.tr('qal'), matches: qualifying, type: 'completed' });
-      if (roundrobin.length) html += matchBlock({ title: lang.tr('rrb'), matches: roundrobin, type: 'completed' });
+      if (qualifying.length) html += matchBlock({ title: lang.tr('draws.qualifying'), matches: qualifying, type: 'completed' });
+      if (roundrobin.length) html += matchBlock({ title: lang.tr('draws.roundrobin'), matches: roundrobin, type: 'completed' });
       */
 
       container.matches.element.innerHTML = html;
@@ -2853,13 +2853,12 @@ export const displayGen = function() {
             let score2 = ['&nbsp'].map(s => `<div class='nm dy'>${s}</div>`);
             let opponent1 = `<input class='dual_opponent' opponent='0' placeholder='opponent' disabled>`;
             let opponent2 = match.format == 'doubles' ? `<input class='dual_opponent' opponent='1' placeholder='opponent' disabled>` : '';
+            let round_name = (match.round_name && lang.tr(`round_names.${match.round_name}`)) || lang.tr('mtc');
             html = `
                <div class='dual_match flexcenter' muid='${match.muid}'>
                   <div class='dual_match_identifier dx ${match.gender || ''} flexcenter'>${identifier}</div>
                   <div class='dual_match_team flexcenter dx'>
-                     <div class='dual_match_round emph'>
-                       ${match.round_name || 'Final'} 
-                     </div>
+                     <div class='dual_match_round emph'>${round_name}</div>
                      <div class='dual_match_score'>${sets}</div>
                   </div>
                   <div class='dual_match_team dx'>

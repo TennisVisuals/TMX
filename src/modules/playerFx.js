@@ -247,6 +247,19 @@ export const playerFx = function() {
    // cleanPlayer removes all calculated Points and calculated Rankings
    fx.cleanPlayer = (player) => Object.assign({}, ...Object.keys(player).filter(key => ['points', 'rankings'].indexOf(key) < 0).map(key => { return { [key]: player[key] }}));
 
+   fx.dualCopy = (d) => {
+      if (!d) return {};
+      let dual = {
+         abbr: d.abbr,
+         name: d.name,
+         coach: d.coach,
+         ioc: d.ioc,
+         id: d.id,
+         players: Object.assign({}, ...Object.keys(d.players).map(k=>d.players[k]))
+      };
+      return dual;
+   }
+
    fx.playerCopy = (p) => {
       if (!p) return {};
       let player = {

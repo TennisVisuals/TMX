@@ -118,8 +118,6 @@ export const lang = function() {
       tot:     'Total',
       sgl:     'Singles',
       dbl:     'Doubles',
-      qal:     'Qualifying',
-      rrb:     'Round Robin',
       pyo:     'Playoff',
       snr:     'Senior',
       unk:     'Unknown',
@@ -224,6 +222,12 @@ export const lang = function() {
          firstday: 'Week Starts Monday',
          draworderscores: 'Scores in Draw Order',
          schedulecompleted: 'Schedule Completed Matches',
+      },
+
+      round_names: {
+         F: 'Final',
+         SF: 'Semifinal',
+         QF: 'Quarterfinal',
       },
 
       search: {
