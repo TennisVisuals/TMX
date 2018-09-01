@@ -68,7 +68,8 @@ export const fetchFx = function() {
 
    function fetchHTML(url) {
       return new Promise((resolve, reject) => {
-         fetchJSON(url).then(success, failure);
+         try { fetchJSON(url).then(success, failure); }
+         catch (err) { failure(err); }
 
          function success() {}
          function failure(result) {
@@ -527,9 +528,12 @@ export const fetchFx = function() {
          function checkSettings(fetchobj) {
             if (!fetchobj || !navigator.onLine) return promptLoadPlayers();
 
+
             let uuid = tuid;
             let preprocessor = fetchobj.preprocessor && fetchobj.preprocessor.fx && util.createFx(fetchobj.preprocessor.fx);
-            if (preprocessor) {
+            if (fetchobj.scrapers) {
+               return selectScraper(fetchobj);
+            } else if (preprocessor) {
                uuid = preprocessor(uuid);
             } else if (tuid.indexOf('HTS') == 0) {
                console.log('remove reference to HTS when preprocessor present in HTS Keys');
@@ -538,6 +542,48 @@ export const fetchFx = function() {
 
             fetchobj.url = checkURL(fetchobj.url);
             remoteRequest(fetchobj, uuid);
+         }
+
+         function selectScraper(fetchobj) {
+            let keys = Object.keys(fetchobj.scrapers);
+            if (keys.length > 1) {
+               let message = '<h2>Player Import</h2>';
+               displayGen.buttonSelect({
+                  message,
+                  buttons: keys,
+                  actionFx: goScrape,
+                  cancelAction: () => displayGen.closeModal(),
+                  alt: lang.tr('phrases.loadplayers'),
+                  altAction: loadAction
+               });
+            } else {
+               goScrape(keys[0]);
+            }
+            function goScrape(key) {
+               let scraper = fetchobj.scrapers[key];
+               scrape(scraper);
+            }
+         }
+
+         function scrape(scraper) {
+            let parser = scraper.fx && util.createFx(scraper.fx);
+            let ioc_codes = config.env().ioc_codes;
+            let ioc_map = Object.assign({}, ...ioc_codes.map(c=>({[c.name.toUpperCase()]: c.ioc})))
+            ioc_map['USA'] = ioc_map['UNITED STATES'];
+            ioc_map['UNITED KINGDOM'] = ioc_map['GREAT BRITAIN'];
+
+            let id = displayGen.busy.message(`<p>${lang.tr("refresh.players")}</p>`);
+            fetchHTML(scraper.url).then(doc => {
+               displayGen.busy.done(id);
+               let players = (parser && parser(doc)) || [];
+               players.forEach(player => {
+                  player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
+                  if (!player.id) player.id = UUID.new();
+                  if (!player.puid) player.puid = player.id;
+                  if (!player.ioc && player.country) player.ioc = ioc_map[player.country.toUpperCase()];
+               })
+               resolve(players);
+            }, (err) => console.log('err:', err));
          }
 
          function remoteRequest(fetchobj, uuid) {
@@ -551,10 +597,14 @@ export const fetchFx = function() {
             let request = JSON.stringify(request_object);
 
             function responseHandler(result) {
-               if (!result.json) {
-                  return promptLoadPlayers();
+               if (result.json) {
+                  processJSON(result.json);
                } else {
-                  let players = result.json.filter(p=>p.last_name);
+                  return promptLoadPlayers();
+               }
+               function processJSON(json) {
+                  if (!json) return;
+                  let players = json.filter(p=>p.last_name);
                   players.forEach(player => {
                      player.first_name = player.first_name.trim();
                      player.last_name = player.last_name.trim();
