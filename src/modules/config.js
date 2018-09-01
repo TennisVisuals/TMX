@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.0.42.63.44.o',
+      version: '1.0.46.66.46.r',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -98,6 +98,7 @@ export const config = function() {
       },
       locations: {
          geolocate: true,
+         geoposition: undefined,
          map: undefined,
          map_provider: 'leaflet', // 'google' or 'leaflet'
       },
@@ -385,21 +386,20 @@ export const config = function() {
 
    fx.idiomSelectorOptions = idiomSelectorOptions;
    function idiomSelectorOptions(ioc) {
-      d3.json('./assets/ioc_codes.json', data => {
-         let ioc_idioms = Object.assign({}, ...data.map(d => ({ [d.ioc]: d.name })));
-         let idioms = Object.keys(fx.available_idioms);
-         if (!idioms.length) idioms = lang.options();
-         let options = idioms
-            .sort()
-            .map(value => {
-               let ioc_value = value.length == 3 ? value : 'gbr';
-               let img_src = `${env.assets.flags}${ioc_value.toUpperCase()}.png`;
-               return { key: `<div class=''><img src="${img_src}" class='idiom_flag'></div>`, value, title: ioc_idioms[value.toUpperCase()] }
-            })
-            .filter(f=>f.title);
-         fx.idiom_ddlb.setOptions(options)
-         fx.idiom_ddlb.setValue(ioc, 'black');
-      });
+      let ioc_codes = env.ioc_codes || [];
+      let ioc_idioms = Object.assign({}, ...ioc_codes.map(d => ({ [d.ioc]: d.name })));
+      let idioms = Object.keys(fx.available_idioms);
+      if (!idioms.length) idioms = lang.options();
+      let options = idioms
+         .sort()
+         .map(value => {
+            let ioc_value = value.length == 3 ? value : 'gbr';
+            let img_src = `${env.assets.flags}${ioc_value.toUpperCase()}.png`;
+            return { key: `<div class=''><img src="${img_src}" class='idiom_flag'></div>`, value, title: ioc_idioms[value.toUpperCase()] }
+         })
+         .filter(f=>f.title);
+      fx.idiom_ddlb.setOptions(options)
+      fx.idiom_ddlb.setValue(ioc, 'black');
    }
 
    function idiomSelector() {
@@ -1000,10 +1000,9 @@ export const config = function() {
       isIpad: (/iPad/i).test(window.navigator.userAgent),
       isWindows: (/indows/i).test(window.navigator.userAgent),
       isMobile: /Mobi/.test(navigator.userAgent),
-      geoposition: {},
    }
 
-   fx.geoposition = () => { return device.geoposition; }
+   fx.geoposition = () => { return env.locations.geoposition; }
 
    // NOTICE: It may be necessary sometimes to have the point table equal to
    // the tournament start date rather than the tournament end or point calc date
@@ -1169,6 +1168,7 @@ export const config = function() {
          return;
       }
       env.isMobile = device.isIDevice || device.isMobile;
+      d3.json('./assets/ioc_codes.json', data => { env.ioc_codes = data; });
 
       // remove config dependence on displayGen so this can be removed
       configufeDependents();
@@ -1245,7 +1245,7 @@ export const config = function() {
       }
 
       function shared(pos) {
-         device.geoposition = pos;
+         env.locations.geoposition = pos;
          coms.emitTmx({ 
             event: 'Connection',
             notice: `lat/lng: ${pos.coords.latitude}, ${pos.coords.longitude}`,
