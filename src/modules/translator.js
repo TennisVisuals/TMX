@@ -174,6 +174,7 @@ export const lang = function() {
       outdoors:'Outdoors',
       existing: 'Existing',
       success: 'Success',
+      loading: 'Loading',
 
       set: 'Settings',
       version: 'Version',
