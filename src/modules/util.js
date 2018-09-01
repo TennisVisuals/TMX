@@ -266,6 +266,13 @@ export const util = function() {
    util.range = (start, end) => Array.from({length: (end - start)}, (v, k) => k + start);
    util.numArr = (count) => [...Array(count)].map((_, i) => i);
    util.intersection = (a, b) => a.filter(n => b.indexOf(n) !== -1).filter((e, i, c) => c.indexOf(e) === i);
+   util.chunkArray = (arr, chunksize) => {
+      return arr.reduce((all,one,i) => {
+         const ch = Math.floor(i/chunksize); 
+         all[ch] = [].concat((all[ch]||[]),one); 
+         return all
+      }, [])
+   }
 
    util.passFail = (array, conditionFx) => {
       let result = { pass: [], fail: [] };
