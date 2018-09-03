@@ -794,6 +794,7 @@ export const displayGen = function() {
       let qual = (m) => m.round_name && m.round_name.indexOf('Q') >= 0 && m.round_name.indexOf('QF') < 0;
       let singles = matchSort(completed_matches.filter(m => m.format == 'singles')).reverse();
       let doubles = matchSort(completed_matches.filter(m => m.format == 'doubles')).reverse();
+
       let roundrobin = singles.filter(m => rr(m));
       let qualifying = singles.filter(m => qual(m));
       if (roundrobin.length || qualifying.length) singles = singles.filter(m => !rr(m) && !qual(m));

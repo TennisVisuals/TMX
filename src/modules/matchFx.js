@@ -60,8 +60,6 @@ export const matchFx = function() {
          .map(m => matchStorageObject(tournament, evt, m, source))
          .filter(f=>f);
 
-      complete.forEach(match => match.outcome = matchOutcome(match));
-
       let incomplete = event_matches
          .filter(f => f.match && (!f.match.winner && !f.match.loser))
          .map(m => matchStorageObject(tournament, evt, m, source))
@@ -97,7 +95,7 @@ export const matchFx = function() {
          draw_positions: e.draw_size,
          date: match.match.date,
          schedule: match.match.schedule,
-         format: e.format == 'S' ? 'singles' : 'doubles',
+         format: match.format == 'doubles' || e.format == 'D' ? 'doubles' : 'singles',
          gender: e.gender,
          muid: match.match.muid,
          players,

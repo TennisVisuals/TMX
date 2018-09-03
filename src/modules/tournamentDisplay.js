@@ -2923,6 +2923,7 @@ export const tournamentDisplay = function() {
          if (tfx.isTeam(tournament)) {
             presets = {
                draw_type: 'E',
+               format: '',
                category: tournament.category || '',
                rank: tournament.rank || '',
                surface: tournament.surface || '',
@@ -6963,9 +6964,8 @@ export const tournamentDisplay = function() {
 
          let { completed_matches, pending_matches, upcoming_matches } = mfx.tournamentEventMatches({ tournament });
 
-         console.log(completed_matches, pending_matches, upcoming_matches);
-
          if (!completed_matches.length && dbmatches && dbmatches.length) {
+            // TODO: is this relevent any longer?
             // if matches array part of tournament object, matches have been imported
             dbmatches.forEach(match => match.outcome = mfx.matchOutcome(match));
             displayGen.displayTournamentMatches({ tournament, container, completed_matches: dbmatches, filters });

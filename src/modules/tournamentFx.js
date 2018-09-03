@@ -223,8 +223,6 @@ export const tournamentFx = function() {
          }
       }
 
-      console.log('dual match:', dual_match);
-      
       e.active = active_matches;
 
       return result;
