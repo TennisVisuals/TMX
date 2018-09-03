@@ -62,12 +62,12 @@ export const matchFx = function() {
 
       complete.forEach(match => match.outcome = matchOutcome(match));
 
-      let incomplete = event_matches.filter(f => f.match && (!f.match.winner && !f.match.loser))
-         .map(m=>matchStorageObject(tournament, evt, m, source));
+      let incomplete = event_matches
+         .filter(f => f.match && (!f.match.winner && !f.match.loser))
+         .map(m => matchStorageObject(tournament, evt, m, source))
+         .filter(m => (m.players && m.players.length) || (m.potentials && m.potentials.length));
 
       let upcoming = upcomingEventMatches(evt, tournament).map(m=>matchStorageObject(tournament, evt, m, source)).filter(f=>f) || [];
-      db.addDev({upcoming});
-      console.log('upcoming:', upcoming);
 
       return { complete, incomplete, upcoming }
    }

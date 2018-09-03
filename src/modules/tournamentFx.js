@@ -176,6 +176,60 @@ export const tournamentFx = function() {
       }
    }
 
+   fx.calcDualMatchesScore = (e, dual_match) => {
+      let score = [0, 0];
+      let match_record = e && e.draw && e.draw.dual_matches && e.draw.dual_matches[dual_match.match.muid];
+      match_record && match_record.matches
+         .map(m => ({ winner: m.match.winner_index, value: m.value }))
+         .filter(f=>f.winner != undefined)
+         .forEach(result => score[result.winner] += parseInt(result.value || 1));
+      let score_goal = e.score_goal || 5;
+      let max_score = Math.max(...score);
+      let winner_index = max_score < score_goal ? undefined : (score[0] >= score_goal) ? 0 : 1;
+      dual_match.match.score = winner_index ? score.map(s=>s).reverse().join('-') : score.join('-');
+      let active_matches = match_record && match_record.matches.reduce((p, c) => c.match.score ? true : p, undefined);
+      return { score, active_matches };
+   }
+
+   fx.scoreDualMatchDraw = ({ tournament, e, dual_match, dual_teams, match, outcome }) => {
+      var result = {};
+
+      match.match.score = outcome.score
+      match.match.score_format = outcome.score_format;
+      match.match.winner_index = outcome.winner;
+      match.match.winner = outcome.teams[outcome.winner];
+      match.match.loser = outcome.teams[1 - outcome.winner];
+      match.match.date = match.date || new Date().getTime();
+
+      let { score, active_matches } = fx.calcDualMatchesScore(e, dual_match);
+      let score_goal = e.score_goal || 5;
+
+      let max_score = Math.max(...score);
+      if (max_score < score_goal && dual_match.match.winner_index != undefined) {
+         console.log('if advanced, remove winner');
+         // ... as long as there is no advancement beyond this position ...
+
+         delete dual_match.winner_index;
+         delete dual_match.match.winner;
+         delete dual_match.match.loser;
+         delete dual_match.match.date;
+         delete dual_match.team;
+         delete dual_match.dp;
+      } else {
+         let winner_index = (score[0] >= score_goal) ? 0 : 1;
+         let winner = dual_teams[winner_index];
+         if (dual_match.match.winner_index != winner_index) {
+            dfx.advancePosition({ node: e.draw, position: winner.draw_position });
+         }
+      }
+
+      console.log('dual match:', dual_match);
+      
+      e.active = active_matches;
+
+      return result;
+   }
+
    fx.scoreTreeDraw = ({ tournament, e, muid, existing_scores, outcome }) => {
       var result = {};
       if (!outcome) return result;
@@ -629,9 +683,9 @@ export const tournamentFx = function() {
       return team_copy;
    }
 
-   fx.findTournamentPlayer = ({ tournament, id }) => {
+   fx.findTournamentPlayer = ({ tournament, puid }) => {
       if (!tournament.players) return undefined;
-      return tournament.players.reduce((p, c) => c.id == id ? c : p, undefined);
+      return tournament.players.reduce((p, c) => c.puid == puid ? c : p, undefined);
    }
 
    fx.approvedPlayers = ({ tournament, e }) => {

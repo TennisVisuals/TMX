@@ -3502,7 +3502,7 @@ export const displayGen = function() {
          approved_count: displayFx.uuid(),
          eligible_count: displayFx.uuid(),
       }
-      let draggable = edit ? ` draggable = "true"` : '';
+      let draggable = edit && !e.active ? ` draggable = "true"` : '';
       let counters = { singles: 0, doubles: 0 };
       let matches = matchorder.map((m, i) => {
          counters[m.format] += 1;
