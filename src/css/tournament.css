@@ -516,7 +516,7 @@ ul.noindent { margin: 0; padding: 0; }
 .team_match .singles { background-color: gray; color: white; }
 .team_match .doubles { background-color: darkgray; }
 .team_match .M { background-color: #002865; color: white; }
-.team_match .F { background-color: #730675; color: white; }
+.team_match .W { background-color: #730675; color: white; }
 .team_match .X { background-color: darkgray; }
 
 .team_match.over {
@@ -1271,7 +1271,7 @@ button.ratings-submit:hover { background: #68FF33; }
 }
 
 .dual_match .M { background-color: #002865; color: white; }
-.dual_match .F { background-color: #730675; color: white; }
+.dual_match .W { background-color: #730675; color: white; }
 
 .dual_match_team {
    width: 100%;
@@ -1304,18 +1304,14 @@ button.ratings-submit:hover { background: #68FF33; }
    justify-content: flex-start;
 }
 
-.dual_match .dx {
-   border-bottom: 1px solid #cccccc;
-}
-
 .dual_match .nm {
    padding: 4px 8px;
    text-align: center;
 }
 
-.dual_match .dy {
-   border-left: 1px solid #cccccc;
-}
+.dual_match .dx { border-bottom: 1px solid #cccccc; }
+.dual_match .dy { border-left: 1px solid #cccccc; }
+.dual_match .l2 { text-align: center; width: 2.2em; }
 
 .dual_match_score {
    display: flex;
@@ -1326,7 +1322,7 @@ button.ratings-submit:hover { background: #68FF33; }
 
 }
 
-.dual_opponent {
+.dual_opponent, .dual_select {
    background: transparent;
    border: none;
    font-size: 1em;

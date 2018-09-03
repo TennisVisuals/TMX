@@ -488,7 +488,6 @@ export const tournamentFx = function() {
 
       if (edraw) {
          let info = edraw ? dfx.drawInfo(edraw) : undefined;
-         // let approved_opponents = fx.approvedOpponents({ tournament, env, e: elimination_event });
          let approved_opponents = fx.approvedOpponents({ tournament, e: elimination_event });
          approved_opponents.forEach(team=>team.forEach(player=>player.draw_position = info.assigned_positions[player.id]));
          edraw.opponents = approved_opponents;
@@ -496,7 +495,6 @@ export const tournamentFx = function() {
       }
    }
 
-   // fx.approvedOpponents = ({ tournament, env, e }) => {
    fx.approvedOpponents = ({ tournament, e }) => {
       let env = fx.fx.env();
 
@@ -625,8 +623,15 @@ export const tournamentFx = function() {
 
    function teamCopy(team) {
       let team_copy = Object.assign({}, team);
-      if (team.players) team_copy.players = Object.keys(team.players).map(k=>team.players[k]);
+      if (team.players) {
+         team_copy.players = Object.assign({}, ...Object.keys(team.players).map(k=>({[k]: team.players[k]})));
+      }
       return team_copy;
+   }
+
+   fx.findTournamentPlayer = ({ tournament, id }) => {
+      if (!tournament.players) return undefined;
+      return tournament.players.reduce((p, c) => c.id == id ? c : p, undefined);
    }
 
    fx.approvedPlayers = ({ tournament, e }) => {

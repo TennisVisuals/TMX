@@ -331,7 +331,9 @@ export const scheduleFx = function() {
             var ioc = options.ioc_codes && p.ioc ? ` {${p.ioc}}` : '';
             return `${p.full_name}${club || ioc}`;
          } else {
-            return team.map(p=>match.players[p].last_name.toUpperCase()).join('/');
+            return team
+               .map(t => !match.players[t] ? lang.tr('opnt') : match.players[t].last_name.toUpperCase())
+               .join('/');
          }
       }
 

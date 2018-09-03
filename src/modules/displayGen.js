@@ -9,6 +9,7 @@ import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
 import { displayFx } from './displayFx';
 import { searchBox } from './searchBox';
+import { scoreBoard } from './scoreBoard';
 import { timeSeries } from './timeSeries';
 import { ladderChart } from './ladderChart';
 import { contextMenu } from './contextMenu';
@@ -884,6 +885,7 @@ export const displayGen = function() {
 
       function playerBlock(pindex, side) {
          var p = match.players[pindex];
+         if (!p) return potentialBlock({}, side);
          if (!p.puid && potentials) return potentialBlock(p, side);
          var player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
          var ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
@@ -2846,16 +2848,22 @@ export const displayGen = function() {
          if (Object.keys(match).length) {
             let format = match.format[0].toUpperCase() + match.format.slice(1);
             let identifier = `#${match.sequence} ${format}`;
-            let team1 = match.teams && match.teams[0];
-            let team2 = match.teams && match.teams.length > 1 && match.teams[1];
+            let existing = match.match.score ? scoreBoard.convertStringScore({
+               string_score: match.match.score,
+               score_format: match.match.score_format || {},
+               winner_index: match.match.winner_index
+            }) : undefined;
+            let sets1 = ['&nbsp'].map(s => `<div class='nm dy'>${s}</div>`);
+            let sets2 = ['&nbsp'].map(s => `<div class='nm dy'>${s}</div>`);
+            if (existing) {
+               let cell_widths = cellWidths(existing);
+               sets1 = existing.map((s, i) => `<div class='nm dy ${cell_widths[i]}'>${getScore(s[0])}<sup style='font-size: .5em'>${getTiebreak(s[0])}</sup></div>`).join('');
+               sets2 = existing.map((s, i) => `<div class='nm dy ${cell_widths[i]}'>${getScore(s[1])}<sup style='font-size: .5em'>${getTiebreak(s[1])}</sup></div>`).join('');
+            }
             let sets = ['&nbsp'].map(s => `<div class='nm emph'>${s}</div>`);
-            let score1 = ['&nbsp'].map(s => `<div class='nm dy'>${s}</div>`);
-            let score2 = ['&nbsp'].map(s => `<div class='nm dy'>${s}</div>`);
-            let opponent1 = `<input class='dual_opponent' opponent='0' placeholder='opponent' disabled>`;
-            let opponent2 = match.format == 'doubles' ? `<input class='dual_opponent' opponent='1' placeholder='opponent' disabled>` : '';
             let round_name = (match.round_name && lang.tr(`round_names.${match.round_name}`)) || lang.tr('mtc');
             html = `
-               <div class='dual_match flexcenter' muid='${match.muid}'>
+               <div class='dual_match flexcenter' muid='${match.match && match.match.muid}'>
                   <div class='dual_match_identifier dx ${match.gender || ''} flexcenter'>${identifier}</div>
                   <div class='dual_match_team flexcenter dx'>
                      <div class='dual_match_round emph'>${round_name}</div>
@@ -2863,20 +2871,49 @@ export const displayGen = function() {
                   </div>
                   <div class='dual_match_team dx'>
                      <div class='dual_match_team_name' team='0'>
-                        ${team1 || opponent1}${!team1 ? opponent2 : ''}
+                        ${buildTeam(match, 0)}
                      </div>
-                     <div class='dual_match_score'>${score1}</div>
+                     <div class='dual_match_score'>${sets1}</div>
                   </div>
                   <div class='dual_match_team dx'>
                      <div class='dual_match_team_name' team='1'>
-                        ${team2 || opponent1}${!team2 ? opponent2: ''}
+                        ${buildTeam(match, 1)}
                      </div>
-                     <div class='dual_match_score'>${score2} </div>
+                     <div class='dual_match_score'>${sets2} </div>
                   </div>
                </div>
             `;
          }
          return ` <div class='dual_match_container'>${html}</div> `;
+
+         function cellWidths(existing) {
+            return existing.map(set => {
+               let score1 = getScore(set[0]);
+               let score2 = getScore(set[1]);
+               let len = Math.max(score1.toString().length, score2.toString().length);
+               let tb1 = getTiebreak(set[0]);
+               let tb2 = getTiebreak(set[1]);
+               return len > 1 || tb1 || tb2 ? 'l2' : '';
+            });
+         }
+         function getScore(s) { return s.games != undefined ? s.games : s.supertiebreak || ''; }
+         function getTiebreak(s) { return s.tiebreak != undefined ? s.tiebreak : s.spacer ? '&nbsp;' : ''; }
+      }
+
+      function buildTeam(match, index) {
+         let dbls = match.format == 'doubles';
+         let players = match.teams && match.teams[index];
+         let opponent1 = players && players[0] ? opponentDisplay({ index: 0, value: players[0].full_name }) : opponentDisplay({index: 0});
+         let opponent2 = dbls && players && players[1] ? opponentDisplay({ index: 1, value: players[1].full_name }) : dbls ? opponentDisplay({index: 1}) : '';
+         return `${opponent1}${opponent2}`;
+      }
+
+      function opponentDisplay({ index, value }) {
+         let html = `
+            <input class='dual_opponent' opponent='${index}' value='${value || ''}' placeholder='${lang.tr("opnt")}' disabled>
+            <select class='dual_select' opponent='${index}' style='display: none'></select>
+         `;
+         return html;
       }
    }
 

@@ -260,6 +260,9 @@ export const playerFx = function() {
       return dual;
    }
 
+   fx.findDualTeam = (id) => {
+   }
+
    fx.playerCopy = (p) => {
       if (!p) return {};
       let player = {

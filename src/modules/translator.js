@@ -89,6 +89,7 @@ export const lang = function() {
       prnk:    'Rank',           // player rank
       trnk:    'Rank',           // tournament rank
       rl:      'Rank List',
+      opnt:    'Opponent',
       ply:     'Player',
       pyr:     'Players',
       add:     'Add',
@@ -382,6 +383,8 @@ export const lang = function() {
       },
 
       phrases: {
+         clearselection: 'Clear Selection',
+         selectplayer: 'Select Player',
          matches2clear: 'Matches to be cleared from the schedule',
          changeapproved: 'Changing Approved will reset the draw and clear the schedule.',
          qualincomplete: 'Qualifying Draw is Incomplete',

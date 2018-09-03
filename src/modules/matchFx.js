@@ -66,6 +66,8 @@ export const matchFx = function() {
          .map(m=>matchStorageObject(tournament, evt, m, source));
 
       let upcoming = upcomingEventMatches(evt, tournament).map(m=>matchStorageObject(tournament, evt, m, source)).filter(f=>f) || [];
+      db.addDev({upcoming});
+      console.log('upcoming:', upcoming);
 
       return { complete, incomplete, upcoming }
    }
@@ -99,7 +101,7 @@ export const matchFx = function() {
          gender: e.gender,
          muid: match.match.muid,
          players,
-         puids: players.map(p=>p.puid),
+         puids: players.filter(p=>p).map(p=>p.puid),
 
          // TODO: should be => teams: team_players,
          // see dynamicDraws => function recreateDrawFromMatches => round_matches.forEach
