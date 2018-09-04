@@ -191,8 +191,10 @@ export const tournamentFx = function() {
       return { score, active_matches };
    }
 
-   fx.scoreDualMatchDraw = ({ tournament, e, dual_match, dual_teams, match, outcome }) => {
-      var result = {};
+   fx.scoreDualMatchDraw = ({ tournament, e, dual_match, dual_teams, muid, outcome }) => {
+      var result = { success: true };
+
+      let match = e.draw.dual_matches[dual_match.match.muid].matches.reduce((p, c) => c.match.muid == muid ? c : p, undefined);
 
       match.match.score = outcome.score
       match.match.score_format = outcome.score_format;
@@ -209,13 +211,13 @@ export const tournamentFx = function() {
          console.log('if advanced, remove winner');
          // ... as long as there is no advancement beyond this position ...
 
-         delete dual_match.winner_index;
+         delete dual_match.match.winner_index;
          delete dual_match.match.winner;
          delete dual_match.match.loser;
          delete dual_match.match.date;
          delete dual_match.team;
          delete dual_match.dp;
-      } else {
+      } else if (max_score >= score_goal) {
          let winner_index = (score[0] >= score_goal) ? 0 : 1;
          let winner = dual_teams[winner_index];
          if (dual_match.match.winner_index != winner_index) {
@@ -561,11 +563,11 @@ export const tournamentFx = function() {
       if (fx.isTeam(tournament)) {
          approved = fx.approvedTournamentTeams({ tournament, e }).map(t=>[t]);
       } else {
-         if (e.format == 'S') { 
-            approved = fx.approvedPlayers({ tournament, e }).map(p=>[p]);
-         } else {
+         if (e.format == 'D') { 
             approved = fx.approvedDoubles({ tournament, e })
                .map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));;
+         } else {
+            approved = fx.approvedPlayers({ tournament, e }).map(p=>[p]);
          }
          approved.forEach(opponent => opponent.forEach(plyr => {
             // TODO:  should be unnecessary if players names normalized when added
@@ -989,7 +991,7 @@ export const tournamentFx = function() {
 
       let existing_approved = e.approved ? e.approved.map(a=>a).sort().join('/') : [];
 
-      if (e.format == 'S') {
+      if (e.format != 'D') {
          e.approved = tournament.players
             .filter(p=>!e.gender || p.sex == e.gender)
             .filter(p=>ineligible_ids.indexOf(p.id) < 0)
@@ -1003,11 +1005,11 @@ export const tournamentFx = function() {
       let new_approved = e.approved ? e.approved.map(a=>a).sort().join('/') : [];
       approved_changed = existing_approved != new_approved;
 
-      if (e.format == 'S') {
-         return { players: available_players.filter(p => e.approved.indexOf(p.id) < 0), changed: approved_changed }
-      } else {
+      if (e.format == 'D') {
          let team_players = e.teams ? [].concat(...e.teams) : [];
          return { players: available_players.filter(p => team_players.indexOf(p.id) < 0), changed: approved_changed }
+      } else {
+         return { players: available_players.filter(p => e.approved.indexOf(p.id) < 0), changed: approved_changed }
       }
    }
 

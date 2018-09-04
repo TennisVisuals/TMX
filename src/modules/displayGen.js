@@ -4123,7 +4123,15 @@ export const displayGen = function() {
          </div>
       `;
       let display_order = {};
-      html += players.map((player, i) => {
+      let men_players = players.filter(p=>p.sex == 'M');
+      let women_players = players.filter(p=>p.sex == 'W');
+      let unsexed_players = players.filter(p=>p.sex != 'M' && p.sex != 'W');
+      html += men_players.map(teamPlayerRow).join('');
+      html += women_players.map(teamPlayerRow).join('');
+      html += unsexed_players.map(teamPlayerRow).join('');
+      elem.innerHTML = html;
+
+      function teamPlayerRow(player, i) {
          let font_color = !player.sex ? 'black' : player.sex == 'W' ? '#840076' : '#00368c'; 
          let style = `style='color: ${font_color};'`;
          let player_order = team.players[player.puid].order || '';
@@ -4138,8 +4146,7 @@ export const displayGen = function() {
          `;
          display_order[p.puid] = i;
          return phtml;
-      }).join('');
-      elem.innerHTML = html;
+      }
    }
 
    gen.importPlayers = () => {
