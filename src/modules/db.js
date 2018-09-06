@@ -154,8 +154,6 @@ export const db = function() {
    db.findTournamentsBetween = (start, end) => new Promise ((resolve, reject) => db.db.tournaments.where('end').between(start, end).toArray(resolve, reject));
 
    db.addItem = (tbl, item) => new Promise ((resolve, reject) => db.db[tbl].add(item).then(resolve, reject).catch((err) => { alert('try again:', err); reject(err); }));
-   // db.addAlias = (alias) => db.addItem('aliases', alias);
-   // db.addIgnore = (ignore) => db.addItem('ignored', ignore);
 
    db.modifyOrAddUnique = (tbl, attr, val, item) => new Promise ((resolve, reject) => {
       db.db[tbl].where(attr).equals(val)
@@ -178,8 +176,6 @@ export const db = function() {
    db.addPointEvent = (point_event) => {
       point_event.round = point_event.round_name;
       return db.modifyOrAddUnique('points', '[puid+tuid+format+round]', [point_event.puid, point_event.tuid, point_event.format, point_event.round], point_event);
-      // when database table definition changes:
-      // return db.modifyOrAddUnique('points', '[puid+euid]', [point_event.puid, point_event.tuid, point_event.format, point_event.round], point_event);
    }
    db.addCategoryRankings = (rankings) => db.modifyOrAddUnique('rankings', 'category', rankings.category, rankings);
    db.addSetting = (setting) => db.replaceOrAddUnique('settings', 'key', setting.key, setting);
