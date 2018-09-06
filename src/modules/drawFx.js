@@ -3408,12 +3408,15 @@ export function drawFx(opts) {
       team_positions.forEach(p => advancePosition({ node: draw, position: p }))
    }
 
+   fx.findDualMatchNode = (draw, dual_match_muid) => {
+      let info = draw && drawInfo(draw);
+      return info && info.match_nodes.reduce((p, c) => c.data.match && c.data.match.muid == dual_match_muid ? c : p, undefined);
+   }
+
    fx.findDualMatchNodeByMatch = (draw, muid) => {
-      if (!draw.dual_matches) return;
-      let dual_match_muid = Object.keys(draw.dual_matches)
+      let dual_match_muid = draw.dual_matches && Object.keys(draw.dual_matches)
          .reduce((p, c) => draw.dual_matches[c].matches.reduce((x, y) => y.match.muid == muid ? y : x, undefined) ? c : p, undefined);
-      let info = drawInfo(draw);
-      return info.match_nodes.reduce((p, c) => c.data.match && c.data.match.muid == dual_match_muid ? c : p, undefined);
+      return fx.findDualMatchNode(draw, dual_match_muid);
    }
 
    fx.findMatchNodeByTeamPositions = findMatchNodeByTeamPositions;
