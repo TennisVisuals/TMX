@@ -38,8 +38,6 @@ export const importFx = function() {
    load.loadCache = () => {
       cache.aliases = {};
       db.findAllClubs().then(arr => cache.club_codes = arr.map(club => club.code));
-      // db.findAllAliases().then(arr => arr.forEach(row => cache.aliases[row.alias] = row.hash));
-      // db.findAllIgnored().then(arr => cache.ignored = arr.map(row => `${row.hash}-IOC-${row.ioc}`));
    }
 
    let validExtension = (filename) => {
@@ -99,15 +97,45 @@ export const importFx = function() {
       return isNaN(value) ? new Date(value).getTime() : new Date(+value).getTime();
    }
 
+   function importJotForm(rows, callback) {
+      let players = [];
+
+      rows.forEach(row => {
+         let player = {};
+         player.first_name = row['First Name'];
+         player.last_name = row['Last Name'];
+
+         if (!player.first_name || !player.last_name) return;
+
+         player.school = row['School'];
+         let submission_id = row['Submission ID'];
+         player.puid = row['PUID'] || (submission_id ? `JOT${submission_id}` : UUID.new());
+         player.id = row['ID'] || player.puid;
+
+         let gender = row['Gender'] || row['Sex'];
+         if (['Male', 'Man', 'M', 'Boy'].indexOf(gender) >= 0) player.sex = 'M';
+         if (['Female', 'W', 'Girl', 'Woman'].indexOf(gender) >= 0) player.sex = 'W';
+
+         let country = row['Country'];
+
+         let birth = row['Birth'] || row['Birthdate'] || row['Birthday'] || row['Birth Date'];
+         if (birth) {
+            let birthdate = new Date(birth);
+            player.birth = [birthdate.getFullYear(), birthdate.getMonth() + 1, birthdate.getDate()].join('-');
+         }
+         players.push(player);
+      });
+
+      if (callback && typeof callback == 'function') callback(players);
+      displayGen.busy.done();
+   }
+
    load.importPlayerList = (rows, id) => {
       let player_list = [];
       rows.forEach(player => {
          let name = (player.first_name + player.last_name).trim();
          if (name) {
             player.puid = player.puid || UUID.new();
-
-            // no need to assign CROPIN!
-            // player.cropin = player.cropin || UUID.new();
 
             player.hash = util.nameHash(name);
             player.birth = determineDate(player.birth);
@@ -125,7 +153,6 @@ export const importFx = function() {
       load.processPlayers(player_list).then(done, importFailure);;
 
       function done() {
-         // TODO: calculate timeout based on # of imports
          setTimeout(function() { displayGen.busy.done(id); }, 3000);
       }
    }
@@ -618,15 +645,14 @@ export const importFx = function() {
          if (load.loaded.meta.filetype.indexOf('xls') >= 0) {
             loadWorkbook({ file_content, callback, accepted_types: ['UTR', 'CHi'] });
          } else if (load.loaded.meta.filetype == 'csv') {
-            console.log('loadCSV');
-            // loadJSON(CSV2JSON(file_content));
+            loadJSON({ json: CSV2JSON(file_content), valid: ['jotFormCSV'], callback });
          } else if (load.loaded.meta.filetype.indexOf('json') >= 0) {
             if (file_content.indexOf('"~') >= 0) {
                console.log('loadCircularJSON');
-               // loadJSON(CircularJSON.parse(file_content));
+               // loadJSON({ json: CircularJSON.parse(file_content) });
             } else {
                console.log('loadJSON');
-               // loadJSON(JSON.parse(file_content));
+               // loadJSON({ json: JSON.parse(file_content) });
             }
          }
       };
@@ -711,12 +737,12 @@ export const importFx = function() {
          if (load.loaded.meta.filetype.indexOf('xls') >= 0) {
             loadWorkbook({ file_content });
          } else if (load.loaded.meta.filetype == 'csv') {
-            loadJSON(CSV2JSON(file_content));
+            loadJSON({ json: CSV2JSON(file_content) });
          } else if (load.loaded.meta.filetype.indexOf('json') >= 0) {
             if (file_content.indexOf('"~') >= 0) {
-               loadJSON(CircularJSON.parse(file_content));
+               loadJSON({ json: CircularJSON.parse(file_content) });
             } else {
-               loadJSON(JSON.parse(file_content));
+               loadJSON({ json: JSON.parse(file_content) });
             }
          }
       };
@@ -744,36 +770,36 @@ export const importFx = function() {
    }
 
    load.loadJSON = loadJSON;
-   function loadJSON(json) {
+   function loadJSON({ json, valid, callback }) {
       if (!Object.keys(json).length && !json.length) return;
 
       let loadType = {
-         draws() { loadDraws(json); },
-         // aliases() { loadAliases(json); },
-         // ignored() { loadIgnored(json); },
-         matches() { loadMatches(json); },
-         clubs() { importClubsJSON(json); },
-         settings() { loadSettings(json); },
-         points()  { loadPointEvents(json); },
-         players()  { loadPlayerList(json); },
-         clubsCSV()  { importClubsCSV(json); },
-         playersCSV()  { loadPlayerList(json); },
-         ranklistCSV() { importRankings(json); },
-         tournaments() { loadTournaments(json); },
-         tournamentsCSV() { importTournaments(json); },
+         draws() { loadDraws(json, callback); },
+         matches() { loadMatches(json, callback); },
+         clubs() { importClubsJSON(json, callback); },
+         settings() { loadSettings(json, callback); },
+         points()  { loadPointEvents(json, callback); },
+         players()  { loadPlayerList(json, callback); },
+         clubsCSV()  { importClubsCSV(json, callback); },
+         playersCSV()  { loadPlayerList(json, callback); },
+         ranklistCSV() { importRankings(json, callback); },
+         tournaments() { loadTournaments(json, callback); },
+         tournamentsCSV() { importTournaments(json, callback); },
+         jotFormCSV() { importJotForm(json, callback); },
       };
 
       let data_type = identifyJSON(json);
-      if (data_type) {
-         loadType[data_type]();
-      } else {
+      if (!data_type || (valid && valid.indexOf(data_type) < 0)) {
          displayMessage(lang.tr('phrases.badfile'));
+      } else {
+         loadType[data_type](callback);
       }
    }
 
    function identifyJSON(json) {
       let keys = Object.keys(Array.isArray(json) ? json[0] : json);
 
+      if (keys.length && ['Submission Date', 'Submission ID'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'jotFormCSV';
       if (keys.length && ['id', 'category', 'ranking', 'points'].filter(k=>keys.indexOf(k) >= 0).length == 4) return 'ranklistCSV';
       if (keys.length && ['website', 'courts'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'clubs';
       if (keys.length && ['born', 'right_to_play'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'playersCSV';
@@ -781,9 +807,7 @@ export const importFx = function() {
       if (keys.length && ['clay', 'hard', 'carpet'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'clubsCSV';
 
       if (keys.length && ['key', 'category'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'settings';
-      // if (keys.length && ['hash', 'alias'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'aliases';
       if (keys.length && ['sex', 'puid'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'players';
-      // if (keys.length && ['hash', 'ioc'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'ignored';
       if (keys.length && ['muid', 'puids', 'score'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'matches';
       if (keys.length && ['muid', 'puid', 'points'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'points';
 
@@ -805,20 +829,16 @@ export const importFx = function() {
 
    load.addAlias = ({alias, hash}) => {
       cache.aliases[alias] = hash;
-//      return db.addAlias({alias, hash});
    }
 
    load.addIgnore = ({hash, ioc}) => {
       let stored = `${hash}-IOC-${ioc}`;
       cache.ignored.push(stored);
-   //   return db.addIgnore({hash, ioc});
    }
 
    function addDraw(draw) { console.log(draw); }
 
    function loadDraws(arr) { loadTask(addDraw, arr, 'Draws'); };
-   // function loadAliases(arr) { loadTask(load.addAlias, arr, 'Aliases'); };
-   // function loadIgnored(arr) { loadTask(load.addIgnore, arr, 'Ignored'); };
    function loadSettings(arr) {
       loadTask(db.addSetting, arr, 'Settings', reload);
    }
