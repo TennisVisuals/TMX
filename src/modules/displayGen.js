@@ -56,13 +56,13 @@ export const displayGen = function() {
       return busy.count;
    }
 
-   gen.busy.done = (id) => {
+   gen.busy.done = (id, closeall) => {
       if (id && busy.callbacks[id]) {
          busy.callbacks[id]();
          delete busy.callbacks[id];
       }
       if (busy.count) busy.count -= 1;
-      if (!busy.count) gen.closeModal();
+      if (!busy.count || closeall) gen.closeModal();
    }
    // END BUSY fx ---------------------------------------------------------
 
@@ -2353,6 +2353,7 @@ export const displayGen = function() {
          schedule_tab: displayFx.uuid(),
          event_filter: displayFx.uuid(),
          round_filter: displayFx.uuid(),
+         dual_filter: displayFx.uuid(),
          location_filter: displayFx.uuid(),
          autoschedule: displayFx.uuid(),
          schedulelimit: displayFx.uuid(),
@@ -2599,6 +2600,9 @@ export const displayGen = function() {
                </div>
             </div>
          </div>
+         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='doclink' url='tmx_tournament_teams'><div class='tiny_docs_icon' style='display: none'></div></div>
+         </div>
       `;
 
       let add_location = ` <button type="button" class='btn add'>${lang.tr('actions.add_location')}</button> `;
@@ -2658,6 +2662,7 @@ export const displayGen = function() {
                   <div class='options_left'>
                      <div id='${ids.event_filter}'></div>
                      <div id='${ids.round_filter}'></div>
+                     <div id='${ids.dual_filter}'></div>
                   </div>
                   <div class='options_center'>
                      <div id='${ids.autoschedule}' class='autofill'>${lang.tr('schedule.autoschedule')}</div>
@@ -2849,10 +2854,11 @@ export const displayGen = function() {
          if (Object.keys(match).length) {
             let format = match.format[0].toUpperCase() + match.format.slice(1);
             let identifier = `#${match.sequence} ${format}`;
+            let winner_index = match.match.winner_index;
             let existing = match.match.score ? scoreBoard.convertStringScore({
                string_score: match.match.score,
                score_format: match.match.score_format || {},
-               winner_index: match.match.winner_index
+               winner_index
             }) : undefined;
             let sets1 = ['&nbsp'].map(s => `<div class='nm dy'>${s}</div>`);
             let sets2 = ['&nbsp'].map(s => `<div class='nm dy'>${s}</div>`);
@@ -2872,13 +2878,13 @@ export const displayGen = function() {
                   </div>
                   <div class='dual_match_team dx'>
                      <div class='dual_match_team_name' team='0'>
-                        ${buildTeam(match, 0)}
+                        ${buildTeam(match, 0, winner_index == 0)}
                      </div>
                      <div class='dual_match_score'>${sets1}</div>
                   </div>
                   <div class='dual_match_team dx'>
                      <div class='dual_match_team_name' team='1'>
-                        ${buildTeam(match, 1)}
+                        ${buildTeam(match, 1, winner_index == 1)}
                      </div>
                      <div class='dual_match_score'>${sets2} </div>
                   </div>
@@ -2901,17 +2907,18 @@ export const displayGen = function() {
          function getTiebreak(s) { return s.tiebreak != undefined ? s.tiebreak : s.spacer ? '&nbsp;' : ''; }
       }
 
-      function buildTeam(match, index) {
+      function buildTeam(match, index, winner) {
          let dbls = match.format == 'doubles';
          let players = match.teams && match.teams[index];
-         let opponent1 = players && players[0] ? opponentDisplay({ index: 0, value: players[0].full_name }) : opponentDisplay({index: 0});
+         let opponent1 = players && players[0] ? opponentDisplay({ index: 0, value: players[0].full_name, winner }) : opponentDisplay({index: 0});
          let opponent2 = dbls && players && players[1] ? opponentDisplay({ index: 1, value: players[1].full_name }) : dbls ? opponentDisplay({index: 1}) : '';
          return `${opponent1}${opponent2}`;
       }
 
-      function opponentDisplay({ index, value }) {
+      function opponentDisplay({ index, value, winner }) {
+         let color = winner ? 'blue' : 'black';
          let html = `
-            <input class='dual_opponent' opponent='${index}' value='${value || ''}' placeholder='${lang.tr("opnt")}' disabled>
+            <input style='color: ${color}' class='dual_opponent' opponent='${index}' value='${value || ''}' placeholder='${lang.tr("opnt")}' disabled>
             <select class='dual_select' opponent='${index}' style='display: none'></select>
          `;
          return html;
@@ -3811,8 +3818,8 @@ export const displayGen = function() {
       genGrouping(teams, 'team');
       genGrouping(eligible, 'eligible');
 
-      container.approved_count.element.innerHTML = approved && approved.length ? `(${approved.length})` : '';
-      container.eligible_count.element.innerHTML = eligible && eligible.length ? `(${eligible.length})` : '';
+      if (container.approved_count) container.approved_count.element.innerHTML = approved && approved.length ? `(${approved.length})` : '';
+      if (container.eligible_count) container.eligible_count.element.innerHTML = eligible && eligible.length ? `(${eligible.length})` : '';
 
       function genGrouping(players, group_class) {
          let html = players.map(row => teamBox(row)).join('');
@@ -4127,13 +4134,16 @@ export const displayGen = function() {
       let women_players = players.filter(p=>p.sex == 'W');
       let unsexed_players = players.filter(p=>p.sex != 'M' && p.sex != 'W');
       html += men_players.map(teamPlayerRow).join('');
+      html += `<div style='width: 100%; height: .5em'>&nbsp;</div>`;
       html += women_players.map(teamPlayerRow).join('');
+      html += `<div style='width: 100%; height: .5em'>&nbsp;</div>`;
       html += unsexed_players.map(teamPlayerRow).join('');
       elem.innerHTML = html;
 
       function teamPlayerRow(player, i) {
          let font_color = !player.sex ? 'black' : player.sex == 'W' ? '#840076' : '#00368c'; 
-         let style = `style='color: ${font_color};'`;
+         let sign_in_state = `opacity: ${player.signed_in ? 1 : .5}`;
+         let style = `style='color: ${font_color}; ${sign_in_state}'`;
          let player_order = team.players[player.puid].order || '';
          let phtml = `
             <div class='team_player' ${style} puid='${player.puid}'>

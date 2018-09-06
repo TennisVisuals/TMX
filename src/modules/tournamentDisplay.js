@@ -392,7 +392,8 @@ export const tournamentDisplay = function() {
          tournament_event: null,
          draw_event: null,
          schedule_day: null,
-         dual_match: null
+         dual_match: null,
+         team: null
       }
 
       // keep track of which tab is open
@@ -1532,14 +1533,12 @@ export const tournamentDisplay = function() {
          playerFx.action = 'addTournamentPlayer';
          playerFx.displayGen = displayGen.showConfigModal;
          playerFx.notInDB = true;
-         playerFx.override = ({ puid, notInDB }) => {
-            if (notInDB && puid) {
-               let player = tournament.players.reduce((p, c) => c.puid == puid ? c : p, undefined);
-               if (player) {
-                  let container = displayGen.playerProfile(playerFx.displayFx);
-                  container.info.element.innerHTML = displayGen.playerInfo(player, {});
-                  addTournamentPlayer(container, player);
-               }
+         playerFx.override = ({ player, puid, notInDB }) => {
+            if (!player && notInDB && puid) player = tournament.players.reduce((p, c) => c.puid == puid ? c : p, undefined);
+            if (player) {
+               let container = displayGen.playerProfile(playerFx.displayFx);
+               container.info.element.innerHTML = displayGen.playerInfo(player, {});
+               addTournamentPlayer(container, player);
             }
          };
 
@@ -1596,6 +1595,7 @@ export const tournamentDisplay = function() {
          }
 
          if (reference == 'draws') {
+            hideOpponentSelections();
             displayGen.drawBroadcastState(container.publish_state.element, displayed.draw_event);
          }
 
@@ -1624,6 +1624,7 @@ export const tournamentDisplay = function() {
          if (reference == 'teams') {
             let details_active = container.team_details.element.style.display != 'none';
             if (details_active && state.edit) enableAddTeamPlayer();
+            if (details_active && displayed.team) displayTeam({ team: displayed.team });
          }
 
          current_tab = reference || tab_number;
@@ -1680,7 +1681,7 @@ export const tournamentDisplay = function() {
 
          // handle mouse click event
          if (e && e.draw_created) {
-            displayGen.okCancelMessage('WARNING: Existing Draw will be cleared!', clickChange, () => displayGen.closeModal());
+            displayGen.okCancelMessage(`${lang.tr('warn')}: ${lang.tr('phrases.cleardraw')}`, clickChange, () => displayGen.closeModal());
          } else {
             clickChange();
          }
@@ -2133,11 +2134,11 @@ export const tournamentDisplay = function() {
          if (!players || !players.length) return;
          if (!tournament.players) tournament.players = [];
 
-         let id_map = Object.assign(...players.map(p => ({ [p.id]: p })));
-         let existing_ids = tournament.players.map(p=>p.id);
+         let id_map = Object.assign(...players.map(p => ({ [p.puid]: p })));
+         let existing_ids = tournament.players.map(p=>p.puid);
 
          // check for overlap with existing players, add any newly retrieved attributes to existing
-         tournament.players.forEach(p => { if (id_map[p.id]) Object.assign(p, id_map[p.id]); });
+         tournament.players.forEach(p => { if (id_map[p.puid]) Object.assign(p, id_map[p.id]); });
 
          // add any new players that don't already exist in tournament
          players.forEach(pushNewPlayer);
@@ -2435,6 +2436,7 @@ export const tournamentDisplay = function() {
       }
 
       function closeTeamDetails() {
+         displayed.team = null;
          searchBox.normalFunction();
          displayGen.hideTeamDetails(container);
       }
@@ -3031,15 +3033,19 @@ export const tournamentDisplay = function() {
 
       function displayTeam({ team, index } = {}) {
          if (!team) return;
+         displayed.team = team;
 
          // let team_index = tournament.teams && tournament.teams.map(t=>t.uuid).indexOf(team.uuid);
          let team_index = tournament.teams && tournament.teams.map(t=>t.id).indexOf(team.id);
          index = index || (team_index >= 0 ? team_index : undefined);
 
          let team_details = displayGen.displayTeamDetails(container, team);
-         // TODO: team_details.ioc
-         team_details.abbreviation.element.value = team.abbr || '';
+         team_details.abbreviation.element.value = team.abbreviation || '';
          team_details.coach.element.value = team.coach || '';
+         team_details.school.element.value = team.school || '';
+         let ioc_codes = fx.fx.env().ioc_codes || [];
+         let ioc_idioms = Object.assign({}, ...ioc_codes.map(d => ({ [d.ioc]: d.name })));
+         team_details.ioc.element.value = (team.ioc && ioc_idioms[team.ioc]) || '';
 
          util.eachElementClass(container.team_details.element, 'team_attr_edit', (el) => el.disabled = !state.edit);
 
@@ -3052,7 +3058,10 @@ export const tournamentDisplay = function() {
 
          let defineAttr = (attr, evt, required, elem) => {
             team[attr] = elem ? elem.value : evt ? evt.target.value : undefined;
-            if ((!evt || evt.which == 13 || evt.which == 9) && (!required || (required && team[attr]))) return nextFieldFocus(attr);
+            if ((!evt || evt.which == 13 || evt.which == 9) && (!required || (required && team[attr]))) {
+               saveTournament(tournament);
+               return nextFieldFocus(attr);
+            }
          }
 
          team_details.abbreviation.element.addEventListener('keydown', catchTab);
@@ -3095,33 +3104,30 @@ export const tournamentDisplay = function() {
          }
 
          // IOC Awesomplete
-         d3.json('./assets/ioc_codes.json', data => {
-            let list = data.map(d => ({ label: d.name, value: d.ioc }));
-            team_details.ioc.typeAhead = new Awesomplete(team_details.ioc.element, { list });
+         let list = ioc_codes.map(d => ({ label: d.name, value: d.ioc }));
+         team_details.ioc.typeAhead = new Awesomplete(team_details.ioc.element, { list });
 
-            let selection_flag = false;
-            let selectComplete = (c) => { 
-               selection_flag = true; 
-               team.ioc = c.text.value; 
-               team_details.ioc.element.value = c.text.label;
-            }
-            team_details.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
-            team_details.ioc.element.addEventListener('keydown', catchTab , false);
-            team_details.ioc.element.addEventListener('keyup', catchTab , false);
-            team_details.ioc.element.addEventListener("keyup", function(evt) { 
-               // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
-               if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
-                  if (team_details.ioc.typeAhead.suggestions && team_details.ioc.typeAhead.suggestions.length) {
-                     team_details.ioc.typeAhead.next();
-                     team_details.ioc.typeAhead.select(0);
-                  } else {
-                     team_details.ioc.element.value = '';
-                     team_details.ioc.element.style.background = 'yellow';
-                  }
-                  nextFieldFocus(evt.shiftKey ? 'school' : 'ioc');
+         let selection_flag = false;
+         let selectComplete = (c) => { 
+            selection_flag = true; 
+            team.ioc = c.text.value; 
+            team_details.ioc.element.value = c.text.label;
+         }
+         team_details.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
+         team_details.ioc.element.addEventListener('keydown', catchTab , false);
+         team_details.ioc.element.addEventListener('keyup', catchTab , false);
+         team_details.ioc.element.addEventListener("keyup", function(evt) { 
+            // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
+            if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
+               if (team_details.ioc.typeAhead.suggestions && team_details.ioc.typeAhead.suggestions.length) {
+                  team_details.ioc.typeAhead.next();
+                  team_details.ioc.typeAhead.select(0);
+               } else {
+                  team_details.ioc.element.value = '';
                }
-               selection_flag = false;
-            });
+               nextFieldFocus(evt.shiftKey ? 'school' : 'ioc');
+            }
+            selection_flag = false;
          });
 
          // Club Awesomplete
@@ -4739,7 +4745,7 @@ export const tournamentDisplay = function() {
 
       function checkForQualifiedTeams(e) {
          if (e.draw_type != 'Q') return;
-         let qualifiers = dfx.drawInfo(e.draw).final_round_players;
+         let qualifiers = e.draw && dfx.drawInfo(e.draw).final_round_players;
          let qualified = qualifiers ? qualifiers.filter(f=>f) : [];
          qualified.forEach(team => tfx.qualifyTeam({ tournament, env: fx.fx.env(), e, team }));
       }
@@ -5472,9 +5478,6 @@ export const tournamentDisplay = function() {
       function displaySchedule(currently_selected_day) {
          var { completed_matches, pending_matches, upcoming_matches } = mfx.tournamentEventMatches({ tournament, source: true });
 
-         console.log('matches...');
-         // console.log(completed_matches, pending_matches, upcoming_matches);
-
          let img = new Image();
          img.src = "./icons/dragmatch.png";
 
@@ -5518,10 +5521,10 @@ export const tournamentDisplay = function() {
 
          function eventOption(evt) {
             let type = evt.draw_type == 'E' ? '' : evt.draw_type == 'C' ? ` ${lang.tr('draws.consolation')}` : evt.draw_type == 'R' ? ' RR' : ' Q';
-            // let type = ['E', 'L', 'T'].indexOf(evt.draw_type) >= 0 ? '' : evt.draw_type == 'C' ? ` ${lang.tr('draws.consolation')}` : evt.draw_type == 'R' ? ' RR' : ' Q';
             let category = evt.custom_category ? `${evt.custom_category} ` : evt.category ? `${evt.category} ` : '';
             return { key: `${category}${evt.name}${type}`, value: evt.euid }
          }
+
          let event_filters = [].concat({ key: lang.tr('schedule.allevents'), value: '' }, ...tournament.events.map(eventOption));
          dd.attachDropDown({ 
             id: container.event_filter.id, 
@@ -5531,19 +5534,7 @@ export const tournamentDisplay = function() {
          container.event_filter.ddlb = new dd.DropDown({ element: container.event_filter.element, id: container.event_filter.id, onChange: displayPending });
          container.event_filter.ddlb.selectionBackground('white');
 
-         let location_filters = [].concat({ key: lang.tr('schedule.allcourts'), value: '' }, ...tournament.locations.map(l => ({ key: l.name, value: l.luid })));
-         dd.attachDropDown({ 
-            id: container.location_filter.id, 
-            options: location_filters,
-            label: '',
-         });
-         container.location_filter.ddlb = new dd.DropDown({ element: container.location_filter.element, id: container.location_filter.id, onChange: displayCourts });
-         container.location_filter.ddlb.selectionBackground('white');
-
-         // show or hide option button depending on whether there is more than one option
-         util.getParent(container.location_filter.element, 'schedule_options').style.display = (tournament.locations.length > 1) ? 'flex' : 'none';
-
-         // ROUND NAMES
+         // Round Filter
          // if scheduling upcoming matches need to add them to round filter too...
          let round_names = util.unique(upcoming_matches.concat(...pending_matches).map(m=>m.round_name)).reverse();
          let round_filters = [].concat({ key: lang.tr('schedule.allrounds'), value: '' }, ...round_names.map(round => ({ key: round, value: round })));
@@ -5554,6 +5545,52 @@ export const tournamentDisplay = function() {
          });
          container.round_filter.ddlb = new dd.DropDown({ element: container.round_filter.element, id: container.round_filter.id, onChange: displayPending });
          container.round_filter.ddlb.selectionBackground('white');
+
+         // Location Filter
+         let location_filters = [].concat({ key: lang.tr('schedule.allcourts'), value: '' }, ...tournament.locations.map(l => ({ key: l.name, value: l.luid })));
+         dd.attachDropDown({ 
+            id: container.location_filter.id, 
+            options: location_filters,
+            label: '',
+         });
+         container.location_filter.ddlb = new dd.DropDown({ element: container.location_filter.element, id: container.location_filter.id, onChange: displayCourts });
+         container.location_filter.ddlb.selectionBackground('white');
+
+         // Dual Match Filter
+         // TODO: Complete filter... add dual_muid to matchStorageObjects...
+         let dual_matches = [].concat({ key: lang.tr('schedule.alldual'), value: '' }, ...dualMatchSelections());
+         dd.attachDropDown({ 
+            id: container.dual_filter.id, 
+            options: dual_matches,
+            label: '',
+         });
+         container.dual_filter.ddlb = new dd.DropDown({ element: container.dual_filter.element, id: container.dual_filter.id, onChange: displayCourts });
+         container.dual_filter.ddlb.selectionBackground('white');
+
+         function dualMatchSelections() {
+            let euids = util.unique(all_matches.map(m => m.event.euid));
+            let dual_match_contexts = [].concat(
+               ...tournament.events
+                  .filter(v => euids.indexOf(v.euid) >= 0)
+                  .map(v => v.draw && v.draw.dual_matches && Object.keys(v.draw.dual_matches).map(dual_muid => ({ draw: v.draw, dual_muid }) ))
+            ).filter(f=>f);
+            return dual_match_contexts.map(dualMatchOption).filter(f=>f);
+         }
+
+         function dualMatchOption({ draw, dual_muid }) {
+            let dual_match_node = dfx.findDualMatchNode(draw, dual_muid);
+            let dual_match = dual_match_node && dual_match_node.data;
+            if (!dual_match_node || !dual_match) return;
+            let dual_teams = dual_match && dual_match.children && dual_match.children.map(c=>c && c.team && c.team[0]).filter(f=>f);
+            return { value: dual_muid, key: dual_teams.map(t=>t.name).join('-') };
+         }
+
+         // show or hide option button depending on whether there is more than one option
+         let team_tournament = tfx.isTeam(tournament);
+         container.event_filter.element.style.display = team_tournament ? 'none' : 'flex';
+         container.round_filter.element.style.display = team_tournament ? 'none' : 'flex';
+         container.dual_filter.element.style.display =  team_tournament ? 'flex' : 'none';
+         util.getParent(container.location_filter.element, 'schedule_options').style.display = (tournament.locations.length > 1) ? 'flex' : 'none';
 
          displayPending(false);
          dateChange(displayed.schedule_day);
@@ -6430,11 +6467,17 @@ export const tournamentDisplay = function() {
 
          // create an array of ids of all players who are selected for any event
          // used to prevent sign-out of approved players
-         let players_approved = () => !tournament.events ? [] : [].concat(...tournament.events.map(e => {
+         let playersApproved = () => !tournament.events ? [] : [].concat(...tournament.events.map(e => {
             if (!e.approved) return [];
             return e.teams ? [].concat(...e.teams) : [].concat(...e.approved);
          }));
 
+         let activePlayers = () => {
+            let { completed_matches, pending_matches, upcoming_matches } = mfx.tournamentEventMatches({ tournament, source: true });
+            let all_matches = [].concat(...completed_matches, ...pending_matches, ...upcoming_matches);
+            let player_puids = util.unique([].concat(...all_matches.map(m=>m.players)).map(p=>p.puid));
+            return player_puids;
+         }
          // TODO: ability to sort by either name or rank
 
          let category = staging.legacyCategory(tournament.category, true);
@@ -6492,14 +6535,15 @@ export const tournamentDisplay = function() {
             if (!puid) { console.log('missing puid:', element); return; }
 
             let clicked_player = tournament.players.reduce((p, c) => { if (c.puid == puid) p = c; return p; }, undefined);
-            let approved = players_approved().indexOf(clicked_player.id) >= 0; 
+            let approved = playersApproved().indexOf(clicked_player.id) >= 0; 
+            let active = tfx.isTeam(tournament) && activePlayers().indexOf(clicked_player.puid) >= 0;
             let identify = fx.fx.env().players.identify;
 
             var mouse = { x: evt.clientX, y: evt.clientY }
             var options = [];
             options.push({ label: lang.tr('edt'), key: 'edit' });
             if (identify) options.push({ label: lang.tr('idp'), key: 'identify' });
-            if (!approved) options.push({ label: lang.tr('dlp'), key: 'delete' });
+            if (!approved && !active) options.push({ label: lang.tr('dlp'), key: 'delete' });
 
             if (options.length == 1) {
                selectionMade({ key: options[0].key });
@@ -6594,9 +6638,10 @@ export const tournamentDisplay = function() {
 
             let clicked_player = tournament.players.reduce((p, c) => { if (c.puid == puid) p = c; return p; }, undefined);
 
-            let medical = playerFx.medical(clicked_player);
+            let medical = playerFx.medical(clicked_player, tournament);
             let registration = playerFx.registration(clicked_player);
-            let approved = players_approved().indexOf(clicked_player.id) >= 0; 
+            let approved = playersApproved().indexOf(clicked_player.id) >= 0; 
+            let active = tfx.isTeam(tournament) && activePlayers().indexOf(clicked_player.puid) >= 0;
             let penalties = clicked_player.penalties && clicked_player.penalties.length;
             let withdrawn = !clicked_player ? false : clicked_player.withdrawn == 'Y' || clicked_player.withdrawn == true;
 
@@ -6604,7 +6649,7 @@ export const tournamentDisplay = function() {
             if (state.edit && o.sign_in.rapid && !withdrawn && registration) {
                if (clicked_player) {
                   if (clicked_player.signed_in) {
-                     if (approved) {
+                     if (approved || active) {
                         if (penalties) { return displayGen.playerPenalties(clicked_player, saveFx); } else { return cannotSignOut(); }
                         function saveFx() { saveTournament(tournament); playersTab(); }
                      }
@@ -6846,6 +6891,8 @@ export const tournamentDisplay = function() {
       }
 
       function tournamentPoints(tournament, mz) {
+         if (tfx.isTeam(tournament)) return;
+
          var tournament_date = tournament && (tournament.points_date || tournament.end);
          var points_date = tournament_date ? new Date(tournament_date) : new Date();
          if (!mz || !mz.length) return;
@@ -7360,6 +7407,14 @@ export const tournamentDisplay = function() {
          dual.querySelector('.team_divider').innerHTML = lang.tr('schedule.vs');
       }
 
+      function hideOpponentSelections() {
+         if (!container.dual.element) return;
+         Array.from(container.dual.element.querySelectorAll('select'))
+            .forEach(s => s.style.display = 'none');
+         Array.from(container.dual.element.querySelectorAll('input'))
+            .forEach(s => s.style.display = 'inline');
+      }
+
       function displayOrderedMatches(e, dual_match, dual_teams) {
          if (!e) return;
          let elem = container.dual.element.querySelector('.ordered_dual_matches');
@@ -7375,14 +7430,7 @@ export const tournamentDisplay = function() {
          util.addEventToClass('dual_select', opponentSelected, document, 'change');
 
          // clicking anywhere else on the page hides active DDLB
-         container.dual.element.addEventListener('click', hideSelections);
-
-         function hideSelections() {
-            Array.from(container.dual.element.querySelectorAll('select'))
-               .forEach(s => s.style.display = 'none');
-            Array.from(container.dual.element.querySelectorAll('input'))
-               .forEach(s => s.style.display = 'inline');
-         }
+         container.dual.element.addEventListener('click', hideOpponentSelections);
 
          function dualMatchOpponent(evt) {
             if (state.edit) {
@@ -7394,7 +7442,7 @@ export const tournamentDisplay = function() {
                let team_name = util.getParent(evt.target, 'dual_match_team_name');
                let team_index = team_name.getAttribute('team');
                let inputs = Array.from(team_name.querySelectorAll('input'));
-               hideSelections();
+               hideOpponentSelections();
 
                if (evt.target.localName == 'input') {
                   let opponent_select = evt.target.nextElementSibling;
@@ -7403,7 +7451,9 @@ export const tournamentDisplay = function() {
                   let opponent = evt.target.getAttribute('opponent');
 
                   let dual_team = dual_teams[team_index];
-                  let players = Object.keys(dual_team.players).map(puid => tfx.findTournamentPlayer({tournament, puid}));
+                  let players = Object.keys(dual_team.players)
+                     .map(puid => tfx.findTournamentPlayer({tournament, puid}))
+                     .filter(p=>p.signed_in);
 
                   let selected;
                   let existing_opponent;
@@ -7418,7 +7468,7 @@ export const tournamentDisplay = function() {
                      .filter(p => !existing_opponent || p.puid != existing_opponent.puid);
 
                   let options = [{ puid: '', text: `- ${lang.tr('phrases.selectplayer')}`}].concat(...gendered_players.map(p=>({ puid: p.puid, text: p.full_name })));
-                  setOptions(opponent_select, options, selected);
+                  setOpponentOptions(opponent_select, options, selected);
                }
             }
          }
@@ -7449,11 +7499,12 @@ export const tournamentDisplay = function() {
                match.teams[team_index][opponent] = undefined;
                opponent_input.value = '';
             }
+            saveTournament(tournament);
 
-            hideSelections();
+            hideOpponentSelections();
          }
 
-         function setOptions(dropDown, options, selected) {
+         function setOpponentOptions(dropDown, options, selected) {
             if (selected) options[0] = { puid: '', text: `- ${lang.tr('phrases.clearselection')}`};
             dropDown.innerHTML = options.map(o => {
                let is_selected = selected == o.puid ? 'selected' : '';
@@ -7462,7 +7513,7 @@ export const tournamentDisplay = function() {
          }  
 
          function dualMatchClick(evt) {
-            hideSelections();
+            hideOpponentSelections();
             evt.stopPropagation();
             let dm_elem = util.getParent(evt.target, 'dual_match');
             let match_muid = dm_elem.getAttribute('muid');

@@ -1,5 +1,3 @@
-import { db } from './db';
-
 import { util } from './util';
 import { UUID } from './UUID';
 import { drawFx } from './drawFx';
@@ -179,13 +177,15 @@ export const tournamentFx = function() {
    fx.calcDualMatchesScore = (e, dual_match) => {
       let score = [0, 0];
       let match_record = e && e.draw && e.draw.dual_matches && e.draw.dual_matches[dual_match.match.muid];
+      let av = (e.matchorder && e.matchorder.map(m=>m.value).reduce((a, b) => (a || 0) + (b || 0))) || 0;
+      let more_than_half = Math.ceil(av/2) > av/2 ? Math.ceil(av/2) : Math.ceil(av/2) + 1;
       match_record && match_record.matches
          .map(m => ({ winner: m.match.winner_index, value: m.value }))
          .filter(f=>f.winner != undefined)
          .forEach(result => score[result.winner] += parseInt(result.value || 1));
-      let score_goal = e.score_goal || 5;
+      let score_goal = e.score_goal || more_than_half;
       let max_score = Math.max(...score);
-      let winner_index = max_score < score_goal ? undefined : (score[0] >= score_goal) ? 0 : 1;
+      let winner_index = !score_goal || max_score < score_goal ? undefined : (score[0] >= score_goal) ? 0 : 1;
       dual_match.match.score = winner_index ? score.map(s=>s).reverse().join('-') : score.join('-');
       let active_matches = match_record && match_record.matches.reduce((p, c) => c.match.score ? true : p, undefined);
       return { score, active_matches };

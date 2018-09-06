@@ -573,7 +573,7 @@ ul.noindent { margin: 0; padding: 0; }
 .teams_tab .attributes, .teams_tab .team_players {
    min-width: 300px;
    width: 50%;
-   height: auto;
+   height: 100%;
    padding: .5em;
 }
 
@@ -836,6 +836,7 @@ button.ratings-submit:hover { background: #68FF33; }
    flex-direction: column;
    -webkit-justify-content: flex-start;
    justify-content: flex-start;
+   padding-right: 1em;
 }
 .event_details .detail_body .detail_selections {
    width: 100%;
