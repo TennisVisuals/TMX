@@ -383,6 +383,7 @@ export const lang = function() {
       },
 
       phrases: {
+         cleardraw: 'Existing Draw will be cleared!',
          clearselection: 'Clear Selection',
          selectplayer: 'Select Player',
          matches2clear: 'Matches to be cleared from the schedule',
@@ -550,6 +551,7 @@ export const lang = function() {
          allevents: 'All Events',
          allrounds: 'All Rounds',
          allcourts: 'All Courts',
+         alldual: 'All Dual Matches',
          autoschedule: 'Auto Schedule',
          limit: 'Limit',
          clearschedule: 'Clear Schedule',
