@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.0.50.70.50.w',
+      version: '1.1.1.7.3',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -112,7 +112,7 @@ export const config = function() {
       points: { walkover_wins: ['F'] },
       parsers: {},
       tournaments: {
-         dual: false,
+         dual: true,
          team: false,
          league: false
       },
