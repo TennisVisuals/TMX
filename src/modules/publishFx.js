@@ -14,6 +14,7 @@ export const publishFx = function() {
          tournament: {
             name: tourny.name,
             tuid: tourny.tuid,
+            type: tourny.type,
             org: tourny.org,
             start: tourny.start,
             end: tourny.end,
