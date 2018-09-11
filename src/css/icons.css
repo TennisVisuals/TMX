@@ -83,6 +83,8 @@
 }
 .ranking_order_inactive { background-image: url("img/rank_gray.png"); opacity: 0; }
 .ranking_order_active { background-image: url("img/rank.png"); opacity: 0; }
+.link_inactive { background-image: url("img/link_inactive.png"); opacity: 0; }
+.link_active { background-image: url("img/link_active.png"); opacity: 0; }
 .refresh_registrations { background-image: url("img/refresh_black.png"); opacity: 0; }
 .shareteam { background-image: url("img/shareteam.png"); }
 .filter_w_selected { background-image: url("img/w_selected.png"); }
