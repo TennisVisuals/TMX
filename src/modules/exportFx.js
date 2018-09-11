@@ -170,7 +170,7 @@ export const exportFx = function() {
          "Loser 2 College": '',
 
          "Score": match.score,
-         "Id Type": '',
+         "Id Type": 'UTR',
          "Draw Name": match.tournament.draw || '',
          "Draw Gender": draw_gender,
          "Draw Team Type": util.normalizeName(match.format) || '',
@@ -192,7 +192,8 @@ export const exportFx = function() {
          "Tournament Event Category": category == 'Seniors' || category == 'S' ? 'Seniors' : 'Juniors',
          "Tournament Import Source": 'CourtHive',
          "Tournament Sanction Body": sanctioning,
-         "Match ID": match.muid
+         "Match ID": match.muid,
+         "Tournament Event Grade": ''
       }
    }
 
