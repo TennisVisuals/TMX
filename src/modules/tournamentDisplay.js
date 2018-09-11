@@ -465,6 +465,7 @@ export const tournamentDisplay = function() {
 
       attachFilterToggles(classes, updateFilters);
       util.addEventToClass(classes.ranking_order, () => enableManualRankings());
+      util.addEventToClass(classes.reg_link, () => editRegistrationLink());
       util.addEventToClass(classes.refresh_registrations, (evt) => {
          if (evt.ctrlKey || evt.shiftKey) return replaceRegisteredPlayers(true);
          updateRegisteredPlayers(true);
@@ -1597,6 +1598,8 @@ export const tournamentDisplay = function() {
          if (reference == 'draws') {
             hideOpponentSelections();
             displayGen.drawBroadcastState(container.publish_state.element, displayed.draw_event);
+
+            if (displayed.draw_event && !displayed.draw_event.draw_created) { container.dual.element.style.display = 'none'; }
          }
 
          // matchesTab() checks for new matches and updates pointsTab();
@@ -2058,6 +2061,16 @@ export const tournamentDisplay = function() {
          document.querySelector('.refresh_registrations').style.opacity = state.edit ? 1 : 0;
          document.querySelector('.' + classes.refresh_registrations).classList[state.edit ? 'add' : 'remove']('info');
 
+         document.querySelector('.reg_link').style.opacity = state.edit ? 1 : 0;
+         if (state.edit) {
+            db.findSetting('fetchRegisteredPlayers').then(regLinkState, util.logError);
+            function regLinkState(setting) {
+               document.querySelector('.' + classes.reg_link).style.display = (!setting || !setting.url) ? 'inline' : 'none';
+            }
+         } else {
+            document.querySelector('.' + classes.reg_link).style.display = 'none';
+         }
+
          util.eachElementClass(container.team_details.element, 'team_attr_edit', (el) => el.disabled = !state.edit);
          util.eachElementClass(container.team_details.element, 'manualorder', (el) => {
             el.disabled = true;
@@ -2135,7 +2148,6 @@ export const tournamentDisplay = function() {
          if (!tournament.players) tournament.players = [];
 
          let id_map = Object.assign(...players.map(p => ({ [p.puid]: p })));
-         let existing_ids = tournament.players.map(p=>p.puid);
 
          // check for overlap with existing players, add any newly retrieved attributes to existing
          tournament.players.forEach(p => { if (id_map[p.puid]) Object.assign(p, id_map[p.id]); });
@@ -5436,6 +5448,7 @@ export const tournamentDisplay = function() {
       function teamName(match, team, remove_diacritics) {
          if (team.length == 1) {
             let p = match.players[team[0]];
+            if (!p) return '';
             if (!p.last_name || !p.first_name) return p.qualifier ? lang.tr('qualifier') : '';
             let club = p.club_code ? ` (${p.club_code})` : '';
             let full_name = `${util.normalizeName(p.first_name, remove_diacritics)} ${util.normalizeName(p.last_name, remove_diacritics).toUpperCase()}`; 
@@ -5581,13 +5594,14 @@ export const tournamentDisplay = function() {
             let dual_match_node = dfx.findDualMatchNode(draw, dual_muid);
             let dual_match = dual_match_node && dual_match_node.data;
             if (!dual_match_node || !dual_match) return;
-            let dual_teams = dual_match && dual_match.children && dual_match.children.map(c=>c && c.team && c.team[0]).filter(f=>f);
+            let dual_teams = getDualTeams(dual_match);
             return { value: dual_muid, key: dual_teams.map(t=>t.name).join('-') };
          }
 
          // show or hide option button depending on whether there is more than one option
          let team_tournament = tfx.isTeam(tournament);
-         container.event_filter.element.style.display = team_tournament ? 'none' : 'flex';
+         let events_count = tournament.events && tournament.events.length;
+         container.event_filter.element.style.display = team_tournament && !events_count ? 'none' : 'flex';
          container.round_filter.element.style.display = team_tournament ? 'none' : 'flex';
          container.dual_filter.element.style.display =  team_tournament ? 'flex' : 'none';
          util.getParent(container.location_filter.element, 'schedule_options').style.display = (tournament.locations.length > 1) ? 'flex' : 'none';
@@ -5837,7 +5851,7 @@ export const tournamentDisplay = function() {
                   // refresh HTML of source to remove time/time_prefix
                   populateGridCell(source, source_muid, source_match);
                }
-               matchEventOutOfDate(match);
+               matchEventOutOfDate(source_match);
 
                checkConflicts(day_matches);
 
@@ -6248,7 +6262,7 @@ export const tournamentDisplay = function() {
                   if (tfx.isTeam(tournament)) {
                      let dual_match_node = dfx.findDualMatchNodeByMatch(e.draw, match.muid);
                      let dual_match = dual_match_node && dual_match_node.data;
-                     let dual_teams = dual_match && dual_match.children && dual_match.children.map(c=>c && c.team && c.team[0]).filter(f=>f);
+                     let dual_teams = getDualTeams(dual_match);
                      result = scoreDualDraw({ tournament, e, dual_match, dual_teams, muid: match.muid, outcome });
                   } else {
                      result = (e.draw_type == 'R') 
@@ -6565,42 +6579,52 @@ export const tournamentDisplay = function() {
                      saveFx();
                   }
                } else if (choice.key == 'identify') {
-                  var selected_puid;
-                  let modal = displayGen.selectNewPlayerIdentity(clicked_player);
-                  modal.cancel.element.addEventListener('click', () => displayGen.closeModal());
-                  let valid_players = searchBox.typeAhead._list;
-                  let available = new Awesomplete(modal.search.element, { list: valid_players });
 
-                  let selection_flag = false;
-                  modal.search.element.addEventListener("awesomplete-selectcomplete", function(e) { selection_flag = true; setValue(); }, false);
-                  modal.search.element.addEventListener('keydown', catchTab , false);
-                  modal.search.element.addEventListener("keyup", function(e) { 
-                     // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
-                     if (e.which == 13 && !selection_flag) {
-                        if (available.suggestions && available.suggestions.length && modal.search.element.value) {
-                           available.next();
-                           available.select(0);
-                           setValue();
-                        }
+                  playerFx.optionsAllPlayers().then(identifyValidPlayer, util.logError);
+
+                  function identifyValidPlayer(valid_players) {
+
+                     if (!valid_players || !valid_players.length) {
+                        return displayGen.popUpMessage(`<div>${lang.tr('pyr')}<p>${lang.tr('phrases.notfound')}</div>`);
                      }
-                     selection_flag = false;
-                  });
-                  modal.search.element.focus();
 
-                  function setValue() {
-                     selected_puid = modal.search.element.value;
-                     if (selected_puid) { db.findPlayer(selected_puid).then(confirmIdentity, util.logError); }
-                     displayGen.closeModal();
-                  }
-                  function confirmIdentity(new_player_data) {
-                     new_player_data.birth = util.formatDate(new_player_data.birth);
-                     // new_player_data.full_name = `${new_player_data.last_name.toUpperCase()}, ${util.normalizeName(new_player_data.first_name, false)}`;
-                     new_player_data.full_name = tfx.fullName(new_player_data, false);
-                     displayGen.changePlayerIdentity(clicked_player, new_player_data, changePlayerIdentity);
-                     function changePlayerIdentity() {
+                     var selected_puid;
+                     let modal = displayGen.selectNewPlayerIdentity(clicked_player);
+                     modal.cancel.element.addEventListener('click', () => displayGen.closeModal());
+
+                     let available = new Awesomplete(modal.search.element, { list: valid_players });
+
+                     let selection_flag = false;
+                     modal.search.element.addEventListener("awesomplete-selectcomplete", function(e) { selection_flag = true; setValue(); }, false);
+                     modal.search.element.addEventListener('keydown', catchTab , false);
+                     modal.search.element.addEventListener("keyup", function(e) { 
+                        // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
+                        if (e.which == 13 && !selection_flag) {
+                           if (available.suggestions && available.suggestions.length && modal.search.element.value) {
+                              available.next();
+                              available.select(0);
+                              setValue();
+                           }
+                        }
+                        selection_flag = false;
+                     });
+                     modal.search.element.focus();
+
+                     function setValue() {
+                        selected_puid = modal.search.element.value;
+                        if (selected_puid) { db.findPlayer(selected_puid).then(confirmIdentity, util.logError); }
                         displayGen.closeModal();
-                        tfx.replaceTournamentPlayer({ tournament, existing_player: clicked_player, new_player_data, replace_all: true });
-                        saveFx();
+                     }
+                     function confirmIdentity(new_player_data) {
+                        if (!new_player_data) return;
+                        new_player_data.birth = util.formatDate(new_player_data.birth);
+                        new_player_data.full_name = tfx.fullName(new_player_data, false);
+                        displayGen.changePlayerIdentity(clicked_player, new_player_data, changePlayerIdentity);
+                        function changePlayerIdentity() {
+                           displayGen.closeModal();
+                           tfx.replaceTournamentPlayer({ tournament, existing_player: clicked_player, new_player_data, replace_all: true });
+                           saveFx();
+                        }
                      }
                   }
                }
@@ -6610,11 +6634,12 @@ export const tournamentDisplay = function() {
                let new_player_data = Object.assign({}, clicked_player);
                if (p.first_name) new_player_data.first_name = p.first_name;
                if (p.last_name) new_player_data.last_name = p.last_name;
-               // new_player_data.full_name = `${new_player_data.last_name.toUpperCase()}, ${util.normalizeName(new_player_data.first_name, false)}`;
                new_player_data.full_name = tfx.fullName(new_player_data, false);
                if (p.ioc) new_player_data.ioc = p.ioc;
                if (p.birth) new_player_data.birth = p.birth;
                if (p.sex) new_player_data.sex = p.sex;
+               new_player_data.school = p.school || '';
+               new_player_data.school_abbr = p.school_abbr || '';
 
                tfx.replaceTournamentPlayer({ tournament, existing_player: clicked_player, new_player_data });
                saveFx();
@@ -7050,7 +7075,7 @@ export const tournamentDisplay = function() {
                if (tfx.isTeam(tournament)) {
                   let dual_match_node = dfx.findDualMatchNodeByMatch(e.draw, match.match.muid);
                   let dual_match = dual_match_node && dual_match_node.data;
-                  let dual_teams = dual_match && dual_match.children && dual_match.children.map(c=>c && c.team && c.team[0]).filter(f=>f);
+                  let dual_teams = getDualTeams(dual_match);
                   scoreDualDraw({ tournament, e, dual_match, dual_teams, muid: match.match.muid, outcome });
                } else {
                   if (e.draw_type == 'R') {
@@ -7385,7 +7410,7 @@ export const tournamentDisplay = function() {
 
       function scoreDualDraw({ tournament, e, dual_match, dual_teams, muid, outcome }) {
          let result = tfx.scoreDualMatchDraw({ tournament, e, dual_match, dual_teams, muid, outcome });
-         if (dual_match.match.muid == displayed.dual_match.match.muid) {
+         if (displayed.dual_match && dual_match.match.muid == displayed.dual_match.match.muid) {
             displayDualMatches(dual_match);
             tree_draw.data(e.draw)();
          }
@@ -7393,7 +7418,7 @@ export const tournamentDisplay = function() {
       }
 
       function displayDualMatches(dual_match, dual_teams) {
-         if (!dual_teams) dual_teams = dual_match && dual_match.children && dual_match.children.map(c=>c && c.team && c.team[0]).filter(f=>f);
+         if (!dual_teams) dual_teams = getDualTeams(dual_match);
          let dual = container.dual.element;
          dual.style.display = 'flex';
          let e = tfx.findEventByID(tournament, dual_match.match.euid);
@@ -7451,9 +7476,10 @@ export const tournamentDisplay = function() {
                   let opponent = evt.target.getAttribute('opponent');
 
                   let dual_team = dual_teams[team_index];
+
                   let players = Object.keys(dual_team.players)
                      .map(puid => tfx.findTournamentPlayer({tournament, puid}))
-                     .filter(p=>p.signed_in);
+                     .filter(p=>p && p.signed_in);
 
                   let selected;
                   let existing_opponent;
@@ -7998,7 +8024,7 @@ export const tournamentDisplay = function() {
          function teamTournamentScore(d) {
             let dual_match = d && d.data;
             displayed.dual_match = dual_match;
-            let dual_teams = dual_match && dual_match.children && dual_match.children.map(c=>c && c.team && c.team[0]).filter(f=>f);
+            let dual_teams = getDualTeams(dual_match);
             if (dual_teams && dual_teams.length && dual_teams.length == 2) { displayDualMatches(dual_match, dual_teams); }
          }
 
@@ -9499,6 +9525,7 @@ export const tournamentDisplay = function() {
                genEventDraw(value);
                container.compass_direction.element.style.display = (displayed.draw_event.draw && displayed.draw_event.draw.compass) ? 'flex' : 'none';
                if (displayed.draw_event && displayed.draw_event.draw && displayed.draw_event.draw.compass) compassChange(displayed.draw_event.draw.compass, false);
+               container.dual.element.style.display = 'none';
             } else if (group_draws.length) {
                genGroupDraw(value);
             }
@@ -9522,6 +9549,24 @@ export const tournamentDisplay = function() {
          Array.from(document.querySelectorAll('.ratingvalue')).forEach(e=>e.style.display = visible ? 'none' : '');
 
          if (!visible) playersTab();
+      }
+
+      function editRegistrationLink() {
+         displayGen.enterSheetLink(tournament.reg_link, processLink);
+         function processLink(link) {
+            displayGen.closeModal();
+            if (!link) {
+               delete tournament.reg_link;
+               return;
+            }
+            let parts = link.split('/');
+            if (parts.indexOf('docs.google.com') < 0 || parts.indexOf('spreadsheets') < 0) return invalidURL();
+            let reg_link = parts.reduce((p, c) => (!p || c.length > p.length) ? c : p, undefined);
+            if (reg_link.length < 40) return invalidURL();
+            tournament.reg_link = reg_link;
+         }
+
+         function invalidURL() { displayGen.popUpMessage(`<div>${lang.tr('phrases.invalidsheeturl')}</div>`); }
       }
 
       function enableManualRankings(enabled) {
@@ -9555,15 +9600,41 @@ export const tournamentDisplay = function() {
          }
       }
 
+      function getDualTeams(dual_match) {
+         let dual_teams = dual_match && dual_match.children && dual_match.children.map(c=>c && c.team && playerFx.dualCopy(c.team[0])).filter(f=>f);
+         dual_teams.forEach(dt => {
+            dt.full_name = dt.name;
+            let team = tfx.findTeamByID(tournament, dt.id);
+            dt.players = Object.assign({}, ...Object.keys(team.players).map(k => ({ [k]: team.players[k] }) ));
+         });
+         return dual_teams;
+      }
+
       function updateRegisteredPlayers(show_notice) {
          if (!state.edit) return;
          let id = show_notice ? displayGen.busy.message(`<p>${lang.tr("refresh.registered")}</p>`) : undefined;
          let done = (registered) => {
-            addRegistered(registered);
-            displayGen.busy.done(id);
+            displayGen.busy.done(id, true);
+            if (registered && registered.length) addRegistered(registered);
          }
          let notConfigured = (err) => { displayGen.busy.done(id); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
-         fetchFx.fetchRegisteredPlayers(tournament.tuid, tournament.category).then(done, notConfigured);
+         if (tournament.reg_link) {
+            fetchFx.fetchGoogleSheet(tournament.reg_link).then(done, invalidURLorNotShared);
+         } else {
+            fetchFx.fetchRegisteredPlayers(tournament.tuid, tournament.category).then(done, notConfigured);
+         }
+
+         function invalidURLorNotShared(data) {
+            displayGen.busy.done(id, true);
+            let message = `
+               <div class='flexcol'>
+                  <div>${lang.tr('phrases.invalidsheeturl')}</div>
+                  <div>${lang.tr('or')}</div>
+                  <div>Sheet needs to be shared with CourtHive Server</div>
+               </div>
+            `;
+            displayGen.popUpMessage();
+         }
       }
 
       function matchEventOutOfDate(match) {
@@ -9881,6 +9952,7 @@ export const tournamentDisplay = function() {
       displayGen.moveToTop(row);
    }
 
+   // used when importing tournaments from spreadsheets... (?)
    fx.identifyPlayer = identifyPlayer;
    function identifyPlayer(elem) {
       let e = d3.select(elem);
