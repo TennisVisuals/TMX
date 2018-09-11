@@ -55,6 +55,34 @@ export const playerFx = function() {
          .forEach(elem => elem.addEventListener('click', displayGen.clearActivePlayer));
    }
 
+   fx.optionsAllPlayers = ({ filter_values } = {}) => {
+      return new Promise((resolve, reject) => {
+         let env = fx.fx.env();
+         var noaccents = !env.searchbox.diacritics;
+
+         db.findAllPlayers().then(arr => {
+            if (filter_values && filter_values.length) arr = arr.filter(el => filter_values.indexOf(el.puid) >= 0);
+
+            let firstlast = arr.map(player => { 
+               let label = util.normalizeName([player.first_name, player.last_name].join(' '), noaccents);
+               if (player.birth) label += ` [${new Date(player.birth).getFullYear()}]`;
+               return { value: player.puid, label, }
+            });
+            let lastfirst = arr.map(player => { 
+               let label = `${util.normalizeName(player.last_name, noaccents).toUpperCase()} ${util.normalizeName(player.first_name, noaccents)}`;
+               if (player.birth) label += ` [${new Date(player.birth).getFullYear()}]`;
+               return { value: player.puid, label }
+            });
+
+            if (env.searchbox.lastfirst) {
+               resolve(lastfirst);
+            } else {
+               resolve(firstlast);
+            }
+         });
+      });
+   }
+
    fx.eligibleForCategory = ({ calc_date, category, player }) => {
       if (!calc_date) return false;
       if (!category) return true;
@@ -253,14 +281,16 @@ export const playerFx = function() {
          abbr: d.abbr,
          name: d.name,
          coach: d.coach,
+         club: d.club,
+         club_code: d.club_code,
+         entry: d.entry,
+         draw_position: d.draw_position,
+         school: d.school,
+         school_abbr: d.school_abbr,
          ioc: d.ioc,
          id: d.id,
-         players: Object.assign({}, ...Object.keys(d.players).map(k=>d.players[k]))
       };
       return dual;
-   }
-
-   fx.findDualTeam = (id) => {
    }
 
    fx.playerCopy = (p) => {
@@ -279,6 +309,8 @@ export const playerFx = function() {
          full_name: p.full_name,
          last_name: p.last_name,
          first_name: p.first_name,
+         school: p.school,
+         school_abbr: p.school_abbr,
          draw_position: p.draw_position,
          category_dbls: p.category_dbls,
          category_ranking: p.category_ranking,
@@ -421,7 +453,7 @@ export const playerFx = function() {
          firstDay: fx.fx.env().calendar.first_day,
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
-      let field_order = [ 'last_name', 'first_name', 'birth', 'ioc', 'city', 'club', 'phone', 'email', 'cancel', 'save' ];
+      let field_order = [ 'last_name', 'first_name', 'birth', 'ioc', 'club', 'phone', 'email', 'cancel', 'save' ];
 
       player_container.last_name.element.focus();
       let nextFieldFocus = (field) => {
@@ -435,34 +467,33 @@ export const playerFx = function() {
       if (player.sex) player_container.gender.ddlb.setValue(player.sex, 'white');
 
       // IOC Awesomplete
-      d3.json('./assets/ioc_codes.json', data => {
-         let list = data.map(d => ({ label: d.name, value: d.ioc }));
-         player_container.ioc.typeAhead = new Awesomplete(player_container.ioc.element, { list });
+      let ioc_codes = fx.fx.env().ioc_codes || [];
+      let list = ioc_codes.map(d => ({ label: d.name, value: d.ioc }));
+      player_container.ioc.typeAhead = new Awesomplete(player_container.ioc.element, { list });
 
-         let selection_flag = false;
-         let selectComplete = (c) => { 
-            selection_flag = true; 
-            player.ioc = c.text.value; 
-            player_container.ioc.element.value = c.text.label;
-            player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
-         }
-         player_container.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
-         player_container.ioc.element.addEventListener('keydown', catchTab , false);
-         player_container.ioc.element.addEventListener('keyup', catchTab , false);
-         player_container.ioc.element.addEventListener("keyup", function(evt) { 
-            // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
-            if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
-               if (player_container.ioc.typeAhead.suggestions && player_container.ioc.typeAhead.suggestions.length) {
-                  player_container.ioc.typeAhead.next();
-                  player_container.ioc.typeAhead.select(0);
-               } else {
-                  player_container.ioc.element.value = '';
-                  player_container.ioc.element.style.background = 'yellow';
-               }
-               nextFieldFocus(evt.shiftKey ? 'first_name' : 'ioc');
+      let selection_flag = false;
+      let selectComplete = (c) => { 
+         selection_flag = true; 
+         player.ioc = c.text.value; 
+         player_container.ioc.element.value = c.text.label;
+         player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
+      }
+      player_container.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
+      player_container.ioc.element.addEventListener('keydown', catchTab , false);
+      player_container.ioc.element.addEventListener('keyup', catchTab , false);
+      player_container.ioc.element.addEventListener("keyup", function(evt) { 
+         // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
+         if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
+            if (player_container.ioc.typeAhead.suggestions && player_container.ioc.typeAhead.suggestions.length) {
+               player_container.ioc.typeAhead.next();
+               player_container.ioc.typeAhead.select(0);
+            } else {
+               player_container.ioc.element.value = '';
+               player_container.ioc.element.style.background = 'yellow';
             }
-            selection_flag = false;
-         });
+            nextFieldFocus(evt.shiftKey ? 'first_name' : 'ioc');
+         }
+         selection_flag = false;
       });
 
       // Club Awesomplete
@@ -537,12 +568,13 @@ export const playerFx = function() {
 
       player_container.last_name.element.addEventListener('keydown', (evt) => { if (evt.shiftKey && evt.which == 9) nextFieldFocus('email'); });
       player_container.last_name.element.addEventListener('keyup', (evt) => defineAttr('last_name', evt, true));
+      player_container.first_name.element.addEventListener('keydown', catchTab);
       player_container.first_name.element.addEventListener('keyup', (evt) => defineAttr('first_name', evt, true));
-      player_container.city.element.addEventListener('keydown', catchTab);
-      player_container.city.element.addEventListener('keyup', (evt) => defineAttr('city', evt));
       player_container.birth.element.addEventListener('keyup', birthKeyUp);
       player_container.phone.element.addEventListener('keyup', (evt) => defineAttr('phone', evt));
       player_container.email.element.addEventListener('keyup', (evt) => defineAttr('email', evt));
+      // player_container.school.element.addEventListener('keydown', catchTab);
+      // player_container.school.element.addEventListener('keyup', (evt) => defineAttr('school', evt, true));
       player_container.cancel.element.addEventListener('click', () => displayGen.closeModal());
       player_container.cancel.element.addEventListener('keydown', handleCancelKeyEvent);
       player_container.cancel.element.addEventListener('keyup', (evt) => { if (evt.which == 13) displayGen.closeModal(); });
@@ -557,6 +589,8 @@ export const playerFx = function() {
       let player = {
          first_name: player_data.first_name,
          last_name: player_data.last_name,
+         school: player_data.school,
+         school_abbr: player_data.school_abbr,
          birth: player_data.birth,
          ioc: player_data.ioc,
          sex: player_data.sex || 'M'
@@ -591,7 +625,7 @@ export const playerFx = function() {
          firstDay: fx.fx.env().calendar.first_day,
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
-      let field_order = [ 'last_name', 'first_name', 'ioc' ];
+      let field_order = [ 'last_name', 'first_name', 'ioc', 'school' ];
 
       if (allowed.gender) {
          let setGender = (value) => player.sex = value;
@@ -608,35 +642,34 @@ export const playerFx = function() {
       }
 
       // IOC Awesomplete
-      d3.json('./assets/ioc_codes.json', data => {
-         let list = data.map(d => ({ label: d.name, value: d.ioc }));
-         player_container.ioc.typeAhead = new Awesomplete(player_container.ioc.element, { list });
-         player_container.ioc.element.value = data.reduce((p, c) => p || (c.ioc == player.ioc ? c.name : ''), undefined) || '';
+      let ioc_codes = fx.fx.env().ioc_codes || [];
+      let list = ioc_codes.map(d => ({ label: d.name, value: d.ioc }));
+      player_container.ioc.typeAhead = new Awesomplete(player_container.ioc.element, { list });
+      player_container.ioc.element.value = ioc_codes.reduce((p, c) => p || (c.ioc == player.ioc ? c.name : ''), undefined) || '';
 
-         let selection_flag = false;
-         let selectComplete = (c) => { 
-            selection_flag = true; 
-            player.ioc = c.text.value; 
-            player_container.ioc.element.value = c.text.label;
-            player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
-         }
-         player_container.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
-         player_container.ioc.element.addEventListener('keydown', catchTab , false);
-         player_container.ioc.element.addEventListener('keyup', catchTab , false);
-         player_container.ioc.element.addEventListener("keyup", function(evt) { 
-            // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
-            if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
-               if (player_container.ioc.typeAhead.suggestions && player_container.ioc.typeAhead.suggestions.length) {
-                  player_container.ioc.typeAhead.next();
-                  player_container.ioc.typeAhead.select(0);
-               } else {
-                  player_container.ioc.element.value = '';
-                  player_container.ioc.element.style.background = 'yellow';
-               }
-               nextFieldFocus(evt.shiftKey ? 'first_name' : 'ioc');
+      let selection_flag = false;
+      let selectComplete = (c) => { 
+         selection_flag = true; 
+         player.ioc = c.text.value; 
+         player_container.ioc.element.value = c.text.label;
+         player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
+      }
+      player_container.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
+      player_container.ioc.element.addEventListener('keydown', catchTab , false);
+      player_container.ioc.element.addEventListener('keyup', catchTab , false);
+      player_container.ioc.element.addEventListener("keyup", function(evt) { 
+         // auto select first item on 'Enter' *only* if selectcomplete hasn't been triggered
+         if ((evt.which == 13 || evt.which == 9) && !selection_flag) {
+            if (player_container.ioc.typeAhead.suggestions && player_container.ioc.typeAhead.suggestions.length) {
+               player_container.ioc.typeAhead.next();
+               player_container.ioc.typeAhead.select(0);
+            } else {
+               player_container.ioc.element.value = '';
+               player_container.ioc.element.style.background = 'yellow';
             }
-            selection_flag = false;
-         });
+            nextFieldFocus(evt.shiftKey ? 'first_name' : 'ioc');
+         }
+         selection_flag = false;
       });
 
       let defineAttr = (attr, evt, required, elem) => {
@@ -648,6 +681,11 @@ export const playerFx = function() {
       let saveEditedPlayer = () => { 
          if (!player.first_name || !player.last_name || !player.ioc) return;
          player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
+
+         let parenthetical = /\((.*)\)/;
+         if (player.school && player.school.match(parenthetical)) {
+            player.school_abbr = player.school.match(parenthetical)[1];
+         }
 
          if (typeof callback == 'function') callback(player); 
          displayGen.closeModal();
@@ -679,11 +717,14 @@ export const playerFx = function() {
 
       player_container.last_name.element.addEventListener('keydown', (evt) => { if (evt.shiftKey && evt.which == 9) nextFieldFocus('email'); });
       player_container.last_name.element.addEventListener('keyup', (evt) => defineAttr('last_name', evt, true));
+      player_container.first_name.element.addEventListener('keydown', catchTab);
       player_container.first_name.element.addEventListener('keyup', (evt) => defineAttr('first_name', evt, true));
       player_container.cancel.element.addEventListener('click', () => displayGen.closeModal());
       player_container.cancel.element.addEventListener('keydown', handleCancelKeyEvent);
       player_container.cancel.element.addEventListener('keyup', (evt) => { if (evt.which == 13) displayGen.closeModal(); });
       player_container.birth.element.addEventListener('keyup', birthKeyUp);
+      player_container.school.element.addEventListener('keydown', catchTab);
+      player_container.school.element.addEventListener('keyup', (evt) => defineAttr('school', evt));
       player_container.save.element.addEventListener('click', saveEditedPlayer);
       player_container.save.element.addEventListener('keydown', handleSaveKeyDown, false);
       player_container.save.element.addEventListener('keyup', handleSaveKeyUp, false);
