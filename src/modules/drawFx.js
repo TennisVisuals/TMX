@@ -461,7 +461,7 @@ export function roundRobin() {
                if (player.assigned_order) return player.assigned_order;
                return order;
             }
-            if (d.attr == 'club_code') return player.club_code;
+            // if (d.attr == 'club_code') return player.club_code;
             if (d.attr == 'result') return player.result || '0/0';
             if (d.attr == 'games') return player.games || '0/0';
 
@@ -484,6 +484,7 @@ export function roundRobin() {
          }
 
          if (d.row && player && d.attr == 'club_code' && !player.club_code) {
+            if (player.school_abbr && player.school_abbr.length < 5) return player.school_abbr;
             if (player.ioc) return player.ioc;
          }
 
@@ -1634,10 +1635,12 @@ export function treeDraw() {
 
       function clubCode(d, which=0) {
          if (d.height || !d.data.team || !d.data.team[which] || d.data.feed) return '';
-         if (!d.data.team[which].club_code || d.data.team[which].club_code.length > 3) {
-            if (!o.flags.display && d.data.team[which].ioc) return d.data.team[which].ioc;
-            return '';
-         }
+         let ioc = d.data.team[which].ioc;
+         let club_code = d.data.team[which].club_code;
+         let school_abbr = d.data.team[which].school_abbr;
+         if ((!club_code || club_code.length > 3) && (!o.flags.display && ioc)) return ioc;
+         if (school_abbr &&  school_abbr.length < 5) return school_abbr;
+         if (!club_code || club_code.length > 3) return '';
          // reverse the display order of players if doubles
          if (d.data.team.length == 2) which = 1 - which;
          return d.data.team[which].club_code;
