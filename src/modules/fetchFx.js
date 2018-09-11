@@ -5,6 +5,7 @@ import { config } from './config';
 import { lang } from './translator';
 import { importFx } from './importFx';
 import { displayGen } from './displayGen';
+import { tournamentFx } from './tournamentFx';
 import { tournamentDisplay } from './tournamentDisplay';
 
 export const fetchFx = function() {
@@ -497,6 +498,32 @@ export const fetchFx = function() {
       });
    }
 
+   fx.fetchGoogleSheet = (sheet_id) => {
+      return new Promise((resolve, reject) => {
+         if (!sheet_id) return reject('No Sheet ID');
+         let request_object = {
+            sheet_id,
+            headers: {
+               "Authorization": "Bearer " + bearer_token, 
+               "Accept": "application/json"
+            }
+         };
+         let request = JSON.stringify(request_object);
+         function responseHandler(data) {
+            if (data.result && data.result.rows && data.result.rows.length) {
+               let players = importFx.processSheetData(data.result.rows);
+               players.forEach(player => player.full_name = tournamentFx.fullName(player, false));
+               resolve(players);
+            } else {
+               console.log('rejected');
+               reject(data);
+            }
+            resolve([]);
+         }
+         ajax('/api/registrations/sheet', request, 'POST', responseHandler);
+      });
+   }
+
    fx.fetchRegisteredPlayers = fetchRegisteredPlayers;
    function fetchRegisteredPlayers(tuid, category) {
       return new Promise((resolve, reject) => {
@@ -547,7 +574,7 @@ export const fetchFx = function() {
          function selectScraper(fetchobj) {
             let keys = Object.keys(fetchobj.scrapers);
             if (keys.length > 1) {
-               let message = '<h2>Player Import</h2>';
+               let message = `<h2>${lang.tr('phrases.playerimport')}</h2>`;
                displayGen.buttonSelect({
                   message,
                   buttons: keys,
