@@ -84,7 +84,7 @@ export const matchFx = function() {
          ];
       } else if (match.teams) {
          players = [].concat(...match.teams);
-         team_players = match.teams.map((t, i) => t.map((m, j) => (i*t.length) + j));
+         team_players = match.teams.map((t, i) => !t ? [null] : t.map((m, j) => (i*t.length) + j));
       } else {
          players = [];
          team_players = [];
@@ -137,6 +137,8 @@ export const matchFx = function() {
             draw_type: e.draw_type,
             custom_category: e.custom_category,
          },
+         dual_match: match.dual_match,
+         sequence: match.sequence,
          umpire: match.match.umpire,
          winner: match.match.winner_index,
          winner_index: match.match.winner_index,
@@ -209,7 +211,9 @@ export const matchFx = function() {
       if (fx.isTeam(tournament)) {
          let matches = [];
          Object.keys(e.draw.dual_matches || {}).forEach(key => {
-            matches = matches.concat(...e.draw.dual_matches[key].matches || []);
+            let dual_matches = e.draw.dual_matches[key].matches || [];
+            dual_matches.forEach(dm => dm.dual_match = key);
+            matches = matches.concat(...dual_matches);
          });
          return matches;
       } else {
