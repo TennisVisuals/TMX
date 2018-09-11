@@ -383,6 +383,9 @@ export const lang = function() {
       },
 
       phrases: {
+         playerimport: 'Player Import',
+         entersheeturl: 'Enter Sheet URL',
+         invalidsheeturl: 'Invalid Sheet URL',
          cleardraw: 'Existing Draw will be cleared!',
          clearselection: 'Clear Selection',
          selectplayer: 'Select Player',
@@ -544,6 +547,7 @@ export const lang = function() {
          medical_issues: 'Medical Expired',
          create_new_player: 'Create New',
          modifyrankings: 'Modify Rankings',
+         reglink: 'Set Link'
       },
 
       schedule: {
