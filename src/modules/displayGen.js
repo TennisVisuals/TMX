@@ -1806,6 +1806,8 @@ export const displayGen = function() {
          cancel: displayFx.uuid(),
          birth: displayFx.uuid(),
          gender: displayFx.uuid(),
+         school: displayFx.uuid(),
+         school_abbr: displayFx.uuid(),
          last_name: displayFx.uuid(),
          first_name: displayFx.uuid(),
          entry_form: displayFx.uuid(),
@@ -1824,6 +1826,7 @@ export const displayGen = function() {
                      <div class='playerattr' style='display: ${birth}'>${lang.tr('bd')}:</div>
                      <div class='playerattr' style='display: ${gender}'>${lang.tr('gdr')}:</div>
                      <div class='playerattr'>${lang.tr('cnt')}:</div>
+                     <div class='playerattr'>${lang.tr('scl')}:</div>
                   </div>
                   <div id='${ids.entry_form}' class='flexcol'>
                      <div class='flexjustifystart playerattrvalue'>
@@ -1838,6 +1841,9 @@ export const displayGen = function() {
                      <div id='${ids.gender}' class='flexjustifystart genderddlb' style='display: ${gender}'> </div>
                      <div class='flexjustifystart playerattrvalue'>
                         <input id='${ids.ioc}' value=''>
+                     </div>
+                     <div class='flexjustifystart playerattrvalue'>
+                        <input id='${ids.school}' value='${p.school || ''}'>
                      </div>
                   </div>
                </div>
@@ -2418,6 +2424,7 @@ export const displayGen = function() {
          print_draw: displayFx.uuid(),
          print_sign_in: displayFx.uuid(),
          ranking_order: displayFx.uuid(),
+         reg_link: displayFx.uuid(),
          team_rankings: displayFx.uuid(),
          share_team: displayFx.uuid(),
          print_draw_order: displayFx.uuid(),
@@ -2758,6 +2765,9 @@ export const displayGen = function() {
                   </div>
                   <div class='${classes.refresh_registrations}' label='${lang.tr("refresh.general")}'>
                      <div class='action_icon refresh_registrations'></div>
+                  </div>
+                  <div class='${classes.reg_link} ${gen.info}' label='${lang.tr("signin.reglink")}' style='display: none'>
+                     <div class='action_icon reg_link link_inactive'></div>
                   </div>
                </div>
             </div>
@@ -4632,6 +4642,39 @@ export const displayGen = function() {
          </div>
       `;
       gen.actionMessage({ message, actionFx: confirmFx, action: lang.tr('actions.ok'), cancelAction: () => gen.closeModal() });
+   }
+
+   gen.enterSheetLink = (existing_link, submitFx) => {
+      let ids = {
+         link: displayFx.uuid(),
+         cancel: displayFx.uuid(),
+         submitlink: displayFx.uuid(),
+      };
+      let html = `
+         <div style='min-height: 150px'>
+         <h2>${lang.tr('phrases.entersheeturl')}</h2>
+         <div class='flexcenter flexcol'>
+            <input id='${ids.link}' value='' style='text-align: center; width: 25em; margin-bottom: 1em;'>
+            <div class='flexrow' style='margin-top: 1em;'>
+               <button id="${ids.cancel}" class="btn btn-medium edit-cancel" style="margin-right: 1em;">${lang.tr('ccl')}</button> 
+               <button id="${ids.submitlink}" class="btn btn-medium edit-submit">${lang.tr('sbt')}</button> 
+            </div>
+         </div>
+         </div>
+      `;
+      document.body.style.overflow  = 'hidden';
+      document.getElementById('processing').style.display = "flex";
+      document.getElementById('processingtext').innerHTML = html;
+
+      let id_obj = displayFx.idObj(ids);
+      id_obj.link.element.value = existing_link || '';
+
+      id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
+      id_obj.submitlink.element.addEventListener('click', submitLink);
+      id_obj.link.element.addEventListener('keyup', linkKeyEvent);
+
+      function linkKeyEvent(evt) { if (evt.which == 13) submitLink(); }
+      function submitLink() { if (submitFx && typeof submitFx == 'function') submitFx(id_obj.link.element.value); }
    }
 
    gen.playerRepresentatives = () => {
