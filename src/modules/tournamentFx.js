@@ -32,7 +32,6 @@ export const tournamentFx = function() {
 
    fx.findTeamByID = (tournament, id) => {
       if (!id || !tournament || !tournament.teams || tournament.teams.length < 1) return;
-      // return tournament.teams.reduce((p, c) => c.uuid == id ? c : p, undefined);
       return tournament.teams.reduce((p, c) => c.id == id ? c : p, undefined);
    }
 
