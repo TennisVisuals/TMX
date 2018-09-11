@@ -98,27 +98,35 @@ export const importFx = function() {
    }
 
    function importJotForm(rows, callback) {
+      let players = processSheetData(rows);
+      if (callback && typeof callback == 'function') callback(players);
+      displayGen.busy.done();
+   }
+
+   load.processSheetData = processSheetData;
+   function processSheetData(rows) {
       let players = [];
 
       rows.forEach(row => {
          let player = {};
-         player.first_name = row['First Name'];
-         player.last_name = row['Last Name'];
+         player.first_name = findAttr(row, ['First Name']);
+         player.last_name = findAttr(row, ['Last Name']);
 
          if (!player.first_name || !player.last_name) return;
 
-         player.school = row['School'];
-         let submission_id = row['Submission ID'];
-         player.puid = row['PUID'] || (submission_id ? `JOT${submission_id}` : UUID.new());
+         player.school = findAttr(row, ['School']);
+         player.school_abbr = findAttr(row, ['School Abbreviation', 'School Abbr', 'School Code']);
+         let submission_id = findAttr(row, ['Submission ID']);
+         player.puid = findAttr(row, ['PUID']) || (submission_id ? `GS${submission_id}` : UUID.new());
          player.id = row['ID'] || player.puid;
 
-         let gender = row['Gender'] || row['Sex'];
+         let gender = findAttr(row, ['Gender', 'Sex']);
          if (['Male', 'Man', 'M', 'Boy'].indexOf(gender) >= 0) player.sex = 'M';
          if (['Female', 'W', 'Girl', 'Woman'].indexOf(gender) >= 0) player.sex = 'W';
 
-         let country = row['Country'];
+         let country = findAttr(row, ['Country']);
 
-         let birth = row['Birth'] || row['Birthdate'] || row['Birthday'] || row['Birth Date'];
+         let birth = findAttr(row, ['Birth', 'Birthdate', 'Birthday', 'Birth Date']);
          if (birth) {
             let birthdate = new Date(birth);
             player.birth = [birthdate.getFullYear(), birthdate.getMonth() + 1, birthdate.getDate()].join('-');
@@ -126,8 +134,12 @@ export const importFx = function() {
          players.push(player);
       });
 
-      if (callback && typeof callback == 'function') callback(players);
-      displayGen.busy.done();
+      function findAttr(row, attrs = []) {
+         let attributes = attrs.concat(...attrs.map(attr => attr.toLowerCase().split(' ').join('')));
+         return attributes.reduce((p, c) => row[c] || p, undefined);
+      }
+
+      return players;
    }
 
    load.importPlayerList = (rows, id) => {
