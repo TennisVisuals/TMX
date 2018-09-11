@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.1.1.7.3',
+      version: '1.1.10.14.6',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -758,32 +758,14 @@ export const config = function() {
       searchBox.populateSearch = {};
       searchBox.populateSearch.players = function({filtered} = {}) {
          var filter_values = searchBox.typeAhead._list.map(l=>l.value);
-         var noaccents = !env.searchbox.diacritics;
 
-         db.findAllPlayers().then(arr => {
+         playerFx.optionsAllPlayers({ filter_values }).then(setSearchList, util.logError);
+
+         function setSearchList(arr) { 
             searchBox.searchCount(arr.length);
             searchBox.searchCategory('search_players_total');
-
-            if (filtered) arr = arr.filter(el => filter_values.indexOf(el.puid) >= 0);
-
-            let firstlast = arr.map(player => { 
-               let label = util.normalizeName([player.first_name, player.last_name].join(' '), noaccents);
-               if (player.birth) label += ` [${new Date(player.birth).getFullYear()}]`;
-               return { value: player.puid, label, }
-            });
-            let lastfirst = arr.map(player => { 
-               let label = `${util.normalizeName(player.last_name, noaccents).toUpperCase()} ${util.normalizeName(player.first_name, noaccents)}`;
-               if (player.birth) label += ` [${new Date(player.birth).getFullYear()}]`;
-               return { value: player.puid, label }
-            });
-
-            if (env.searchbox.lastfirst) {
-               searchBox.typeAhead.list = lastfirst;
-            } else {
-               searchBox.typeAhead.list = firstlast;
-            }
-
-         });
+            searchBox.typeAhead.list = arr;
+         }
       };
 
       searchBox.contextMenu = (ev) => {
