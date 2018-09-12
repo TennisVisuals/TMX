@@ -2360,6 +2360,7 @@ export const displayGen = function() {
          event_filter: displayFx.uuid(),
          round_filter: displayFx.uuid(),
          dual_filter: displayFx.uuid(),
+         order_filter: displayFx.uuid(),
          location_filter: displayFx.uuid(),
          autoschedule: displayFx.uuid(),
          schedulelimit: displayFx.uuid(),
@@ -2670,6 +2671,7 @@ export const displayGen = function() {
                      <div id='${ids.event_filter}'></div>
                      <div id='${ids.round_filter}'></div>
                      <div id='${ids.dual_filter}'></div>
+                     <div id='${ids.order_filter}'></div>
                   </div>
                   <div class='options_center'>
                      <div id='${ids.autoschedule}' class='autofill'>${lang.tr('schedule.autoschedule')}</div>
@@ -2730,8 +2732,8 @@ export const displayGen = function() {
             <div id='${ids.draws}' class='tournament_match flexcol flexcenter drawdraw'> </div>
             <div id='${ids.dual}' class='dual_matches flexcol flexcenter' style='display: none'>
                <div class='team_score_display'>
-                  <div class='team_name team1' style='grid-area:a'></div>
-                  <div class='team_name team2' style='grid-area:b'></div>
+                  <div class='dual_team team1' team_index='0' style='grid-area:a'></div>
+                  <div class='dual_team team2' team_index='1' style='grid-area:b'></div>
                   <div class='team_score' style='grid-area:c''><div class='team_score_box team1'>0</div></div>
                   <div class='team_divider' style='grid-area:d'>vs.</div>
                   <div class='team_score' style='grid-area:e'><div class='team_score_box team2'>0</div></div>
