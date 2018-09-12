@@ -256,6 +256,12 @@ export const lang = function() {
          superto: 'To'
       },
 
+      scoring: {
+         retire: 'Retire',
+         default: 'Default',
+         walkover: 'Walkover'
+      },
+
       draws: {
          gemseeding: 'GEM Seeding',
          playerfilter: 'Player Filter',
