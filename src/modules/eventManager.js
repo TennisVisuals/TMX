@@ -24,7 +24,7 @@ export const eventManager = function() {
       }
       return em;
    }
-   em.trigger = (cls, evnt, target) => registeredFunctions[evnt][cls].fx(target);
+   em.trigger = (cls, evnt, target, mouse) => registeredFunctions[evnt][cls].fx(target, mouse);
    em.list = () => console.log(registeredFunctions);
 
    var tapHandler = ('ontouchstart' in document.documentElement ? 'touchstart' : 'click');
@@ -32,17 +32,18 @@ export const eventManager = function() {
 
    var last_tap = 0;
    function processEvnt(evt, evnt) {
+      var mouse = { x: evt.clientX, y: evt.clientY }
       let class_list = Array.from(evt.target.classList);
       let cls_matches = class_list.length && keys[evnt] ? intersection(class_list, keys[evnt]) : [];
       if (cls_matches.length) {
          let this_tap = new Date().getTime();
          em.elapsed = this_tap - last_tap;
          last_tap = this_tap;
-         cls_matches.forEach(cls => callFunction(cls, evt.target, evnt));
+         cls_matches.forEach(cls => callFunction(cls, evt.target, evnt, mouse));
       }
    }
 
-   function callFunction(cls, target, evnt) { registeredFunctions[evnt][cls].fx(target) }
+   function callFunction(cls, target, evnt, mouse) { registeredFunctions[evnt][cls].fx(target, mouse) }
 
    document.addEventListener('touchstart', function(event) {
       em.touched = event.target;
