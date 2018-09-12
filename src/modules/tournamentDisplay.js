@@ -5569,25 +5569,45 @@ export const tournamentDisplay = function() {
          container.location_filter.ddlb = new dd.DropDown({ element: container.location_filter.element, id: container.location_filter.id, onChange: displayCourts });
          container.location_filter.ddlb.selectionBackground('white');
 
-         // Dual Match Filter
-         // TODO: Complete filter... add dual_muid to matchStorageObjects...
-         let dual_matches = [].concat({ key: lang.tr('schedule.alldual'), value: '' }, ...dualMatchSelections());
+         // Dual Match Filters
+         let { dual_match_options, order_options } = dualMatchSelections();
+         let dual_matches = [].concat({ key: lang.tr('schedule.alldual'), value: '' }, ...dual_match_options);
          dd.attachDropDown({ 
             id: container.dual_filter.id, 
             options: dual_matches,
             label: '',
          });
-         container.dual_filter.ddlb = new dd.DropDown({ element: container.dual_filter.element, id: container.dual_filter.id, onChange: displayCourts });
+         container.dual_filter.ddlb = new dd.DropDown({ element: container.dual_filter.element, id: container.dual_filter.id, onChange: displayPending });
          container.dual_filter.ddlb.selectionBackground('white');
 
+         let order_filters = [].concat({ key: 'Order', value: '' }, ...order_options);
+         dd.attachDropDown({ 
+            id: container.order_filter.id, 
+            options: order_filters,
+            label: '',
+         });
+         container.order_filter.ddlb = new dd.DropDown({ element: container.order_filter.element, id: container.order_filter.id, onChange: displayPending });
+         container.order_filter.ddlb.selectionBackground('white');
+
          function dualMatchSelections() {
-            let euids = util.unique(all_matches.map(m => m.event.euid));
+            let unscheduled_matches = all_matches
+               .filter(m=>m)
+               .filter(m=>(!m.schedule || !m.schedule.court) && m.winner == undefined);
+
+            let dual_uuids = util.unique(unscheduled_matches.map(m => m.dual_match));
             let dual_match_contexts = [].concat(
                ...tournament.events
-                  .filter(v => euids.indexOf(v.euid) >= 0)
-                  .map(v => v.draw && v.draw.dual_matches && Object.keys(v.draw.dual_matches).map(dual_muid => ({ draw: v.draw, dual_muid }) ))
+                  .map(v => v.draw && v.draw.dual_matches && Object.keys(v.draw.dual_matches)
+                     .filter(dual_muid => dual_uuids.indexOf(dual_muid) >= 0)
+                     .map(dual_muid => ({ draw: v.draw, dual_muid }) )
+                  )
             ).filter(f=>f);
-            return dual_match_contexts.map(dualMatchOption).filter(f=>f);
+            let dual_match_options = dual_match_contexts.map(dualMatchOption).filter(f=>f);
+
+            let sequences = util.unique(unscheduled_matches.map(m => m.sequence)).sort();
+            let order_options = sequences.map(s => ({ value: s, key: s }));
+
+            return { dual_match_options, order_options }
          }
 
          function dualMatchOption({ draw, dual_muid }) {
@@ -5650,12 +5670,15 @@ export const tournamentDisplay = function() {
             let pending_upcoming = pending_by_format.concat(...upcoming_by_format).filter(f=>f);
 
             let euid = container.event_filter.ddlb.getValue();
-            // container.schedulelimit.element.style.display = euid ? 'flex' : 'none';
+            let dual_uuid = container.dual_filter.ddlb.getValue();
+            let order_filter = container.order_filter.ddlb.getValue();
             
             let euid_filtered = !euid ? pending_upcoming : pending_upcoming.filter(m=>m.event.euid == euid);
-            let round_name = container.round_filter.ddlb.getValue();
+            let dual_filtered = !dual_uuid ? euid_filtered : euid_filtered.filter(m=>m.dual_match == dual_uuid);
+            let order_filtered = !order_filter ? dual_filtered : dual_filtered.filter(m=>m.sequence == order_filter);
 
-            let round_filtered = !round_name ? euid_filtered : euid_filtered.filter(m=>m.round_name == round_name);
+            let round_name = container.round_filter.ddlb.getValue();
+            let round_filtered = !round_name ? order_filtered : order_filtered.filter(m=>m.round_name == round_name);
 
             let unscheduled = round_filtered.filter(m=>!m.schedule || !m.schedule.court)
             let srtd_unscheduled = scheduleFx.sortedUnscheduled(tournament, unscheduled, false);
@@ -7425,11 +7448,35 @@ export const tournamentDisplay = function() {
          let score = tfx.calcDualMatchesScore(e, dual_match).score;
          displayOrderedMatches(e, dual_match, dual_teams);
 
-         dual.querySelector('.team_name.team1').innerHTML = dual_teams[0].name;
-         dual.querySelector('.team_name.team2').innerHTML = dual_teams[1].name;
+         dual.querySelector('.dual_team.team1').innerHTML = dual_teams[0].name;
+         dual.querySelector('.dual_team.team2').innerHTML = dual_teams[1].name;
          dual.querySelector('.team_score_box.team1').innerHTML = score[0];
          dual.querySelector('.team_score_box.team2').innerHTML = score[1];
          dual.querySelector('.team_divider').innerHTML = lang.tr('schedule.vs');
+
+         eventManager.register('dual_team', 'tap', dualTeamClick);
+
+         function dualTeamClick(elem, mouse) {
+            let team_index = elem.getAttribute('team_index');
+            let options = [lang.tr('scoring.retire'), lang.tr('scoring.walkover'), lang.tr('scoring.default')];
+            displayGen.svgModal({ x: mouse.x, y: mouse.y, options, callback: clickAction });
+
+            function clickAction(d, i) {
+               let draw_position = dual_teams[1-i].draw_position;
+               if (i == 0) {
+                  dual_match.score = dual_match.score ? `${dual_match.score} RET.` : '0-0 W.O.';
+                  dfx.advancePosition({ node: e.draw, position: draw_position });
+               } else if (i == 1) {
+                  dual_match.score = '0-0 W.O.';
+                  dfx.advancePosition({ node: e.draw, position: draw_position });
+               } else if (i == 2) {
+                  dual_match.score = '0-0 DEF.';
+                  dfx.advancePosition({ node: e.draw, position: draw_position });
+               }
+               displayDualMatches(dual_match, dual_teams);
+               tree_draw.data(e.draw)();
+            }
+         }
       }
 
       function hideOpponentSelections() {
