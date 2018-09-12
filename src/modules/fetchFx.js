@@ -515,7 +515,6 @@ export const fetchFx = function() {
                players.forEach(player => player.full_name = tournamentFx.fullName(player, false));
                resolve(players);
             } else {
-               console.log('rejected');
                reject(data);
             }
             resolve([]);
