@@ -4234,6 +4234,7 @@ export const displayGen = function() {
    gen.playersActions = () => {
       let ids = { 
          add: displayFx.uuid(),
+         manage: displayFx.uuid(),
          teams: displayFx.uuid(),
          pointCalc: displayFx.uuid(),
          rankCalc: displayFx.uuid(),
@@ -4241,7 +4242,10 @@ export const displayGen = function() {
       let html = `<div class='flexcenter container'>
 
          <div class='actions'>
-            <div id='${ids.add}' class='${gen.info} action' label='${lang.tr("actions.manage_players")}' style='display: none'>
+            <div id='${ids.add}' class='${gen.info} action' label='${lang.tr("actions.add_player")}' style='display: none'>
+               <div class='player_add_player'></div>
+            </div>
+            <div id='${ids.manage}' class='${gen.info} action' label='${lang.tr("actions.manage_players")}' style='display: none'>
                <div class='player_view_players'></div>
             </div>
             <div id='${ids.teams}' class='${gen.info} action' label='${lang.tr("actions.manage_teams")}' style='display: none'>

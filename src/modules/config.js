@@ -60,7 +60,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.1.12.14.6.a',
+      version: '1.1.13.14.6.a',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -305,7 +305,7 @@ export const config = function() {
    // not visible/accesible outside of this module
    var o = {
       components: {
-         players: { add: false, teams: false, leagues: false, calcs: false, ranklist: false },
+         players: { add: true, manage: false, teams: false, leagues: false, calcs: false, ranklist: false },
          tournaments: true,
          clubs: false,
          tournament_search: true,
@@ -1568,12 +1568,27 @@ export const config = function() {
       console.log('view players');
    }
 
+   function addPlayer() {
+      playerFx.createNewPlayer({ callback: addNewPlayer });
+      function addNewPlayer(player) {
+         player.id = UUID.new();
+         player.puid = player.id;
+         db.addPlayer(player).then(updateCounter, util.logError);
+      }
+      function updateCounter() { db.db.players.count().then(c => searchBox.searchCount(c)); }
+   }
+
    function displayPlayers() {
       let actions = displayGen.playersActions(); 
 
       if (o.components.players && o.components.players.add) {
          actions.add.element.style.display = 'flex';
-         actions.add.element.addEventListener('click', () => viewPlayers());
+         actions.add.element.addEventListener('click', () => addPlayer());
+      }
+
+      if (o.components.players && o.components.players.manage) {
+         actions.manage.element.style.display = 'flex';
+         actions.manage.element.addEventListener('click', () => viewPlayers());
       }
 
       if (o.components.players && o.components.players.teams) {
