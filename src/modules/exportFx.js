@@ -617,9 +617,8 @@ export const exportFx = function() {
       }
    }
 
-   exp.printDrawPDF = ({ tournament, data, options, selected_event, event, save }) => {
+   exp.printDrawPDF = ({ tournament, data, dual_match, dual_teams, dual_matches, options, selected_event, event, save }) => {
       if (event && event.draw && event.draw.compass) {
-
          getLogo().then(logo => showPDF(logo));
 
          function showPDF(logo) {
@@ -638,7 +637,9 @@ export const exportFx = function() {
                cleanUp();
             }
          }
-
+      } else if (dual_match) {
+         let data = { dual_match, dual_teams, dual_matches }
+         return exp.dualMatchesPDF({ tournament, data, options, selected_event, event, save });
       } else {
          let info = drawFx().drawInfo(data);
          if (info.draw_type == 'tree') return exp.treeDrawPDF({ tournament, data, options, selected_event, info, event, save });
@@ -767,6 +768,14 @@ export const exportFx = function() {
          exp.SVGasURI(element, [], height).then(resolve, reject);
       });
    }
+
+   exp.dualMatchesPDF = ({ tournament, data, options, selected_event, event, images=[], save }) => {
+      getLogo().then(logo => showPDF(logo, images));
+
+      function showPDF(logo, images) {
+          dualSheet({ tournament, data, images, logo, selected_event, event, save });
+      }
+}
 
    exp.treeDrawPDF = ({ tournament, data, options, images=[], selected_event, info, event, save }) => {
       var width = 3000;
@@ -1243,6 +1252,87 @@ export const exportFx = function() {
          pageMargins: [ 10, 20, 10, 120 ],
 
          footer: footer,
+
+         content,
+         styles: {
+            docTitle: {
+               fontSize: 11,
+               bold: true,
+            },
+            subtitle: {
+               fontSize: 10,
+               italics: true,
+               bold: true,
+            },
+            docName: {
+               fontSize: 10,
+               bold: true,
+            },
+            tableHeader: {
+               fontSize: 9,
+            },
+            tableData: {
+               fontSize: 9,
+               bold: true,
+            },
+            centeredTableHeader: {
+               alignment: 'center',
+               fontSize: 9,
+               bold: true,
+            },
+            signatureBox: {
+               border: true,
+            },
+            centeredColumn: {
+               alignment: 'center',
+               border: true,
+            },
+            italicCenteredColumn: {
+               alignment: 'center',
+               border: true,
+               bold: true,
+               italics: true,
+            },
+         }
+      };
+
+      if (save) {
+         let draw_type = '';
+         if (event.draw_type == 'E') draw_type = lang.tr('draws.elimination');
+         if (event.draw_type == 'R') draw_type = lang.tr('draws.roundrobin');
+         if (event.draw_type == 'C') draw_type = lang.tr('draws.consolation');
+         if (event.draw_type == 'Q') draw_type = lang.tr('draws.qualification');
+         if (event.draw_type == 'P') draw_type = lang.tr('pyo');
+         let filename = `${event.name}${draw_type ? ' ' + draw_type : '' } Draw Sheet.pdf`;
+         exp.savePDF(docDefinition, filename);
+      } else {
+         exp.openPDF(docDefinition);
+      }
+   }
+
+   function dualSheet({ tournament={}, data, logo, selected_event, event, save }) {
+      console.log('dual match:', data.dual_match);
+      console.log('dual teams:', data.dual_teams);
+      console.log('dual matches:', data.dual_matches);
+
+      let evt = event || (tournament.events && tournament.events[selected_eent]);
+      let player_representatives = evt && evt.player_representatives || []; 
+      let event_organizers = tournament && tournament.organizers ? [tournament.organizers] : []; 
+      let created = event.draw_created && util.isDate(event.draw_created) ? new Date(event.draw_created) : new Date();
+      let timestamp = localizeDate(created, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      let page_header = drawSheetPageHeader(tournament, logo, 'draw_sheet', selected_event, event);
+
+      let date = new Date(tournament.start);
+      let year = date.getFullYear();
+      let month = date.getMonth();
+
+      let content = [page_header, ' '];
+
+      var docDefinition = {
+         pageSize: 'A4',
+         pageOrientation: 'portrait',
+
+         pageMargins: [ 10, 20, 10, 10 ],
 
          content,
          styles: {

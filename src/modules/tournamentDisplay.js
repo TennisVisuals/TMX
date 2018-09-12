@@ -1009,6 +1009,7 @@ export const tournamentDisplay = function() {
             displayDraw({ evt });
             updateCompassDirections();
             container.dual.element.style.display = 'none';
+            displayed.dual_match = null;
 
             // if (evt.published) evt.up_to_date = false;
             // displayGen.drawBroadcastState(container.publish_state.element, displayed.draw_event);
@@ -1599,7 +1600,10 @@ export const tournamentDisplay = function() {
             hideOpponentSelections();
             displayGen.drawBroadcastState(container.publish_state.element, displayed.draw_event);
 
-            if (displayed.draw_event && !displayed.draw_event.draw_created) { container.dual.element.style.display = 'none'; }
+            if (displayed.draw_event && !displayed.draw_event.draw_created) { 
+               container.dual.element.style.display = 'none';
+               displayed.dual_match = null;
+            }
          }
 
          // matchesTab() checks for new matches and updates pointsTab();
@@ -2196,12 +2200,17 @@ export const tournamentDisplay = function() {
             }
 
             function printPDF() {
+               let dual_teams = displayed.dual_match && getDualTeams(displayed.dual_match);
+               let dual_matches = displayed.dual_match && mfx.dualMatchMatches(displayed.draw_event, displayed.dual_match.match.muid);
                exportFx.printDrawPDF({
                   data,
                   options,
                   tournament,
                   selected_event,
                   event: displayed.draw_event,
+                  dual_teams,
+                  dual_matches,
+                  dual_match: displayed.dual_match,
                   save: fx.fx.env().printing.save_pdfs
                });
             }
@@ -7797,6 +7806,7 @@ export const tournamentDisplay = function() {
          if (state.edit && (!e.draw || e.regenerate)) {
             generateDraw(e);
             if (e.regenerate) {
+               displayed.dual_match = null;
                container.dual.element.style.display = 'none';
                console.log('Regenerated => ', e.regenerate);
                delete e.regenerate;
@@ -9573,6 +9583,7 @@ export const tournamentDisplay = function() {
                container.compass_direction.element.style.display = (displayed.draw_event.draw && displayed.draw_event.draw.compass) ? 'flex' : 'none';
                if (displayed.draw_event && displayed.draw_event.draw && displayed.draw_event.draw.compass) compassChange(displayed.draw_event.draw.compass, false);
                container.dual.element.style.display = 'none';
+               displayed.dual_match = null;
             } else if (group_draws.length) {
                genGroupDraw(value);
             }
