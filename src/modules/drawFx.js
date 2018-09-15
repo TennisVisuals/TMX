@@ -893,7 +893,7 @@ export function treeDraw() {
          top: 6,
          left: 10,
          right: 10,
-         bottom: 0,
+         bottom: 20,
       },
 
       details: {
@@ -919,9 +919,7 @@ export function treeDraw() {
          offset_left: 3,
          offset_singles: -5,
          offset_score: 2,
-         offset_doubles: -20,
-         min_height: 20,
-         max_height: 40,
+         offset_doubles: -20
       },
 
       clubs: {
@@ -965,6 +963,7 @@ export function treeDraw() {
       club_codes: true,
       draw_entry: true,
       seeding: true,
+      feed_arms: false
    }
 
    let dfx = drawFx();
@@ -1005,6 +1004,8 @@ export function treeDraw() {
          datascan.player_rankings = opponents.reduce((p, c) => c.rank || p, undefined) ? true : false;
          datascan.player_ratings = opponents.reduce((p, c) => c.ratings || p, undefined) ? true : false;
       }
+      datascan.feed_arms = info.nodes.reduce((p, c) => c.data.feed || p, undefined);
+      if (datascan.feed_arms) o.margins.bottom = o.minPlayerHeight;
 
       let left_column_offset = Object.keys(o.details).filter(f=>o.details[f] && datascan[f]).length * o.detail_offsets.width;
       if (left_column_offset) left_column_offset += o.detail_offsets.base;
@@ -1471,16 +1472,23 @@ export function treeDraw() {
       }
 
       function matchDetail(d) {
+         if ((o.details.player_rankings && datascan.player_rankings) || (o.details.player_ratings && datascan.player_ratings)) {
+            if (d.data && d.data.feed && d.data.team) {
+               let player = d.data.team[0];
+               var ranking_rating = rankingRating(player);
+               return ranking_rating || '';
+            }
+         }
          if (!d.data.match) return;
          if (d.data.match.score) return d.data.match.score;
          let schedule = d.data.match.schedule;
          if (schedule) {
-
             let time_string = !o.schedule.times ? '' : [(schedule.time && schedule.time_prefix) || '', schedule.time || ''].join(' ');
             let schedule_after = o.schedule.after && schedule.after ? `~${schedule.after}` : '';
             let court_info = !o.schedule.courts ? '' : [schedule.court || '', schedule_after].join(' ');
             return [time_string || '', court_info || ''].join(' ');
          }
+
          return '';
       }
 
@@ -1566,19 +1574,24 @@ export function treeDraw() {
       }
 
       function prText(d, team) {
-         var ranking_rating;
          if (!d.data.team) return '';
          // reverse order if doubles...
          if (d.data.team.length == 2) team = 1 - team;
          let player = d.data.team[team];
          if (!player || (o.draw.feed_in && d.depth < depth)) return '';
+         var ranking_rating = rankingRating(player);
+         return d.height || !ranking_rating ? '' : ranking_rating;
+      }
+
+      function rankingRating(player) {
+         var ranking_rating;
          if (o.details.player_ratings && datascan.player_ratings) {
             ranking_rating = player.ratings && player.ratings.utr ? player.ratings.utr.singles.value : '';
          } else {
             ranking_rating = player.rank && !isNaN(player.rank) ? parseInt(player.rank.toString().slice(-4)) : '';
             if (ranking_rating && player.int && player.int > 0) ranking_rating = `{${player.int}}`;
          }
-         return d.height || !ranking_rating ? '' : ranking_rating;
+         return ranking_rating;
       }
 
       function seedText(d, i) {
