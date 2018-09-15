@@ -196,6 +196,7 @@ export const displayGen = function() {
          .attr('id', 'svgmodal')
          .attr('width', window.innerWidth)
          .attr('height', window.innerHeight)
+         .on('click', cleanUp);
 
       let menu = contextMenu().selector(svg.node()).events({ 'cleanup': cleanUp });
       menu
@@ -3880,8 +3881,8 @@ export const displayGen = function() {
       function playerRow(p, click) {
          let player_click = click ? 'player_click ' : '';
          let html = `
-            <div puid='${p.puid}' uid='${p.id}' class='${player_click}flexrow detail'>
-               <div class='ctxclk event_player_name flexjustifystart'>${p.full_name}</div>
+            <div puid='${p.puid}' uid='${p.id}' class='${player_click}flexrow detail contextAction' contextaction='editTournamentPlayer'>
+               <div class='contextAction ctxclk event_player_name flexjustifystart' contextaction='editTournamentPlayer'>${p.full_name}</div>
             </div>`;
          return html;
       }

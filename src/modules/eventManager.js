@@ -1,7 +1,14 @@
 export const eventManager = function() {
 
    let touchTimer;
-   let em = { elapsed: 100000, held: undefined, touched: undefined, hold_time: 800, holdAction: undefined };
+   let em = {
+      elapsed: 100000,
+      held: undefined,
+      touched: undefined,
+      hold_time: 800,
+      holdAction: undefined,
+      holdActions: {}
+   };
    let keys = {};
    let registeredFunctions = {};
    let intersection = (a, b) => a.filter(n => b.indexOf(n) !== -1).filter((e, i, c) => c.indexOf(e) === i);

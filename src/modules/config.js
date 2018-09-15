@@ -13,6 +13,7 @@ import { rankCalc } from './rankCalc';
 import { importFx } from './importFx';
 import { searchBox } from './searchBox';
 import { scheduleFx } from './scheduleFx';
+import { eventManager } from './eventManager';
 
 // remove these dependencies by moving fx elsewhere!!
 import { displayGen } from './displayGen';
@@ -58,9 +59,17 @@ export const config = function() {
    }
    // END queryString
 
+   eventManager.holdAction = (target, coords) => {
+      let click_context = util.getParent(target, 'contextAction');
+      let action = click_context && click_context.getAttribute('contextaction');
+      if (eventManager.holdActions[action]) eventManager.holdActions[action](target, coords);
+   }
+
+   eventManager.holdActions.homeIcon = displayMessages;
+
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.1.13.14.6.a',
+      version: '1.1.14.20.10',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -206,7 +215,8 @@ export const config = function() {
             minimums: {
                singles: 2,
                doubles: 2
-            }
+            },
+            round_limits: false,
          },
          rr_draw: {
             minimums: {
@@ -256,6 +266,20 @@ export const config = function() {
       messages: [],
       storage: undefined,
       notifications: undefined,
+   }
+
+   function displayMessages() {
+      displayGen.escapeModal();
+      displayGen.homeContextMessage(refreshApp, closeModal, env.messages, tournamentDisplay.displayTournament)
+      env.messages = [];
+      displayGen.homeIconState();
+   }
+
+   function closeModal() { displayGen.escapeFx = undefined; displayGen.closeModal(); }
+
+   function refreshApp() {
+      location.pathname = "/tmx/";
+      // location.reload(true);
    }
 
    fx.env = () => env;
@@ -756,8 +780,8 @@ export const config = function() {
       };
 
       searchBox.populateSearch = {};
-      searchBox.populateSearch.players = function({filtered} = {}) {
-         var filter_values = searchBox.typeAhead._list.map(l=>l.value);
+      searchBox.populateSearch.players = function({ filtered } = {}) {
+         var filter_values = filtered ? searchBox.typeAhead._list.map(l=>l.value) : undefined;
 
          playerFx.optionsAllPlayers({ filter_values }).then(setSearchList, util.logError);
 
@@ -1172,20 +1196,9 @@ export const config = function() {
 
       handleUnhandled();
 
-      function closeModal() { displayGen.escapeFx = undefined; displayGen.closeModal(); }
-      function refreshApp() {
-         location.pathname = "/tmx/";
-         // location.reload(true);
-      }
-      function displayMessages() {
-         displayGen.escapeModal();
-         displayGen.homeContextMessage(refreshApp, closeModal, env.messages, tournamentDisplay.displayTournament)
-         env.messages = [];
-         displayGen.homeIconState();
-      }
       document.getElementById('go_home').addEventListener('contextmenu', displayMessages);
       document.getElementById('go_home').addEventListener('click', () => {
-         if (env.messages && env.messages.length && env.messages.filter(m=>m.title != 'tournaments.unofficial').length) {
+         if (env.messages && env.messages.length) {
             displayMessages();
          } else {
             splash()
@@ -1573,9 +1586,9 @@ export const config = function() {
       function addNewPlayer(player) {
          player.id = UUID.new();
          player.puid = player.id;
-         db.addPlayer(player).then(updateCounter, util.logError);
+         db.addPlayer(player).then(updateSearch, util.logError);
       }
-      function updateCounter() { db.db.players.count().then(c => searchBox.searchCount(c)); }
+      function updateSearch() { searchBox.populateSearch.players(); }
    }
 
    function displayPlayers() {
