@@ -379,6 +379,11 @@ export const util = function() {
       return new Function(str.substring(startArgs, endArgs), str.substring(startBody, endBody));
    }
 
+   util.powerOfTwo = (n) => {
+      if (isNaN(n)) return false; 
+      return n && (n & (n - 1)) === 0;
+   }
+
    util.logError = (err) => console.log(err);
 
    return util;
