@@ -59,8 +59,10 @@ export const staging = function() {
             config.receiveSettings(json_data);
          }
          if (json_data.directive == 'new version') {
+            let msg = json_data.notice || '';
+            fetchFx.update = true;
+            config.pushMessage({ title: 'newversion', notice: msg });
             displayGen.homeIconState('update');
-            fetchFx.update = json_data.notice || lang.tr('newversion');
          }
          if (json_data.directive == 'team data') {
             console.log('team data received;', json_data);
@@ -131,7 +133,8 @@ export const staging = function() {
       if (msg.authorized && msg.tuid) {
          config.authMessage(msg);
       } else {
-         config.addMessage(msg);
+         msg.notice = msg.notice || msg.tournament;
+         if (msg.notice) config.addMessage(msg);
       }
    }
 
