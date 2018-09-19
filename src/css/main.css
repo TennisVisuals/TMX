@@ -137,13 +137,18 @@ html {
 .icon_csv { background-image: url("img/csv.png"); }
 .icon_json { background-image: url("img/json.png"); }
 
-.menuicon { background-image: url("img/menuwhite.png"); }
 .homeicon { background-image: url("img/home.png"); }
 .homeicon_notfound { background-image: url("img/home_red.png"); }
 .homeicon_authorized { background-image: url("img/home_green.png"); }
 .homeicon_messages { background-image: url("img/home_blue.png"); }
 .homeicon_update { background-image: url("img/home_yellow.png"); }
 .homeicon_black { background-image: url("img/home_black.png"); }
+
+.menuicon { background-image: url("img/menuwhite.png"); }
+.menuicon_notfound { background-image: url("img/menuwhite.png"); }
+.menuicon_authorized { background-image: url("img/menugreen.png"); }
+.menuicon_messages { background-image: url("img/menublue.png"); }
+.menuicon_update { background-image: url("img/menuyellow.png"); }
 
 .refreshicon { background-image: url("img/refresh.png"); }
 .refreshicon_black { background-image: url("img/refresh_black.png"); }
