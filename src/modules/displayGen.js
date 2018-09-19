@@ -27,6 +27,7 @@ export const displayGen = function() {
       content: undefined,
       arrowFx: undefined,
       escapeFx: undefined,
+      closeonclick: undefined
    };
 
    let env = {
@@ -266,8 +267,16 @@ export const displayGen = function() {
      `;
       window.document.body.insertBefore(cmodal, window.document.body.firstChild);
 
+      setTimeout(function() { document.getElementById('processing').addEventListener('click', closeOnClick); }, 300);
       setTimeout(function() { util.addEventToClass('closeeditmodal', () => gen.closeModal('edit')); }, 300);
       setTimeout(function() { util.addEventToClass('closemodal', () => gen.closeModal()); }, 300); 
+   }
+
+   function closeOnClick() {
+      if (gen.closeonclick) {
+         gen.closeModal();
+         delete gen.closeonclick;
+      }
    }
 
    gen.closeModal = (which) => {
@@ -293,6 +302,16 @@ export const displayGen = function() {
       return content.map(c => existing_content.indexOf(c) >= 0).filter(f=>f).indexOf(true) >= 0;
    }
 
+   function setProcessingText(html, noselect=true) {
+      let processing = document.getElementById('processingtext');
+      processing.innerHTML = html;
+      if (noselect) {
+         processing.classList.add('noselect');
+      } else {
+         processing.classList.remove('noselect');
+      }
+   }
+
    gen.downloadTemplate = () => {
       if (searchBox.element) searchBox.element.blur();
       let ids = { 
@@ -314,7 +333,7 @@ export const displayGen = function() {
             </div>
          </div>
       `;
-      document.getElementById('processingtext').innerHTML = html;
+      setProcessingText(html);
       let id_obj = displayFx.idObj(ids);
       id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
       id_obj.download.element.addEventListener('click', () => gen.closeModal());
@@ -323,13 +342,13 @@ export const displayGen = function() {
    gen.showProcessing = (html) => {
       if (searchBox.element) searchBox.element.blur();
       document.body.style.overflow  = 'hidden';
-      document.getElementById('processingtext').innerHTML = html;
+      setProcessingText(html);
       document.getElementById('processing').style.display = "flex";
    }
 
-   gen.okCancelMessage = (text, okAction, cancelAction) => {
+   gen.okCancelMessage = (text, okAction, cancelAction, noselect) => {
       let message = `<h2>${text}</h2>`;
-      gen.actionMessage({ message, actionFx: okAction, action: lang.tr('actions.ok'), cancelAction });
+      gen.actionMessage({ message, actionFx: okAction, action: lang.tr('actions.ok'), cancelAction, noselect });
    }
 
    gen.buttonSelect = ({ message_ids, message, buttons, actionFx, cancel, cancelAction, alt, altAction }) => {
@@ -356,7 +375,7 @@ export const displayGen = function() {
             <button id='${ids.cancel}' class='btn btn-medium dismiss' style='display: none'>${cancel}</button>
          </div>
       `;
-      document.getElementById('processingtext').innerHTML = html;
+      setProcessingText(html);
       let id_obj = displayFx.idObj(ids);
       id_obj.cancel.element.addEventListener('click', cancelAction);
       if (id_obj.alt) id_obj.alt.element.addEventListener('click', altAction);
@@ -368,7 +387,7 @@ export const displayGen = function() {
       return id_obj;
    }
 
-   gen.actionMessage = ({ message_ids, message, actionFx, action, cancel, cancelAction }) => {
+   gen.actionMessage = ({ message_ids, message, actionFx, action, cancel, cancelAction, noselect }) => {
       if (searchBox.element) searchBox.element.blur();
       if (!cancel) cancel = lang.tr('actions.cancel');
       let ids = { cancel: displayFx.uuid(), }
@@ -385,7 +404,7 @@ export const displayGen = function() {
             ${ok_button}
          </div>
       `;
-      document.getElementById('processingtext').innerHTML = html;
+      setProcessingText(html, noselect);
       let id_obj = displayFx.idObj(ids);
       if (id_obj.ok) id_obj.ok.element.addEventListener('click', actionFx);
       id_obj.cancel.element.addEventListener('click', cancelAction);
@@ -403,20 +422,17 @@ export const displayGen = function() {
 
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
-      let update = fetchFx.update ? `<h3>${fetchFx.update}</h3>` : '';
-      let refresh = update ? `<button id='${ids.refresh}' class='btn btn-medium dismiss'>${lang.tr('actions.refresh')}</button>` : '';
       let message_list = messages && messages.length ? messages.map(formatMessage) : [];
       let message_html = message_list.map(m=>m.html).join('');
       let html = `
-         <h2 style='margin: 1em;'>${lang.tr('version')}: ${gen.fx.env().version}</h2>
-         ${update}
+         <h2>${lang.tr('messages')}</h2>
          ${message_html}
          <div class="flexcenter" style='margin-bottom: 2em;'>
-            ${refresh}
+            <button id='${ids.refresh}' class='btn btn-medium dismiss' style='display: ${fetchFx.update ? 'inline' : 'none'}'>${lang.tr('actions.refresh')}</button>
             <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${lang.tr('actions.ok')}</button>
          </div>
       `;
-      document.getElementById('processingtext').innerHTML = html;
+      setProcessingText(html);
       if (messages.length) {
          messages.forEach((message, i) => {
             let dT = () => {
@@ -428,15 +444,15 @@ export const displayGen = function() {
       }
       let id_obj = displayFx.idObj(ids);
       id_obj.ok.element.addEventListener('click', okAction);
-      if (update) id_obj.refresh.element.addEventListener('click', refreshAction);
+      id_obj.refresh.element.addEventListener('click', refreshAction);
 
       function formatMessage(msg) {
          let msguid = displayFx.uuid();
          let color = msg.warning ? '#EF8C7E' : msg.authorized || msg.success ? '#D1FBA7' : '#FEF8A7';
          let pointer = msg.inDB ? 'cursor: pointer;' : '';
          let html = `
-            <div id='${msguid}' style='margin: 1em; padding: 1px; background-color: ${color}; ${pointer}'>
-               ${lang.tr(msg.title)}: ${msg.notice}
+            <div id='${msguid}' class='flexrow flexcenter' style='margin: 1em; padding: 1px; background-color: ${color}; ${pointer}'>
+               <h3>${lang.tr(msg.title)}</h3>: ${msg.notice}
             </div>
          `;
          return { html, msguid }
@@ -454,7 +470,7 @@ export const displayGen = function() {
             <button id='${ids.ok}' class='btn btn-medium dismiss'>${lang.tr('actions.ok')}</button>
          </div>
       `;
-      document.getElementById('processingtext').innerHTML = html;
+      setProcessingText(html);
       let id_obj = displayFx.idObj(ids);
       gen.disable_keypress = true;
       id_obj.ok.element.addEventListener('click', dismissPopUp);
@@ -2271,6 +2287,26 @@ export const displayGen = function() {
       return displayFx.idObj(ids);
    }
 
+   gen.mainMenu = () => {
+      let ids = {
+         version: displayFx.uuid(),
+         messages: displayFx.uuid(),
+         release: displayFx.uuid(),
+      }
+      let html = `
+         <div class='flexcol' style='width: 100%'>
+            <div id='${ids.version}' class='menuitem menuseparator'>${lang.tr('version')}</div>
+            <div id='${ids.messages}' class='menuitem menuseparator' style='display: none'>${lang.tr('messages')}</div>
+            <div id='${ids.release}' class='menuitem'>${lang.tr('releasenotes')}</div>
+         </div>
+      `;
+      document.getElementById('processing').style.display = "flex";
+      setProcessingText(html);
+      gen.closeonclick = true;
+      displayGen.escapeModal();
+      return displayFx.idObj(ids);
+   }
+
    gen.legacyTournamentTab = (elem, tournament) => {
       let ids = {
          start_date: displayFx.uuid(),
@@ -2799,9 +2835,10 @@ export const displayGen = function() {
       let tabs = jsTabs.generate({ tabs: tabdata });
       let tab_refs = Object.assign({}, ...tabdata.map((t, i)=>({[t.ref]: i})));
 
+            //<img src='./icons/keys.png' class='club_link'>
       let authorize_button = `
          <div id='${ids.authorize}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.key")}' style='display: none'>
-            <img src='./icons/keys.png' class='club_link'>
+            <div class='action_icon_1_5 keys_black'></div>
          </div>
       `;
       let cloudfetch_button = `
@@ -3186,13 +3223,32 @@ export const displayGen = function() {
       return { ids, html };
    }
 
+   gen.authState = (element, authorized) => {
+      let key_div = element.querySelector('div');
+      if (key_div) {
+         let state = authorized ? 'green' : authorized == false ? 'blue' : 'black';
+         key_div.className = `action_icon_1_5 keys_${state}`;
+      }
+   }
+
    gen.homeIconState = (value) => {
-      let class_name = 'icon15 homeicon';
+      let loc = gen.homeIcon();
+      let class_name = `icon15 ${loc}icon`;
       if (value == 'update') class_name += '_update';
       if (value == 'messages') class_name += '_messages';
       if (value == 'authorized') class_name += '_authorized';
       if (value == 'notfound' || value == 'warning') class_name += '_notfound';
       document.getElementById('homeicon').className = class_name;
+   }
+
+   gen.homeIcon = (loc) => {
+      let homeicon = document.getElementById('homeicon');
+      let class_name = homeicon.className;
+      let state_split = class_name.split('_');
+      let state = state_split.length > 1 ? `_${state_split[1]}` : '';
+
+      if (!loc || ['home', 'menu'].indexOf(loc) < 0) return class_name.indexOf('home') >= 0 ? 'home' : 'menu';
+      homeicon.className = `icon15 ${loc}icon${state}`;
    }
 
    gen.drawBroadcastState = (elem, evt) => {
@@ -4090,7 +4146,7 @@ export const displayGen = function() {
       `;
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
-      document.getElementById('processingtext').innerHTML = html;
+      setProcessingText(html);
       displayGen.escapeModal();
       let id_obj = displayFx.idObj(ids);
       if (id_obj.cancel) id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
@@ -4661,7 +4717,7 @@ export const displayGen = function() {
          <div style='min-height: 150px'>
          <h2>${lang.tr('phrases.entersheeturl')}</h2>
          <div class='flexcenter flexcol'>
-            <input id='${ids.link}' value='' style='text-align: center; width: 25em; margin-bottom: 1em;'>
+            <input id='${ids.link}' value='' style='text-align: center; width: 25em; margin: 1em;'>
             <div class='flexrow' style='margin-top: 1em;'>
                <button id="${ids.cancel}" class="btn btn-medium edit-cancel" style="margin-right: 1em;">${lang.tr('ccl')}</button> 
                <button id="${ids.submitlink}" class="btn btn-medium edit-submit">${lang.tr('sbt')}</button> 
@@ -4671,7 +4727,7 @@ export const displayGen = function() {
       `;
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
-      document.getElementById('processingtext').innerHTML = html;
+      setProcessingText(html);
 
       let id_obj = displayFx.idObj(ids);
       id_obj.link.element.value = existing_link || '';
