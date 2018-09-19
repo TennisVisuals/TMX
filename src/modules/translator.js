@@ -404,6 +404,7 @@ export const lang = function() {
          delegate2mobile: 'Delegate to Mobile',
          revokedelegation: 'Revoke Delegation',
          delegationrevoked: 'Delegation has been revoked',
+         qrcode: 'QR Code',
          scanQRcode: 'Scan QR Code with Mobile',
          ranklists: 'Rank Lists for',
          reset: 'Database will be reset',
