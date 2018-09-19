@@ -16,6 +16,7 @@ import { scheduleFx } from './scheduleFx';
 import { eventManager } from './eventManager';
 
 // remove these dependencies by moving fx elsewhere!!
+import { calendarFx } from './calendarFx';
 import { displayGen } from './displayGen';
 import { tournamentFx } from './tournamentFx';
 import { tournamentDisplay } from './tournamentDisplay';
@@ -65,11 +66,9 @@ export const config = function() {
       if (eventManager.holdActions[action]) eventManager.holdActions[action](target, coords);
    }
 
-   eventManager.holdActions.homeIcon = displayMessages;
-
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.1.14.20.10',
+      version: '1.2.2.5.3',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -149,6 +148,9 @@ export const config = function() {
             "25": [["0", ".0625"], [1, ".1875"], [0, ".3125"], [1, ".4325"], [0, ".5625"], [1, ".6875"], [0, ".8125"], [1, ".9375"] ]
          },
          separation: { ioc: false, club_code: false }
+      },
+      scoring: {
+         delegation: true
       },
       scoreboard: {
          options: {
@@ -279,7 +281,7 @@ export const config = function() {
 
    function refreshApp() {
       location.pathname = "/tmx/";
-      // location.reload(true);
+      delete fetchFx.update;
    }
 
    fx.env = () => env;
@@ -287,10 +289,6 @@ export const config = function() {
    fx.setCalendar = (obj) => Object.keys(obj).forEach(key => { if (Object.keys(env.calendar).indexOf(key) >= 0) env.calendar[key] = obj[key]; });
    fx.setMap = (map) => env.locations.map = map;
    fx.addMessage = (msg) => {
-      msg.notice = msg.notice || msg.tournament;
-      if (msg.title.indexOf('unofficial') >= 0 && env.org.abbr) {
-         msg.notice = `<a target="_blank" href="https://courthive.com/live/${env.org.abbr}?test">${msg.notice}</a>`;
-      }
       let msgHash = (m) => Object.keys(m).map(key => m[key]).join('');
       let message_hash = msgHash(msg);
       let exists = env.messages.reduce((p, c) => msgHash(c) ==  message_hash ? true : p, false);
@@ -756,7 +754,7 @@ export const config = function() {
       searchBox.resetFx.push(playerFx.resetPlayerAction);
 
       searchBox.metaClick = {
-         tournaments() { tournamentDisplay.displayCalendar(); },
+         tournaments() { calendarFx.displayCalendar(); },
          // players() { displayPlayers(); },
          // clubs() { displayClubs(); },
       }
@@ -1146,11 +1144,16 @@ export const config = function() {
 
       tournamentDisplay.fx.env = fx.env;
       tournamentDisplay.fx.drawOptions = fx.drawOptions;
-      tournamentDisplay.fx.setCalendar = fx.setCalendar;
+      // tournamentDisplay.fx.setCalendar = fx.setCalendar;
       tournamentDisplay.fx.pointsTable = fx.pointsTable;
-      tournamentDisplay.fx.orgCategoryOptions = fx.orgCategoryOptions;
+      // tournamentDisplay.fx.orgCategoryOptions = fx.orgCategoryOptions;
       tournamentDisplay.fx.orgCategories = fx.orgCategories;
-      tournamentDisplay.fx.orgRankingOptions = fx.orgRankingOptions;
+      // tournamentDisplay.fx.orgRankingOptions = fx.orgRankingOptions;
+
+      calendarFx.fx.orgRankingOptions = fx.orgRankingOptions;
+      calendarFx.fx.orgCategoryOptions = fx.orgCategoryOptions;
+      calendarFx.fx.setCalendar = fx.setCalendar;
+      calendarFx.fx.env = fx.env;
 
       staging.legacy_categories = { 'S': '20', };
       tournamentFx.fx.env = fx.env;
@@ -1196,14 +1199,28 @@ export const config = function() {
 
       handleUnhandled();
 
-      document.getElementById('go_home').addEventListener('contextmenu', displayMessages);
       document.getElementById('go_home').addEventListener('click', () => {
-         if (env.messages && env.messages.length) {
-            displayMessages();
+         let state = displayGen.homeIcon();
+         if (state == 'home') {
+            splash();
+            displayGen.homeIcon('menu');
          } else {
-            splash()
+            let menu = displayGen.mainMenu();
+            menu.version.element.addEventListener('click', displayVersion)
+            menu.messages.element.addEventListener('click', evt => {
+               evt.stopPropagation();
+               displayMessages();
+            })
+            menu.release.element.addEventListener('click', displayReleaseNotes);
+            if (env.messages && env.messages.length) { menu.messages.element.style.display = 'inline'; }
          }
       });
+      
+      function displayVersion(evt) {
+         evt.stopPropagation();
+         let message =`<h2 style='margin: 1em;'>${lang.tr('version')}: ${env.version}</h2>`;
+         displayGen.popUpMessage(message);
+      }
 
       var refresh_icon = document.getElementById('refresh');
       var searchextra = document.getElementById('searchextra');
@@ -1320,7 +1337,7 @@ export const config = function() {
       let id = displayGen.busy.message(`<p>${lang.tr('refresh.calendar')}...</p>`, searchBox.updateSearch);
       let done = () => {
          displayGen.busy.done(id);
-         if (displayGen.content == 'calendar') tournamentDisplay.displayCalendar();
+         if (displayGen.content == 'calendar') calendarFx.displayCalendar();
       }
       let addNew = (trnys) => util.performTask(db.addTournament, trnys, false).then(done, done);
       let mergeTournaments = (trnys) => util.performTask(mergeTournament, trnys, false).then(done, done);
@@ -1397,12 +1414,12 @@ export const config = function() {
       tournamentDisplay.reset();
       let container = displayGen.splashScreen(o.components, o.settings_tabs);
 
-      splashEvent(container, 'tournaments', tournamentDisplay.displayCalendar);
-      splashEvent(container, 'players', displayPlayers);
-      splashEvent(container, 'clubs', displayClubs);
+      splashEvent(container, 'tournaments', () => showHome(calendarFx.displayCalendar));
+      splashEvent(container, 'players', () => showHome(displayPlayers));
+      splashEvent(container, 'clubs', () => showHome(displayClubs));
       splashEvent(container, 'settings', editSettings);
-      splashEvent(container, 'documentation', ()=>window.open(`/docs/${env.ioc}`, '_blank'));
-      splashEvent(container, 'importexport', displayImportExport);
+      splashEvent(container, 'documentation', () => window.open(`/docs/${env.ioc}`, '_blank'));
+      splashEvent(container, 'importexport', () => showHome(displayImportExport));
       splashEvent(container, 'keys', displayKeyActions);
 
       if (env.org && env.org.name) {
@@ -1419,6 +1436,11 @@ export const config = function() {
 
       function splashEvent(container, child, fx) {
          if (container[child].element) container[child].element.addEventListener('click', fx);
+      }
+
+      function showHome(fx) {
+         displayGen.homeIcon('home');
+         if (typeof fx == 'function') fx();
       }
    }
 
@@ -1637,6 +1659,8 @@ export const config = function() {
       }
    }
 
+   fx.pushMessage = (msg) => { env.messages.push(msg); }
+
    // TODO: theme.js
    fx.theme = (which='black') => {
       // TODO: store theme objects theme table in db
@@ -1649,6 +1673,28 @@ export const config = function() {
          document.getElementById('searchcount').style.color = 'black';
          document.getElementById('homeicon').className = `icon15 homeicon_black`;
       }
+   }
+
+   function displayReleaseNotes(evt) {
+      evt.stopPropagation();
+      displayGen.closeModal();
+      let message =`
+         <h2 style='margin: 1em;'>Release Notes</h2>
+         <div class='releasenotes'>
+            <h3 class='flexjustifystart'>Version: 1.2.2.5.1</h3>
+            <div class='flexjustifystart'>Ability to delegate match tracking to CourtHive/Mobile.</div>
+
+            <h3 class='flexjustifystart'>Version: 1.2.0.0.0</h3>
+            <div class='flexjustifystart'>Home Menu and Release Notes added.</div>
+            <div class='flexjustifystart'>TMX now checks authorization status for each tournament and with each publishing event.</div>
+            <div class='flexjustifystart'>In Edit Mode authorization status is displayed as a small set of keys.</div>
+            <div class='flexjustifystart'>In the Events Tab, single clicks are swapped with Context Clicks to improve useability on Tablets.</div>
+            <div class='flexjustifystart'>When approving players, Shift-click, Control-click or Right-click is now used for fast approval.</div>
+            <div class='flexjustifystart'>It is no longer necessary to Save new events and new teams.</div>
+            <div class='flexjustifystart'>Authorization Keys are now displayed for administrators on Tablets.</div>
+         <div>
+      `;
+      displayGen.showModal(message);
    }
 
    return fx;
