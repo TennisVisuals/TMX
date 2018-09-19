@@ -359,6 +359,7 @@ export const util = function() {
        d1.getDate() === d2.getDate();
    }
 
+   util.catchTab = (evt) => { if (evt.which == 9) { evt.preventDefault(); } }
    util.isOverflowing = (el) => { return el.scrollWidth > el.clientWidth; }
    util.scaleFont = (el) => {
       let counter = 0;
