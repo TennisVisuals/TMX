@@ -1329,3 +1329,28 @@ button.ratings-submit:hover { background: #68FF33; }
    font-size: 1em;
    width: 100%;
 }
+
+/* main menu */
+
+.menuitem {
+   width: 100%;
+   padding-top: .5em;
+   padding-bottom: .5em;
+   font-size: 1.2em;
+}
+
+.menuseparator {
+   border-bottom: 1px solid black;
+}
+
+/* release notes */
+
+.releasenotes {
+   display: flex;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+   -webkit-align-content: flex-start;
+   align-content: flex-start;
+}
