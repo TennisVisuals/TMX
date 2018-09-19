@@ -177,6 +177,8 @@ export const lang = function() {
 
       set: 'Settings',
       version: 'Version',
+      messages: 'Messages',
+      releasenotes: 'Release Notes',
       newversion: 'New Version Available',
       importexport: 'Import / Export',
       documentation: 'Documentation',
@@ -264,7 +266,7 @@ export const lang = function() {
 
       draws: {
          gemseeding: 'GEM Seeding',
-         playerfilter: 'Player Filter',
+         playerfilter: 'Ratings Filter',
          compass: 'Compass',
          north: 'North',
          south: 'South',
@@ -366,7 +368,7 @@ export const lang = function() {
          done: 'Finish',
          removeall: 'Remove All',
          addall: 'Add All',
-         key: 'Authorize',
+         key: 'Authorization',
          noauth: 'Not Authorized',
          unofficial: 'Unofficial',
          auth: 'Authorized',
@@ -480,6 +482,7 @@ export const lang = function() {
          rank: 'Rank',
          surface: 'Surface',
          approveteam: 'Approve',
+         destroyteam: 'Destroy',
          approved: 'Approved',
          eligible: 'Eligible',
          ineligible: 'Ineligible',
