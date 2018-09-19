@@ -56,16 +56,17 @@ export const scoreBoard = function() {
    fx.setMatchScore = ({
       sobj,
       muid,
-      flags,
       lock,
-      grouped,
-      round_name,
+      match,
       teams,
+      flags,
+      grouped,
+      callback,
+      delegation,
+      round_name,
       existing_scores,
       score_format={},
       scoring_config={},
-      match,
-      callback,
       auto_score=true
    }) => {
 
@@ -85,6 +86,7 @@ export const scoreBoard = function() {
       if (round_name) sobj.round_name.element.innerHTML = round_name;
       sobj.details.element.innerHTML = matchStatus(match);
       sobj.scoring.element.style.display = lock ? 'none' : 'inline';
+      sobj.delegate.element.style.display = !lock && delegation ? 'inline' : 'none';
       sobj.favorite.element.style.display = lock ? 'inline' : 'none';
 
       if (muid) {
@@ -107,6 +109,8 @@ export const scoreBoard = function() {
          displayFx.toggleVisible({ elem: sobj.actions.element, type: 'edit', height: 50, visible });
          sobj.scoring.element.style.display = action_drawer || lock ? 'none' : 'inline';
          sobj.edit_scoring.element.style.display = action_drawer ? 'none' : 'inline';
+         sobj.delegate.element.style.display = !action_drawer && !lock && delegation ? 'inline' : 'none';
+         sobj.edit_delegation.element.style.display = action_drawer ? 'none' : 'inline';
       }
 
       configureScoring({ sobj, stg: sf, changeFx: clearScores });
@@ -241,7 +245,21 @@ export const scoreBoard = function() {
          sobj.accept.element.addEventListener('click', acceptScores , false);
          sobj.clear.element.addEventListener('click', clearScores , false);
          sobj.scoring.element.addEventListener('click', toggleScoring , false);
+         sobj.delegate.element.addEventListener('click', toggleDelegation , false);
+         sobj.delegation_key.element.addEventListener('click', delegationKey , false);
 
+         function delegationKey() {
+            let directive = {
+               teams,
+               delegate: true,
+               score_format: sf
+            }
+            if (typeof callback == 'function') { callback(directive); }
+            if (floating) {
+               document.body.style.overflow = null;
+               d3.select(sobj.scoreboard.element).remove();
+            } 
+         }
          function acceptScores() {
             determineWinner();
             scoringComplete(getScore());
@@ -257,11 +275,29 @@ export const scoreBoard = function() {
             // set toggle icon
             sobj.scoring.element.innerHTML = visible ? '&#x25A2;' : '-';
 
+            toggleVisible(sobj.edit_scoring.element, visible);
+         }
+         function toggleDelegation() {
+            if (lock) return;
+            if (action_drawer) return;
+
+            let current = sobj.delegate.element.innerHTML;
+            let visible = current.charCodeAt(current[0]) == 9655 ? true : false;
+
+            // hide overflow before toggle transition starts
+            if (!visible) sobj.edit_delegation.element.style.overflow = 'hidden';
+
+            // set toggle icon
+            sobj.delegate.element.innerHTML = visible ? '&#x25BD;' : '&#x25B7;';
+
+            toggleVisible(sobj.edit_delegation.element, visible);
+         }
+         function toggleVisible(element, visible) {
             let duration = 800;
-            displayFx.toggleVisible({ elem: sobj.edit_scoring.element, type: 'edit', height: 100, visible, duration });
+            displayFx.toggleVisible({ elem: element, type: 'edit', height: 100, visible, duration });
             if (visible) {
                // make overflow visible after toggle transition has completed
-               setTimeout(function() { sobj.edit_scoring.element.style.overflow = 'visible'; }, duration);
+               setTimeout(function() { element.style.overflow = 'visible'; }, duration);
             }
          }
       }
@@ -1280,7 +1316,24 @@ function scoreBoardConfig() {
                   <div id="${ids.tiebreaksto}" class="score-selector"></div>
                   <div id="${ids.supertiebreakto}" class="score-selector"></div>
                </div>
+            </div>
+         </div>
+   `;
 
+   return { ids, html }
+}
+
+function mobileDelegation() {
+   let ids = {
+      edit_delegation: UUID.idGen(),
+      delegation_key: UUID.idGen(),
+   }
+   let html = `
+         <div id='${ids.edit_delegation}' class="scoreboard-config scoreboard-action">
+            <div class="edit configure sb_flexrow">
+               <div class="scoreboard-actions" style='width: 100%'>
+                  <button id='${ids.delegation_key}' class='btn accept'>${lang.tr('phrases.delegate')}</button>
+               </div>
             </div>
          </div>
    `;
@@ -1294,6 +1347,7 @@ function generateScoreBoard({ muid, teams, flags, round_name, match }) {
       actions: UUID.idGen(),
       favorite: UUID.idGen(),
       scoring: UUID.idGen(),
+      delegate: UUID.idGen(),
       clear: UUID.idGen(),
       cancel: UUID.idGen(),
       accept: UUID.idGen(),
@@ -1312,7 +1366,8 @@ function generateScoreBoard({ muid, teams, flags, round_name, match }) {
    }
 
    let config = scoreBoardConfig();
-   Object.assign(ids, config.ids);
+   let mobile_delegation = mobileDelegation();
+   Object.assign(ids, config.ids, mobile_delegation.ids);
 
    let html = `
       <div id="${ids.root}" class="scoreboard noselect muid ${ids.root}" muid='${muid}'>
@@ -1380,10 +1435,12 @@ function generateScoreBoard({ muid, teams, flags, round_name, match }) {
                <span class="info-text">
                   <span id="${ids.details}" class="court">${matchStatus(match)}</span>
                </span>
+               <div id='${ids.delegate}' class='options' style='display: none'>&#x25B7;</div>
             </div>
          </div>
 
          ${config.html}
+         ${mobile_delegation.html}
 
          <div id='${ids.actions}' class="scoreboard-action">
             <div class="edit flexcol">
