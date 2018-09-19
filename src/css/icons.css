@@ -11,6 +11,7 @@
    padding-bottom: 1.7em;
    background-size: 100%;
 }
+
 .tiny_icon { 
    width: 1em;
    height: 0;
@@ -46,6 +47,7 @@
 .published { background-image: url("img/publishgreen.png"); }
 .cleardraw { background-image: url("img/recycle.png"); }
 .compass { background-image: url("img/compassrose.png"); }
+
 .tiny_docs_icon {
    width: 1em;
    height: 0;
@@ -72,6 +74,13 @@
    padding-bottom: 2em;
    background-size: 100%;
 }
+.action_icon_1_5 {
+   width: 1.5em;
+   height: 0;
+   padding-bottom: 1.5em;
+   background-size: 100%;
+}
+
 .action_icon_small {
    width: 1em;
    height: 0;
@@ -91,6 +100,10 @@
 .filter_m_selected { background-image: url("img/m_selected.png"); }
 .filter_w_gray { background-image: url("img/w_gray.png"); }
 .filter_m_gray { background-image: url("img/m_gray.png"); }
+
+.keys_black { background-image: url("img/keys.png"); }
+.keys_blue { background-image: url("img/keys_blue.png"); }
+.keys_green { background-image: url("img/keys_green.png"); }
 
 .download { background-image: url("img/dl_gray.png"); }
 .push2cloud { background-image: url("img/ul_gray.png"); }
