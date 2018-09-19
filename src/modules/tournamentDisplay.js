@@ -1880,7 +1880,19 @@ export const tournamentDisplay = function() {
 
          function displayKey(ack) {
             displayGen.escapeModal();
-            displayGen.actionMessage({ message: ctext, actionFx: () => displayGen.closeModal(), action: lang.tr('actions.ok'), noselect: false });
+            displayGen.actionMessage({
+               message: ctext,
+               action: lang.tr('actions.ok'),
+               actionFx: () => displayGen.closeModal(),
+               noselect: false,
+               // cancel: lang.tr('phrases.qrcode'),
+               // cancelAction: () => QRdelegation()
+            });
+         }
+
+         function QRdelegation() {
+            console.log('generate QR Code');
+            displayGen.closeModal();
          }
       }
 
