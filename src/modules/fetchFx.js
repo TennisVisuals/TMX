@@ -4,13 +4,14 @@ import { UUID } from './UUID';
 import { config } from './config';
 import { lang } from './translator';
 import { importFx } from './importFx';
+import { calendarFx } from './calendarFx';
 import { displayGen } from './displayGen';
 import { tournamentFx } from './tournamentFx';
 import { tournamentDisplay } from './tournamentDisplay';
 
 export const fetchFx = function() {
    let fx = {
-      update: undefined,  // used to store received messages
+      update: undefined,  // determines when updated version is available
    }
    let bearer_token = 'c611a05e-019e-4594-9578-e7a602125112';
 
@@ -181,7 +182,7 @@ export const fetchFx = function() {
          existing.end = Math.max(existing.end, fetched.end);
          existing.players = mergePlayers(existing.players, fetched.players);
          db.addTournament(existing).then(() => {
-            tournamentDisplay.createNewTournament({ tournament_data: existing, title: lang.tr('actions.edit_tournament'), callback: modifyTournament })
+            calendarFx.createNewTournament({ tournament_data: existing, title: lang.tr('actions.edit_tournament'), callback: modifyTournament })
          });
       }
 
