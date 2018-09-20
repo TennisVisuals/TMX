@@ -1885,14 +1885,21 @@ export const tournamentDisplay = function() {
                action: lang.tr('actions.ok'),
                actionFx: () => displayGen.closeModal(),
                noselect: false,
-               // cancel: lang.tr('phrases.qrcode'),
-               // cancelAction: () => QRdelegation()
+               cancel: lang.tr('phrases.qrcode'),
+               cancelAction: () => QRdelegation()
             });
          }
 
          function QRdelegation() {
-            console.log('generate QR Code');
             displayGen.closeModal();
+
+            let message = `${location.origin}/mobile/?key=${key_uuid}`;
+            let ctext = `
+               <div><canvas id='qr'></canvas></div>
+               <div id='msg' style='display: none;'>${lang.tr('phrases.linkcopied')}</div>
+               `;
+            let msg = displayGen.okCancelMessage(ctext, () => displayGen.closeModal());
+            genQUR(message);
          }
       }
 
@@ -8051,6 +8058,8 @@ export const tournamentDisplay = function() {
                   contextPopUp(d);
                } else if (tfx.isTeam(tournament)) {
                   teamTournamentScore(d);
+               } else {
+                  contextPopUp(d);
                }
             }
          }
@@ -8771,6 +8780,7 @@ export const tournamentDisplay = function() {
             if (!displayed.draw_event.active && !position_active && swap_positions.length) finished_options.push({ option: lang.tr('draws.swap'), key: 'swap' });
             if (!position_active && alternates.length) finished_options.push({ option: lang.tr('draws.alternate'), key: 'alt' });
             if (!position_active && losers.length) finished_options.push({ option: lang.tr('draws.luckyloser'), key: 'lucky' });
+            finished_options.push({ option: lang.tr('ccl'), key: 'cancel' });
 
             if (!unfinished && !finished_options.length) return;
 
