@@ -304,7 +304,7 @@ export const scoreBoard = function() {
 
       function configureScoreSelectors() {
          let options = [ { key: '-', value: '' }, ];
-         let upper_range = (sf.games_for_set == sf.tiebreaks_at) ? sf.games_for_set + 2 : sf.games_for_set + 1;
+         let upper_range = sf.games_for_set == sf.tiebreaks_at ? sf.games_for_set + 2 : sf.games_for_set + 1;
          util.range(0, upper_range).forEach(n => options.push({ key: n, value: n }));
 
          let scoreChange1 = (value) => scoreChange(0, value);
@@ -420,11 +420,16 @@ export const scoreBoard = function() {
             console.log('Long Set!');
             return score_diff >= 2;
          }
+
+         // if there is no tiebreaks_at value and one of the players reaches games_for_set
+         if (!sf.tiebreaks_at && (s1 == sf.games_for_set || s2 == sf.games_for_set)) return true;
+
          // any valid winning score that does not indicate a tiebreak
          return score_diff >= 2 && (s1 >= sf.tiebreaks_at || s2 >= sf.tiebreaks_at);
       }
 
       function tbScore(s1, s2) {
+         if (!sf.tiebreaks_at) return false;
          return (s1 == sf.tiebreaks_at + 1 && s2 == sf.tiebreaks_at) || (s1 == sf.tiebreaks_at && s2 == sf.tiebreaks_at + 1);
       }
 
@@ -459,6 +464,8 @@ export const scoreBoard = function() {
             } else if (which == 1 && p1 == '') {
                p1 = getComplement(value);
                sobj.p1selector.ddlb.setValue(p1);
+            } else if (!sf.tiebreaks_at) {
+               if (p1 == sf.games_for_set && p2 == sf.games_for_set) replaceValue(sf.games_for_set - 1); 
             } else {
                if (p1 == sf.tiebreaks_at + 1 && p2 == sf.tiebreaks_at + 1) replaceValue(sf.tiebreaks_at);
                if (p1 == sf.tiebreaks_at + 1 && p2 < sf.tiebreaks_at - 1) { replaceValue(sf.tiebreaks_at); }
@@ -499,10 +506,16 @@ export const scoreBoard = function() {
 
          function getComplement(value) {
             if (value == '') return '';
-            if (value == sf.tiebreaks_at || value == sf.tiebreaks_at + 1) tiebreak = true;
-            if (value == sf.tiebreaks_at - 1 || value == sf.tiebreaks_at) return parseInt(sf.tiebreaks_at || 0) + 1;
-            if (value < sf.tiebreaks_at) return sf.games_for_set;
-            return sf.tiebreaks_at;
+            if (!sf.tiebreaks_at) {
+               if (value == sf.games_for_set) return sf.games_for_set - 1;
+               if (value == sf.games_for_set - 1) return sf.games_for_set;
+               return sf.games_for_set;
+            } else {
+               if (value == sf.tiebreaks_at || value == sf.tiebreaks_at + 1) tiebreak = true;
+               if (value == sf.tiebreaks_at - 1 || value == sf.tiebreaks_at) return parseInt(sf.tiebreaks_at || 0) + 1;
+               if (value < sf.tiebreaks_at) return sf.games_for_set;
+               return sf.tiebreaks_at;
+            }
          }
       }
 
@@ -588,7 +601,11 @@ export const scoreBoard = function() {
                if (tbScore(g0, g1) && sc[0].tiebreak == undefined && sc[1].tiebreak == undefined) return [0, 0];
 
                // if minimum score difference not met (or games_for_set exceeded) there is no winner
-               if (sf.games_for_set == sf.tiebreaks_at) {
+               // if there is no tiebreaks_at value then the first player to games_for_set value is the winner
+               if (!sf.tiebreaks_at) {
+                  if (g0 == sf.games_for_set && g0 == g1 + 1) return [1, 0];
+                  if (g1 == sf.games_for_set && g1 == g0 + 1) return [0, 1];
+               } else if (!sf.tiebreaks_at || sf.games_for_set == sf.tiebreaks_at) {
                   if (g0 == sf.games_for_set && g0 == g1 + 1) return [0, 0];
                   if (g1 == sf.games_for_set && g1 == g0 + 1) return [0, 0];
                } else {
@@ -613,6 +630,7 @@ export const scoreBoard = function() {
          if (!set_scores.length) return undefined;
 
          let sets_won = setsWon();
+
          // if an equivalent # of sets have been won, no winner
          if (sets_won[0] == sets_won[1] && !live() && !interrupted() && !irregularEnding() && irregularWinner() == undefined) {
             // displayActions(false);
@@ -1039,10 +1057,14 @@ export const scoreBoard = function() {
       sobj.setsto.ddlb.setValue(stg.games_for_set, 'white');
 
       let gfs = stg.games_for_set;
+      let tbat_options = tiebreakAtOptions(gfs);
+      /*
       let tbat_options = [
-         {key: `${gfs-1}-${gfs-1}`, value: gfs - 1},
-         {key: `${gfs}-${gfs}`, value: gfs},
+         { key: lang.tr('none'), value: undefined },
+         { key: `${gfs-1}-${gfs-1}`, value: gfs - 1 },
+         { key: `${gfs}-${gfs}`, value: gfs },
       ];
+      */
 
       dd.attachDropDown({ 
          id: sobj.tiebreaksat.id, 
@@ -1065,6 +1087,7 @@ export const scoreBoard = function() {
          options: [
             {key: 'Normal', value: 'N'},
             {key: 'Supertiebreak', value: 'S'},
+            // TODO: implement "Long" final set
             // {key: 'Long', value: 'L'},
          ],
       });
@@ -1093,13 +1116,25 @@ export const scoreBoard = function() {
          if (typeof changeFx == 'function') changeFx();
       }
 
+      function tiebreakAtOptions(gfs) {
+         return [
+            { key: lang.tr('none'), value: undefined },
+            { key: `${gfs-1}-${gfs-1}`, value: gfs - 1 },
+            { key: `${gfs}-${gfs}`, value: gfs },
+         ];
+      }
+
       function setsTo(value) {
          stg.games_for_set = parseInt(value);
          stg.tiebreaks_at = parseInt(value);
+         let tbat_options = tiebreakAtOptions(value);
+         /*
          let tbat_options = [
-            {key: `${value-1}-${value-1}`, value: value - 1},
-            {key: `${value}-${value}`, value: value},
+            { key: lang.tr('none'), value: undefined },
+            { key: `${value-1}-${value-1}`, value: value - 1 },
+            { key: `${value}-${value}`, value: value },
          ];
+         */
          sobj.tiebreaksat.ddlb.setOptions(tbat_options);
          sobj.tiebreaksat.ddlb.setValue(value, 'white');
          if (typeof changeFx == 'function') changeFx();
