@@ -1,4 +1,5 @@
 import { util } from './util';
+import { coms } from './coms';
 import { UUID } from './UUID';
 import { drawFx } from './drawFx';
 import { staging } from './staging';
@@ -58,12 +59,13 @@ export const tournamentFx = function() {
       delete match.loser;
       delete match.score;
       delete match.set_scores;
-      delete match.teams;
       delete match.complete;
-      delete match.round_name;
       delete match.result_order;
-      delete match.round;
       delete match.tournament;
+
+      // delete match.teams;
+      // delete match.round_name;
+      // delete match.round;
    }
 
    fx.replaceTournamentPlayer = ({ tournament, existing_player, new_player_data, replace_all }) => {
@@ -177,15 +179,21 @@ export const tournamentFx = function() {
       let score = [0, 0];
       let completed = dual_match.score && ['W.O.', 'RET.', 'DEF.'].reduce((p, c) => (dual_match.score.indexOf(c) >= 0 ? c : false) || p, undefined);
       let match_record = e && e.draw && e.draw.dual_matches && e.draw.dual_matches[dual_match.match.muid];
-      let av = (e.matchorder && e.matchorder.map(m=>m.value).reduce((a, b) => (a || 0) + (b || 0))) || 0;
-      let more_than_half = Math.ceil(av/2) > av/2 ? Math.ceil(av/2) : Math.ceil(av/2) + 1;
+
+      if (!e.score_goal) e.score_goal = getDualEventScoreGoal(e);
+
+      /*
+      let av = (e.matchorder && e.matchorder.map(m=>util.parseInt(m.value)).reduce((a, b) => (a || 0) + (b || 0))) || 0;
+      let more_than_half = moreThanHalf(av);
+      if (!e.score_goal) e.score_goal = more_than_half;
+      */
+
       match_record && match_record.matches
          .map(m => ({ winner: m.match.winner_index, value: m.value }))
          .filter(f=>f.winner != undefined)
          .forEach(result => score[result.winner] += parseInt(result.value || 1));
-      let score_goal = e.score_goal || more_than_half;
       let max_score = Math.max(...score);
-      let winner_index = !score_goal || max_score < score_goal ? undefined : (score[0] >= score_goal) ? 0 : 1;
+      let winner_index = !e.score_goal || max_score < e.score_goal ? undefined : (score[0] >= e.score_goal) ? 0 : 1;
       dual_match.match.score = winner_index ? score.map(s=>s).reverse().join('-') : score.join('-');
       if (completed) dual_match.match.score = `${dual_match.match.score} ${completed}`;
       let active_matches = match_record && match_record.matches.reduce((p, c) => c.match.score ? true : p, undefined);
@@ -205,7 +213,7 @@ export const tournamentFx = function() {
       match.match.date = match.date || new Date().getTime();
 
       let { score, active_matches } = fx.calcDualMatchesScore(e, dual_match);
-      let score_goal = e.score_goal || 5;
+      let score_goal = e.score_goal;
 
       let max_score = Math.max(...score);
       if (max_score < score_goal && dual_match.match.winner_index != undefined) {
@@ -436,7 +444,7 @@ export const tournamentFx = function() {
       var bracket_complete = dfx.bracketComplete(bracket);
       var outcome_change = qualifier_changed || (previous_winner && !current_winner);
 
-      if (qlink && bracket_complete && outcome_change) {
+      if (qlink && outcome_change) {
          // TODO: perhaps this is not necessary... but the question is whether
          // any 2nd qualifiers have been placed... and undoing it would mean
          // removing all 2nd qualifiers
@@ -453,7 +461,7 @@ export const tournamentFx = function() {
       }
 
       if (!outcome.score) {
-         result.deleted_muid = match_event.muid;
+         result.deleted_muid = match_event.match && match_event.match.muid;
          fx.pruneMatch(match_event.match);
          return result;
       }
@@ -482,8 +490,10 @@ export const tournamentFx = function() {
          round: match_event.round
       };
 
-      dfx.tallyBracketResults({ bracket, reset: true });
-      if (outcome.complete && dfx.bracketComplete(bracket)) {
+      dfx.tallyBracketAndModifyPlayers({ bracket });
+
+      result.bracket_complete = (outcome.complete && dfx.bracketComplete(bracket));
+      if (result.bracket_complete) {
          let q_result = fx.determineRRqualifiers(tournament, e);
          result = Object.assign(result, q_result);
       }
@@ -709,19 +719,13 @@ export const tournamentFx = function() {
 
       if (!e.gem_seeding && ranked_players < seed_limit) seed_limit = ranked_players;
 
-      let linkedQ = fx.findEventByID(tournament, e.links['Q']) || fx.findEventByID(tournament, e.links['R']);
+      let linkedQ = e.links && (fx.findEventByID(tournament, e.links['Q']) || fx.findEventByID(tournament, e.links['R']));
       let qualifier_ids = linkedQ && linkedQ.qualified ? linkedQ.qualified.map(teamHash) : [];
       let qualifying_consolation = linkedQ && e.draw_type == 'C';
 
       if (qualifying_consolation) approved_players = approved_players.filter(p=>qualifier_ids.indexOf(p.id) < 0);
 
       let alternate_ids = [];
-      /*
-      let linkedE = fx.findEventByID(tournament, e.links['E']);
-      let alternate_ids = (e.draw_type == 'C' && linkedE && linkedE.approved) ?
-         approved_players.map(ap => ap.id).filter(i => linkedE.approved.indexOf(i) < 0) : [];
-      */
-
       let seeding = !fx.isPreRound({ env, e }) && fx.rankedTeams(approved_players);
 
       approved_players = approved_players
@@ -761,7 +765,8 @@ export const tournamentFx = function() {
    }
 
    fx.modifyEventScoring = ({ cfg_obj, tournament, evt, callback, format }) => {
-      let max_sets = parseInt(cfg_obj.bestof.ddlb.getValue());
+      let bestof = cfg_obj.bestof.ddlb.getValue();
+      let max_sets = parseInt(bestof);
       let sets_to_win = Math.ceil(max_sets/2);
       let sf = {
          max_sets,
@@ -1019,6 +1024,7 @@ export const tournamentFx = function() {
          let unavailable = fx.unavailableTeams(tournament, e);
          unavailable_teams = unavailable.teams;
       }
+      if (!tournament.teams) tournament.teams = [];
 
       // let unavailable_uuids = unavailable_teams.map(p=>p.uuid);
       let unavailable_uuids = unavailable_teams.map(p=>p.id);
@@ -1147,6 +1153,7 @@ export const tournamentFx = function() {
 
    fx.qualifierSeedLimit = ({ env, e }) => {
       let limit = env && env.drawFx.qualifying_bracket_seeding ? (e.qualifiers * 2) : 0;
+      if (!e || !e.approved) return limit;
       return Math.min(e.approved.length, limit);
    }
 
@@ -1192,8 +1199,8 @@ export const tournamentFx = function() {
       if (!evt || !evt.draw) return [];
       let opponents = evt.draw.opponents;
       let ordered_opponents = opponents.filter(o=> {
-         if (o[0].order == 1 && !o[0].sub_order) return true;
-         if (o[0].order == 1 && o[0].sub_order == 1) return true;
+         if (o[0].qorder == 1 && !o[0].sub_order) return true;
+         if (o[0].qorder == 1 && o[0].sub_order == 1) return true;
       })
       .sort(rrQualSort);
       return ordered_opponents;
@@ -1204,9 +1211,9 @@ export const tournamentFx = function() {
       let opponents = evt.draw.opponents;
       let ordered_opponents = opponents
          .filter(o=> {
-            if (o[0].order == 1 && o[0].sub_order == 2) return true;
-            if (o[0].order == 2 && !o[0].sub_order) return true;
-            if (o[0].order == 2 && o[0].sub_order == 1) return true;
+            if (o[0].qorder == 1 && o[0].sub_order == 2) return true;
+            if (o[0].qorder == 2 && !o[0].sub_order) return true;
+            if (o[0].qorder == 2 && o[0].sub_order == 1) return true;
          })
       .sort(rrQualSort);
       return ordered_opponents;
@@ -1217,10 +1224,10 @@ export const tournamentFx = function() {
       let opponents = evt.draw.opponents;
       return opponents
          .filter(o => {
-               if (o[0].order == 1 && o[0].sub_order == 3) return true;
-               if (o[0].order == 2 && o[0].sub_order == 2) return true;
-               if (o[0].order == 3 && !o[0].sub_order) return true;
-               if (o[0].order == 3 && o[0].sub_order == 1) return true;
+               if (o[0].qorder == 1 && o[0].sub_order == 3) return true;
+               if (o[0].qorder == 2 && o[0].sub_order == 2) return true;
+               if (o[0].qorder == 3 && !o[0].sub_order) return true;
+               if (o[0].qorder == 3 && o[0].sub_order == 1) return true;
          })
       .sort(rrQualSort);
    }
@@ -1233,7 +1240,6 @@ export const tournamentFx = function() {
       if (fx.allBracketsComplete(e)) {
          let other_qualifiers = [].concat(...fx.thirdQualifiers(e), ...fx.secondQualifiers(e));
          while (qualified_teams.length < e.qualifiers && other_qualifiers.length) qualified_teams.push([other_qualifiers.pop()]);
-
          event_complete = true;
       }
 
@@ -1244,29 +1250,31 @@ export const tournamentFx = function() {
    }
 
    fx.removeQualifiedRRplayers = (tournament, evt, bracket) => {
-      var qualified_ids = evt.qualified ? [].concat(...evt.qualified.map(team=>team.map(p=>p.id))) : [];
-      var scope = bracket ? bracket.players : evt.opponents;
-      var scoped_qualifiers = scope.filter(p=>qualified_ids.indexOf(p.id)>=0);
+      var quids = evt.qualified ? [].concat(...evt.qualified.map(puidHash)) : [];
 
+      var scope = bracket.teams || bracket.players.map(p=>[p]);
+      var sq = scope.filter(p=>quids.indexOf(puidHash(p))>=0);
+
+      // TODO: why this?  shouldn't all bracket teams be removed and already included??
       if (fx.allBracketsComplete(evt)) {
          // add all 2nd qualifiers to scope
-         let qualified_2nd = [].concat(...fx.secondQualifiers(evt));
-         qualified_2nd.forEach(q => { if (scoped_qualifiers.map(m=>m.id).indexOf(q.id) <= 0) scoped_qualifiers.push(q); });
+         fx.secondQualifiers(evt).forEach(q => {
+            if (sq.map(puidHash).indexOf(puidHash(q)) <= 0) { sq.push(q); }
+         });
       }
 
-      // if any qualified players are in this bracket, remove them from qualified players
-      let qib_ids = scoped_qualifiers.map(p=>p.id);
-      evt.qualified = evt.qualified ? evt.qualified.filter(t=>util.intersection(t.map(p=>p.id), qib_ids).length == 0) : [];
+      let squids = sq.map(puidHash);
+      evt.qualified = evt.qualified ? evt.qualified.filter(t => squids.indexOf(puidHash(t) <= 0)) : [];
 
       // 2) if any qualified players are in the linked event, remove them
       let qlink = fx.findEventByID(tournament, evt.links['E']);
       let qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
 
-      let remove_players = fx.possibleToRemoveRRmatch(scoped_qualifiers, qlinkinfo);
+      let remove_players = fx.possibleToRemoveRRmatch(sq, qlinkinfo);
 
       var linkchanges = false;
-      if (remove_players) scoped_qualifiers.forEach(qib=>{
-         let result = fx.removeQualifiedPlayer(tournament, evt, [qib.id], qlink, qlinkinfo);
+      if (remove_players) sq.forEach(q => {
+         let result = fx.removeQualifiedTeam(tournament, evt, q.map(p=>p.id), qlink, qlinkinfo);
          if (result.linkchanges) linkchanges = true;
       });
       return { remove_players, linkchanges, qlink };
@@ -1279,12 +1287,12 @@ export const tournamentFx = function() {
          let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
 
          active_in_linked = scoped_qualifiers
-            .map(qib => {
+            .map(q => {
                let position_in_linked = [].concat(...qlinkinfo.nodes
-                  .filter(node => node.data.team && util.intersection(node.data.team.map(t=>t.id), qib.id).length)
+                  .filter(node => node.data.team && puidHash(node.data.team) == puidHash(q))
                   .map(node => node.data.dp));
                let active = util.intersection(active_player_positions, position_in_linked).length;
-               return active ? qib : undefined;
+               return active ? q : undefined;
             })
             .filter(f=>f);
       }
@@ -1293,13 +1301,12 @@ export const tournamentFx = function() {
    }
 
    // general event interactions
-   
-   fx.removeQualifiedPlayer = (tournament, e, team_ids, qlink, qlinkinfo) => {
+   fx.removeQualifiedTeam = (tournament, e, team_ids, qlink, qlinkinfo) => {
       fx.logEventChange(e, { fx: 'qualified player removed', d: { team_ids } });
 
-      let player_in_linked = qlink ? util.intersection(qlink.approved, team_ids).length : false;
+      let team_in_linked = qlink ? util.intersection(qlink.approved, team_ids).length : false;
 
-      if (qlink && player_in_linked) {
+      if (qlink && team_in_linked) {
          // Remove player from linked draw
          qlink.approved = qlink.approved.filter(a=>team_ids.indexOf(a) < 0);
          qlink.up_to_date = false;
@@ -1321,7 +1328,7 @@ export const tournamentFx = function() {
       fx.setDrawSize(tournament, e);
 
       // must occur after e.qualified is updated
-      let linkchanges = (qlink && player_in_linked);
+      let linkchanges = (qlink && team_in_linked);
       if (linkchanges) fx.setDrawSize(tournament, qlink);
 
       return { linkchanges, qlink }
@@ -1346,14 +1353,28 @@ export const tournamentFx = function() {
 
    fx.logEventError = (evt, err, context) => {
       console.log(err);
+      let stack = err.stack.toString();
+      let error_message = err.toString();
+      let eventError = { stack, error_message, event: CircularJSON.stringify(evt) };
+
+      coms.emitTmx({ eventError });
+
       if (!evt.error_log) evt.error_log = [];
       let timestamp = new Date().getTime();
-      evt.error_log.push({ timestamp, error: err.toString(), stack: err.stack && err.stack.toString(), context });
+      evt.error_log.push({ timestamp, error_message, stack, context });
    }
 
    fx.isTeam = (t) => { return ['team', 'dual'].indexOf(t.type) >= 0; }
    function internationalRanking(p) { return p.int > 0; }
    function teamHash(team) { return team.map(p=>p.id).join('|'); }
+   function puidHash(team) { return team.map(p=>p.puid).sort().join('|'); }
+   function moreThanHalf(value) { return Math.ceil(value/2) > value/2 ? Math.ceil(value/2) : Math.ceil(value/2) + 1; }
+
+   fx.getDualEventScoreGoal = getDualEventScoreGoal;
+   function getDualEventScoreGoal(evt) {
+      let av = (evt.matchorder && evt.matchorder.map(m=>util.parseInt(m.value)).reduce((a, b) => (a || 0) + (b || 0))) || 0;
+      return moreThanHalf(av);
+   }
 
    return fx;
 }();
