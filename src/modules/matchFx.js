@@ -57,20 +57,20 @@ export const matchFx = function() {
 
       let complete = event_matches
          .filter(f => f.match && f.match.winner && f.match.loser)
-         .map(m => matchStorageObject(tournament, evt, m, source))
+         .map(m => matchStorageObject({ tournament, e: evt, match: m, source }))
          .filter(f=>f);
 
       let incomplete = event_matches
          .filter(f => f.match && (!f.match.winner && !f.match.loser))
-         .map(m => matchStorageObject(tournament, evt, m, source))
+         .map(m => matchStorageObject({ tournament, e: evt, match: m, source }))
          .filter(m => (m.players && m.players.length) || (m.potentials && m.potentials.length));
 
-      let upcoming = upcomingEventMatches(evt, tournament).map(m=>matchStorageObject(tournament, evt, m, source)).filter(f=>f) || [];
+      let upcoming = upcomingEventMatches(evt, tournament).map(m=>matchStorageObject({ tournament, e: evt, match: m, source })).filter(f=>f) || [];
 
       return { complete, incomplete, upcoming }
    }
 
-   function matchStorageObject(tournament, e, match, source) {
+   function matchStorageObject({ tournament, e, match, source }) {
       if (!match.match) return;
 
       let players = [];
