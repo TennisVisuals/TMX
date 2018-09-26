@@ -514,6 +514,7 @@ export const fetchFx = function() {
             if (data.result && data.result.rows && data.result.rows.length) {
                let players = importFx.processSheetData(data.result.rows);
                players.forEach(player => player.full_name = tournamentFx.fullName(player, false));
+               if (players.length == 0) console.log('No Players found... suggestions for sheet format/must be on first sheet');
                resolve(players);
             } else {
                reject(data);
