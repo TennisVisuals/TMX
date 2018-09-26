@@ -178,6 +178,7 @@ export const lang = function() {
       set: 'Settings',
       version: 'Version',
       messages: 'Messages',
+      support: 'Support',
       releasenotes: 'Release Notes',
       newversion: 'New Version Available',
       importexport: 'Import / Export',
