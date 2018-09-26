@@ -1045,6 +1045,13 @@ button.ratings-submit:hover { background: #68FF33; }
    -webkit-flex-direction: column;
    flex-direction: column;
 }
+.player-index {
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+}
 .player-index input {
    border: 0;
    width: 2em;
