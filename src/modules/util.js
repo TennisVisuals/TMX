@@ -162,9 +162,11 @@ export const util = function() {
         if (typeof oo == 'object' && oo.constructor !== Array) {
             boolAttrs(optionsObject[oKeys[k]]);
         } else {
-            if (oo === 'true' || oo == true) {
+            // if (oo === 'true' || oo == true) {     // causes numbers to convert to true
+            if (oo && oo.toString().toLowerCase() === 'true') {
                optionsObject[oKeys[k]] = true;
-            } else if (oo === 'false' || oo == false) {
+            // } else if (oo === 'false' || oo == false) { /// causes numbers to convert to true
+            } else if (oo && oo.toString().toLowerCase() === 'false') {
                optionsObject[oKeys[k]] = false;
             } else if (!isNaN(oo)) {
                optionsObject[oKeys[k]] = parseInt(oo);
