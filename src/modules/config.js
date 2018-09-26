@@ -68,7 +68,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.2.3.6.3',
+      version: '1.2.8.24.21',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -117,7 +117,7 @@ export const config = function() {
          first_day: 0
       },
       players: { identify: true },
-      points: { walkover_wins: ['F'] },
+      points: { walkover_wins: ['QF', 'SF', 'F'] },
       parsers: {},
       tournaments: {
          dual: true,
@@ -215,13 +215,16 @@ export const config = function() {
                after: false
             },
             minimums: {
+               team: 2,
                singles: 2,
                doubles: 2
             },
             round_limits: false,
          },
          rr_draw: {
+            doubles: true,
             minimums: {
+               team: 3,
                singles: 3,
                doubles: 3
             },
@@ -1142,13 +1145,12 @@ export const config = function() {
       playerFx.fx.env = fx.env;
       playerFx.fx.pointsTable = fx.pointsTable;
 
+      importFx.fx.env = fx.env;
+
       tournamentDisplay.fx.env = fx.env;
       tournamentDisplay.fx.drawOptions = fx.drawOptions;
-      // tournamentDisplay.fx.setCalendar = fx.setCalendar;
       tournamentDisplay.fx.pointsTable = fx.pointsTable;
-      // tournamentDisplay.fx.orgCategoryOptions = fx.orgCategoryOptions;
       tournamentDisplay.fx.orgCategories = fx.orgCategories;
-      // tournamentDisplay.fx.orgRankingOptions = fx.orgRankingOptions;
 
       calendarFx.fx.orgRankingOptions = fx.orgRankingOptions;
       calendarFx.fx.orgCategoryOptions = fx.orgCategoryOptions;
@@ -1212,6 +1214,7 @@ export const config = function() {
                displayMessages();
             })
             menu.release.element.addEventListener('click', displayReleaseNotes);
+            menu.support.element.addEventListener('click', displayGen.support);
             if (env.messages && env.messages.length) { menu.messages.element.style.display = 'inline'; }
          }
       });
@@ -1681,11 +1684,15 @@ export const config = function() {
       let message =`
          <h2 style='margin: 1em;'>Release Notes</h2>
          <div class='releasenotes'>
+            <h3 class='flexjustifystart'>Version: 1.2.6.19.15</h3>
+            <div class='flexjustifystart'>Support for Doubles in Round Robin, Compass and Staggered Entry Draws</div>
+
             <h3 class='flexjustifystart'>Version: 1.2.2.5.1</h3>
             <div class='flexjustifystart'>Ability to delegate match tracking to CourtHive/Mobile.</div>
 
             <h3 class='flexjustifystart'>Version: 1.2.0.0.0</h3>
             <div class='flexjustifystart'>Home Menu and Release Notes added.</div>
+            <div class='flexjustifystart'>Support for Tablet Devices (minimum screen dimention 700px)</div>
             <div class='flexjustifystart'>TMX now checks authorization status for each tournament and with each publishing event.</div>
             <div class='flexjustifystart'>In Edit Mode authorization status is displayed as a small set of keys.</div>
             <div class='flexjustifystart'>In the Events Tab, single clicks are swapped with Context Clicks to improve useability on Tablets.</div>
