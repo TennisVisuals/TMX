@@ -127,16 +127,24 @@ export const exportFx = function() {
       let genders = match.players.map(p => p.sex).filter(f=>f).filter((item, i, s) => s.lastIndexOf(item) == i);
       let player_gender = (sex) => ['M', 'B'].indexOf(sex) >= 0 ? 'M' : 'F';
       let draw_gender = !genders.length ? '' : genders.length > 1 ? 'Mixed' : genders[0] == 'M' ? 'Male' : 'Female';
-      let qualifying = match.round_name.indexOf('Q') == 0 && match.round_name.indexOf('QF') < 0;
+      if (!match.round_name) console.log('no round name:', match);
+      let qualifying = match.round_name && match.round_name.indexOf('Q') == 0 && match.round_name.indexOf('QF') < 0;
       let draw_type = match.consolation ? 'Consolation' : qualifying ? 'Qualifying' : 'Main';
 
       let sanctioning = (exp.fx.env && exp.fx.env().org && exp.fx.env().org.name) || '';
 
+      let profileID = (profile_url) => {
+         let parts = profile_url && typeof profile_url == 'string' && profile_url.split('/');
+         return (!parts || parts.indexOf('myutr') < 0 && parts.indexOf('players') < 0) ? '' : parts.reverse()[0];
+      }
+
+      if (!winners) console.log('match:', match);
       return {
          "Date": dateFormatUTR(match.date),
 
          "Winner 1 Name": util.normalizeName(`${players[winners[0]].last_name}, ${players[winners[0]].first_name}`),
          "Winner 1 Third Party ID": normalID(players[winners[0]].cropin || ''),
+         "Winner 1 UTR ID": profileID(players[winners[0]].profile),
          "Winner 1 Gender": player_gender(players[winners[0]].sex),
          "Winner 1 DOB": dateFormatUTR(getPlayerBirth(players[winners[0]])),
          "Winner 1 City": util.replaceDiacritics(players[winners[0]].city || ''),
@@ -145,6 +153,7 @@ export const exportFx = function() {
          "Winner 1 College": '',
          "Winner 2 Name": dbls ? util.normalizeName(`${players[winners[1]].last_name}, ${players[winners[1]].first_name}`) : '',
          "Winner 2 Third Party ID": normalID(dbls ? (players[winners[1]].cropin || '') : ''),
+         "Winner 2 UTR ID": profileID(players[winners[1]] && players[winners[1]].profile),
          "Winner 2 Gender": dbls ? player_gender(players[winners[1]].sex) : '',
          "Winner 2 DOB": dbls ? dateFormatUTR(getPlayerBirth(players[winners[1]])) : '',
          "Winner 2 City": util.replaceDiacritics(dbls ? (players[winners[0]].city || '') : ''),
@@ -154,6 +163,7 @@ export const exportFx = function() {
 
          "Loser 1 Name": util.normalizeName(`${players[losers[0]].last_name}, ${players[losers[0]].first_name}`),
          "Loser 1 Third Party ID": normalID(players[losers[0]].cropin || ''),
+         "Loser 1 UTR ID": profileID(players[losers[0]].profile),
          "Loser 1 Gender": player_gender(players[losers[0]].sex),
          "Loser 1 DOB": dateFormatUTR(getPlayerBirth(players[losers[0]])),
          "Loser 1 City": util.replaceDiacritics(players[losers[0]].city || ''),
@@ -162,6 +172,7 @@ export const exportFx = function() {
          "Loser 1 College": '',
          "Loser 2 Name": dbls ? util.normalizeName(`${players[losers[1]].last_name}, ${players[losers[1]].first_name}`) : '',
          "Loser 2 Third Party ID": normalID(dbls ? (players[losers[1]].cropin || '') : ''),
+         "Loser 1 UTR ID": profileID(players[losers[1]] && players[losers[1]].profile),
          "Loser 2 Gender": dbls ? player_gender(players[losers[1]].sex) : '',
          "Loser 2 DOB": dbls ? dateFormatUTR(getPlayerBirth(players[losers[1]])) : '',
          "Loser 2 City": util.replaceDiacritics(dbls ? (players[losers[0]].city || '') : ''),
@@ -742,7 +753,7 @@ export const exportFx = function() {
             matchdates: { offset: 45 },
             detail_offsets: { base: 80, width: 60 },
             lines: { stroke_width: 4 },
-            minPlayerHeight: 70,
+            minPlayerHeight: 65,
             detail_attr: { font_size: 30, seeding_font_size: 45 }
          });
       } else if (opponent_count <= 64) {
