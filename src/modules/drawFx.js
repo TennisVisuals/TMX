@@ -1,3 +1,5 @@
+function puidHash(players) { return players.map(p=>p.puid).sort().join('-'); }
+
 export function rrDraw() {
 
    var o = {
@@ -76,7 +78,7 @@ export function rrDraw() {
       'score'        : { 'click': null, 'mouseover': highlightCell, 'mouseout': unHighlightCells, 'contextmenu': null },
       'player'       : { 'click': null, 'mouseover': null, 'mouseout': unHighlightPlayer, 'contextmenu': null },
       'info'         : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
-      'order'        : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
+      'qorder'       : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
       'result'       : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
       'draw_position': { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
       'sizing'       : { 'width': null, },  // optional functions for sizeToFit
@@ -95,6 +97,9 @@ export function rrDraw() {
       root.html(html);
 
       data.brackets.forEach((bracket, i) => {
+
+         // to support legacy brackets
+         if (!bracket.teams) { bracket.teams = bracket.players.map(p=>[p]); }
 
          bracket_charts[i] = roundRobin()
             .bracketName(bracket.name)
@@ -115,7 +120,8 @@ export function rrDraw() {
             })
             .bracketPositions(bracket.size || o.brackets.size)
             .seedLimit(seed_limit)
-            .addPlayers(bracket.players)
+            // .addPlayers(bracket.players)
+            .addTeams(bracket.teams)
             .addMatches(bracket.matches)
             .addByes(bracket.byes)
             .addScores();
@@ -134,9 +140,12 @@ export function rrDraw() {
    chart.updateBracket = function(bracket_index, reset) {
       if (reset) bracket_charts[bracket_index].reset();
 
+      // to support legacy brackets
+      if (!data.brackets[bracket_index].teams) { data.brackets[bracket_index].teams = data.brackets[bracket_index].players.map(p=>[p]); }
+
       bracket_charts[bracket_index]
          .bracketName(data.brackets[bracket_index].name)
-         .addPlayers(data.brackets[bracket_index].players)
+         .addTeams(data.brackets[bracket_index].teams)
          .addMatches(data.brackets[bracket_index].matches)
          .addByes(data.brackets[bracket_index].byes)
          .addScores();
@@ -192,7 +201,8 @@ export function rrDraw() {
    chart.highlightCell = highlightCell;
    function highlightCell(d) {
       if (!d) return;
-      if (!d.players || d.players.indexOf(undefined) >= 0) return;
+      // if (!d.players || d.players.indexOf(undefined) >= 0) return;
+      if (!d.teams || d.teams.indexOf(undefined) >= 0) return;
       let cell_selector = `.rr${d.bracket}_${d.attr}_${d.row}_${d.mc}`;
       let cell = root.node().querySelector(cell_selector);
       if (cell) cell.style.fill = o.score_cells.highlight_color;
@@ -307,6 +317,7 @@ export function roundRobin() {
 
    var byes = [];
    var puids = [];
+   var teams = [];
    var scores = [];
    var players = [];
    var matches = [];
@@ -315,7 +326,7 @@ export function roundRobin() {
       'score'        : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
       'player'       : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
       'info'         : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
-      'order'        : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
+      'qorder'       : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
       'result'       : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
       'draw_position': { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
       'sizing'       : { 'width': null, },  // optional functions for sizeToFit
@@ -326,17 +337,42 @@ export function roundRobin() {
    function chart(opts) {
 
       // scan data to see if columns necessary
-      var opponents = players;
+      var opponents = teams;
       if (opponents && opponents.length) {
-         datascan.draw_entry = opponents.reduce((p, c) => c.entry || p, undefined) ? true : false;
-         datascan.seeding = opponents.reduce((p, c) => c.seed || p, undefined) ? true : false;
-         datascan.player_rankings = opponents.reduce((p, c) => c.rank || p, undefined) ? true : false;
-         datascan.player_ratings = opponents.reduce((p, c) => c.ratings || p, undefined) ? true : false;
+         datascan.draw_entry = opponents.reduce((p, c) => c[0].entry || p, undefined) ? true : false;
+         datascan.seeding = opponents.reduce((p, c) => c[0].seed || p, undefined) ? true : false;
+         datascan.player_rankings = opponents.reduce((p, c) => c[0].rank || p, undefined) ? true : false;
+         datascan.player_ratings = opponents.reduce((p, c) => c[0].ratings || p, undefined) ? true : false;
       }
 
       // insure that all score cells are defined
       for (let i=0; i<o.bracket.positions; i++) { if (!scores[i]) scores[i] = []; }
-      dfx.tallyBracketResults({ players, matches, qualifying: o.qualifying });
+
+      let tbr = dfx.tallyBracket({ matches });
+      matches.forEach(match => match.results_order = tbr.match_result_order[match.muid]);
+      teams.forEach(team => {
+         let puid_hash = puidHash(team);
+         if (tbr.team_results[puid_hash]) {
+            team.forEach(player => {
+               player.qorder = tbr.team_results[puid_hash].qorder;
+               // in this context sub_order give preference to existing value
+               player.sub_order = player.sub_order || tbr.team_results[puid_hash].sub_order;
+               player.points_order = tbr.team_results[puid_hash].points_order;
+               player.results = {
+                  matches_won: tbr.team_results[puid_hash].matches_won,
+                  matches_lost: tbr.team_results[puid_hash].matches_lost,
+                  sets_won: tbr.team_results[puid_hash].sets_won,
+                  sets_lost: tbr.team_results[puid_hash].sets_lost,
+                  games_won: tbr.team_results[puid_hash].games_won,
+                  games_lost: tbr.team_results[puid_hash].games_lost,
+                  points_won: tbr.team_results[puid_hash].points_won,
+                  points_lost: tbr.team_results[puid_hash].points_lost,
+               }
+               player.result = tbr.team_results[puid_hash].result;
+               player.games = tbr.team_results[puid_hash].games;
+            });
+         }
+      });
 
       var root = d3.select(o.selector || 'body');
       if (o.cleanup) root.selectAll("svg").remove();
@@ -351,7 +387,8 @@ export function roundRobin() {
          o.height = o.height || Math.max(window.innerHeight, o.minHeight || 0);
       }
 
-      let point_order_differences = players.reduce((p, c) => c.order != c.points_order ? true : p, false);
+      // let point_order_differences = players.reduce((p, c) => c.qorder != c.points_order ? true : p, false);
+      let point_order_differences = opponents.reduce((p, c) => c[0].qorder != c[0].points_order ? true : p, false);
 
       let playerHeight = o.height / o.bracket.positions + 1;
       if (playerHeight < o.minPlayerHeight) {
@@ -362,17 +399,18 @@ export function roundRobin() {
       let draw_width = o.width - o.margins.left - o.margins.right;
       let draw_height = o.height - o.margins.top - o.margins.bottom;
 
-      let seed_limit = o.seeds.limit || dfx.seedLimit(players.length);
+      // let seed_limit = o.seeds.limit || dfx.seedLimit(players.length);
+      let seed_limit = o.seeds.limit || dfx.seedLimit(opponents.length);
 
       // supporting functions
       let cellFill = (d) => {
-         if (d.attr == 'order' && d.row && players[d.row - 1] && players[d.row - 1][d.attr]) {
-            let player = players[d.row - 1];
-            if (d.attr == 'order' && player.sub_order == 0) return 'lightyellow';
+         if (d.row && d.attr == 'qorder' && opponents[d.row - 1] && opponents[d.row - 1][0]) {
+            if (opponents[d.row - 1][0].sub_order == 0) return 'lightyellow';
          }
          if (!d.row && d.column < 3) return 'none';
          if (d.mc != undefined && d.row == d.mc) return o.cells.invalid;
-         if (d.attr == 'score' && d.players.filter(p=>p).length < 2) return o.cells.bye;
+         // if (d.attr == 'score' && d.players.filter(p=>p).length < 2) return o.cells.bye;
+         if (d.attr == 'score' && d.teams.filter(p=>p).length < 2) return o.cells.bye;
          if (d.row && d.row != d.mc && d.attr == 'score') {
             let sc = scores[d.row - 1][d.mc - 1];
             if (sc && sc.indexOf('LIVE') >= 0) return o.cells.live;
@@ -390,24 +428,32 @@ export function roundRobin() {
       let textWeight = (d) => {
          let weight = 'normal';
          if (!d.row && !d.column) weight = 'bold'; 
-         if (d.row && d.attr == 'order') weight = 'bold'; 
+         if (d.row && d.attr == 'qorder') weight = 'bold'; 
          if (d.row && d.attr == 'player' && d.seed && d.seed <= seed_limit) weight = 'bold';
-         if (d.row && d.attr == 'player' && d.player && d.player.seed && d.player.seed <= seed_limit) weight = 'bold';
+         // if (d.row && d.attr == 'player' && d.player && d.player.seed && d.player.seed <= seed_limit) weight = 'bold';
+         if (d.row && d.attr == 'player' && d.team && d.team[0].seed && d.team[0].seed <= seed_limit) weight = 'bold';
          if (d.row && d.attr == 'seed') weight = 'bold';
          return weight;
       }
-      let playerName = (player) => {
+      let opponentName = (opponent) => {
          let length_threshold = 20;
-         let first_initial = player.first_name ? `, ${player.first_name[0]}` : '';
-         let first_name = player.first_name ? `, ${player.first_name}` : '';
-         let first_first_name = player.first_name && player.first_name.split(' ').length > 1 ? `, ${player.first_name.split(' ')[0]}` : first_name;
-         let last_name = player.last_name ? player.last_name : '';
+         let first_initial = opponent.first_name ? `, ${opponent.first_name[0]}` : '';
+         let first_name = opponent.first_name ? `, ${opponent.first_name}` : '';
+         let first_first_name = opponent.first_name && opponent.first_name.split(' ').length > 1 ? `, ${opponent.first_name.split(' ')[0]}` : first_name;
+         let last_name = opponent.last_name ? opponent.last_name : '';
          let last_first_i = `${last_name}${first_initial}`;
          let text = `${last_name}${first_name}`;
          if (text.length > length_threshold) text = `${last_name}${first_first_name}`;
          if (o.names.first_initial || text.length > length_threshold) text = last_first_i;
-
          return text;
+      }
+
+      let teamName = (team) => {
+         if (!Array.isArray(team) || !team.length) return '';
+         let names = team.map(opponentName);
+         if (names.length == 1) return names[0];
+         return team.map(opponent => shortLastName(opponent.last_name) || '').filter(f=>f).join('/');
+         function shortLastName(last_name) { return last_name.split(' ')[0]; }
       }
       let textColor = (d) => {
          if (!d.row && !d.column) return 'blue';
@@ -421,9 +467,11 @@ export function roundRobin() {
          return 'black';
       }
       let cellText = (d) => {
-         var player = d.row ? players[d.row - 1] : undefined;
+         // var player = d.row ? opponents[d.row - 1] : undefined;
+         var team = d.row ? teams[d.row - 1] : undefined;
+
          if (!d.row && !d.column && d.group_name) { return d.group_name; }
-         if (!d.row && d.attr == 'order') { return `#${point_order_differences ? ':p' : ''}`; }
+         if (!d.row && d.attr == 'qorder') { return `#${point_order_differences ? ':p' : ''}`; }
          if (!d.row && d.attr == 'result') return '+/-';
          if (!d.row && d.attr == 'games') return 'g+/g-';
          if (d.row == 0 && d.column < 6 || d.mc != undefined && d.row == d.mc) return '';
@@ -432,60 +480,65 @@ export function roundRobin() {
 
          // fill in last name for match column headers
          if (!d.row && d.attr == 'player') {
-            let last_name = d.player ? d.player.last_name.toUpperCase() || '' : '';
-            let initials = d.player ? `${d.player.first_name[0].toUpperCase() || ''}${d.player.last_name[0].toUpperCase() || ''}` : '';
+            let doubles = d.team && Array.isArray(d.team) && d.team.length == 2;
+            if (doubles) { return d.team.map(o => `${o.first_name[0].toUpperCase() || ''}${o.last_name[0].toUpperCase() || ''}`).join('/'); }
+            let last_name = d.team ? d.team[0].last_name.toUpperCase() || '' : '';
+            let initials = d.team ? `${d.team[0].first_name[0].toUpperCase() || ''}${d.team[0].last_name[0].toUpperCase() || ''}` : '';
             let too_narrow =
+               (last_name.length > 20) ||
+               (last_name.length > 15 && d.width < 100) ||
                (last_name.length > 10 && d.width < 80) ||
                (last_name.length > 8 && d.width < 75) ||
                (last_name.length > 6 && d.width < 60) || d.width < 50;
             return too_narrow ? initials : last_name;
          }
-         if (d.row && d.attr == 'player') return d.player ? playerName(d.player) || '' : '';
+         if (d.row && d.attr == 'player') {
+            if (d.team) return teamName(d.team);
+            return d.team ? opponentName(d.team[0]) || '' : '';
+         }
 
-         if (d.row && d.attr == 'seed' && players[d.row - 1] && players[d.row - 1].seed) {
-            // don't display seed position for unranked players
-            if (!players[d.row - 1].rank) return '';
-            return (players[d.row - 1].seed <= seed_limit) ? players[d.row - 1].seed : '';
+         if (d.row && d.attr == 'seed' && opponents[d.row - 1] && opponents[d.row - 1][0].seed) {
+            // don't display seed position for unranked teams
+            if (!opponents[d.row - 1][0].rank) return '';
+            return (opponents[d.row - 1][0].seed <= seed_limit) ? opponents[d.row - 1][0].seed : '';
          }
 
          if (d.row && d.attr == 'draw_position') {
-            let draw_order = d.row + (players.length * d.bracket);
+            let draw_order = d.row + (opponents.length * d.bracket);
             return draw_order;
          }
 
-         if (d.row && player && player[d.attr]) {
-            if (d.attr == 'order') {
-               let order = player[d.attr];
-               if (player.sub_order) order += `-${player.sub_order}`;
-               if (player.points_order && point_order_differences) order += `:${player.points_order}`;
-               if (player.assigned_order) return player.assigned_order;
+         if (d.row && team && team[0][d.attr]) {
+            if (d.attr == 'qorder') {
+               let order = team[0][d.attr];
+               if (team[0].sub_order) order += `-${team[0].sub_order}`;
+               if (team[0].points_order && point_order_differences) order += `:${team[0].points_order}`;
+               if (team[0].assigned_order) return team[0].assigned_order;
                return order;
             }
-            // if (d.attr == 'club_code') return player.club_code;
-            if (d.attr == 'result') return player.result || '0/0';
-            if (d.attr == 'games') return player.games || '0/0';
+            if (d.attr == 'result') return team[0].result || '0/0';
+            if (d.attr == 'games') return team[0].games || '0/0';
 
             if (d.attr == 'rank') {
+               let doubles = team && Array.isArray(team) && team.length == 2;
+               if (doubles) return '';
                let ranking_rating;
-               /*
-               let value = player['rank'];
-               let ranking_rating = value && !isNaN(value) ? parseInt(value.toString().slice(-4)) : undefined;
-               if (ranking_rating && player.int && player.int > 0) ranking_rating = `{${player.int}}`;
-               */
                if (o.details.player_ratings && datascan.player_ratings) {
-                  ranking_rating = player.ratings && player.ratings.utr ? player.ratings.utr.singles.value : '';
+                  ranking_rating = team[0].ratings && team[0].ratings.utr ? team[0].ratings.utr.singles.value : '';
                } else {
-                  ranking_rating = player.rank && !isNaN(player.rank) ? parseInt(player.rank.toString().slice(-4)) : '';
-                  if (ranking_rating && player.int && player.int > 0) ranking_rating = `{${player.int}}`;
+                  ranking_rating = team[0].rank && !isNaN(team[0].rank) ? parseInt(team[0].rank.toString().slice(-4)) : '';
+                  if (ranking_rating && team[0].int && team[0].int > 0) ranking_rating = `{${team[0].int}}`;
                }
                return ranking_rating;
             }
-            return player[d.attr];
+            return team[0][d.attr];
          }
 
-         if (d.row && player && d.attr == 'club_code' && !player.club_code) {
-            if (player.school_abbr && player.school_abbr.length < 5) return player.school_abbr;
-            if (player.ioc) return player.ioc;
+         if (d.row && team && team[0] && d.attr == 'club_code' && !team[0].club_code) {
+            let doubles = team && Array.isArray(team) && team.length == 2;
+            if (doubles) return '';
+            if (team[0].school_abbr && team[0].school_abbr.length < 5) return team[0].school_abbr;
+            if (team[0].ioc) return team[0].ioc;
          }
 
          if (d.row && d.attr == 'score' && d.row != d.mc) {
@@ -513,7 +566,7 @@ export function roundRobin() {
          // don't return additional clases for player cells when row < 1
          if (d.attr == 'player' && !d.row) return 'cell';
 
-         if (d.attr == 'score' && d.players && d.players.filter(p=>p).length < 2) return 'cell bye_cell';
+         if (d.attr == 'score' && d.teams && d.teams.filter(p=>p).length < 2) return 'cell bye_cell';
 
          // don't return additional classes for score cells when same player
          return (d.attr == 'score' && d.row == d.column - 2) ? 'cell' : `cell rr_${d.attr} ${base_class} ${specific_class} ${score_class}`;
@@ -601,6 +654,7 @@ export function roundRobin() {
    chart.reset = function() {
       byes = [];
       puids = [];
+      teams = [];
       scores = [];
       players = [];
       matches = [];
@@ -671,13 +725,14 @@ export function roundRobin() {
       if (!matches.length) return chart;
       matches.forEach(match => {
          let p1, p2;
+         let match_puids = match.teams.map(puidHash);
 
          if (match.winner_index != undefined) {
-            p1 = puids.indexOf(match.puids[match.winner_index]);
-            p2 = puids.indexOf(match.puids[1 - match.winner_index]);
+            p1 = puids.indexOf(match_puids[match.winner_index]);
+            p2 = puids.indexOf(match_puids[1 - match.winner_index]);
          } else {
-            p1 = puids.indexOf(match.puids[0]);
-            p2 = puids.indexOf(match.puids[1]);
+            p1 = puids.indexOf(match_puids[0]);
+            p2 = puids.indexOf(match_puids[1]);
          }
 
          chart.addScore(p1, p2, match.score);
@@ -686,7 +741,8 @@ export function roundRobin() {
    }
 
    chart.addScore = function(a, b, score) {
-      if (!players[a] || !players[b]) { return chart; }
+      // if (!players[a] || !players[b]) { return chart; }
+      if (!teams[a] || !teams[b]) { return chart; }
       if (!scores[a]) scores[a] = [];
       if (!scores[b]) scores[b] = [];
       scores[a][b] = score;
@@ -694,6 +750,7 @@ export function roundRobin() {
       return chart;
    }
 
+   /*
    chart.addPlayer = function(player) {
       if (typeof player != 'object') return chart;
       if (!player.draw_position) return chart;
@@ -701,14 +758,34 @@ export function roundRobin() {
       if (player.draw_position > o.bracket.initial_position + o.bracket.positions - 1) return chart;
       let player_index = player.draw_position - o.bracket.initial_position;
       players[player_index] = player;
-      puids[player_index] = player.puid;
+      return chart;
+   }
+   */
+
+   chart.addTeam = function(team) {
+      if (typeof team != 'object') return chart;
+      if (!team[0].draw_position) return chart;
+      if (team[0].draw_position < o.bracket.initial_position) return chart;
+      if (team[0].draw_position > o.bracket.initial_position + o.bracket.positions - 1) return chart;
+      let team_index = team[0].draw_position - o.bracket.initial_position;
+      teams[team_index] = team;
+      puids[team_index] = puidHash(team);
       return chart;
    }
 
+   /*
    chart.addPlayers = function(plz) {
       if (!plz) return players;
       if (!Array.isArray(plz)) return chart;
       plz.forEach(player => chart.addPlayer(player));
+      return chart;
+   }
+   */
+
+   chart.addTeams = function(tmz) {
+      if (!tmz) return teams;
+      if (!Array.isArray(tmz)) return chart;
+      tmz.forEach(team => chart.addTeam(team));
       return chart;
    }
 
@@ -786,7 +863,7 @@ export function roundRobin() {
       let detail_pct = 14 / detail_count;
       if (o.details.won_lost) columns.push({ 'attr': 'result', 'pct': detail_pct });
       if (o.details.games_won_lost) columns.push({ 'attr': 'games', 'pct': detail_pct });
-      if (o.details.bracket_order) columns.push({ 'attr': 'order', 'pct': detail_pct });
+      if (o.details.bracket_order) columns.push({ 'attr': 'qorder', 'pct': detail_pct });
 
       for (let row=0; row <= o.bracket.positions; row++) {
          let x = xstart;
@@ -802,14 +879,27 @@ export function roundRobin() {
             }
             if (!row && !i) { cell.group_name = o.bracket_name || `GROUP ${o.bracket_index + 1}`; }
             if (column.mc != undefined) cell.mc = column.mc + 1;
-            if (cell.attr == 'player') cell.player = gridPlayer(cell);
+            if (cell.attr == 'player') {
+               cell.team = gridTeam(cell);
+
+               // doubles TODO: get rid of cell.player once teams complete
+               // context click relies on this...
+               // cell.player = gridPlayer(cell);
+            }
             if (cell.attr == 'player' && !cell.player) checkBye(cell);
             if (cell.attr == 'score' && cell.row - 1 != cell.mc - 1) {
-               let mp = matchPlayers(cell);
-               let puids = mp.filter(f=>f).map(p=>p.puid);
-               cell.match = matches.reduce((p, c) => (intersection(puids, c.puids).length == 2) ? c : p, undefined);
+               // let mp = matchPlayers(cell);
+               let mt = matchTeams(cell);
+
+               // let puids = mp.filter(f=>f).map(p=>p.puid);
+               let puids = mt.filter(f=>f).map(puidHash);
+               cell.teams = mt;
+
+               // cell.match = matches.reduce((p, c) => (intersection(puids, c.puids).length == 2) ? c : p, undefined);
+               cell.match = matches.reduce((p, c) => (intersection(c.teams.map(puidHash), puids).length == 2) ? c : p, undefined);
+
                // this is a redundant, but other functions rely on it (for now)
-               cell.players = mp;
+               // cell.players = mp;
             }
             x += cw(column.pct);
             return cell;
@@ -818,10 +908,16 @@ export function roundRobin() {
       }
       return data;
 
-      function matchPlayers(cell) { return [cell.row - 1, cell.mc - 1].map(o=>players[o]); }
-      function gridPlayer(cell) {
-         if (players[cell.row - 1]) return players[cell.row - 1];
-         if (cell.mc && players[cell.mc - 1]) return players[cell.mc - 1];
+      // function matchPlayers(cell) { return [cell.row - 1, cell.mc - 1].map(o=>players[o]); }
+      function matchTeams(cell) { return [cell.row - 1, cell.mc - 1].map(o=>teams[o]); }
+      // function gridPlayer(cell) {
+      //    if (players[cell.row - 1]) return players[cell.row - 1];
+      //    if (cell.mc && players[cell.mc - 1]) return players[cell.mc - 1];
+      //    return '';
+      // }
+      function gridTeam(cell) {
+         if (teams[cell.row - 1]) return teams[cell.row - 1];
+         if (cell.mc && teams[cell.mc - 1]) return teams[cell.mc - 1];
          return '';
       }
       function checkBye(cell) {
@@ -1651,8 +1747,8 @@ export function treeDraw() {
          let ioc = d.data.team[which].ioc;
          let club_code = d.data.team[which].club_code;
          let school_abbr = d.data.team[which].school_abbr;
+         if (!club_code && school_abbr &&  school_abbr.length < 5) return school_abbr;
          if ((!club_code || club_code.length > 3) && (!o.flags.display && ioc)) return ioc;
-         if (school_abbr &&  school_abbr.length < 5) return school_abbr;
          if (!club_code || club_code.length > 3) return '';
          // reverse the display order of players if doubles
          if (d.data.team.length == 2) which = 1 - which;
@@ -1686,11 +1782,15 @@ export function treeDraw() {
             let first_initial = opponent.first_name ? `, ${opponent.first_name[0]}` : '';
             let first_name = opponent.first_name ? `, ${opponent.first_name}` : '';
             let first_first_name = opponent.first_name && opponent.first_name.split(' ').length > 1 ? `, ${opponent.first_name.split(' ')[0]}` : first_name;
+            let last_last_name = opponent.last_name && opponent.last_name.trim().split(' ').length > 1 ? opponent.last_name.trim().split(' ').reverse()[0] : opponent.last_name;
             let last_name = opponent.last_name ? opponent.last_name : '';
-            let last_first_i = `${last_name}${first_initial}${seed}`;
+            let last_first_i = `${last_name}${first_initial || ''}${seed}`;
+            let last_last_i = `${last_last_name}${first_initial || ''}${seed}`;
+
             text = `${last_name}${first_name}${seed}`;
             if (text.length > length_threshold) text = `${last_name}${first_first_name}${seed}`;
             if (o.names.first_initial || text.length > length_threshold) text = last_first_i;
+            if (text.length > length_threshold) text = last_last_i;
          }
 
          return text;
@@ -1977,8 +2077,9 @@ export function drawFx(opts) {
    function bracketMatches(draw, bracket_index) {
       if (!draw || !draw.brackets) return [];
       let bracket = draw.brackets[bracket_index];
-      let puidHash = (players) => players.map(p=>p.puid).sort().join('-');
-      let addUnique = (arr, m) => { if (arr.map(puidHash).indexOf(puidHash(m)) < 0) arr.push(m); return arr; }
+
+      let teamsHash = (teams) => { return teams.map(team=>team.map(p=>p.puid).sort().join('-')).sort().join('-'); }
+      let uniqueTeam = (arr, m) => { if (arr.map(teamsHash).indexOf(teamsHash(m)) < 0) arr.push(m); return arr; }
 
       pruneDefunctMatches();
       findMissingMatches();
@@ -1986,25 +2087,33 @@ export function drawFx(opts) {
       return bracket.matches;
 
       function pruneDefunctMatches() {
+
+         // to support legacy brackets
+         if (!bracket.teams) { bracket.teams = bracket.players.map(p=>[p]); }
+
          // get an array of all match_ups:
-         let match_ups = [].concat(...bracket.players.map(player => playerMatchups(player)).map(player => player.map(o => o.map(p=>p.puid))));
-         let existing_match_ups = bracket.matches.map(match => match.players.map(p=>p.puid));
+         let match_ups = [].concat(...bracket.teams.map(team => teamMatchups(team)).map(matchup => matchup.map(teams => teams.map(puidHash))));
+
+         let existing_match_ups = bracket.matches.map(match => match.teams.map(puidHash));
          let defunct = existing_match_ups.filter(emu => !match_ups.reduce((p, c) => emu && c && intersection(emu, c).length == 2 || p, false));
+
          bracket.matches = bracket.matches.filter(match => {
-            let pair = match.players.map(p=>p.puid);
-            let obsolete = defunct.reduce((p, c) => intersection(pair, c).length == 2 || p, false);
+            let pairing = match.teams.map(puidHash);
+            let obsolete = defunct.reduce((p, c) => intersection(pairing, c).length == 2 || p, false);
             return !obsolete;
          });
       }
 
       function findMissingMatches() {
-         [].concat(...bracket.players.map(playerMissingMatches))
-            .reduce(addUnique, [])
-            .forEach(addMatch);
+         [].concat(...bracket.teams.map(teamMissingMatches))
+            .reduce(uniqueTeam, [])
+            .forEach(addTeamMatch);
       }
 
-      function addMatch(players) {
+      function addTeamMatch(teams) {
+         let players = [].concat(...teams);
          let match = {
+            teams,
             players,
             round_name: 'RR',
             bracket: bracket_index,
@@ -2013,21 +2122,22 @@ export function drawFx(opts) {
          bracket.matches.push(match);
       }
 
-      function playerMissingMatches(player) {
-         let player_matchups = playerMatchups(player);
-         let matches_hash = bracket.matches.map(m=>puidHash(m.players));
-         let missing = player_matchups.filter(pm => {
-            let index = matches_hash.indexOf(puidHash(pm));
+      function teamMissingMatches(team) {
+         let team_matchups = teamMatchups(team);
+         let matches_hash = bracket.matches.filter(m=>m.teams).map(m=>teamsHash(m.teams));
+         let missing = team_matchups.filter(tm => {
+            let index = matches_hash.indexOf(teamsHash(tm));
             return index < 0;
          });
          return missing;
       }
 
-      function playerMatchups(player) {
-         let opponents = bracket.players.filter(p=>p.puid != player.puid);
-         let matchups = opponents.map(o=>[player, o]);
+      function teamMatchups(team) {
+         let opponents = bracket.teams.filter(t=>puidHash(t) != puidHash(team));
+         let matchups = opponents.map(o=>[team, o]);
          return matchups;
       }
+
    }
 
    fx.roundRobinRounds = roundRobinRounds;
@@ -2989,9 +3099,12 @@ export function drawFx(opts) {
       }
 
       function placeTeam(team, position) {
+         fx.pushBracketTeam({ draw, team, bracket_index: position.bracket, position: position.position });
+         /*
          let player = team[0];
          player.draw_position = position.position;
          draw.brackets[position.bracket].players.push(player);
+         */
          draw.unseeded_placements.push({ team, position });
       }
 
@@ -3012,9 +3125,12 @@ export function drawFx(opts) {
       draw.unseeded_placements = draw.unseeded_teams.map(team => {
          let position = randomPop(unfilled_positions);
 
+         fx.pushBracketTeam({ draw, team, bracket_index: position.bracket, position: position.position });
+         /*
          let player = team[0];
          player.draw_position = position.position;
          draw.brackets[position.bracket].players.push(player);
+         */
 
          return { team, position };
       });
@@ -3107,9 +3223,16 @@ export function drawFx(opts) {
 
          if (current_draw.brackets) {
             // procesing a round robin
+
+            fx.pushBracketTeam({ draw: current_draw, team, bracket_index: position.bracket, position: position.position });
+            /*
             let player = team[0];
             player.draw_position = position.position;
             current_draw.brackets[position.bracket].players.push(player);
+
+            team.forEach(opponent => opponent.draw_position = position.position);
+            current_draw.brackets[position.bracket].teams.push(team);
+            */
          } else {
             // processing a tree draw
             assignPosition({ node: current_draw, position, team })
@@ -3120,6 +3243,15 @@ export function drawFx(opts) {
       if (missing_seeds.length) {
          missing_seeds.forEach(s=>seed_group.range = seed_group.range.filter(r=>r!=s));
       }
+   }
+
+   fx.pushBracketTeam = ({ draw, team, bracket_index, position }) => {
+      let player = team[0];
+      player.draw_position = position;
+      draw.brackets[bracket_index].players.push(player);
+
+      team.forEach(opponent => opponent.draw_position = position);
+      draw.brackets[bracket_index].teams.push(team);
    }
 
    fx.nextSeedGroup = nextSeedGroup;
@@ -3550,7 +3682,8 @@ export function drawFx(opts) {
          let matches = [].concat(...data.brackets.map(bracket => bracket.matches))
             .map(match => {
                return {
-                  teams: match.players.map(p=>[p]),
+                  // teams: match.players.map(p=>[p]),
+                  teams: match.teams || match.players.map(p=>[p]),
                   round_name: match.round_name,
                   result_order: match.result_order,
                   match,
@@ -3573,7 +3706,8 @@ export function drawFx(opts) {
 
    fx.findBrackets = findBrackets;
    function findBrackets(matches) {
-
+      // TODO: This is for bracket reconstruction on XLSX import
+      // It has not been updated to handle the changes for doubles
       let players = fx.matchesPlayers(matches);
 
       let bracket_players = [];
@@ -3620,188 +3754,177 @@ export function drawFx(opts) {
          }
       });
 
+      // to support legacy brackets
+      brackets.forEach(bracket => { bracket.teams = bracket.players.map(p=>[p]); });
+
       return brackets;
    }
 
-   fx.tallyBracketResults = tallyBracketResults;
-   function tallyBracketResults({ players, matches, bracket, reset, qualifying }) {
-      let puids = [];
-      let plyrz = [];
-      let scores = [];
-      let score_format;
-      let disqualified = [];
+   fx.tallyBracketAndModifyPlayers = ({ matches, bracket, reset, qualifying }) => {
+      if (bracket) matches = bracket.matches;
+      if (!matches || !matches.length) return;
 
-      let output = {};
-
-      if (bracket) {
-         matches = bracket.matches;
-         players = bracket.players;
-      }
-      if (!matches) return;
-
-      // build plyrz array;
-      players.forEach(player => addPlayer(player));
-
-      matches.forEach(match => {
-         let p1, p2;
-
-         if (match.winner_index != undefined) {
-            p1 = puids.indexOf(match.puids[match.winner_index]);
-            p2 = puids.indexOf(match.puids[1 - match.winner_index]);
-            if (match.score && disqualifyingScore(match.score)) disqualified.push(match.puids[1 - match.winner_index]);
-         } else {
-            p1 = puids.indexOf(match.puids[0]);
-            p2 = puids.indexOf(match.puids[1]);
+      let tbr = tallyBracket({ matches, qualifying });
+      bracket.matches.forEach(match => match.results_order = tbr.match_result_order[match.muid]);
+      bracket.teams.forEach(team => {
+         let puid_hash = puidHash(team);
+         if (tbr.team_results[puid_hash]) {
+            team.forEach(player => {
+               player.qorder = tbr.team_results[puid_hash].qorder;
+               if (reset) {
+                  // in this case sub_order is overridden
+                  player.sub_order = tbr.team_results[puid_hash].sub_order;
+               } else {
+                  // in this context sub_order give preference to existing value
+                  player.sub_order = player.sub_order || tbr.team_results[puid_hash].sub_order;
+               }
+               player.points_order = tbr.team_results[puid_hash].points_order;
+               player.results = {
+                  matches_won: tbr.team_results[puid_hash].matches_won,
+                  matches_lost: tbr.team_results[puid_hash].matches_lost,
+                  sets_won: tbr.team_results[puid_hash].sets_won,
+                  sets_lost: tbr.team_results[puid_hash].sets_lost,
+                  games_won: tbr.team_results[puid_hash].games_won,
+                  games_lost: tbr.team_results[puid_hash].games_lost,
+                  points_won: tbr.team_results[puid_hash].points_won,
+                  points_lost: tbr.team_results[puid_hash].points_lost,
+               }
+               player.result = tbr.team_results[puid_hash].result;
+               player.games = tbr.team_results[puid_hash].games;
+            });
          }
-         addScore(p1, p2, match.score);
-
-         if (!score_format && match.score_format) score_format = match.score_format;
       });
 
-      if (!scores.length) return;
+      return true;
+   }
 
-      // tally all matches played/won for each player
-      plyrz.forEach((player, p) => {
+   fx.tallyBracket = tallyBracket;
+   function tallyBracket({  matches, reset, qualifying }) {
+      let puids = [];
+      let scores = [];
+      let disqualified = [];
 
-         // reset occurs when a score has been changed
-         if (reset) player.sub_order = undefined;
+      let player_results = {};
+      let match_result_order = {};
 
-         // get list of keys of matches played; only for length
-         let opponents = !scores[p] ? [] : Object.keys(scores[p]);
+      let team_results = {};
 
-         // outcomes array must deal with opponents array which has undefined items
-         let outcomes = opponents.reduce((arr, o) => { arr[o] = determineWinner(p, o); return arr; }, []);
+      if (!matches) return;
 
-         // don't count incomplete matches
-         let incomplete = indices(undefined, outcomes);
-         let setsWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countSets(scores, outcomes[i])[0];
-         let setsLost = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countSets(scores, outcomes[i])[1];
-         let gamesWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countGames(scores, outcomes[i])[0];
-         let gamesLost = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countGames(scores, outcomes[i])[1];
-         let pointsWon = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countPoints(scores, outcomes[i])[0];
-         let pointsLost = (scores, i) => incomplete.indexOf(i) >= 0 ? 0 : countPoints(scores, outcomes[i])[1];
+      // for all matches winner score comes first!
+      matches.forEach(match => {
+         if (match.winner && match.loser) {
+            let wH = puidHash(match.winner);
+            let lH = puidHash(match.loser);
+            checkTeam(wH);
+            checkTeam(lH);
+            if (match.score && disqualifyingScore(match.score)) disqualified.push(lH);
 
-         let results = {
-            matches_won: occurrences(0, outcomes),
-            matches_lost: occurrences(1, outcomes),
-            sets_won: !scores[p] ? [] : scores[p].map(setsWon).reduce((a, b) => +a + +b, 0),
-            sets_lost: !scores[p] ? [] : scores[p].map(setsLost).reduce((a, b) => +a + +b, 0),
-            games_won: !scores[p] ? [] : scores[p].map(gamesWon).reduce((a, b) => +a + +b, 0),
-            games_lost: !scores[p] ? [] : scores[p].map(gamesLost).reduce((a, b) => +a + +b, 0),
-            points_won: !scores[p] ? [] : scores[p].map(pointsWon).reduce((a, b) => +a + +b, 0),
-            points_lost: !scores[p] ? [] : scores[p].map(pointsLost).reduce((a, b) => +a + +b, 0),
+            team_results[wH].matches_won += 1;
+            team_results[lH].matches_lost += 1;
+
+            let sets_tally = countSets(match.score, 0, match.score_format);
+            team_results[wH].sets_won += sets_tally[0];
+            team_results[wH].sets_lost += sets_tally[1];
+            team_results[lH].sets_won += sets_tally[1];
+            team_results[lH].sets_lost += sets_tally[0];
+
+            let games_tally = countGames(match.score, 0, match.score_format);
+            team_results[wH].games_won += games_tally[0];
+            team_results[wH].games_lost += games_tally[1];
+            team_results[lH].games_won += games_tally[1];
+            team_results[lH].games_lost += games_tally[0];
+
+            let points_tally = countPoints(match.score);
+            team_results[wH].points_won += points_tally[0];
+            team_results[wH].points_lost += points_tally[1];
+            team_results[lH].points_won += points_tally[1];
+            team_results[lH].points_lost += points_tally[0];
+         } else {
+            match.teams.forEach(team => checkTeam(puidHash(team)));
          }
+      });
 
-         let sets_ratio = Math.round(results.sets_won / results.sets_lost * 1000)/1000;
+      function checkTeam(puid_hash) {
+         if (!team_results[puid_hash]) team_results[puid_hash] = {
+            matches_won: 0,
+            matches_lost: 0,
+            sets_won: 0,
+            sets_lost: 0,
+            games_won: 0,
+            games_lost: 0,
+            points_won: 0,
+            points_lost: 0,
+         }
+      }
+
+      Object.keys(team_results).forEach(puid_hash => {
+         let sets_ratio = Math.round(team_results[puid_hash].sets_won / team_results[puid_hash].sets_lost * 1000)/1000;
          if (sets_ratio == Infinity || isNaN(sets_ratio)) sets_ratio = 0;
 
-         let matches_ratio = Math.round(results.matches_won / results.matches_lost * 1000)/1000;
+         let matches_ratio = Math.round(team_results[puid_hash].matches_won / team_results[puid_hash].matches_lost * 1000)/1000;
          if (matches_ratio == Infinity || isNaN(matches_ratio)) matches_ratio = 0;
 
-         let games_ratio = Math.round(results.games_won / results.games_lost * 1000)/1000;
+         let games_ratio = Math.round(team_results[puid_hash].games_won / team_results[puid_hash].games_lost * 1000)/1000;
          if (games_ratio == Infinity || isNaN(games_ratio)) {
             games_ratio = 0;
             // if NO games were lost add a 'phantom' set to insure the GEM score
-            // is higher than players who won the same number of sets but lost some games
+            // is higher than teams who won the same number of sets but lost some games
             sets_ratio += 1;
          }
 
-         let points_ratio = Math.round(results.points_won / results.points_lost * 1000)/1000;
+         let points_ratio = Math.round(team_results[puid_hash].points_won / team_results[puid_hash].points_lost * 1000)/1000;
          if (points_ratio == Infinity || isNaN(points_ratio)) points_ratio = 0;
 
-         results.sets_ratio = sets_ratio;
-         results.matches_ratio = matches_ratio;
-         results.games_ratio = games_ratio;
-         results.points_ratio = points_ratio;
-
-         player.results = results;
-         player.result = `${results.matches_won}/${results.matches_lost}`;
-         player.games = `${results.games_won}/${results.games_lost}`;
-
-         output[player.puid] = { results };
+         team_results[puid_hash].sets_ratio = sets_ratio;
+         team_results[puid_hash].matches_ratio = matches_ratio;
+         team_results[puid_hash].games_ratio = games_ratio;
+         team_results[puid_hash].points_ratio = points_ratio;
+         team_results[puid_hash].result = `${team_results[puid_hash].matches_won}/${team_results[puid_hash].matches_lost}`;
+         team_results[puid_hash].games = `${team_results[puid_hash].games_won}/${team_results[puid_hash].games_lost}`;
       });
 
-      let order = determineOrder(plyrz);
+      let order = determineTeamOrder(team_results);
 
       if (order) {
          let ro_list = order.map(o=>o.rank_order);
-         order.forEach(o => { 
 
-            // add hash values to player results
-            plyrz[o.i].results.ratio_hash = o.ratio_hash;
+         order.forEach(o => {
+            team_results[o.puid].ratio_hash = o.ratio_hash;
+               if (o != undefined && o.rank_order != undefined) {
+                  team_results[o.puid].qorder = o.rank_order;
+                  if (occurrences(o.rank_order, ro_list) > 1 && team_results[o.puid].sub_order == undefined) {
+                     team_results[o.puid].sub_order = 0;
+                  }
+               }
 
-            // calculate order for advancement
-            if (o != undefined && o.rank_order != undefined) {
-               plyrz[o.i].order = o.rank_order;
-               if (occurrences(o.rank_order, ro_list) > 1 && plyrz[o.i].sub_order == undefined) plyrz[o.i].sub_order = 0;
-            } else {
-               delete plyrz[o.i].sub_order;
-               plyrz[o.i].order = undefined;
-            }
-
-            // calculate order for awarding points
-            if (o != undefined && o.points_order != undefined) {
-               plyrz[o.i].points_order = o.points_order;
-            } else {
-               plyrz[o.i].points_order = undefined;
-            }
-         });
-      } else {
-         plyrz.forEach(player => {
-            player.order = undefined;
-            delete player.sub_order;
+               // calculate order for awarding points
+               if (o != undefined && o.points_order != undefined) {
+                  team_results[o.puid].points_order = o.points_order;
+               } else {
+                  team_results[o.puid].points_order = undefined;
+               }
          });
       }
 
       // create an object mapping puid to order
-      let puid_order = plyrz.reduce((o, p) => { o[p.puid] = p.points_order; return o}, {});
+      let puid_order = Object.keys(team_results).reduce((o, t) => { o[t] = team_results[t].points_order; return o}, {});
 
       matches.forEach(match => {
-         let order = match.winner_index == undefined ? '' : puid_order[match.puids[match.winner_index]];
-         match.result_order = `RR${qualifying ? 'Q' : ''}${order || ''}`;
+         let order = match.winner_index == undefined ? '' : puid_order[puidHash(match.winner)];
+         match_result_order[match.muid] = `RR${qualifying ? 'Q' : ''}${order || ''}`;
       });
+
+      return { team_results, match_result_order }
 
       function walkedOver(score) { return /W/.test(score) && /O/.test(score); }
       function defaulted(score) { return /DEF/.test(score); }
       function retired(score) { return /RET/.test(score); }
       function disqualifyingScore(score) { return walkedOver(score) || defaulted(score); }
 
-      function addScore(a, b, score) {
-         if (!plyrz[a] || !plyrz[b]) return;
-         if (!scores[a]) scores[a] = [];
-         if (!scores[b]) scores[b] = [];
-         scores[a][b] = score;
-         scores[b][a] = fx.reverseScore(score);
-      }
-
-      function addPlayer(player) {
-         if (typeof player != 'object') return;
-         let player_index = player.draw_position - 1;
-         plyrz[player_index] = player;
-         puids[player_index] = player.puid;
-      }
-
-      function determineWinner(p, o) {
-         // first determine if a match winner was declared in match object
-         let puids = [plyrz[p].puid, plyrz[o].puid];
-         let match = matches.reduce((r, m) => { if (intersection(m.puids, puids).length == 2) r = m; return r; }, undefined);
-         if (match.winner_index != undefined) return puids.indexOf(match.puids[match.winner_index]);
-
-         // otherwise determine winner by tally of sets
-         // this should *only* be used if draw is being reconstructed from matches...
-         let score = scores[p][o];
-
-         if (score && (score.toLowerCase().indexOf('int') >= 0 || score.toLowerCase().indexOf('live') >= 0)) return;
-
-         if (!score) return;
-         let tally = countSets(score);
-         if (tally[0] > tally[1]) return 0;
-         if (tally[1] > tally[0]) return 1;
-         return;
-      }
-
-      function countSets(score, winner) {
+      function countSets(score, winner, score_format) {
          let sets_tally = [0, 0];
+         if (!score) return sets_tally;
          if (disqualifyingScore(score)) {
             if (winner != undefined && score_format && score_format.sets_to_win) sets_tally[winner] = score_format.sets_to_win;
          } else {
@@ -3824,6 +3947,7 @@ export function drawFx(opts) {
 
       function countPoints(score) {
          let points_tally = [0, 0];
+         if (!score) return points_tally;
          let set_scores = score.split(' ');
          set_scores.forEach(set_score => {
             let scores = (/\d+\/\d+/.test(set_score)) ? set_score.split('/').map(s=>/\d+/.exec(s)[0]) : [0, 0];
@@ -3835,8 +3959,9 @@ export function drawFx(opts) {
          return points_tally;
       }
 
-      function countGames(score, winner) {
+      function countGames(score, winner, score_format) {
          let games_tally = [[], []];
+         if (!score) return [0, 0];
          if (disqualifyingScore(score)) {
             if (winner != undefined && score_format && score_format.sets_to_win && score_format.games_for_set) {
                games_tally[winner].push(score_format.sets_to_win * score_format.games_for_set);
@@ -3877,15 +4002,17 @@ export function drawFx(opts) {
          return score_format.tiebreaks_at;
       }
 
-      function determineOrder(plyrz) {
-         let total_players = Object.keys(plyrz).length;
+      function determineTeamOrder(team_results) {
+         let team_puids = Object.keys(team_results);
+         let total_opponents = team_puids.length;
 
          // order is an array of objects formatted for processing by ties()
-         let order = plyrz.reduce((arr, player, i) => { arr.push({ puid: player.puid, i, results: player.results }); return arr; }, []);
-         let complete = order.filter(o => total_players - 1 == o.results.matches_won + o.results.matches_lost);
+         // let order = teamz.reduce((arr, team, i) => { arr.push({ puid: puidHash(team), i, results: team[0].results }); return arr; }, []);
+         let order = team_puids.reduce((arr, team_puid, i) => { arr.push({ puid: team_puid, i, results: team_results[team_puid] }); return arr; }, []);
+         let complete = order.filter(o => total_opponents - 1 == o.results.matches_won + o.results.matches_lost);
 
-         // if not all players have completed their matches, no orders are assigned
-         if (total_players != complete.length) return;
+         // if not all opponents have completed their matches, no orders are assigned
+         if (total_opponents != complete.length) return;
 
          complete.forEach(p => p.order_hash = orderHash(p));
          complete.forEach(p => p.ratio_hash = ratioHash(p));
@@ -3949,17 +4076,6 @@ export function drawFx(opts) {
               }
           }
       }
-   }
-
-   // UNUSED
-   function arrayOfPlayers(matches) {
-      let players = matchesPlayers(matches);
-      let keys = Object.keys(players);
-      keys.sort((a, b) => players[a].draw_position - players[b].draw_position);
-      let draw_positions = Math.max(...matches.map(m => m.draw_positions));
-      let number_of_byes = draw_positions - keys.length;
-
-      return keys.map(k => players[k]);
    }
 
    return fx;
