@@ -5,6 +5,7 @@ import { staging } from './staging'
 import { lang } from './translator';
 import { rankCalc } from './rankCalc';
 import { searchBox } from './searchBox';
+import { calendarFx } from './calendarFx';
 import { displayGen } from './displayGen';
 import { tournamentParser } from './tournamentParser';
 import { tournamentDisplay } from './tournamentDisplay';
@@ -15,6 +16,9 @@ export const importFx = function() {
    // d3{} required for parsing CSV files
 
    let load = {
+      fx: {
+         env: () => { console.log('environment request'); return {}; },
+      },
       loaded: {},
       reset() {
          load.loaded = {
@@ -106,6 +110,8 @@ export const importFx = function() {
    load.processSheetData = processSheetData;
    function processSheetData(rows) {
       let players = [];
+      let ioc_codes = load.fx.env().ioc_codes || [];
+      let code_by_country = Object.assign({}, ...ioc_codes.map(c => ({ [compressName(c.name)]: c.ioc })));
 
       rows.forEach(row => {
          let player = {};
@@ -115,7 +121,14 @@ export const importFx = function() {
          if (!player.first_name || !player.last_name) return;
 
          player.school = findAttr(row, ['School']);
+
+         let parenthetical = /\((.*)\)/;
+         if (player.school && player.school.match(parenthetical)) {
+            player.school_abbr = player.school.match(parenthetical)[1];
+         }
+
          player.school_abbr = findAttr(row, ['School Abbreviation', 'School Abbr', 'School Code']);
+
          let submission_id = findAttr(row, ['Submission ID']);
          player.puid = findAttr(row, ['PUID']) || (submission_id ? `GS${submission_id}` : UUID.new());
          player.id = row['ID'] || player.puid;
@@ -125,6 +138,7 @@ export const importFx = function() {
          if (['Female', 'W', 'Girl', 'Woman'].indexOf(gender) >= 0) player.sex = 'W';
 
          let country = findAttr(row, ['Country']);
+         if (country) { player.ioc = code_by_country[compressName(country)]; }
 
          let birth = findAttr(row, ['Birth', 'Birthdate', 'Birthday', 'Birth Date']);
          if (birth) {
@@ -133,6 +147,8 @@ export const importFx = function() {
          }
          players.push(player);
       });
+
+      function compressName(name) { return name.split(' ').join('').toLowerCase(); }
 
       function findAttr(row, attrs = []) {
          let attributes = attrs.concat(...attrs.map(attr => attr.toLowerCase().split(' ').join('')));
@@ -309,7 +325,7 @@ export const importFx = function() {
                   db.findTournament(id).then(checkTournament, reject).then(resolve, reject);
                } else {
                   removeEntryModal();
-                  tournamentDisplay.createNewTournament({ tournament_data: load.loaded.tournament, title: lang.tr('tournaments.new'), callback: receiveNewTournament })
+                  calendarFx.createNewTournament({ tournament_data: load.loaded.tournament, title: lang.tr('tournaments.new'), callback: receiveNewTournament })
                   function receiveNewTournament(tournament) {
                      if (tournament) {
                         setTournament(tournament).then(resolve, reject);
@@ -946,6 +962,7 @@ export const importFx = function() {
          { attr: 'phone', header: 'Phone' }, 
          { attr: 'school', header: 'School' }, 
          { attr: 'school', header: 'College' }, 
+         { attr: 'profile', header: 'Profile' }, 
       ].filter(s=>!s.sheet_name || s.sheet_name == sheet_name);
       let players = extractWorkbookRows(workbook.Sheets[sheet_name], headers);
       players.forEach(player => {
