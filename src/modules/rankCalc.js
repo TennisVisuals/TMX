@@ -203,6 +203,14 @@ export const rankCalc = function() {
             if (match.score && match.score.trim() == 'W.O.') {
                let wow = config.env().points.walkover_wins;
                if (Array.isArray(wow) && wow.indexOf(match.round_name) < 0) return;
+
+               // if there are no existing points for this player then the
+               // walkover occurred during their first match
+               if (!pp[name]) return;
+
+               // this way would not take qualifying into account, and would
+               // count a walkover in a first match for a player with a structural bye
+               // if (match.round < 2) return;
             }
             if (!pp[name] || points > pp[name].points) { pp[name] = pointData(match, player, name, points); }
          });
