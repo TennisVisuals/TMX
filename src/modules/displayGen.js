@@ -1236,7 +1236,7 @@ export const displayGen = function() {
       if (id_obj.cancel.element) id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
 
       if (keys.length) {
-         let options = keys.map(k=>({key: k.description, value: k.keyid}));
+         let options = keys.reverse().map(k=>({key: k.description, value: k.keyid}));
          dd.attachDropDown({ id: ids.keys, options });
          id_obj.keys.ddlb = new dd.DropDown({ element: id_obj.keys.element });
          id_obj.keys.ddlb.setValue(keys[0].keyid, 'white');
@@ -2292,12 +2292,14 @@ export const displayGen = function() {
          version: displayFx.uuid(),
          messages: displayFx.uuid(),
          release: displayFx.uuid(),
+         support: displayFx.uuid(),
       }
       let html = `
          <div class='flexcol' style='width: 100%'>
             <div id='${ids.version}' class='menuitem menuseparator'>${lang.tr('version')}</div>
             <div id='${ids.messages}' class='menuitem menuseparator' style='display: none'>${lang.tr('messages')}</div>
-            <div id='${ids.release}' class='menuitem'>${lang.tr('releasenotes')}</div>
+            <div id='${ids.release}' class='menuitem menuseparator'>${lang.tr('releasenotes')}</div>
+            <div id='${ids.support}' class='menuitem'>${lang.tr('support')}</div>
          </div>
       `;
       document.getElementById('processing').style.display = "flex";
@@ -2305,6 +2307,19 @@ export const displayGen = function() {
       gen.closeonclick = true;
       displayGen.escapeModal();
       return displayFx.idObj(ids);
+   }
+
+   gen.support = (evt) => {
+      evt.stopPropagation();
+      displayGen.closeModal();
+      let message =`
+         <h2 style='margin: 1em;'>Support</h2>
+         <div class='releasenotes'>
+            <h3 class='flexjustifystart'>Email</h3>
+            <div class='flexjustifystart'>Please send all feedback and support requests to&nbsp;<b>support@courthive.com</b></div>
+         <div>
+      `;
+      gen.showModal(message);
    }
 
    gen.legacyTournamentTab = (elem, tournament) => {
@@ -3212,11 +3227,15 @@ export const displayGen = function() {
       let ids = {
          player_index: displayFx.uuid(),
          player_search: displayFx.uuid(),
+         player_pick: displayFx.uuid(),
       }
       let html = `
          <div class="player-entry noselect">
             <div class="player-position">${lang.tr('drp')}: ${position || ''}</div>
-            <div class="player-position"> <div class="player-index">${lang.tr('ord')}: <input id="${ids.player_index}"> </div> </div>
+            <div class="player-position"> <div class="player-index" style='width: 100%'>
+               <div>${lang.tr('ord')}: <input id="${ids.player_index}"></div>
+               <button id='${ids.player_pick}' class='btn btn-small edit-submit' style='color: lightgray; border-color: lightgray;'>Pick List</button>
+            </div> </div>
             <div class="player-position"> <div class="player-search flexrow">${lang.tr('ply')}:&nbsp;<input id="${ids.player_search}"> </div> </div>
          </div>
       `;
@@ -3637,7 +3656,7 @@ export const displayGen = function() {
       // bug where selecting tab displays tab from another instance of jsTabs...
       let tabdata = [];
       tabdata.push({ tab: 'Opponents', content: detail_opponents });
-      tabdata.push({ tab: 'Match Priority', content: match_priority });
+      tabdata.push({ tab: 'Match Profile', content: match_priority });
       tabdata.push({ tab: 'Match Points', content: match_points });
 
       container.detail_opponents.element.innerHTML = jsTabs.generate({ tabs: tabdata, shadow: false });
