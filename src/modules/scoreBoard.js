@@ -261,6 +261,9 @@ export const scoreBoard = function() {
             } 
          }
          function acceptScores() {
+            if (sobj.p1tiebreak.element.style.display != 'none') {
+               console.log('tiebreak element still visible');
+            }
             determineWinner();
             scoringComplete(getScore());
          }
@@ -526,6 +529,7 @@ export const scoreBoard = function() {
             sobj[p1 > p2 ? 'p1tiebreak' : 'p2tiebreak'].element.disabled = true;
             sobj[p1 > p2 ? 'p2tiebreak' : 'p1tiebreak'].element.disabled = false;
             sobj[p1 > p2 ? 'p2tiebreak' : 'p1tiebreak'].element.focus();
+            displayActions(false);
          }
          // check that both values are numeric
          let numbers = (p1 !== '' && p2 !== '');
@@ -645,11 +649,13 @@ export const scoreBoard = function() {
 
          let winner = sets_won[0] >= needed_to_win ? 0 : sets_won[1] >= needed_to_win ? 1 : undefined;
          if (winner == undefined && !live() && !interrupted() && !irregularEnding() && irregularWinner() == undefined) {
-            // displayActions(false);
+            displayActions(false);
             return;
          }
 
-         if (sobj.p1tiebreak.element.style.display != 'inline' && actions) displayActions(true);
+         if (sobj.p1tiebreak.element.style.display != 'inline' && actions) {
+            displayActions(true);
+         }
          sobj[winner == 0 ? 'p1action' : 'p2action'].ddlb.setValue('winner');
          sobj[winner == 1 ? 'p1action' : 'p2action'].ddlb.setValue('');
          sobj[winner == 1 ? 'p1action' : 'p2action'].ddlb.lock();
@@ -718,7 +724,7 @@ export const scoreBoard = function() {
 
             sobj.p1action.ddlb.setValue(' ');
             sobj.p2action.ddlb.setValue(' ');
-            // displayActions(false);
+            displayActions(false);
 
             let existing_supertiebreak = existingSuperTiebreak(selected_set);
             if (existing_supertiebreak) {
