@@ -130,7 +130,7 @@ export const fetchFx = function() {
             if (merge_with_tuid) {
                db.findTournament(merge_with_tuid).then(existing => mergeTournaments(existing, fetched), util.logError);
             } else {
-               db.addTournament(fetched).then(tournamentDisplay.displayCalendar);
+               db.addTournament(fetched).then(calendarFx.displayCalendar);
             }
          }
       }
