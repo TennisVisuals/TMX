@@ -52,7 +52,11 @@ export const contextMenu = function() {
       let total_possible_columns = Math.floor(root_width / o.width);
       let total_possible_players = total_possible_columns * rows_per_column;
 
-      if (possible_players < items.length) { x = root_width - o.width; }
+      if (possible_players < items.length) {
+         let necessary_columns = Math.round(items.length / rows_per_column);
+         x = root_width - (necessary_columns * o.width);
+         if (x < 0) { x = 0; }
+      }
 
       // reposition pop up to stay within the SVG
       let column_items = Math.min(rows_per_column, items.length);
