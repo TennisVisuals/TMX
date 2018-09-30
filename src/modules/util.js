@@ -159,7 +159,7 @@ export const util = function() {
       var oKeys = Object.keys(optionsObject);
       for (var k=0; k < oKeys.length; k++) {
         var oo = optionsObject[oKeys[k]];
-        if (typeof oo == 'object' && oo.constructor !== Array) {
+        if (oo && typeof oo == 'object' && typeof oo != 'function' && oo.constructor !== Array) {
             boolAttrs(optionsObject[oKeys[k]]);
         } else {
             // if (oo === 'true' || oo == true) {     // causes numbers to convert to true
@@ -385,6 +385,15 @@ export const util = function() {
    util.powerOfTwo = (n) => {
       if (isNaN(n)) return false; 
       return n && (n & (n - 1)) === 0;
+   }
+
+   // https://gist.github.com/cms/369133
+   util.getStyle = (el, styleProp) => {
+     var value, defaultView = (el.ownerDocument || document).defaultView;
+     if (defaultView && defaultView.getComputedStyle) {
+       styleProp = styleProp.replace(/([A-Z])/g, "-$1").toLowerCase();
+       return defaultView.getComputedStyle(el, null).getPropertyValue(styleProp);
+     }
    }
 
    util.logError = (err) => console.log(err);
