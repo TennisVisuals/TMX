@@ -1349,10 +1349,12 @@ export const displayGen = function() {
          fixed_bye_order: displayFx.uuid(),
          separate_by_ioc: displayFx.uuid(),
          separate_by_club: displayFx.uuid(),
+         separate_by_school: displayFx.uuid(),
          ll_all_rounds: displayFx.uuid(),
          qualconsolation: displayFx.uuid(),
          consolationalts: displayFx.uuid(),
          consolationseeds: displayFx.uuid(),
+         restrictseeds: displayFx.uuid(),
          display_flags: displayFx.uuid(),
          match_time: displayFx.uuid(),
          match_date: displayFx.uuid(),
@@ -1385,6 +1387,10 @@ export const displayGen = function() {
                     <label class='calabel'>${lang.tr('settings.separate_by_club')}:</label>
                     <input type='checkbox' id="${ids.separate_by_club}" ${separation}>
                 </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.separate_by_school')}:</label>
+                    <input type='checkbox' id="${ids.separate_by_school}" ${separation}>
+                </div>
              </div>
              <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
                 <div class='tournament_attr'>
@@ -1402,6 +1408,10 @@ export const displayGen = function() {
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.consolationseeds')}:</label>
                     <input type='checkbox' id="${ids.consolationseeds}">
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.restrictseedplacement')}:</label>
+                    <input type='checkbox' id="${ids.restrictseeds}">
                 </div>
              </div>
              <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
