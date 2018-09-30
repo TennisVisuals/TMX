@@ -146,6 +146,7 @@ export const playerFx = function() {
                      db.findPlayerMatches(puid).then((matches) => displayMatches(matches), console.log);
 
                      displayPoints(player, club, points, ranking_date);
+                     displayGen.homeIcon('home');
                   }
                });
             } else {
