@@ -311,7 +311,10 @@ export const matchFx = function() {
             if (node.data && node.data.match && node.data.match.muid) current_draw.matches[node.data.match.muid] = true;
          });
       } else if (e.draw.brackets) {
-         e.draw.brackets.forEach(bracket => bracket.matches.forEach(match => { if (!match.muid) match.muid = UUID.new(); }));
+         e.draw.brackets.forEach(bracket => bracket.matches.forEach(match => {
+            if (!match.muid) match.muid = UUID.new();
+            match.euid = e.euid;
+         }));
       } else {
          let info = dfx.drawInfo(current_draw);
          if (info && info.nodes) info.nodes.forEach(addMUID);
