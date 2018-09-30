@@ -258,7 +258,7 @@ export const importFx = function() {
 
    function importTournaments(rows) {
       let callback = () => searchBox.searchSelect('tournaments');
-      let id = displayGen.busy.message(`<p>${lang.tr('trnyz')}</p>`, callback);
+      let id = displayGen.busy.message(`<p>${lang.tr('phrases.trnyz')}</p>`, callback);
       let tournaments = [];
       if (!Array.isArray(rows)) rows = [rows];
 
