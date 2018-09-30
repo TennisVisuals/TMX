@@ -5,6 +5,7 @@ import { config } from './config';
 import { fetchFx } from './fetchFx';
 import { lang } from './translator';
 import { importFx } from './importFx';
+import { calendarFx } from './calendarFx';
 import { displayGen } from './displayGen';
 import { tournamentDisplay } from './tournamentDisplay';
 import { tournamentFx } from './tournamentFx';
@@ -126,7 +127,7 @@ export const staging = function() {
          });
       }
 
-      function checkDisplay() { if (displayGen.content == 'calendar') tournamentDisplay.displayCalendar(); }
+      function checkDisplay() { if (displayGen.content == 'calendar') calendarFx.displayCalendar(); }
    }
 
    function tmxMessage(msg) {
