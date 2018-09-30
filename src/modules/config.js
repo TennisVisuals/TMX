@@ -68,7 +68,7 @@ export const config = function() {
 
    var env = {
       // version is Major.minor.added.changed.fixed
-      version: '1.2.8.25.21',
+      version: '1.2.13.30.30',
       version_check: undefined,
       reset_new_versions: false,
 
@@ -140,14 +140,14 @@ export const config = function() {
          "seedPositions": {
             "1" : [["1", "0"]],
             "2" : [["0", "1"]],
-            "3" : [["1", ".250"], [0, ".750"]],
-            "5" : [["0", ".250"], [0, ".500"], [1, ".500"], [1, ".750"]],
-            "9" : [["1", ".125"], [0, ".375"], [1, ".625"], [0, ".875"]],
-            "13": [["0", ".125"], [1, ".375"], [0, ".625"], [1, ".875"]],
-            "17": [["1", ".0625"], [0, ".1875"], [1, ".3125"], [0, ".4325"], [1, ".5625"], [0, ".6875"], [1, ".8125"], [0, ".9375"] ],
-            "25": [["0", ".0625"], [1, ".1875"], [0, ".3125"], [1, ".4325"], [0, ".5625"], [1, ".6875"], [0, ".8125"], [1, ".9375"] ]
+            "3" : [["1", ".250"], ["0", ".750"]],
+            "5" : [["0", ".250"], ["0", ".500"], ["1", ".500"], ["1", ".750"]],
+            "9" : [["1", ".125"], ["0", ".375"], ["1", ".625"], ["0", ".875"]],
+            "13": [["0", ".125"], ["1", ".375"], ["0", ".625"], ["1", ".875"]],
+            "17": [["1", ".0625"], ["0", ".1875"], ["1", ".3125"], ["0", ".4375"], ["1", ".5625"], ["0", ".6875"], ["1", ".8125"], ["0", ".9375"] ],
+            "25": [["0", ".0625"], ["1", ".1875"], ["0", ".3125"], ["1", ".4375"], ["0", ".5625"], ["1", ".6875"], ["0", ".8125"], ["1", ".9375"] ]
          },
-         separation: { ioc: false, club_code: false }
+         separation: { ioc: false, club_code: false, school: false }
       },
       scoring: {
          delegation: true
@@ -207,6 +207,7 @@ export const config = function() {
             direction_by_loss: false  // whether move by # round or # loss
          },
          tree_draw: {
+            seeds: { restrict_placement: true },
             flags: { display: true },
             schedule: {
                times: false,
@@ -561,13 +562,49 @@ export const config = function() {
             container.consolationseeds.element.checked = util.string2boolean(env.drawFx.consolation_seeding);
             function consolationSeeding(evt) { env.drawFx.consolation_seeding = container.consolationseeds.element.checked; }
 
+            container.restrictseeds.element.addEventListener('click', restrictSeeds);
+            container.restrictseeds.element.checked = util.string2boolean(env.draws.tree_draw.seeds.restrict_placement);
+            function restrictSeeds(evt) { env.draws.tree_draw.seeds.restrict_placement = container.restrictseeds.element.checked; }
+
+            // Separate By
+
             container.separate_by_ioc.element.addEventListener('click', separateIOCs);
             container.separate_by_ioc.element.checked = util.string2boolean(env.drawFx.separation.ioc);
-            function separateIOCs(evt) { env.drawFx.separation.ioc = container.separate_by_ioc.element.checked; }
+            function separateIOCs(evt) {
+               if (container.separate_by_ioc.element.checked) {
+                  container.separate_by_club.element.checked = false;
+                  container.separate_by_school.element.checked = false;
+               }
+               setSeparateBy();
+            }
 
             container.separate_by_club.element.addEventListener('click', separateClubs);
             container.separate_by_club.element.checked = util.string2boolean(env.drawFx.separation.club_code);
-            function separateClubs(evt) { env.drawFx.separation.club_code = container.separate_by_club.element.checked; }
+            function separateClubs(evt) {
+               if (container.separate_by_club.element.checked) {
+                  container.separate_by_ioc.element.checked = false;
+                  container.separate_by_school.element.checked = false;
+               }
+               setSeparateBy();
+            }
+
+            container.separate_by_school.element.addEventListener('click', separateSchools);
+            container.separate_by_school.element.checked = util.string2boolean(env.drawFx.separation.school);
+            function separateSchools(evt) {
+               if (container.separate_by_school.element.checked) {
+                  container.separate_by_ioc.element.checked = false;
+                  container.separate_by_club.element.checked = false;
+               }
+               setSeparateBy();
+            }
+
+            function setSeparateBy() {
+               env.drawFx.separation.ioc = container.separate_by_ioc.element.checked;
+               env.drawFx.separation.school = container.separate_by_school.element.checked;
+               env.drawFx.separation.club_code = container.separate_by_club.element.checked;
+            }
+
+            // END separate by
 
             container.display_flags.element.addEventListener('click', displayFlags);
             container.display_flags.element.checked = util.string2boolean(env.draws.tree_draw.flags.display);
@@ -1684,7 +1721,8 @@ export const config = function() {
       let message =`
          <h2 style='margin: 1em;'>Release Notes</h2>
          <div class='releasenotes'>
-            <h3 class='flexjustifystart'>Version: 1.2.6.19.15</h3>
+            <h3 class='flexjustifystart'>Version: 1.2.10.30.26</h3>
+            <div class='flexjustifystart'>Setting to toggle seed placement restrictions</div>
             <div class='flexjustifystart'>Support for Doubles in Round Robin, Compass and Staggered Entry Draws</div>
 
             <h3 class='flexjustifystart'>Version: 1.2.2.5.1</h3>
