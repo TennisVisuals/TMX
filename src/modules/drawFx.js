@@ -1740,6 +1740,12 @@ export function treeDraw() {
       }
 
       function opponentName(d, team=0) {
+         if (!d.data.team && d.data.match && d.data.match.winner) {
+            // this is a situation when adding score doesn't add Team do node data
+            // TODO: track this down!
+            console.log('NO TEAM!', d.data);
+            d.data.team = d.data.match.winner;
+         }
          if (!d.data.team) {
             // don't return info into team=1 position
             if (team || !d.data.match) return '';
@@ -1751,7 +1757,7 @@ export function treeDraw() {
          if (d.data.team.length == 2) team = 1 - team;
 
          let opponent = d.data.team[team];
-         if (!opponent) return '';
+         if (!opponent) { return ''; }
          if (opponent.bye) return o.text.bye;
          if (opponent.qualifier && !opponent.last_name) return o.text.qualifier;
 

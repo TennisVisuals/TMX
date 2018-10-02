@@ -1,4 +1,5 @@
 import { db } from './db'
+import { env } from './env'
 import { UUID } from './UUID';
 import { util } from './util';
 import { staging } from './staging';
@@ -19,9 +20,7 @@ export const exportFx = function() {
       minimum_empty: 8,
    }
 
-   exp.fx = {
-      env: () => console.log('environment fx'),
-   }
+   // exp.fx = { env: () => console.log('environment fx'), }
 
    exp.options = (values) => {
       if (!values) return o;
@@ -131,7 +130,8 @@ export const exportFx = function() {
       let qualifying = match.round_name && match.round_name.indexOf('Q') == 0 && match.round_name.indexOf('QF') < 0;
       let draw_type = match.consolation ? 'Consolation' : qualifying ? 'Qualifying' : 'Main';
 
-      let sanctioning = (exp.fx.env && exp.fx.env().org && exp.fx.env().org.name) || '';
+      // let sanctioning = (exp.fx.env && exp.fx.env().org && exp.fx.env().org.name) || '';
+      let sanctioning = (env.org && env.org.name) || '';
 
       let profileID = (profile_url) => {
          let parts = profile_url && typeof profile_url == 'string' && profile_url.split('/');
@@ -408,7 +408,8 @@ export const exportFx = function() {
       var time_detail = !match.schedule ? "" : `${match.schedule.time_prefix || ''} ${match.schedule.time || ''}`;
       var score = util.containsNumber(match.score) && match.score.indexOf('LIVE') < 0 && match.score;
 
-      let reverse_scores = exp.fx.env && exp.fx.env().schedule && !exp.fx.env().schedule.scores_in_draw_order;
+      // let reverse_scores = exp.fx.env && exp.fx.env().schedule && !exp.fx.env().schedule.scores_in_draw_order;
+      let reverse_scores = env.schedule && !env.schedule.scores_in_draw_order;
       if (score && match.winner == 1 && reverse_scores) score = dfx.reverseScore(score);
       var unknowns = [];
 

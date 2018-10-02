@@ -1,3 +1,4 @@
+import { env } from './env'
 import { util } from './util';
 import { coms } from './coms';
 import { UUID } from './UUID';
@@ -13,14 +14,14 @@ export const tournamentFx = function() {
    let mfx = matchFx;
    let dfx = drawFx();
 
-   fx.fx = {
-      env: () => console.log('environment fx'),
-   }
+   // fx.fx = { env: () => console.log('environment fx'), }
 
-   fx.settingsLoaded = (env) => { dfx.options(env.drawFx); }
+   // fx.settingsLoaded = (env) => { dfx.options(env.drawFx); }
+   fx.settingsLoaded = () => { dfx.options(env.drawFx); }
 
    fx.getScoreboardSettings = ({ format, category }) => {
-      let settings = fx.fx.env().scoreboard.settings;
+      // let settings = fx.fx.env().scoreboard.settings;
+      let settings = env.scoreboard.settings;
       if (format && category && settings.categories[category] && settings.categories[category][format]) return settings.categories[category][format];
       if (format && settings[format]) return settings[format];
       return settings.singles;
@@ -328,7 +329,8 @@ export const tournamentFx = function() {
 
       if (qualified) {
          result.qualified = true;
-         fx.qualifyTeam({ tournament, env: fx.fx.env(), e, team: outcome.teams[outcome.winner], qualifying_position: qualifier_index + 1 });
+         // fx.qualifyTeam({ tournament, env: fx.fx.env(), e, team: outcome.teams[outcome.winner], qualifying_position: qualifier_index + 1 });
+         fx.qualifyTeam({ tournament, env, e, team: outcome.teams[outcome.winner], qualifying_position: qualifier_index + 1 });
       }
 
       // modifyPositionScore removes winner/loser if match incomplete
@@ -503,7 +505,8 @@ export const tournamentFx = function() {
    }
 
    // TODO: make qualifying_position selectable (popup)
-   fx.qualifyTeam = ({ tournament, env, e, team, qualifying_position }) => {
+   // fx.qualifyTeam = ({ tournament, env, e, team, qualifying_position }) => {
+   fx.qualifyTeam = ({ tournament, e, team, qualifying_position }) => {
       if (!e.qualified) e.qualified = [];
 
       // TODO: this is a hack
@@ -561,7 +564,7 @@ export const tournamentFx = function() {
    }
 
    fx.approvedOpponents = ({ tournament, e }) => {
-      let env = fx.fx.env();
+      // let env = fx.fx.env();
 
       let approved = [];
       let entry_data = {};
@@ -679,7 +682,7 @@ export const tournamentFx = function() {
    }
 
    fx.approvedTournamentTeams = ({ tournament, e }) => {
-      let env = fx.fx.env();
+      // let env = fx.fx.env();
       let approved_teams = (tournament.teams || [])
          .filter(t => e.approved.indexOf(t.id) >= 0)
          .map(teamCopy);
@@ -700,7 +703,7 @@ export const tournamentFx = function() {
    }
 
    fx.approvedPlayers = ({ tournament, e }) => {
-      let env = fx.fx.env();
+      // let env = fx.fx.env();
 
       let approved_players = (tournament.players || [])
          .filter(p => e.approved.indexOf(p.id) >= 0)
@@ -989,7 +992,8 @@ export const tournamentFx = function() {
             });
 
             // if building a consolation draw for an elimination event, available players are those who have lost in a linked elimination event...
-            let alts = fx.fx.env().drawFx.consolation_alternates;
+            // let alts = fx.fx.env().drawFx.consolation_alternates;
+            let alts = env.drawFx.consolation_alternates;
             available_players = available_players
                .filter(p=>no_wins_ids.indexOf(p.id) >= 0 || (alts && alternate_ids.indexOf(p.id) >= 0));
          }
@@ -1244,7 +1248,8 @@ export const tournamentFx = function() {
       }
 
       e.qualified = [];
-      qualified_teams.forEach(team => fx.qualifyTeam({ tournament, env: fx.fx.env(), e, team }));
+      // qualified_teams.forEach(team => fx.qualifyTeam({ tournament, env: fx.fx.env(), e, team }));
+      qualified_teams.forEach(team => fx.qualifyTeam({ tournament, env, e, team }));
 
       return { event_complete }
    }

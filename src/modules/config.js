@@ -1,4 +1,5 @@
 import { db } from './db'
+import { env } from './env'
 import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
@@ -12,13 +13,11 @@ import { exportFx } from './exportFx';
 import { rankCalc } from './rankCalc';
 import { importFx } from './importFx';
 import { searchBox } from './searchBox';
-import { scheduleFx } from './scheduleFx';
-import { eventManager } from './eventManager';
-
-// remove these dependencies by moving fx elsewhere!!
-import { calendarFx } from './calendarFx';
 import { displayGen } from './displayGen';
+import { calendarFx } from './calendarFx';
+import { scheduleFx } from './scheduleFx';
 import { tournamentFx } from './tournamentFx';
+import { eventManager } from './eventManager';
 import { tournamentDisplay } from './tournamentDisplay';
 
 export const config = function() {
@@ -66,214 +65,6 @@ export const config = function() {
       if (eventManager.holdActions[action]) eventManager.holdActions[action](target, coords);
    }
 
-   var env = {
-      // version is Major.minor.added.changed.fixed
-      version: '1.2.13.30.30',
-      version_check: undefined,
-      reset_new_versions: false,
-
-      ioc: 'gbr',
-      orientation: undefined,
-      documentation: true,
-
-      org: {
-         name: undefined,
-         abbr: undefined,
-         ouid: undefined,
-      },
-      editing: {
-         players: {
-            birth: true,
-            gender: true
-         }
-      },
-      assets: {
-         flags: '/media/flags/',
-         ioc_codes: './assets/ioc_codes',
-      },
-      auto_update: {
-         players: false,
-      },
-      metadata: {
-         exchange_formats: {
-            oops: 1.0,
-            matches: 1.0,
-            tournaments: 1.0,
-         }
-      },
-      exports: {
-         utr: false
-      },
-      locations: {
-         geolocate: true,
-         geoposition: undefined,
-         map: undefined,
-         map_provider: 'leaflet', // 'google' or 'leaflet'
-      },
-      calendar: {
-         start: undefined,
-         end: undefined,
-         category: undefined,
-         first_day: 0
-      },
-      players: { identify: true },
-      points: { walkover_wins: ['QF', 'SF', 'F'] },
-      parsers: {},
-      tournaments: {
-         dual: true,
-         team: false,
-         league: false
-      },
-      drawFx: {
-         auto_byes: true,
-         ll_all_rounds: false,
-         auto_qualifiers: false,
-         fixed_bye_order: true,
-         consolation_seeding: false,
-         consolation_wildcards: false,
-         consolation_alternates: false,
-         compressed_draw_formats: true,
-         qualifying_bracket_seeding: true,
-         consolation_from_elimination: true,
-         consolation_from_qualifying: false,
-         seed_limits: [ [0, 0], [4, 2], [11, 4], [21, 8], [41, 16], [97, 32] ],
-         "seedPositions": {
-            "1" : [["1", "0"]],
-            "2" : [["0", "1"]],
-            "3" : [["1", ".250"], ["0", ".750"]],
-            "5" : [["0", ".250"], ["0", ".500"], ["1", ".500"], ["1", ".750"]],
-            "9" : [["1", ".125"], ["0", ".375"], ["1", ".625"], ["0", ".875"]],
-            "13": [["0", ".125"], ["1", ".375"], ["0", ".625"], ["1", ".875"]],
-            "17": [["1", ".0625"], ["0", ".1875"], ["1", ".3125"], ["0", ".4375"], ["1", ".5625"], ["0", ".6875"], ["1", ".8125"], ["0", ".9375"] ],
-            "25": [["0", ".0625"], ["1", ".1875"], ["0", ".3125"], ["1", ".4375"], ["0", ".5625"], ["1", ".6875"], ["0", ".8125"], ["1", ".9375"] ]
-         },
-         separation: { ioc: false, club_code: false, school: false }
-      },
-      scoring: {
-         delegation: true
-      },
-      scoreboard: {
-         options: {
-            bestof: [1, 3, 5],
-            setsto: [4, 6, 8, 9],
-            tiebreaksto: [7, 12],
-            supertiebreakto: [7, 10, 21]
-         },
-         settings: {
-            categories: {},
-            singles: {
-               max_sets: 3,
-               sets_to_win: 2,
-               games_for_set: 6,
-               tiebreak_to: 7,
-               tiebreaks_at: 6,
-               supertiebreak_to: 10,
-               final_set_tiebreak: true,
-               final_set_supertiebreak: false,
-            },
-            doubles: {
-               max_sets: 3,
-               sets_to_win: 2,
-               games_for_set: 6,
-               tiebreak_to: 7,
-               tiebreaks_at: 6,
-               supertiebreak_to: 10,
-               final_set_tiebreak: false,
-               final_set_supertiebreak: true,
-            },
-         },
-      },
-      draws: {
-         autodraw: true,
-         types: {
-            elimination: true,
-            qualification: true,
-            roundrobin: true,
-            consolation: true,
-            compass: true,
-            playoff: true,
-         },
-         structures: {
-            feedin: {
-               elimination: true,
-               consolation: false
-            },
-         },
-         gem_seeding: false,
-         settings: {
-            separation: true
-         },
-         compass_draw: {
-            direction_by_loss: false  // whether move by # round or # loss
-         },
-         tree_draw: {
-            seeds: { restrict_placement: true },
-            flags: { display: true },
-            schedule: {
-               times: false,
-               dates: false,
-               courts: false,
-               after: false
-            },
-            minimums: {
-               team: 2,
-               singles: 2,
-               doubles: 2
-            },
-            round_limits: false,
-         },
-         rr_draw: {
-            doubles: true,
-            minimums: {
-               team: 3,
-               singles: 3,
-               doubles: 3
-            },
-            details: {
-               draw_positions: true,
-               player_rankings: true,
-               player_ratings: true,
-               club_codes: true,
-               draw_entry: true,
-               seeding: true,
-               won_lost: true,
-               games_won_lost: false,
-               bracket_order: true,
-            },
-            brackets: {
-               min_bracket_size: 3,
-               default_bracket_size: 4,
-               max_bracket_size: 6,
-            },
-         },
-      },
-      printing: {
-         save_pdfs: false
-      },
-      publishing: {
-         broadcast: true,
-         livescore: false,
-         require_confirmation: false,
-         publish_on_score_entry: true,
-         publish_draw_creation: false,
-      },
-      schedule: {
-         clubs: true,
-         ioc_codes: false,
-         scores_in_draw_order: true,
-         completed_matches_in_search: false,
-         max_matches_per_court: 14
-      },
-      searchbox: {
-         lastfirst: false,
-         diacritics: false,
-      },
-      delegation: false,
-      messages: [],
-      storage: undefined,
-      notifications: undefined,
-   }
-
    function displayMessages() {
       displayGen.escapeModal();
       displayGen.homeContextMessage(refreshApp, closeModal, env.messages, tournamentDisplay.displayTournament)
@@ -288,10 +79,10 @@ export const config = function() {
       delete fetchFx.update;
    }
 
-   fx.env = () => env;
+   // fx.env = () => env;
+   // fx.setCalendar = (obj) => Object.keys(obj).forEach(key => { if (Object.keys(env.calendar).indexOf(key) >= 0) env.calendar[key] = obj[key]; });
+   // fx.setMap = (map) => env.locations.map = map;
 
-   fx.setCalendar = (obj) => Object.keys(obj).forEach(key => { if (Object.keys(env.calendar).indexOf(key) >= 0) env.calendar[key] = obj[key]; });
-   fx.setMap = (map) => env.locations.map = map;
    fx.addMessage = (msg) => {
       let msgHash = (m) => Object.keys(m).map(key => m[key]).join('');
       let message_hash = msgHash(msg);
@@ -352,6 +143,8 @@ export const config = function() {
          schedule: true,
       },
       settings: {
+         uuuid: undefined,
+      /*
          points_table: {
             validity: [ { from: "1900-01-01", to: "2100-12-31", table: "default" }, ],
             tables : {
@@ -370,9 +163,11 @@ export const config = function() {
                }
             }
          }
+      */
       }
    }
 
+   /*
    // This probably needs to be implemented differently...
    fx.settings = {
       categories: {
@@ -380,6 +175,7 @@ export const config = function() {
          userInterface: [ 'defaultIdiom', ],
       },
    };
+   */
 
    function idiomLimit(opts) {
       var ioc_opts = opts.map(o=>`<div class='flag_opt' ioc='${o.value}' title='${o.title}'>${o.key}</div>`).join('');
@@ -894,9 +690,9 @@ export const config = function() {
 
    // once the environment variables have been set notify dependents
    function settingsLoaded() {
-      tournamentDisplay.settingsLoaded(env);
-      tournamentFx.settingsLoaded(env);
-      pointsFx.settingsLoaded(env);
+      tournamentDisplay.settingsLoaded();
+      tournamentFx.settingsLoaded();
+      // pointsFx.settingsLoaded(env);
    }
 
    fx.receiveSettings = receiveSettings;
@@ -946,7 +742,8 @@ export const config = function() {
             if (org) { Object.keys(env.org).forEach(key => { if (org[key]) env.org[key] = org[key]; }); }
 
             let pt = getKey('pointsTable');
-            if (pt) o.settings.points_table = pt.table;
+            // if (pt) o.settings.points_table = pt.table;
+            if (pt) env.points.points_table = pt.table;
 
             let misc = getKey('envSettings');
             if (misc && misc.settings) {
@@ -1048,12 +845,14 @@ export const config = function() {
 
    fx.geoposition = () => { return env.locations.geoposition; }
 
+   /*
    // NOTICE: It may be necessary sometimes to have the point table equal to
    // the tournament start date rather than the tournament end or point calc date
    // for instance, if a tournament straddles the boundary between the valid
    // range of two differnt point tables...
    fx.pointsTable = ({ calc_date }) => {
-      let org_tables = o.settings.points_table;
+      // let org_tables = o.settings.points_table;
+      let org_tables = env.points.points_table;
 
       if (!org_tables || !calc_date || !org_tables.validity) {
          return {};
@@ -1109,6 +908,7 @@ export const config = function() {
    }
 
    fx.validPointsTable = (table) => { return typeof table == 'object' && Object.keys(table).length; }
+   */
 
    function handleUnhandled() {
       window.onunhandledrejection = (event) => {
@@ -1172,35 +972,33 @@ export const config = function() {
       });
    }
 
-   function configufeDependents() {
-      displayGen.fx.env = fx.env;
-      displayGen.fx.settings = fx.settings;
-      displayGen.fx.setMap = fx.setMap;
-      displayGen.fx.pointsTable = fx.pointsTable;
-      displayGen.fx.orgCategoryOptions = fx.orgCategoryOptions;
+   /*
+   function configureDependents() {
+      // tournamentDisplay.fx.env = fx.env;
+      // importFx.fx.env = fx.env;
+      // playerFx.fx.env = fx.env;
+      // displayGen.fx.env = fx.env;
+      // calendarFx.fx.env = fx.env;
+      // tournamentFx.fx.env = fx.env;
+      // scheduleFx.fx.env = fx.env;
+      // exportFx.fx.env = fx.env;
 
-      playerFx.fx.env = fx.env;
-      playerFx.fx.pointsTable = fx.pointsTable;
+      // tournamentDisplay.fx.pointsTable = fx.pointsTable;
+      // tournamentDisplay.fx.orgCategories = fx.orgCategories;
+      // displayGen.fx.pointsTable = fx.pointsTable;
+      // displayGen.fx.orgCategoryOptions = fx.orgCategoryOptions;
+      // playerFx.fx.pointsTable = fx.pointsTable;
+      // calendarFx.fx.orgCategoryOptions = fx.orgCategoryOptions;
+      // calendarFx.fx.orgRankingOptions = fx.orgRankingOptions;
 
-      importFx.fx.env = fx.env;
+      // displayGen.fx.settings = fx.settings;
+      // displayGen.fx.setMap = fx.setMap;
 
-      tournamentDisplay.fx.env = fx.env;
-      tournamentDisplay.fx.drawOptions = fx.drawOptions;
-      tournamentDisplay.fx.pointsTable = fx.pointsTable;
-      tournamentDisplay.fx.orgCategories = fx.orgCategories;
+      // calendarFx.fx.setCalendar = fx.setCalendar;
 
-      calendarFx.fx.orgRankingOptions = fx.orgRankingOptions;
-      calendarFx.fx.orgCategoryOptions = fx.orgCategoryOptions;
-      calendarFx.fx.setCalendar = fx.setCalendar;
-      calendarFx.fx.env = fx.env;
-
-      staging.legacy_categories = { 'S': '20', };
-      tournamentFx.fx.env = fx.env;
-
-      scheduleFx.fx.env = fx.env;
-      exportFx.fx.env = fx.env;
-      coms.fx.popUpMessage = displayGen.popUpMessage;
+      // coms.fx.popUpMessage = displayGen.popUpMessage;
    }
+   */
 
    fx.init = () => {
       displayGen.initModals();
@@ -1219,7 +1017,7 @@ export const config = function() {
       d3.json('./assets/ioc_codes.json', data => { env.ioc_codes = data; });
 
       // remove config dependence on displayGen so this can be removed
-      configufeDependents();
+      // configureDependents();
 
       console.log('version:', env.version);
 

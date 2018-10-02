@@ -1,5 +1,6 @@
 import { db } from './db'
 import { lang } from './translator';
+import { displayGen } from './displayGen';
 
 export const coms = function() {
 
@@ -19,7 +20,7 @@ export const coms = function() {
    mod.fx = {
       tmxMessage: () => console.log('tmxMessage'),
       receiveEvent: () => console.log('receiveEvent'),
-      popUpMessage: () => console.log('pop up message'),
+      // popUpMessage: () => console.log('pop up message'),
       processDirective: () => console.log('process directive'),
       receiveIdiomList: () => console.log('receive Idiom List'),
       receiveTournament: () => console.log('receive Tournament'),
@@ -74,6 +75,9 @@ export const coms = function() {
          oi.socket.on('idioms available', mod.fx.receiveIdiomList);
          oi.socket.on('auth_org_trnys', t => mod.fx.receiveTournaments(t, true));
          oi.socket.on('noauth_org_trnys', mod.fx.receiveTournaments);
+
+         oi.socket.on('match score', data => console.log('match score:', data));
+         oi.socket.on('crowd score', data => console.log('crowd score:', data));
       }
    } 
 
@@ -88,11 +92,14 @@ export const coms = function() {
       ackRequests[uuid] = callback;
    }
 
+   mod.joinTournament = (tuid, authorized) => connected ?  oi.socket.emit('join tournament', tuid) : false;
+   mod.leaveTournament = (tuid, authorized) => connected ?  oi.socket.emit('leave tournament', tuid) : false;
+
    function tmxError(err) {
       let error = err.phrase ? lang.tr(`phrases.${err.phrase}`) : err.error;
       if (err.error) {
          let message = `${lang.tr('phrases.servererror')}<p>${error}`;
-         let container = mod.fx.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+         let container = displayGen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
       }
    }
 
@@ -120,7 +127,7 @@ export const coms = function() {
          // oi.socket.emit('tmx trny evts', { tuid, authorized: true });
       } else {
          let message = `Offline: must be connected to internet`;
-         let container = mod.fx.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+         let container = displayGen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
       }
    }
 
@@ -133,7 +140,7 @@ export const coms = function() {
          }
       } else {
          let message = `Offline: must be connected to internet`;
-         let container = mod.fx.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+         let container = displayGen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
       }
    }
 

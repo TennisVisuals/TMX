@@ -1,6 +1,7 @@
 import { db } from './db'
+import { env } from './env'
 import { util } from './util';
-import { config } from './config';
+// import { config } from './config';
 import { staging } from './staging';
 import { lang } from './translator';
 import { playerFx } from './playerFx';
@@ -140,7 +141,7 @@ export const rankCalc = function() {
 
    rank.calcMatchesPoints = ({ matches, points_table, points_date }) => {
       let player_points = { singles: {}, doubles: {} };
-      if (!points_table || !points_table.rankings || !config.validPointsTable(points_table)) return;
+      if (!points_table || !points_table.rankings || !rank.validPointsTable(points_table)) return;
       matches.forEach(match => {
          if (!match.event || !match.event.rank) return;
          if (points_date) { match.date = points_date.getTime(); }
@@ -201,7 +202,8 @@ export const rankCalc = function() {
             let name = fullName(player);
             let pp = player_points[match.format];
             if (match.score && match.score.trim() == 'W.O.') {
-               let wow = config.env().points.walkover_wins;
+               // let wow = config.env().points.walkover_wins;
+               let wow = env.points.walkover_wins;
                if (Array.isArray(wow) && wow.indexOf(match.round_name) < 0) return;
 
                // if there are no existing points for this player then the
@@ -561,7 +563,8 @@ export const rankCalc = function() {
       let categories = util.uunique([].concat(...valid.map(v=>v.category), ...eligible_categories))
          .map(c=>staging.legacyCategory(c, true));
 
-      let points_table = config.pointsTable({calc_date: ranking_date});
+      // let points_table = config.pointsTable({calc_date: ranking_date});
+      let points_table = rank.pointsTable({calc_date: ranking_date});
 
       if (categories.length) {
          let category_points = oMap(categories, valid, categoryFilter);
@@ -880,10 +883,74 @@ export const rankCalc = function() {
       if (!calc_year) calc_year = new Date().getFullYear();
       if (!calc_date) calc_date = new Date(calc_year, 1, 1);
       let age = yearEndAge(calc_year, new Date(birth_year, 1, 1).getTime());
-      let eligibility = config.eligibleCategories({age, calc_date});
+      let eligibility = rank.eligibleAgeCategories({age, calc_date});
       Object.assign(eligibility, { age });
       return eligibility;
    };
+
+
+   // NOTICE: It may be necessary sometimes to have the point table equal to
+   // the tournament start date rather than the tournament end or point calc date
+   // for instance, if a tournament straddles the boundary between the valid
+   // range of two differnt point tables...
+   rank.pointsTable = ({ calc_date }) => {
+      // let org_tables = o.settings.points_table;
+      let org_tables = env.points.points_table;
+
+      if (!org_tables || !calc_date || !org_tables.validity) {
+         return {};
+      } else {
+         // necessary to normalize getTime() values
+         let calc_date_string = util.formatDate(calc_date);
+
+         let calc_time = new Date(calc_date_string).getTime();
+         let valid = org_tables.validity.reduce((p, c) => new Date(c.from).getTime() <= calc_time && new Date(c.to).getTime() >= calc_time ? c : p, undefined);
+         return valid ? org_tables.tables[valid.table] : {};
+      }
+   }
+
+   rank.orgCategories = ({calc_date}) => {
+      let points_table = rank.pointsTable({calc_date});
+      return rank.validPointsTable(points_table) ? Object.keys(points_table.categories) : [];
+   }
+
+   rank.eligibleAgeCategories = ({age, calc_date}) => {
+      let points_table = rank.pointsTable({calc_date});
+      if (!rank.validPointsTable(points_table)) return [];
+      let base_category = null;
+      let minimum_age = 100;
+      let ineligible = [];
+      let categories = Object.keys(points_table.categories)
+         .filter(category => {
+            let c = points_table.categories[category];
+            if (c.ages) {
+               let from = parseInt(c.ages.from);
+               let to = parseInt(c.ages.to);
+               let valid = util.range(from, to+1).indexOf(age) >= 0;
+               if (!valid) ineligible.push(category);
+               if (valid && from < minimum_age) {
+                  minimum_age = from;
+                  base_category = category;
+               }
+               return valid;
+            }
+         });
+      return { categories, base_category, ineligible };
+   }
+
+   rank.orgCategoryOptions = ({calc_date=new Date()} = {}) => {
+      let points_table = rank.pointsTable({calc_date});
+      let categories = [{key: '-', value: ''}].concat(...rank.orgCategories({calc_date}).map(c=>({key: c, value: c})) );
+      return categories;
+   }
+
+   rank.orgRankingOptions = ({calc_date=new Date()} = {}) => {
+      let points_table = rank.pointsTable({calc_date});
+      let rankings = points_table.rankings ? Object.keys(points_table.rankings) : [];
+      return [{key: '-', value: ''}].concat(...rankings.map(r=>({key: r, value: r})));
+   }
+
+   rank.validPointsTable = (table) => { return typeof table == 'object' && Object.keys(table).length; }
 
    function performTask(fx, data, bulkResults = true) {
       return new Promise(function(resolve, reject) {

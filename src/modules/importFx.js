@@ -1,4 +1,5 @@
 import { db } from './db'
+import { env } from './env'
 import { UUID } from './UUID';
 import { util } from './util'
 import { staging } from './staging'
@@ -16,9 +17,7 @@ export const importFx = function() {
    // d3{} required for parsing CSV files
 
    let load = {
-      fx: {
-         env: () => { console.log('environment request'); return {}; },
-      },
+      // fx: { env: () => { console.log('environment request'); return {}; }, },
       loaded: {},
       reset() {
          load.loaded = {
@@ -110,7 +109,8 @@ export const importFx = function() {
    load.processSheetData = processSheetData;
    function processSheetData(rows) {
       let players = [];
-      let ioc_codes = load.fx.env().ioc_codes || [];
+      // let ioc_codes = load.fx.env().ioc_codes || [];
+      let ioc_codes = env.ioc_codes || [];
       let code_by_country = Object.assign({}, ...ioc_codes.map(c => ({ [compressName(c.name)]: c.ioc })));
 
       rows.forEach(row => {

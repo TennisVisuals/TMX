@@ -1,4 +1,5 @@
 import { db } from './db'
+import { env } from './env'
 import { util } from './util';
 import { dd } from './dropdown';
 import { staging } from './staging';
@@ -20,10 +21,10 @@ export const playerFx = function() {
       displayTournament: () => console.log('display tournament'),
    };
 
-   fx.fx = {
-      env: () => { console.log('environment request'); return {}; },
-      pointsTable: () => console.log('points table'),
-   }
+   // fx.fx = {
+      // env: () => { console.log('environment request'); return {}; },
+      // pointsTable: () => console.log('points table'),
+   // }
 
    fx.resetPlayerAction = () => {
       fx.action = undefined;
@@ -57,7 +58,7 @@ export const playerFx = function() {
 
    fx.optionsAllPlayers = ({ filter_values } = {}) => {
       return new Promise((resolve, reject) => {
-         let env = fx.fx.env();
+         // let env = fx.fx.env();
          var noaccents = !env.searchbox.diacritics;
 
          db.findAllPlayers().then(arr => {
@@ -86,7 +87,8 @@ export const playerFx = function() {
    fx.eligibleForCategory = ({ calc_date, category, player }) => {
       if (!calc_date) return false;
       if (!category) return true;
-      let points_table = fx.fx.pointsTable({calc_date});
+      // let points_table = fx.fx.pointsTable({calc_date});
+      let points_table = rankCalc.pointsTable({calc_date});
       let categories = points_table && points_table.categories;
       if (!categories) return true;
       if (!categories[category]) return false;
@@ -134,7 +136,8 @@ export const playerFx = function() {
                         defaultDate: ranking_date,
                         setDefaultDate: true,
                         i18n: lang.obj('i18n'),
-                        firstDay: fx.fx.env().calendar.first_day,
+                        // firstDay: fx.fx.env().calendar.first_day,
+                        firstDay: env.calendar.first_day,
                         onSelect: function() { 
                            ranking_date = this.getDate();
                            displayPoints(player, club, points, ranking_date);
@@ -427,7 +430,8 @@ export const playerFx = function() {
          sex: player_data.sex || 'M',
       }
 
-      let points_table = fx.fx.pointsTable({calc_date: date});
+      // let points_table = fx.fx.pointsTable({calc_date: date});
+      let points_table = rankCalc.pointsTable({calc_date: date});
       let categories = points_table && points_table.categories;
       category = category ? staging.legacyCategory(category) : 0;
       let ages = category && categories && categories[category] && categories[category].ages ? categories[category].ages : { from: 6, to: 100 };
@@ -452,7 +456,8 @@ export const playerFx = function() {
          defaultDate: start_date,
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
-         firstDay: fx.fx.env().calendar.first_day,
+         // firstDay: fx.fx.env().calendar.first_day,
+         firstDay: env.calendar.first_day,
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
       let field_order = [ 'last_name', 'first_name', 'birth', 'ioc', 'club', 'phone', 'email', 'cancel', 'save' ];
@@ -469,7 +474,8 @@ export const playerFx = function() {
       if (player.sex) player_container.gender.ddlb.setValue(player.sex, 'white');
 
       // IOC Awesomplete
-      let ioc_codes = fx.fx.env().ioc_codes || [];
+      // let ioc_codes = fx.fx.env().ioc_codes || [];
+      let ioc_codes = env.ioc_codes || [];
       let list = ioc_codes.map(d => ({ label: d.name, value: d.ioc }));
       player_container.ioc.typeAhead = new Awesomplete(player_container.ioc.element, { list });
 
@@ -587,7 +593,8 @@ export const playerFx = function() {
 
    fx.editPlayer = editPlayer;
    function editPlayer({player_data={}, category, callback, date=new Date()} = {}) {
-      let allowed = fx.fx.env().editing.players;
+      // let allowed = fx.fx.env().editing.players;
+      let allowed = env.editing.players;
       let player = {
          first_name: player_data.first_name,
          last_name: player_data.last_name,
@@ -598,7 +605,8 @@ export const playerFx = function() {
          sex: player_data.sex || 'M'
       }
 
-      let points_table = fx.fx.pointsTable({calc_date: date});
+      // let points_table = fx.fx.pointsTable({calc_date: date});
+      let points_table = rankCalc.pointsTable({calc_date: date});
       let categories = points_table && points_table.categories;
       category = category ? staging.legacyCategory(category) : 0;
       let ages = category && categories && categories[category] && categories[category].ages ? categories[category].ages : { from: 6, to: 100 };
@@ -624,7 +632,8 @@ export const playerFx = function() {
          setDefaultDate: true,
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
-         firstDay: fx.fx.env().calendar.first_day,
+         // firstDay: fx.fx.env().calendar.first_day,
+         firstDay: env.calendar.first_day,
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
       let field_order = [ 'last_name', 'first_name', 'ioc', 'school' ];
@@ -644,7 +653,8 @@ export const playerFx = function() {
       }
 
       // IOC Awesomplete
-      let ioc_codes = fx.fx.env().ioc_codes || [];
+      // let ioc_codes = fx.fx.env().ioc_codes || [];
+      let ioc_codes = env.ioc_codes || [];
       let list = ioc_codes.map(d => ({ label: d.name, value: d.ioc }));
       player_container.ioc.typeAhead = new Awesomplete(player_container.ioc.element, { list });
       player_container.ioc.element.value = ioc_codes.reduce((p, c) => p || (c.ioc == player.ioc ? c.name : ''), undefined) || '';

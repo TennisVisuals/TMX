@@ -1,15 +1,20 @@
 import { db } from './db'
+import { env } from './env'
 import { util } from './util'
 import { rankCalc } from './rankCalc'
 import { exportFx } from './exportFx';
 
 export const pointsFx = function() {
 
-   var exp = {};
-   let fx = { settingsLoaded: (env) => { if (typeof env.points.export_format == 'object') exp = env.points.export_format; } };
+   let fx = {};
+
+   // var exp = {};
+   // let fx = { settingsLoaded: (env) => { if (typeof env.points.export_format == 'object') exp = env.points.export_format; } };
 
    fx.downloadFormattedPoints = ({ org_abbr, points=[], tuid, group_size, calc_date=new Date() }) => {
       return new Promise((resolve, reject) => {
+         var exp = env.points.export_format;
+
          if (!exp) return reject();
 
          points = points.filter(p => {
@@ -60,6 +65,8 @@ export const pointsFx = function() {
 
    function exportFormattedPoints({ org_abbr, formatted_points, tuid, group_size=500 }) {
       let cursor = 0;
+      var exp = env.points.export_format;
+
       let date_format = exp.date_format ? `_${exp.date_format}` || '' : '';
       while (cursor < formatted_points.length) {
          let csv = exportFx.json2csv(formatted_points.slice(cursor, cursor + group_size)) + '\n';

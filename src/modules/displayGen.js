@@ -1,3 +1,4 @@
+import { env } from './env'
 import { util } from './util';
 import { dd } from './dropdown';
 import { drawFx } from './drawFx';
@@ -5,6 +6,7 @@ import { jsTabs } from './jsTabs';
 import { lang } from './translator';
 import { staging } from './staging';
 import { fetchFx } from './fetchFx';
+import { rankCalc } from './rankCalc';
 import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
 import { displayFx } from './displayFx';
@@ -30,7 +32,7 @@ export const displayGen = function() {
       closeonclick: undefined
    };
 
-   let env = {
+   let caldates = {
       calstart: undefined,
       calend: undefined
    }
@@ -41,13 +43,13 @@ export const displayGen = function() {
       callbacks: {},
    }
 
-   gen.fx = {
-      env: () => { console.log('environment request'); return {}; },
-      settings: () => console.log('settings'),
-      setMap: () => console.log('set map'),
-      pointsTable: () => console.log('points table'),
-      orgCategoryOptions: () => console.log('org category options'),
-   }
+   // gen.fx = {
+      // env: () => { console.log('environment request'); return {}; },
+      // settings: () => console.log('settings'),
+      // setMap: () => console.log('set map'),
+      // pointsTable: () => console.log('points table'),
+      // orgCategoryOptions: () => console.log('org category options'),
+   // }
 
    gen.busy = {};
    gen.busy.message = (text, callback) => {
@@ -77,8 +79,8 @@ export const displayGen = function() {
          evt.preventDefault();
          evt.stopPropagation();
       }
-      if (gen.content == 'calendar' && !gen.modal && evt.keyCode == '112' && env.calstart) document.getElementById(env.calstart).focus();
-      if (gen.content == 'calendar' && !gen.modal && evt.keyCode == '113' && env.calend) document.getElementById(env.calend).focus();
+      if (gen.content == 'calendar' && !gen.modal && evt.keyCode == '112' && caldates.calstart) document.getElementById(caldates.calstart).focus();
+      if (gen.content == 'calendar' && !gen.modal && evt.keyCode == '113' && caldates.calend) document.getElementById(caldates.calend).focus();
    });
 
    document.addEventListener('keyup', evt => { 
@@ -868,7 +870,8 @@ export const displayGen = function() {
       var width = Math.round(100/rows);
       if (filters.indexOf('M') >= 0) players = players.filter(f=>f.sex == 'M');
       if (filters.indexOf('W') >= 0) players = players.filter(f=>f.sex == 'W');
-      var flag_root = gen.fx.env().assets.flags;
+      // var flag_root = gen.fx.env().assets.flags;
+      var flag_root = env.assets.flags;
       var plz_groups = [];
       var plz_group = [];
       var count = 0;
@@ -898,8 +901,10 @@ export const displayGen = function() {
    }
    
    function formatTeams({tournament, match, which, puid, potentials=true}) {
-      var flags = gen.fx.env().draws.tree_draw.flags.display;
-      var flag_root = gen.fx.env().assets.flags;
+      // var flags = gen.fx.env().draws.tree_draw.flags.display;
+      var flags = env.draws.tree_draw.flags.display;
+      // var flag_root = gen.fx.env().assets.flags;
+      var flag_root = env.assets.flags;
 
       function playerBlock(pindex, side) {
          var p = match.players[pindex];
@@ -1342,7 +1347,8 @@ export const displayGen = function() {
    }
 
    gen.drawSettings = () => {
-      let separation = gen.fx.env().draws.settings.separation ? '' : 'disabled';
+      // let separation = gen.fx.env().draws.settings.separation ? '' : 'disabled';
+      let separation = env.draws.settings.separation ? '' : 'disabled';
       let ids = {
          auto_byes: displayFx.uuid(),
          compressed_draw_formats: displayFx.uuid(),
@@ -1579,13 +1585,14 @@ export const displayGen = function() {
    }
 
    gen.externalRequestSettings = (settings) => {
-      let category_keys = gen.fx.settings.categories.externalRequest;
+      // let category_keys = gen.fx.settings.categories.externalRequest;
+      let request_keys = env.server.requests.externalRequest;
       
       // filter out keys that are not currently implemented
-      let keys = settings.map(s=>s.key).filter(k=>category_keys.indexOf(k)>=0);
+      let keys = settings.map(s=>s.key).filter(k=>request_keys.indexOf(k)>=0);
 
       // add any keys that are not pressent in the database
-      category_keys.forEach(key => { 
+      request_keys.forEach(key => { 
          if (keys.indexOf(key) < 0) {
             settings.push({ key }); 
             keys.push(key); 
@@ -1736,11 +1743,10 @@ export const displayGen = function() {
       `;
 
       gen.showConfigModal(html);
-      /*
-      let options = gen.fx.orgCategoryOptions({calc_date: new Date()});
-      dd.attachDropDown({ id: ids.category, options });
-      dd.attachDropDown({ id: ids.rank, label: `${lang.tr('trnk')}:`, options: getRanks(tournament) });
-      */
+      ////  let options = gen.fx.orgCategoryOptions({calc_date: new Date()});
+      // let options = rankCalc.orgCategoryOptions({calc_date: new Date()});
+      // dd.attachDropDown({ id: ids.category, options });
+      // dd.attachDropDown({ id: ids.rank, label: `${lang.tr('trnk')}:`, options: getRanks(tournament) });
 
       let container = displayFx.idObj(ids);
 
@@ -2876,7 +2882,8 @@ export const displayGen = function() {
             <img src='./icons/link.png' class='club_link'>
           </div>
       `;
-      let delegation = gen.fx.env().delegation ? '' : 'visibility: hidden';
+      // let delegation = gen.fx.env().delegation ? '' : 'visibility: hidden';
+      let delegation = env.delegation ? '' : 'visibility: hidden';
       let delegate_button = `
          <div id='${ids.delegate}' style='margin-left: .2em; display: none; ${delegation}'>
             <img src='./icons/mobile.png' style='height: 1.5em;'>
@@ -3498,7 +3505,8 @@ export const displayGen = function() {
       d3.select(container.location_attributes.element).html(html);
       let id_obj = displayFx.idObj(ids);
 
-      let geoposition = gen.fx.env().locations.geoposition;
+      // let geoposition = gen.fx.env().locations.geoposition;
+      let geoposition = env.locations.geoposition;
       if (geoposition && false) {
          gpsLocation(geoposition.coords.latitude, geoposition.coords.longitude);
       }
@@ -4037,8 +4045,8 @@ export const displayGen = function() {
          rows:       displayFx.uuid(),
       }
 
-      env.calstart = ids.start;
-      env.calend = ids.end;
+      caldates.calstart = ids.start;
+      caldates.calend = ids.end;
 
       let html = `
          <div id='${ids.container}' class='calendar_container'>
@@ -4616,10 +4624,12 @@ export const displayGen = function() {
       let latlngbounds = new google.maps.LatLngBounds();
 
       let map = new google.maps.Map(mapCanvas, mapOptions);
-      gen.fx.setMap(map);
+      // gen.fx.setMap(map);
+      env.locations.map = map;
 
       // retrieve lat/lng from click event
-      google.maps.event.addListener(gen.fx.env().locations.map, 'click', function (e) {
+      // google.maps.event.addListener(gen.fx.env().locations.map, 'click', function (e) {
+      google.maps.event.addListener(env.locations.map, 'click', function (e) {
           alert("Latitude: " + e.latLng.lat() + "\r\nLongitude: " + e.latLng.lng());
       });
 
@@ -4627,7 +4637,8 @@ export const displayGen = function() {
       // https://stackoverflow.com/questions/7905733/google-maps-api-3-get-coordinates-from-right-click
       // also has example of using infoWindow
       /*
-      google.maps.event.addListener(gen.fx.env().locations.map, "rightclick", function(e) {
+      // google.maps.event.addListener(gen.fx.env().locations.map, "rightclick", function(e) {
+      google.maps.event.addListener(env.locations.map, "rightclick", function(e) {
           let lat = e.latLng.lat();
           let lng = e.latLng.lng();
           alert("Lat=" + lat + "; Lng=" + lng);
@@ -4639,7 +4650,8 @@ export const displayGen = function() {
       /*
       let marker = new google.maps.Marker({
           position: myLatlng,
-          map: gen.fx.env().locations.map,
+          // map: gen.fx.env().locations.map,
+          map: env.locations.map,
           title: 'Click to zoom'
       });
 
@@ -5010,7 +5022,8 @@ export const displayGen = function() {
       }
 
       if (gps) {
-         if (gen.fx.env().locations.map_provider == 'google') {
+         // if (gen.fx.env().locations.map_provider == 'google') {
+         if (env.locations.map_provider == 'google') {
             let opts = {
                id: id_obj.map.id,
                lat: +club.lat,
@@ -5019,7 +5032,8 @@ export const displayGen = function() {
             gen.googleMap(opts);
          } 
 
-         if (gen.fx.env().locations.map_provider == 'leaflet') {
+         // if (gen.fx.env().locations.map_provider == 'leaflet') {
+         if (env.locations.map_provider == 'leaflet') {
             // some ideas: https://leanpub.com/leaflet-tips-and-tricks/read
 
             let mapLink = '<a href="http://openstreetmap.org">OpenStreetMap</a>';
@@ -5033,11 +5047,14 @@ export const displayGen = function() {
             });
             // let map = L.map(id_obj.map.id).setView([+club.lat, +club.long], 16).addLayer(layer); // street map
             let map = L.map(id_obj.map.id).setView([+club.lat, +club.long], 16).addLayer(Esri_WorldImagery); // satellite imagery
-            gen.fx.setMap(map);
+            // gen.fx.setMap(map);
+            env.locations.map = map;
 
-            let marker = L.marker([+club.lat, +club.long]).addTo(gen.fx.env().locations.map);
+            // let marker = L.marker([+club.lat, +club.long]).addTo(gen.fx.env().locations.map);
+            let marker = L.marker([+club.lat, +club.long]).addTo(env.locations.map);
 
-            // gen.fx.env().locations.map.on('click', function(e) { alert(e.latlng.lat); });
+            ////  gen.fx.env().locations.map.on('click', function(e) { alert(e.latlng.lat); });
+            // env.locations.map.on('click', function(e) { alert(e.latlng.lat); });
             // http://leafletjs.com/reference.html#events
             map.on('click', function(e) { alert(e.latlng); });
 
@@ -5045,7 +5062,8 @@ export const displayGen = function() {
             // http://plnkr.co/edit/9vm81YsQxnkAFs35N8Jo?p=preview
             map.on("contextmenu", function (event) {
               console.log("Coordinates: " + event.latlng.toString());
-              L.marker(event.latlng).addTo(gen.fx.env().locations.map);
+              // L.marker(event.latlng).addTo(gen.fx.env().locations.map);
+              L.marker(event.latlng).addTo(env.locations.map);
             });
          }
       }
@@ -5074,7 +5092,8 @@ export const displayGen = function() {
    function getRanks(tournament) {
       let tournament_date = tournament && (tournament.points_date || tournament.end);
       let calc_date = tournament_date ? new Date(tournament_date) : new Date();
-      let points_table = gen.fx.pointsTable({calc_date});
+      // let points_table = gen.fx.pointsTable({calc_date});
+      let points_table = rankCalc.pointsTable({calc_date});
       let rankings = [{key: '-', value: ''}];
       return !points_table.rankings ? rankings : rankings.concat(...Object.keys(points_table.rankings).map(r => ({ key: r, value: r })));
    }
@@ -5082,7 +5101,8 @@ export const displayGen = function() {
    function getCategories(tournament) {
       let tournament_date = tournament && (tournament.points_date || tournament.end);
       let calc_date = tournament_date ? new Date(tournament_date) : new Date();
-      let points_table = gen.fx.pointsTable({calc_date});
+      // let points_table = gen.fx.pointsTable({calc_date});
+      let points_table = rankCalc.pointsTable({calc_date});
       let categories = [{key: '-', value: ''}];
       return !points_table.categories ? categories : categories
          .concat(...Object.keys(points_table.categories)
@@ -5107,7 +5127,8 @@ export const displayGen = function() {
          defaultDate: date,
          setDefaultDate: true,
          i18n: lang.obj('i18n'),
-         firstDay: gen.fx.env().calendar.first_day,
+         // firstDay: gen.fx.env().calendar.first_day,
+         firstDay: env.calendar.first_day,
          onSelect: function() { 
             let this_date = this.getDate();
             date = new Date(util.dateUTC(this_date));
@@ -5133,7 +5154,8 @@ export const displayGen = function() {
          defaultDate: start,
          setDefaultDate: true,
          i18n: lang.obj('i18n'),
-         firstDay: gen.fx.env().calendar.first_day,
+         // firstDay: gen.fx.env().calendar.first_day,
+         firstDay: env.calendar.first_day,
          onSelect: function() { 
             let this_date = this.getDate();
             start = new Date(util.dateUTC(this_date));
@@ -5150,7 +5172,8 @@ export const displayGen = function() {
       var endPicker = new Pikaday({
          field: end_element,
          i18n: lang.obj('i18n'),
-         firstDay: gen.fx.env().calendar.first_day,
+         // firstDay: gen.fx.env().calendar.first_day,
+         firstDay: env.calendar.first_day,
          defaultDate: end,
          setDefaultDate: true,
          onSelect: function() {

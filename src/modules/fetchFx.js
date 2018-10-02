@@ -1,7 +1,8 @@
 import { db } from './db';
+import { env } from './env'
 import { util } from './util';
 import { UUID } from './UUID';
-import { config } from './config';
+//import { config } from './config';
 import { lang } from './translator';
 import { importFx } from './importFx';
 import { calendarFx } from './calendarFx';
@@ -115,7 +116,8 @@ export const fetchFx = function() {
       });
 
       function completeFetch(fetched) {
-         let ouid = config.env().org && config.env().org.ouid;
+         // let ouid = config.env().org && config.env().org.ouid;
+         let ouid = env.org && env.org.ouid;
          if (!fetched.ouid) fetched.ouid = ouid;
 
          // just to be sure... such filtering should be done in injected fx
@@ -282,8 +284,9 @@ export const fetchFx = function() {
          }
 
          function fetchNew(trnys, fetchobj) {
-            // for tournaments to be updated automatically they must have an .sid attribute equal to config.env().org.abbr
-            let tids = trnys.filter(t=>t.sid && t.sid == config.env().org.abbr).map(t=>t.tuid.replace(t.sid, ''));
+            // for tournaments to be updated automatically they must have an .sid attribute equal to env.org.abbr
+            // let tids = trnys.filter(t=>t.sid && t.sid == config.env().org.abbr).map(t=>t.tuid.replace(t.sid, ''));
+            let tids = trnys.filter(t=>t.sid && t.sid == env.org.abbr).map(t=>t.tuid.replace(t.sid, ''));
             let max_id = fetchobj.max_id != false ? ((!merge && Math.max(...tids, 0)) || 0) : '';
 
             let request_object = {
@@ -306,7 +309,8 @@ export const fetchFx = function() {
 
          function normalizeTournaments(trnys, fetchobj) {
             let parser = fetchobj.parser && fetchobj.parser.fx && util.createFx(fetchobj.parser.fx);
-            let ouid = config.env().org && config.env().org.ouid;
+            // let ouid = config.env().org && config.env().org.ouid;
+            let ouid = env.org && env.org.ouid;
             if (Array.isArray(trnys)) {
                let tt = trnys.map(t => {
                   let trny = Object.assign({}, t);
@@ -318,8 +322,8 @@ export const fetchFx = function() {
                   trny.end = util.validDate(trny.end) ? new Date(trny.end).getTime() : (trny.start || trny.end);
                   if (!trny.ouid) trny.ouid = ouid;
 
-                  // TODO: This needs to be a configured SID (Site ID?) and not config.env().org (HTS)
-                  trny.tuid = `${config.env().org.abbr}${t.tuid || t.id}`;
+                  // TODO: This needs to be a configured SID (Site ID?) and not env.org (HTS)
+                  trny.tuid = `${env.org.abbr}${t.tuid || t.id}`;
                   return trny;
                });
                resolve(tt);
@@ -475,7 +479,8 @@ export const fetchFx = function() {
 
          function fetchList(fetchobj) {
             // Legacy to avoid call when no list is available
-            if (config.env().org.abbr == 'HTS' && category == '10') return reject();
+            // if (config.env().org.abbr == 'HTS' && category == '10') return reject();
+            if (env.org.abbr == 'HTS' && category == '10') return reject();
             
             let request_object = {
                [fetchobj.type]: fetchobj.url + category,
@@ -595,7 +600,8 @@ export const fetchFx = function() {
 
          function scrape(scraper) {
             let parser = scraper.fx && util.createFx(scraper.fx);
-            let ioc_codes = config.env().ioc_codes;
+            // let ioc_codes = config.env().ioc_codes;
+            let ioc_codes = env.ioc_codes;
             let ioc_map = Object.assign({}, ...ioc_codes.map(c=>({[c.name.toUpperCase()]: c.ioc})))
             ioc_map['USA'] = ioc_map['UNITED STATES'];
             ioc_map['UNITED KINGDOM'] = ioc_map['GREAT BRITAIN'];

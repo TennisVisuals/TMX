@@ -1,4 +1,5 @@
 import { db } from './db'
+import { env } from './env'
 import { util } from './util';
 import { coms } from './coms';
 import { config } from './config';
@@ -17,9 +18,7 @@ export const staging = function() {
    let fx = {};
    let tfx = tournamentFx;
 
-   fx.fx = {
-      env: () => { console.log('environment request'); return {}; },
-   }
+   // fx.fx = { env: () => { console.log('environment request'); return {}; }, }
 
    fx.init = () => {
       coms.fx.processDirective = processDirective;
@@ -31,7 +30,7 @@ export const staging = function() {
       coms.fx.receiveTournamentEvents = receiveTournamentEvents;
    }
 
-   fx.legacy_categories = {};
+   fx.legacy_categories = { 'S': '20', };
    fx.legacyCategory = (category, reverse) => {
       let legacy = reverse ?  Object.keys(fx.legacy_categories).map(key => ({ [fx.legacy_categories[key]]: key })) : fx.legacy_categories;
       if (legacy[category]) category = legacy[category];
@@ -169,11 +168,11 @@ export const staging = function() {
       }
    }
 
-   fx.endBroadcast = () => { config.env().publishing.broadcast = false; }
+   fx.endBroadcast = () => { env.publishing.broadcast = false; }
    fx.broadcasting = () => {
-      if (config.env().publishing.broadcast && coms.connected()) return true;
-      // if (config.env().publishing.broadcast && !coms.connected() && navigator.onLine) { connectSocket(); }
-      if (config.env().publishing.broadcast && !coms.connected) { connectSocket(); }
+      if (env.publishing.broadcast && coms.connected()) return true;
+      // if (env.publishing.broadcast && !coms.connected() && navigator.onLine) { connectSocket(); }
+      if (env.publishing.broadcast && !coms.connected) { connectSocket(); }
       return false;
    }
 

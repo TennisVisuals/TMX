@@ -1,3 +1,4 @@
+import { env } from './env'
 import { util } from './util';
 import { drawFx } from './drawFx';
 import { lang } from './translator';
@@ -79,7 +80,8 @@ export const scheduleFx = function() {
          let tournamentOOP = {
             title: lang.tr('phrases.oop_system'),
             notice: tournament.schedule.notice,
-            options: fx.fx.env && fx.fx.env().schedule,
+            // options: fx.fx.env && fx.fx.env().schedule,
+            options: env.schedule,
             umpirenotes: tournament.schedule.umpirenotes,
             days_matches,
             published: {
@@ -210,7 +212,8 @@ export const scheduleFx = function() {
          return html;
       }).join('');
 
-      let displaydocs = editable && fx.fx.env().documentation ? 'flex' : 'none';
+      // let displaydocs = editable && fx.fx.env().documentation ? 'flex' : 'none';
+      let displaydocs = editable && env.documentation ? 'flex' : 'none';
       let html = `
          <div class='schedule_scroll_container'>
             <div class='schedule_grid'>
@@ -282,7 +285,8 @@ export const scheduleFx = function() {
       let format = lang.tr(`formats.${match.format || ''}`);
 
       let score = match.score || '';
-      let reverse_scores = (options && !options.scores_in_draw_order) || (fx.fx.env && fx.fx.env().schedule && !fx.fx.env().schedule.scores_in_draw_order);
+      // let reverse_scores = (options && !options.scores_in_draw_order) || (fx.fx.env && fx.fx.env().schedule && !fx.fx.env().schedule.scores_in_draw_order);
+      let reverse_scores = (options && !options.scores_in_draw_order) || (env.schedule && !env.schedule.scores_in_draw_order);
       if (score && winner_index && reverse_scores) score = dfx.reverseScore(score);
 
       let match_status = match.status ? `<div class='match_status'>${match.status}</div>` : '&nbsp;';
