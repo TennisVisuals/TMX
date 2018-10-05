@@ -73,7 +73,7 @@ gulp.task('default', ['bundle-sw']);
 gulp.task('copy-maps', function() {
    return gulp.src([
          'node_modules/socket.io-client/dist/socket.io.js.map',
-         'node_modules/awesomplete/awesomplete.min.js.map'
+         'node_modules/awesomplete/awesomplete.min.js.map',
       ])
       .pipe(gulp.dest(target + '/lib'));
 });
@@ -98,6 +98,7 @@ gulp.task('concat-lib', ['uglify-lib'], function() {
       'node_modules/leaflet/dist/leaflet.js',
       'node_modules/moment/min/moment.min.js',
       'node_modules/sanitize-html/dist/sanitize-html.min.js',
+      'node_modules/intro.js/minified/intro.min.js',
 
       'src/external/quill.min.js',
       'src/external/d3.superformula.min.js',
