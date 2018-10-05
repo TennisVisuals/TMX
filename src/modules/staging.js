@@ -13,12 +13,8 @@ import { tournamentFx } from './tournamentFx';
 
 export const staging = function() {
 
-   // var received_events = [];
-
    let fx = {};
    let tfx = tournamentFx;
-
-   // fx.fx = { env: () => { console.log('environment request'); return {}; }, }
 
    fx.init = () => {
       coms.fx.processDirective = processDirective;
