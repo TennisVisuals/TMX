@@ -60,6 +60,7 @@ export const lang = function() {
    }
 
    idioms.default = {
+      tour: 'Tour',
       noresults: 'No Results',
       delete:  'Delete',
       continue: 'Do you wish to continue?',
