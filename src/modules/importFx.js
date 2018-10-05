@@ -121,6 +121,7 @@ export const importFx = function() {
          if (!player.first_name || !player.last_name) return;
 
          player.school = findAttr(row, ['School']);
+         player.profile = findAttr(row, ['Profile', 'UTR Profile', 'UTR Player Profile Link']);
 
          let parenthetical = /\((.*)\)/;
          if (player.school && player.school.match(parenthetical)) {
@@ -140,7 +141,7 @@ export const importFx = function() {
          let country = findAttr(row, ['Country']);
          if (country) { player.ioc = code_by_country[compressName(country)]; }
 
-         let birth = findAttr(row, ['Birth', 'Birthdate', 'Birthday', 'Birth Date']);
+         let birth = findAttr(row, ['Birth', 'Birthdate', 'Birthday', 'Birth Date', 'Date of Birth']);
          if (birth) {
             let birthdate = new Date(birth);
             player.birth = [birthdate.getFullYear(), birthdate.getMonth() + 1, birthdate.getDate()].join('-');
@@ -971,7 +972,9 @@ export const importFx = function() {
             if (player.sex == 'F') player.sex = 'W';
             if (['M', 'W'].indexOf(player.sex) < 0) delete player.sex;
          }
-         player.puid = player.puid || UUID.new();
+         let hackuuid = player.email || player.phone || player.profile;
+         if (hackuuid) hackuuid = hackuuid.split('').reverse().join('');
+         player.puid = player.puid || hackuuid || UUID.new();
          player.id = player.id || player.puid;
          if (player.birth) player.birth = player.birth.indexOf('-') < 0 ? parseFloat(player.birth) : new Date(player.birth).getTime();
          player.ioc = player.ioc ? (player.ioc.match(/\D+/g) || [])[0] : '';
