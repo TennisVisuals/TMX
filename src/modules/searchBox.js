@@ -1,3 +1,4 @@
+import { tmxTour } from './tmxTour';
 import { lang } from './translator';
 
 export const searchBox = function() {
@@ -38,6 +39,7 @@ export const searchBox = function() {
       searchBox.active = {};
       searchBox.resetFx.forEach(f => { if (typeof f == 'function') f(); });
    }
+   searchBox.cleanUp = () => tmxTour.clear();
    searchBox.setSearchCategory = (notice) => {
       if (!searchBox.element) return;
       let searchtype = `search.${searchBox.category}`;
@@ -120,6 +122,7 @@ export const searchBox = function() {
    }
 
    function selectionComplete(e) {
+      if (searchBox.cleanUp && typeof searchBox.cleanUp == 'function') searchBox.cleanUp();
       selection_flag = true;
       searchBox.search(e.target.value);
       searchBox.typeAhead.suggestions = [];
