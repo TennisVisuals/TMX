@@ -1,3 +1,14 @@
+.dotdot {
+  box-sizing: content-box;
+  border: 3px solid gray;
+  background: transparent;
+  -webkit-border-radius: 20px;
+  -moz-border-radius: 20px;
+  border-radius: 20px;
+  height: 8px;
+  width: 8px;
+}
+
 .event_icon { 
    width: 1.2em;
    height: 0;
@@ -54,6 +65,26 @@
    padding-bottom: 1em;
    background-size: 100%;
    background-image: url("img/docs.png");
+}
+
+.tiny_tour_icon {
+   width: 1em;
+   height: 0;
+   padding-bottom: 1em;
+   background-size: 100%;
+   background-image: url("img/crossroads.png");
+}
+
+.tour_icon {
+   width: 2em;
+   height: 0;
+   padding-bottom: 2em;
+   background-size: 100%;
+   background-image: url("img/crossroads.png");
+}
+
+.icon_margin {
+   margin-right: .5em;
 }
 
 .surface_header { background-image: url("img/h_court.png"); }
