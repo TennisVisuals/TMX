@@ -641,25 +641,40 @@ export const exportFx = function() {
                let info = drawFx().drawInfo(data);
                let title = data.direction[0].toUpperCase() + data.direction.slice(1);
                return treeDrawURI({ info, data, options, width, title });
-            })).then(genDrawSheet, cleanUp);
+            })).then(srcs => genDrawSheet(srcs, logo), cleanUp);
 
-            function genDrawSheet(srcs) {
-               let images = srcs.map(src => ({src, pct: 100}));
-               drawSheet({ tournament, images, logo, selected_event, event, save });
-               cleanUp();
-            }
          }
       } else if (dual_match) {
          let data = { dual_match, dual_teams, dual_matches }
          return exp.dualMatchesPDF({ tournament, data, options, selected_event, event, save });
       } else {
          let info = drawFx().drawInfo(data);
-         if (info.draw_type == 'tree') return exp.treeDrawPDF({ tournament, data, options, selected_event, info, event, save });
+         if (info.draw_type == 'tree') {
+            let opponent_count = info.draw_positions.length * (info.doubles ? 2 : 1);
+            if (opponent_count <= 64) {
+               return exp.treeDrawPDF({ tournament, data, options, selected_event, info, event, save });
+            } else {
+               getLogo().then(logo => showPDF(logo));
+
+               function showPDF(logo) {
+                  var width = 3000;
+                  Promise.all([0, 1].map(child => {
+                     return treeDrawURI({ info, data, options, width, child });
+                  })).then(srcs => genDrawSheet(srcs, logo), cleanUp);
+               }
+            }
+         }
          if (info.draw_type == 'roundrobin') return exp.rrDrawPDF({ tournament, data, options, selected_event, info, event, save });
+      }
+
+      function genDrawSheet(srcs, logo) {
+         let images = srcs.map(src => ({src, pct: 100}));
+         drawSheet({ tournament, images, logo, selected_event, event, save });
+         cleanUp();
       }
    }
 
-   function renderTreeDraw({ info, data, options, height, width, title }) {
+   function renderTreeDraw({ info, data, options, height, width, title, child }) {
       cleanUp();
 
       let render_id = `td${UUID.new()}`;
@@ -681,7 +696,6 @@ export const exportFx = function() {
 
       // create an off-screen draw so that sizing is uninhibited by screen real-estate
       let draw = treeDraw();
-      draw.data(data);
       draw.options(options);
       draw.width(width);
 
@@ -695,7 +709,11 @@ export const exportFx = function() {
       let opponent_count = info.draw_positions.length * (info.doubles ? 2 : 1);
 
       // accomodate title for compass draws
-      if (title) { draw.options({ text: {title}, margins: {top: 160}, }); }
+      if (title) { draw.options({ text: {title}, margins: { top: 160 }, }); }
+
+      // minPlayerHeight and maxPlayerHeight must be set the same to force
+      // fixed size when generating PDFs... for situations where Draw Structure
+      // is broken into a number of sub-draws
 
       if (opponent_count <= 4) {
          draw.options({
@@ -705,6 +723,7 @@ export const exportFx = function() {
             detail_offsets: { base: 80, width: 65 },
             lines: { stroke_width: 4 },
             minPlayerHeight: 180,
+            maxPlayerHeight: 180,
             detail_attr: { font_size: 40, seeding_font_size: 54 }
          });
       } else if (opponent_count <= 8) {
@@ -715,6 +734,7 @@ export const exportFx = function() {
             detail_offsets: { base: 80, width: 65 },
             lines: { stroke_width: 4 },
             minPlayerHeight: 170,
+            maxPlayerHeight: 170,
             detail_attr: { font_size: 40, seeding_font_size: 54 }
          });
       } else if (opponent_count <= 16) {
@@ -725,6 +745,7 @@ export const exportFx = function() {
             detail_offsets: { base: 80, width: 65 },
             lines: { stroke_width: 4 },
             minPlayerHeight: 150,
+            maxPlayerHeight: 150,
             detail_attr: { font_size: 40, seeding_font_size: 54 }
          });
       } else if (opponent_count <= 24) {
@@ -735,6 +756,7 @@ export const exportFx = function() {
             detail_offsets: { base: 80, width: 65 },
             lines: { stroke_width: 4 },
             minPlayerHeight: 130,
+            maxPlayerHeight: 130,
             detail_attr: { font_size: 36, seeding_font_size: 54 }
          });
       } else if (opponent_count <= 32) {
@@ -745,6 +767,7 @@ export const exportFx = function() {
             detail_offsets: { base: 80, width: 60 },
             lines: { stroke_width: 4 },
             minPlayerHeight: 100,
+            maxPlayerHeight: 100,
             detail_attr: { font_size: 30, seeding_font_size: 45 }
          });
       } else if (opponent_count <= 48) {
@@ -755,18 +778,28 @@ export const exportFx = function() {
             detail_offsets: { base: 80, width: 60 },
             lines: { stroke_width: 4 },
             minPlayerHeight: 65,
+            maxPlayerHeight: 65,
             detail_attr: { font_size: 30, seeding_font_size: 45 }
          });
-      } else if (opponent_count <= 64) {
+      } else if (opponent_count >= 64) {
          draw.options({
+            margins: { top: 40 },
             names: { length_divisor: 23 },
             umpires: { offset: 45 },
             matchdates: { offset: 45 },
             detail_offsets: { base: 80, width: 60 },
             lines: { stroke_width: 4 },
-            minPlayerHeight: 50,
+            minPlayerHeight: 51,
+            maxPlayerHeight: 51,
             detail_attr: { font_size: 30, seeding_font_size: 45 }
          });
+      }
+
+      // add data
+      if (child != undefined) {
+         draw.data(data.children[child]);
+      } else {
+         draw.data(data);
       }
 
       // render the svg
@@ -774,9 +807,9 @@ export const exportFx = function() {
       return element;
    }
 
-   function treeDrawURI({ info, data, options, height, width, title }) {
+   function treeDrawURI({ info, data, options, height, width, title, child }) {
       return new Promise((resolve, reject) => {
-         let element = renderTreeDraw({ info, data, options, height, width, title });
+         let element = renderTreeDraw({ info, data, options, height, width, title, child });
          exp.SVGasURI(element, [], height).then(resolve, reject);
       });
    }
@@ -787,15 +820,15 @@ export const exportFx = function() {
       function showPDF(logo, images) {
           dualSheet({ tournament, data, images, logo, selected_event, event, save });
       }
-}
+   }
 
-   exp.treeDrawPDF = ({ tournament, data, options, images=[], selected_event, info, event, save }) => {
+   exp.treeDrawPDF = ({ tournament, data, options, images=[], selected_event, info, event, child, save }) => {
       var width = 3000;
       var height = 3300;
       var qr_dim = width / 6.7;
 
       return new Promise((resolve, reject) => {
-         let element = renderTreeDraw({ info, data, options, height, width });
+         let element = renderTreeDraw({ info, data, options, height, width, child });
 
          // if event published add QR code
          if (event && event.published && tournament.org && tournament.org.abbr) {
