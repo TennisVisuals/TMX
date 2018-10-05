@@ -4,6 +4,7 @@ import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
 import { dd } from './dropdown';
+import { tmxTour } from './tmxTour';
 import { fetchFx } from './fetchFx';
 import { lang } from './translator';
 import { staging } from './staging';
@@ -65,6 +66,30 @@ export const config = function() {
       if (eventManager.holdActions[action]) eventManager.holdActions[action](target, coords);
    }
 
+   eventManager.register('tiny_docs_icon', 'tap', contextDocs);
+
+   function contextDocs(target) {
+      let click_context = util.getParent(target, 'doclink');
+      let url = click_context.getAttribute('url');
+      if (url) window.open(`/docs/${env.ioc}/${url}.html`, '_blank');
+   }
+
+   eventManager.register('tiny_tour_icon', 'tap', contextTour);
+
+   function contextTour(target) {
+      let click_context = util.getParent(target, 'tourlink');
+      let context = click_context.getAttribute('context');
+      if (context) tmxTour.tournamentTours(context);
+   }
+
+   eventManager.register('hints_icon', 'tap', contextHints);
+
+   function contextHints(target) {
+      let click_context = util.getParent(target, 'hintslink');
+      let context = click_context.getAttribute('context');
+      if (context) tmxTour.tournamentHints(context);
+   }
+
    function displayMessages() {
       displayGen.escapeModal();
       displayGen.homeContextMessage(refreshApp, closeModal, env.messages, tournamentDisplay.displayTournament)
@@ -78,10 +103,6 @@ export const config = function() {
       location.pathname = "/tmx/";
       delete fetchFx.update;
    }
-
-   // fx.env = () => env;
-   // fx.setCalendar = (obj) => Object.keys(obj).forEach(key => { if (Object.keys(env.calendar).indexOf(key) >= 0) env.calendar[key] = obj[key]; });
-   // fx.setMap = (map) => env.locations.map = map;
 
    fx.addMessage = (msg) => {
       let msgHash = (m) => Object.keys(m).map(key => m[key]).join('');
@@ -144,38 +165,8 @@ export const config = function() {
       },
       settings: {
          uuuid: undefined,
-      /*
-         points_table: {
-            validity: [ { from: "1900-01-01", to: "2100-12-31", table: "default" }, ],
-            tables : {
-               default: {
-                  categories: {
-                     "All": { ratings: { type:  'utr' }, },
-                     "U10": { ages: { from:  7, to: 10 }, },
-                     "U12": { ages: { from:  9, to: 12 }, },
-                     "U14": { ages: { from: 10, to: 14 }, },
-                     "U16": { ages: { from: 12, to: 16 }, },
-                     "U18": { ages: { from: 13, to: 18 }, },
-                     "Adult":  { ages: { from: 16, to: 40 }, },
-                     "Senior":  { ages: { from: 35, to: 100 }, },
-                  },
-                  rankings: { "1": {}, "2": {}, "3": {}, "4": {}, "5": {}, "6": {}, "7": {}, "8": {} }
-               }
-            }
-         }
-      */
       }
    }
-
-   /*
-   // This probably needs to be implemented differently...
-   fx.settings = {
-      categories: {
-         externalRequest: [ 'fetchClubs', 'fetchNewPlayers', 'fetchNewTournaments', 'fetchRankList', 'fetchRegisteredPlayers' ],
-         userInterface: [ 'defaultIdiom', ],
-      },
-   };
-   */
 
    function idiomLimit(opts) {
       var ioc_opts = opts.map(o=>`<div class='flag_opt' ioc='${o.value}' title='${o.title}'>${o.key}</div>`).join('');
@@ -232,6 +223,7 @@ export const config = function() {
 
             // if there is no default setting, make it visible
             if (!params) {
+               env.first_time_user = true;
                document.getElementById('idiomatic').style.opacity = 1;
                // save this as default so that flag is "subtle" for next visit
                changeIdiom('gbr');
@@ -819,6 +811,7 @@ export const config = function() {
 
             o.settings.uuuid = settings.reduce((p, c) => c.key == 'userUUID' ? c : p, undefined);
             if (!o.settings.uuuid) {
+               env.first_time_user = true;
                o.settings.uuuid = UUID.generate();
                db.addSetting({ key: 'userUUID', value: o.settings.uuuid });
             }
@@ -845,71 +838,6 @@ export const config = function() {
 
    fx.geoposition = () => { return env.locations.geoposition; }
 
-   /*
-   // NOTICE: It may be necessary sometimes to have the point table equal to
-   // the tournament start date rather than the tournament end or point calc date
-   // for instance, if a tournament straddles the boundary between the valid
-   // range of two differnt point tables...
-   fx.pointsTable = ({ calc_date }) => {
-      // let org_tables = o.settings.points_table;
-      let org_tables = env.points.points_table;
-
-      if (!org_tables || !calc_date || !org_tables.validity) {
-         return {};
-      } else {
-         // necessary to normalize getTime() values
-         let calc_date_string = util.formatDate(calc_date);
-
-         let calc_time = new Date(calc_date_string).getTime();
-         let valid = org_tables.validity.reduce((p, c) => new Date(c.from).getTime() <= calc_time && new Date(c.to).getTime() >= calc_time ? c : p, undefined);
-         return valid ? org_tables.tables[valid.table] : {};
-      }
-   }
-
-   fx.orgCategories = ({calc_date}) => {
-      let points_table = fx.pointsTable({calc_date});
-      return fx.validPointsTable(points_table) ? Object.keys(points_table.categories) : [];
-   }
-
-   fx.eligibleCategories = ({age, calc_date}) => {
-      let points_table = fx.pointsTable({calc_date});
-      if (!fx.validPointsTable(points_table)) return [];
-      let base_category = null;
-      let minimum_age = 100;
-      let ineligible = [];
-      let categories = Object.keys(points_table.categories)
-         .filter(category => {
-            let c = points_table.categories[category];
-            if (c.ages) {
-               let from = parseInt(c.ages.from);
-               let to = parseInt(c.ages.to);
-               let valid = util.range(from, to+1).indexOf(age) >= 0;
-               if (!valid) ineligible.push(category);
-               if (valid && from < minimum_age) {
-                  minimum_age = from;
-                  base_category = category;
-               }
-               return valid;
-            }
-         });
-      return { categories, base_category, ineligible };
-   }
-
-   fx.orgCategoryOptions = ({calc_date=new Date()} = {}) => {
-      let points_table = fx.pointsTable({calc_date});
-      let categories = [{key: '-', value: ''}].concat(...fx.orgCategories({calc_date}).map(c=>({key: c, value: c})) );
-      return categories;
-   }
-
-   fx.orgRankingOptions = ({calc_date=new Date()} = {}) => {
-      let points_table = fx.pointsTable({calc_date});
-      let rankings = points_table.rankings ? Object.keys(points_table.rankings) : [];
-      return [{key: '-', value: ''}].concat(...rankings.map(r=>({key: r, value: r})));
-   }
-
-   fx.validPointsTable = (table) => { return typeof table == 'object' && Object.keys(table).length; }
-   */
-
    function handleUnhandled() {
       window.onunhandledrejection = (event) => {
          event.preventDefault();
@@ -929,10 +857,12 @@ export const config = function() {
       if (navigator.storage && navigator.storage.persist) {
          navigator.storage.estimate().then(s => {
             s.remaining = s.quota - s.usage;
-            coms.emitTmx({ 
-               event: 'Storage',
-               notice: `Storage (Quota: ${s.quota}, Usage: ${s.usage}, Remaining: ${s.remaining})`
-            });
+            if (s.usage > s.quota) {
+               coms.emitTmx({ 
+                  event: 'Storage',
+                  notice: `Storage (Quota: ${s.quota}, Usage: ${s.usage}, Remaining: ${s.remaining})`
+               });
+            }
          });
          navigator.storage.persist().then(persistent => {
             env.storage = persistent ? true : 'user agent control'
@@ -972,35 +902,9 @@ export const config = function() {
       });
    }
 
-   /*
-   function configureDependents() {
-      // tournamentDisplay.fx.env = fx.env;
-      // importFx.fx.env = fx.env;
-      // playerFx.fx.env = fx.env;
-      // displayGen.fx.env = fx.env;
-      // calendarFx.fx.env = fx.env;
-      // tournamentFx.fx.env = fx.env;
-      // scheduleFx.fx.env = fx.env;
-      // exportFx.fx.env = fx.env;
-
-      // tournamentDisplay.fx.pointsTable = fx.pointsTable;
-      // tournamentDisplay.fx.orgCategories = fx.orgCategories;
-      // displayGen.fx.pointsTable = fx.pointsTable;
-      // displayGen.fx.orgCategoryOptions = fx.orgCategoryOptions;
-      // playerFx.fx.pointsTable = fx.pointsTable;
-      // calendarFx.fx.orgCategoryOptions = fx.orgCategoryOptions;
-      // calendarFx.fx.orgRankingOptions = fx.orgRankingOptions;
-
-      // displayGen.fx.settings = fx.settings;
-      // displayGen.fx.setMap = fx.setMap;
-
-      // calendarFx.fx.setCalendar = fx.setCalendar;
-
-      // coms.fx.popUpMessage = displayGen.popUpMessage;
-   }
-   */
-
    fx.init = () => {
+      console.log('version:', env.version);
+
       displayGen.initModals();
       let supported_device = true;
       if (device.isIpad || (window.innerWidth > 700 && window.innerHeight > 700)) {
@@ -1015,11 +919,6 @@ export const config = function() {
       }
       env.isMobile = device.isIDevice || device.isMobile;
       d3.json('./assets/ioc_codes.json', data => { env.ioc_codes = data; });
-
-      // remove config dependence on displayGen so this can be removed
-      // configureDependents();
-
-      console.log('version:', env.version);
 
       // enableNotifications();
 
@@ -1037,6 +936,7 @@ export const config = function() {
       handleUnhandled();
 
       document.getElementById('go_home').addEventListener('click', () => {
+         tmxTour.clear();
          let state = displayGen.homeIcon();
          if (state == 'home') {
             splash();
@@ -1051,6 +951,10 @@ export const config = function() {
             menu.release.element.addEventListener('click', displayReleaseNotes);
             menu.support.element.addEventListener('click', displayGen.support);
             if (env.messages && env.messages.length) { menu.messages.element.style.display = 'inline'; }
+            menu.tour.element.addEventListener('click', evt => {
+               displayGen.closeModal();
+               tmxTour.splashTour();
+            });
          }
       });
       
@@ -1101,6 +1005,7 @@ export const config = function() {
             notice: `lat/lng: ${pos.coords.latitude}, ${pos.coords.longitude}`,
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
+            version: env.version
          });
       }
       // used to locate known tournaments in vicinity; auto-fill country
@@ -1252,17 +1157,22 @@ export const config = function() {
       tournamentDisplay.reset();
       let container = displayGen.splashScreen(o.components, o.settings_tabs);
 
-      splashEvent(container, 'tournaments', () => showHome(calendarFx.displayCalendar));
-      splashEvent(container, 'players', () => showHome(displayPlayers));
-      splashEvent(container, 'clubs', () => showHome(displayClubs));
+      splashEvent(container, 'tournaments', () => {  showHome(calendarFx.displayCalendar); });
+      splashEvent(container, 'players', () => {  showHome(displayPlayers); });
+      splashEvent(container, 'clubs', () => {  showHome(displayClubs); });
       splashEvent(container, 'settings', editSettings);
       splashEvent(container, 'documentation', () => window.open(`/docs/${env.ioc}`, '_blank'));
-      splashEvent(container, 'importexport', () => showHome(displayImportExport));
+      splashEvent(container, 'importexport', () => {  showHome(displayImportExport); });
       splashEvent(container, 'keys', displayKeyActions);
 
-      if (env.org && env.org.name) {
-         container.org.element.innerHTML = env.org.name;
+      tmxTour.splashContainer(container);
+      if (env.first_time_user) {
+         env.first_time_user = false;
+         displayGen.okCancelMessage('Welcome!  Take the TMX Tour?', takeTour, () => displayGen.closeModal());
+         function takeTour() { displayGen.closeModal(); tmxTour.splashTour(); }
       }
+
+      if (env.org && env.org.name) { container.org.element.innerHTML = env.org.name; }
 
       // Revert behavior of search box to normal
       searchBox.normalFunction();
@@ -1519,6 +1429,10 @@ export const config = function() {
       let message =`
          <h2 style='margin: 1em;'>Release Notes</h2>
          <div class='releasenotes'>
+            <h3 class='flexjustifystart'>Version: 1.2.18.40.32</h3>
+            <div class='flexjustifystart'>Livescoring results received from delegated matches</div>
+            <div class='flexjustifystart'>6 character Authorization and Delegation keys</div>
+
             <h3 class='flexjustifystart'>Version: 1.2.10.30.26</h3>
             <div class='flexjustifystart'>Setting to toggle seed placement restrictions</div>
             <div class='flexjustifystart'>Support for Doubles in Round Robin, Compass and Staggered Entry Draws</div>
