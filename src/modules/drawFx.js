@@ -925,6 +925,8 @@ export function treeDraw() {
       minPlayerHeight: 30,
       maxPlayerHeight: 40,
 
+      maxTreeDepth: undefined,
+
       addByes: true,
       invert_first: false,
       invert_threshold: 140,
@@ -1066,7 +1068,6 @@ export function treeDraw() {
    };
 
    function chart(opts) {
-
       root = d3.select(o.selector || 'body');
 
       if (!data || !Object.keys(data).length) {
@@ -1074,7 +1075,7 @@ export function treeDraw() {
          return;
       }
 
-      let info = dfx.drawInfo(data);
+      let info = dfx.drawInfo(data, o.maxTreeDepth);
 
       // scan data to see if columns necessary
       var opponents = [].concat(...info.nodes.filter(n=>n.data.team).map(n=>n.data.team)).filter(f=>f);
@@ -1104,8 +1105,9 @@ export function treeDraw() {
 
       if (o.addByes) dfx.addByes(data);
       let draw_hierarchy = d3.hierarchy(data);
+      if (o.maxTreeDepth) dfx.collapseHierarchy(draw_hierarchy, o.maxTreeDepth);
 
-      let depth = info.depth;
+      let depth = o.maxTreeDepth || info.depth;
       let doubles = info.doubles;
       let draw_positions = info.draw_positions;
       let max_draw_position = Math.max(...draw_positions);
@@ -1508,7 +1510,7 @@ export function treeDraw() {
           .attr("text-anchor", "start")
           .attr("dy", ".71em")
           .text(matchDetail)
-          .style("fill", "#000")
+          .style("fill", scoreDetail)
           .style("shape-rendering", "geometricPrecision")
           .style("font-size", scoreSize)
           .on('click', events.score.click)
@@ -1551,6 +1553,13 @@ export function treeDraw() {
              .on('contextmenu', events.matchdate.contextmenu);
       }
 
+      function scoreDetail(d) {
+         if (!d.data.match) return;
+         if (d.data.match.score) return '#000';
+         if (d.data.match.delegated_score) return '#777777';
+         return '#000';
+      }
+
       function matchDetail(d) {
          if ((o.details.player_rankings && datascan.player_rankings) || (o.details.player_ratings && datascan.player_ratings)) {
             if (d.data && d.data.feed && d.data.team) {
@@ -1560,7 +1569,10 @@ export function treeDraw() {
             }
          }
          if (!d.data.match) return;
-         if (d.data.match.score) return d.data.match.score;
+
+         let score = d.data.match.score || d.data.match.delegated_score;
+
+         if (score) return score;
          let schedule = d.data.match.schedule;
          if (schedule) {
             let time_string = !o.schedule.times ? '' : [(schedule.time && schedule.time_prefix) || '', schedule.time || ''].join(' ');
@@ -2243,10 +2255,43 @@ export function drawFx(opts) {
       return { complete, total_matches, all_matches, match_nodes, upcoming_match_nodes, unassigned };
    }
 
-   function treeInfo(draw) {
+   fx.collapseHierarchy = collapseHierarchy;
+   function collapseHierarchy(node, depth) {
+      /*
+      if (node.depth <= depth) {
+         node._height = node.height;
+         node.height = node.height = node.height + 1 - depth;
+      }
+      */
+      if (node.depth >= depth) {
+         node._height = node.height;
+         node.height = node.height = 0;
+      }
+      if (node.depth === depth) {
+         node._children = node.children || node._children;
+         node.children = null;
+         return;
+      }
+      if (node.depth < depth) node.children = node.children || node._children;
+      if (!node.children) return;
+      node.children.forEach(c=>collapseHierarchy(c, depth));
+   };
+
+   fx.expandHierarchy = expandHierarchy;
+   function expandHierarchy(node) {
+      node.children = node.children || node._children;
+      node.height = node.height || node._height;
+      node._children = null;
+      node._height = null;
+      if (!node.children) return;
+      node.children.forEach(c=>expandHierarchy(c));
+   };
+
+   function treeInfo(draw, collapse) {
       if (!draw) return {};
       let calc_tree = d3.tree();
       let draw_hierarchy = d3.hierarchy(draw);
+      if (collapse) collapseHierarchy(draw_hierarchy, collapse);
       let nodes = calc_tree(draw_hierarchy).descendants();
 
       let depth = Math.max(...nodes.map(n => n.depth));
@@ -2278,12 +2323,13 @@ export function drawFx(opts) {
       let total_matches = all_matches.length - byes.length;
       let complete = match_nodes.length && match_nodes.filter(validMatch).map(n=>byeChild(n) || (n.data.match && n.data.match.complete)).reduce((p, c) => c && p, true);
 
-      function byeChild(n) { return n.children.map(c=>c.data.bye).reduce((p, c) => c || p, false); }
-      function qualifierChild(n) { return !byeChild(n) && n.children.map(c=>c.data.qualifier).reduce((p, c) => c || p, false); }
+      function byeChild(n) { return n.children && n.children.map(c=>c.data.bye).reduce((p, c) => c || p, false); }
+      function qualifierChild(n) { return n.children && !byeChild(n) && n.children.map(c=>c.data.qualifier).reduce((p, c) => c || p, false); }
       function validMatch(n) { return !draw.max_round || n.height <= draw.max_round; }
-      function isStructuralBye(child) { return structural_byes.map(s=>s.data.dp).indexOf(child.data.dp) >= 0; }
-      function upcomingChild(n) { return n.children.map(c=>ucmatch(c)).filter(f=>f).length == 2; }
-      function ucmatch(c) { return matchNode(c) || ( isStructuralBye(c) && !c.data.children); }
+
+      // function isStructuralBye(child) { return structural_byes.map(s=>s.data.dp).indexOf(child.data.dp) >= 0; }
+      // function upcomingChild(n) { return n.children && n.children.map(c=>ucmatch(c)).filter(f=>f).length == 2; }
+      // function ucmatch(c) { return matchNode(c) || ( isStructuralBye(c) && !c.data.children); }
 
       return {
          draw_type: 'tree', complete,
@@ -2362,7 +2408,7 @@ export function drawFx(opts) {
    }
 
    fx.drawInfo = drawInfo;
-   function drawInfo(draw) {
+   function drawInfo(draw, collapse) {
       if (!draw) return;
       if (draw.brackets) return rrInfo(draw);
       if (draw.compass) {
@@ -2370,7 +2416,7 @@ export function drawFx(opts) {
          if (info) info.compass = true;
          return info;
       }
-      if (draw.children) return treeInfo(draw);
+      if (draw.children) return treeInfo(draw, collapse);
    }
 
    fx.blankDraw = blankDraw;
