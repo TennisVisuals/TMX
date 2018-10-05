@@ -1,6 +1,18 @@
 import { db } from './db'
+import { sharedFx } from './sharedFx';
 import { lang } from './translator';
 import { displayGen } from './displayGen';
+
+let funcs = {
+   tmxMessage: () => console.log('tmxMessage'),
+   receiveEvent: () => console.log('receiveEvent'),
+   processDirective: () => console.log('process directive'),
+   receiveIdiomList: () => console.log('receive Idiom List'),
+   receiveTournament: () => console.log('receive Tournament'),
+   receiveTournaments: () => console.log('receive Tournaments.'),
+   receiveTournamentEvents: () => console.log('receive Tournament Events'),
+   receiveTournamentRecord: () => console.log('receive Tournament Record'),
+}
 
 export const coms = function() {
 
@@ -17,17 +29,9 @@ export const coms = function() {
       },
    }
 
-   mod.fx = {
-      tmxMessage: () => console.log('tmxMessage'),
-      receiveEvent: () => console.log('receiveEvent'),
-      // popUpMessage: () => console.log('pop up message'),
-      processDirective: () => console.log('process directive'),
-      receiveIdiomList: () => console.log('receive Idiom List'),
-      receiveTournament: () => console.log('receive Tournament'),
-      receiveTournaments: () => console.log('receive Tournaments.'),
-      receiveTournamentEvents: () => console.log('receive Tournament Events'),
-      receiveTournamentRecord: () => console.log('receive Tournament Record'),
-   }
+   mod.setFx = (func, fx) => { funcs[func] = fx; }
+
+   mod.fx = funcs;
 
    let queue = [];
    let connected = false;
@@ -76,7 +80,7 @@ export const coms = function() {
          oi.socket.on('auth_org_trnys', t => mod.fx.receiveTournaments(t, true));
          oi.socket.on('noauth_org_trnys', mod.fx.receiveTournaments);
 
-         oi.socket.on('match score', data => console.log('match score:', data));
+         oi.socket.on('match score', data => sharedFx.receiveScore(data));
          oi.socket.on('crowd score', data => console.log('crowd score:', data));
       }
    } 
