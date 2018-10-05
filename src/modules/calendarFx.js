@@ -7,19 +7,13 @@ import { dd } from './dropdown';
 import { fetchFx } from './fetchFx';
 import { staging } from './staging';
 import { lang } from './translator';
+import { tmxTour } from './tmxTour';
 import { rankCalc } from './rankCalc';
 import { displayGen } from './displayGen';
 import { tournamentDisplay } from './tournamentDisplay';
 
 export const calendarFx = function() {
    let fx = {};
-
-   // fx.fx = {
-      // env: () => { console.log('environment request'); return {}; },
-      // setCalendar: () => console.log('set calendar'),
-      // orgCategoryOptions: () => console.log('org category options'),
-      // orgRankingOptions: () => console.log('org ranking options'),
-   // }
 
    fx.setCalendar = (obj) => Object.keys(obj).forEach(key => { if (Object.keys(env.calendar).indexOf(key) >= 0) env.calendar[key] = obj[key]; });
 
@@ -30,16 +24,14 @@ export const calendarFx = function() {
    
    fx.displayCalendar = displayCalendar;
    function displayCalendar() {
-      // let category = fx.fx.env().calendar.category;
       let category = env.calendar.category;
       let month_start = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
 
-      // let start = fx.fx.env().calendar.start || util.dateUTC(new Date());
       let start = env.calendar.start || util.dateUTC(new Date());
-      // let end = fx.fx.env().calendar.end || new Date(start).setMonth(new Date(start).getMonth()+1);
       let end = env.calendar.end || new Date(start).setMonth(new Date(start).getMonth()+1);
 
       let calendar_container = displayGen.calendarContainer();
+      tmxTour.calendarContainer(calendar_container);
 
       function updateStartDate() {
          fx.setCalendar({start});
@@ -59,7 +51,6 @@ export const calendarFx = function() {
          i18n: lang.obj('i18n'),
          defaultDate: new Date(start),
          setDefaultDate: true,
-         // firstDay: fx.fx.env().calendar.first_day,
          firstDay: env.calendar.first_day,
          onSelect: function() {
             start = this.getDate().getTime();
@@ -74,7 +65,6 @@ export const calendarFx = function() {
          minDate: new Date(start),
          defaultDate: new Date(end),
          setDefaultDate: true,
-         // firstDay: fx.fx.env().calendar.first_day,
          firstDay: env.calendar.first_day,
          onSelect: function() {
             end = this.getDate().getTime();
@@ -168,7 +158,6 @@ export const calendarFx = function() {
                   }
 
                   function unpublishTournament(tuid) {
-                     // let org = fx.fx.env().org;
                      let org = env.org;
                      let ouid = (org && org.ouid) || (tournament_data && tournament_data.org && tournament_data.org.ouid);
                      if (!ouid) return;
@@ -198,7 +187,6 @@ export const calendarFx = function() {
    function createNewTournament({ title, tournament_data, callback }) {
       displayGen.escapeModal();
 
-      // let env = fx.fx.env();
       let format_version = env.metadata && env.metadata.exchange_formats && env.metadata.exchange_formats.tournaments;
 
       var trny = Object.assign({}, tournament_data);
@@ -358,7 +346,6 @@ export const calendarFx = function() {
          defaultDate: start,
          setDefaultDate: true,
          i18n: lang.obj('i18n'),
-         // firstDay: fx.fx.env().calendar.first_day,
          firstDay: env.calendar.first_day,
          onSelect: function() { 
             let this_date = this.getDate();
@@ -377,7 +364,6 @@ export const calendarFx = function() {
       var endPicker = new Pikaday({
          field: container.end.element,
          i18n: lang.obj('i18n'),
-         // firstDay: fx.fx.env().calendar.first_day,
          firstDay: env.calendar.first_day,
          onSelect: function() {
             let this_date = this.getDate();
