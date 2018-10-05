@@ -43,14 +43,6 @@ export const displayGen = function() {
       callbacks: {},
    }
 
-   // gen.fx = {
-      // env: () => { console.log('environment request'); return {}; },
-      // settings: () => console.log('settings'),
-      // setMap: () => console.log('set map'),
-      // pointsTable: () => console.log('points table'),
-      // orgCategoryOptions: () => console.log('org category options'),
-   // }
-
    gen.busy = {};
    gen.busy.message = (text, callback) => {
       busy.count += 1;
@@ -870,7 +862,6 @@ export const displayGen = function() {
       var width = Math.round(100/rows);
       if (filters.indexOf('M') >= 0) players = players.filter(f=>f.sex == 'M');
       if (filters.indexOf('W') >= 0) players = players.filter(f=>f.sex == 'W');
-      // var flag_root = gen.fx.env().assets.flags;
       var flag_root = env.assets.flags;
       var plz_groups = [];
       var plz_group = [];
@@ -901,9 +892,7 @@ export const displayGen = function() {
    }
    
    function formatTeams({tournament, match, which, puid, potentials=true}) {
-      // var flags = gen.fx.env().draws.tree_draw.flags.display;
       var flags = env.draws.tree_draw.flags.display;
-      // var flag_root = gen.fx.env().assets.flags;
       var flag_root = env.assets.flags;
 
       function playerBlock(pindex, side) {
@@ -1039,12 +1028,13 @@ export const displayGen = function() {
       function matchCourt(match) { return (match.schedule && match.schedule.court) || ''; }
 
       function fillSpace(match) {
-         if (match.score && match.winner == undefined) return match.score.replace(/\-/g, '&#8209;');
+         let score = match.delegated_score || match.score;
+         if (score && match.winner == undefined) return score.replace(/\-/g, '&#8209;');
          return '&nbsp;';
       }
 
       function matchScore(match) {
-         let scr = match.score;
+         let scr = match.score || match.delegated_score;
          if (match.winner_index == 1) scr = dfx.reverseScore(scr);
          return (scr && scr.replace(/\-/g, '&#8209;')) || match.score;
       }
@@ -1216,6 +1206,7 @@ export const displayGen = function() {
       let tabdata = [ { tab: lang.tr('add'), content: submit.html } ];
       if (keys.length) tabdata.push({ tab: lang.tr('existing'), content: existing.html });
       let tabs = jsTabs.generate({ tabs: tabdata });
+      let docs = env.documentation ? 'flex' : 'none';
 
       let cancel = `
          <div id='${ids.cancel}' class='link ${gen.info}' style='margin-left: 1em;'>
@@ -1229,6 +1220,9 @@ export const displayGen = function() {
                <div class='flexrow'>${cancel}</div>
             </div>
             <div>${tabs}</div>
+            <div class='flexjustifyend' style='margin-top: 8px; margin-right: 2px;'>
+               <div class='doclink' url='tmx_configuration'><div class='tiny_docs_icon' style='display: ${docs}'></div></div>
+            </div>
          </div>
       `;
       
@@ -1347,7 +1341,6 @@ export const displayGen = function() {
    }
 
    gen.drawSettings = () => {
-      // let separation = gen.fx.env().draws.settings.separation ? '' : 'disabled';
       let separation = env.draws.settings.separation ? '' : 'disabled';
       let ids = {
          auto_byes: displayFx.uuid(),
@@ -1585,7 +1578,6 @@ export const displayGen = function() {
    }
 
    gen.externalRequestSettings = (settings) => {
-      // let category_keys = gen.fx.settings.categories.externalRequest;
       let request_keys = env.server.requests.externalRequest;
       
       // filter out keys that are not currently implemented
@@ -2309,11 +2301,13 @@ export const displayGen = function() {
          messages: displayFx.uuid(),
          release: displayFx.uuid(),
          support: displayFx.uuid(),
+         tour: displayFx.uuid(),
       }
       let html = `
          <div class='flexcol' style='width: 100%'>
             <div id='${ids.version}' class='menuitem menuseparator'>${lang.tr('version')}</div>
             <div id='${ids.messages}' class='menuitem menuseparator' style='display: none'>${lang.tr('messages')}</div>
+            <div id='${ids.tour}' class='menuitem menuseparator'>TMX ${lang.tr('tour')}</div>
             <div id='${ids.release}' class='menuitem menuseparator'>${lang.tr('releasenotes')}</div>
             <div id='${ids.support}' class='menuitem'>${lang.tr('support')}</div>
          </div>
@@ -2576,6 +2570,7 @@ export const displayGen = function() {
 
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='tourlink icon_margin' context='tournament_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
             <div class='doclink' url='tmx_tournament_information'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
@@ -2613,11 +2608,10 @@ export const displayGen = function() {
 
       let add = ` <button id='${ids.events_add}' type="button" class='btn add'>${lang.tr('actions.add_event')}</button> `;
       let del = ` <button type="button" class='btn del' style='display: none'>${lang.tr('actions.delete_event')}</button> `;
-      let save = ` <button type="button" class='btn save' style='display: none'>${lang.tr('actions.save_event')}</button> `;
       let done = ` <button type="button" class='btn done' style='display: none'>${lang.tr('actions.done')}</button> `;
       let cancel = ` <button type="button" class='btn cancel' style='display: none'>${lang.tr('actions.cancel')}</button> `;
       let events_tab = `
-         <div class='events'>
+         <div class='events tab_section'>
             <div class='event_list'>
                <div id='${ids.events_actions}' class='events_actions flexrow' style="display: none;"> ${add} </div>
                <div id='${ids.events}' class='event_rows'> </div>
@@ -2631,7 +2625,7 @@ export const displayGen = function() {
                      <div class='${classes.gem_seeding} info' style='display: none;' label='${lang.tr("draws.gemseeding")}'><div class='gem_icon gem_inactive'></div></div>
                      <div class='${classes.ratings_filter} info' style='display: none;' label='${lang.tr("draws.playerfilter")}'><div class='filter_icon filter_inactive'></div></div>
                   </div>
-                  <div>${del}${done}${save}${cancel}</div>
+                  <div>${del}${done}</div>
                </div>
                <div class='detail_body'>
                   <div class='detail_config'>
@@ -2645,13 +2639,14 @@ export const displayGen = function() {
             </div>
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='hintslink icon_margin' context='events_tab'><div class='dotdot hints_icon' style='display: none'></div></div>
+            <div class='tourlink icon_margin' context='events_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
             <div class='doclink' url='tmx_events_management'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
 
       let add_team = ` <button id='${ids.add_team}' type="button" class='btn add'>${lang.tr('actions.add_team')}</button> `;
       let del_team = ` <button type="button" class='btn del' style='display: none'>${lang.tr('actions.delete_team')}</button> `;
-      let save_team = ` <button type="button" class='btn save' style='display: none'>${lang.tr('actions.save_team')}</button> `;
       let teams_tab = `
          <div class='teams_tab'>
             <div class='team_list'>
@@ -2670,7 +2665,7 @@ export const displayGen = function() {
                         <div class='action_icon shareteam'></div>
                      </div>
                   </div>
-                  <div>${del_team}${done}${save_team}${cancel}</div>
+                  <div>${del_team}${done}${cancel}</div>
                </div>
                <div id='${ids.team_attributes}' class='detail_body'>
                </div>
@@ -2818,7 +2813,7 @@ export const displayGen = function() {
 
       let modify_info = tournament.players && tournament.players.length ? `${gen.infoleft}` : '';
       let players_tab = `
-         <div>
+         <div class='tab_section players_tab'>
             <div class='filter_row'>
                <div class='category_filter'>
                   <div class='flexcenter entry_field' id='${ids.category_filter}'></div>
@@ -2846,6 +2841,8 @@ export const displayGen = function() {
 
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='hintslink icon_margin' context='players_tab'><div class='dotdot hints_icon' style='display: none'></div></div>
+            <div class='tourlink icon_margin' context='players_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
             <div class='doclink' url='tmx_tournament_players'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
@@ -2882,7 +2879,6 @@ export const displayGen = function() {
             <img src='./icons/link.png' class='club_link'>
           </div>
       `;
-      // let delegation = gen.fx.env().delegation ? '' : 'visibility: hidden';
       let delegation = env.delegation ? '' : 'visibility: hidden';
       let delegate_button = `
          <div id='${ids.delegate}' style='margin-left: .2em; display: none; ${delegation}'>
@@ -3397,7 +3393,7 @@ export const displayGen = function() {
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("inout")}'><div class='event_icon inout_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.surface")}'><div class='event_icon surface_header'></div></div>
             <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.created")}'><div class='event_icon complete_header'></div></div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("draws.published")}'><div class='event_icon published_header'></div></div>
+            <div class='cell event_data icon ${gen.info} flexcenter publish_status' label='${lang.tr("draws.published")}'><div class='event_icon published_header'></div></div>
          </div>
       `;
       if (display) html += events.map((e, i) => eventRow(e, i, highlight_euid)).join('');
@@ -3505,7 +3501,6 @@ export const displayGen = function() {
       d3.select(container.location_attributes.element).html(html);
       let id_obj = displayFx.idObj(ids);
 
-      // let geoposition = gen.fx.env().locations.geoposition;
       let geoposition = env.locations.geoposition;
       if (geoposition && false) {
          gpsLocation(geoposition.coords.latitude, geoposition.coords.longitude);
@@ -3707,19 +3702,19 @@ export const displayGen = function() {
                <div class='entry_label' style='text-align: right'>${lang.tr('dtp')}</div>
             </div>
             <div class='column'>
-               <div class='entry_field' id='${ids.gender}'></div>
-               <div class='entry_field' id='${ids.category}'></div>
-               <div class='entry_field' id='${ids.rank}'></div>
-               <div class='entry_field' id='${ids.format}'></div>
-               <div class='entry_field dd'>
+               <div class='entry_field egender' id='${ids.gender}'></div>
+               <div class='entry_field ecategory' id='${ids.category}'></div>
+               <div class='entry_field erank' id='${ids.rank}'></div>
+               <div class='entry_field eformat' id='${ids.format}'></div>
+               <div class='entry_field dd escoring'>
                   <div class='label'></div>
                   <div class='options' style='border: 1px solid #000'>
                      <div class='scoringformat' id='${ids.scoring}'></div>
                   </div>
                </div>
-               <div class='entry_field' id='${ids.surface}'></div>
-               <div class='entry_field' id='${ids.inout}'></div>
-               <div class='entry_field' id='${ids.draw_type}'></div>
+               <div class='entry_field esurface' id='${ids.surface}'></div>
+               <div class='entry_field einout' id='${ids.inout}'></div>
+               <div class='entry_field edrawtype' id='${ids.draw_type}'></div>
             </div>
       `;
       container.detail_fields.element.innerHTML = detail_fields;
@@ -4047,6 +4042,7 @@ export const displayGen = function() {
 
       caldates.calstart = ids.start;
       caldates.calend = ids.end;
+      let docs = env.documentation ? 'flex' : 'none';
 
       let html = `
          <div id='${ids.container}' class='calendar_container'>
@@ -4068,7 +4064,11 @@ export const displayGen = function() {
             </div>
 
             <div id='${ids.rows}' class='flexcol' style='width: auto;'></div>
+            <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+               <div class='tourlink icon_margin' context='calendar'><div class='tiny_tour_icon'></div></div>
+               <div class='doclink' url='tmx_tournaments_navigation'><div class='tiny_docs_icon' style='display: ${docs}'></div></div>
             </div>
+         </div>
       `;
 
       gen.reset();
@@ -4165,6 +4165,7 @@ export const displayGen = function() {
       let ids = {
          teamsearch: displayFx.uuid(),
          createnew: displayFx.uuid(),
+         loadplayers: displayFx.uuid(),
          submitkey: displayFx.uuid(),
          cancel: displayFx.uuid()
       }
@@ -4176,6 +4177,7 @@ export const displayGen = function() {
             </div>
             <div class='flexcenter' style='margin-bottom: 2em;'>
                <button id='${ids.createnew}' class='btn btn-small edit-submit' style='margin-right: 2em'>${lang.tr('teams.createnew')}</button>
+               <button id='${ids.loadplayers}' class='btn btn-small edit-submit' style='margin-right: 2em'>${lang.tr('phrases.loadplayers')}</button>
                <button id='${ids.submitkey}' class='btn btn-small edit-submit' style='margin-right: 2em'>${lang.tr('teams.submitkey')}</button>
                <button id='${ids.cancel}' class='btn btn-small edit-cancel'>${lang.tr('actions.cancel')}</button>
             </div>
@@ -4624,11 +4626,9 @@ export const displayGen = function() {
       let latlngbounds = new google.maps.LatLngBounds();
 
       let map = new google.maps.Map(mapCanvas, mapOptions);
-      // gen.fx.setMap(map);
       env.locations.map = map;
 
       // retrieve lat/lng from click event
-      // google.maps.event.addListener(gen.fx.env().locations.map, 'click', function (e) {
       google.maps.event.addListener(env.locations.map, 'click', function (e) {
           alert("Latitude: " + e.latLng.lat() + "\r\nLongitude: " + e.latLng.lng());
       });
@@ -4637,7 +4637,6 @@ export const displayGen = function() {
       // https://stackoverflow.com/questions/7905733/google-maps-api-3-get-coordinates-from-right-click
       // also has example of using infoWindow
       /*
-      // google.maps.event.addListener(gen.fx.env().locations.map, "rightclick", function(e) {
       google.maps.event.addListener(env.locations.map, "rightclick", function(e) {
           let lat = e.latLng.lat();
           let lng = e.latLng.lng();
@@ -4650,7 +4649,6 @@ export const displayGen = function() {
       /*
       let marker = new google.maps.Marker({
           position: myLatlng,
-          // map: gen.fx.env().locations.map,
           map: env.locations.map,
           title: 'Click to zoom'
       });
@@ -5022,7 +5020,6 @@ export const displayGen = function() {
       }
 
       if (gps) {
-         // if (gen.fx.env().locations.map_provider == 'google') {
          if (env.locations.map_provider == 'google') {
             let opts = {
                id: id_obj.map.id,
@@ -5032,7 +5029,6 @@ export const displayGen = function() {
             gen.googleMap(opts);
          } 
 
-         // if (gen.fx.env().locations.map_provider == 'leaflet') {
          if (env.locations.map_provider == 'leaflet') {
             // some ideas: https://leanpub.com/leaflet-tips-and-tricks/read
 
@@ -5050,10 +5046,8 @@ export const displayGen = function() {
             // gen.fx.setMap(map);
             env.locations.map = map;
 
-            // let marker = L.marker([+club.lat, +club.long]).addTo(gen.fx.env().locations.map);
             let marker = L.marker([+club.lat, +club.long]).addTo(env.locations.map);
 
-            ////  gen.fx.env().locations.map.on('click', function(e) { alert(e.latlng.lat); });
             // env.locations.map.on('click', function(e) { alert(e.latlng.lat); });
             // http://leafletjs.com/reference.html#events
             map.on('click', function(e) { alert(e.latlng); });
@@ -5062,7 +5056,6 @@ export const displayGen = function() {
             // http://plnkr.co/edit/9vm81YsQxnkAFs35N8Jo?p=preview
             map.on("contextmenu", function (event) {
               console.log("Coordinates: " + event.latlng.toString());
-              // L.marker(event.latlng).addTo(gen.fx.env().locations.map);
               L.marker(event.latlng).addTo(env.locations.map);
             });
          }
@@ -5127,7 +5120,6 @@ export const displayGen = function() {
          defaultDate: date,
          setDefaultDate: true,
          i18n: lang.obj('i18n'),
-         // firstDay: gen.fx.env().calendar.first_day,
          firstDay: env.calendar.first_day,
          onSelect: function() { 
             let this_date = this.getDate();
@@ -5154,7 +5146,6 @@ export const displayGen = function() {
          defaultDate: start,
          setDefaultDate: true,
          i18n: lang.obj('i18n'),
-         // firstDay: gen.fx.env().calendar.first_day,
          firstDay: env.calendar.first_day,
          onSelect: function() { 
             let this_date = this.getDate();
@@ -5172,7 +5163,6 @@ export const displayGen = function() {
       var endPicker = new Pikaday({
          field: end_element,
          i18n: lang.obj('i18n'),
-         // firstDay: gen.fx.env().calendar.first_day,
          firstDay: env.calendar.first_day,
          defaultDate: end,
          setDefaultDate: true,
