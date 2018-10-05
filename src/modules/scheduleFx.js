@@ -284,16 +284,14 @@ export const scheduleFx = function() {
       let second_team = complete && winner_index == 1 ? `<b>${teams[1]}</b>` : (teams[1] || unknownBlock(1));
       let format = lang.tr(`formats.${match.format || ''}`);
 
-      let score = match.score || '';
-      // let reverse_scores = (options && !options.scores_in_draw_order) || (fx.fx.env && fx.fx.env().schedule && !fx.fx.env().schedule.scores_in_draw_order);
+      let score = match.score || match.delegated_score || '';
       let reverse_scores = (options && !options.scores_in_draw_order) || (env.schedule && !env.schedule.scores_in_draw_order);
       if (score && winner_index && reverse_scores) score = dfx.reverseScore(score);
 
-      let match_status = match.status ? `<div class='match_status'>${match.status}</div>` : '&nbsp;';
+      let match_status = match.status ? `<div class='match_status'>${match.status}</div>` : '';
       let category = (match.event && match.event.category) || '';
       let displayed_score = score ? `<div class='match_score${complete ? ' complete' : ''}'>${score}</div>` : match_status;
-      let status_message = (match.status && match.score && !match.umpire) ? match.status : '';
-      let umpire = match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : status_message;
+      let umpire = match_status || (match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : '&nbsp;');
       let heading = match.schedule.heading ? `${match.schedule.heading} ` : '';
       let time_icon = match.schedule.start || match.schedule.end ?
          `${match.schedule.start || ''}&nbsp;<div class='time_header tiny_icon'></div>&nbsp;${match.schedule.end || ''}`: '';
