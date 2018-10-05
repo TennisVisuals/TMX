@@ -117,7 +117,10 @@ export const matchFx = function() {
          round_name: match.round_name || match.match.round_name,
          calculated_round_name: match.calculated_round_name,
 
+         // all score related details should be stored in an object...
          score: match.match.score,
+         delegated_score: match.match.delegated_score,
+
          status: match.match.status,
          tournament: {
             name: tournament.name,
