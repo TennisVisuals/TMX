@@ -568,6 +568,7 @@ export const config = function() {
             rankCalc.pointCalc(ds.getDate());
          }
       }
+      ds.destroy();
    }
 
    fx.search = () => {
@@ -937,6 +938,7 @@ export const config = function() {
 
       document.getElementById('go_home').addEventListener('click', () => {
          tmxTour.clear();
+         env.date_pickers.forEach(d=>d.destroy());
          let state = displayGen.homeIcon();
          if (state == 'home') {
             splash();

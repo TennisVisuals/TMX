@@ -136,6 +136,7 @@ export const playerFx = function() {
                            displayPoints(player, club, points, ranking_date);
                         },
                      });
+                     env.date_pickers.push(rankingDate);
 
                      let ranking_time_series = player.rankings ? processTimeSeries(player.rankings, 'rankings') : undefined;
                      displayGen.displayPlayerRankChart(container, ranking_time_series);
@@ -452,6 +453,7 @@ export const playerFx = function() {
          firstDay: env.calendar.first_day,
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
+      env.date_pickers.push(birthdayPicker);
       let field_order = [ 'last_name', 'first_name', 'birth', 'ioc', 'club', 'phone', 'email', 'cancel', 'save' ];
 
       player_container.last_name.element.focus();
@@ -625,6 +627,7 @@ export const playerFx = function() {
          firstDay: env.calendar.first_day,
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
+      env.date_pickers.push(birthdayPicker);
       let field_order = [ 'last_name', 'first_name', 'ioc', 'school' ];
 
       if (allowed.gender) {

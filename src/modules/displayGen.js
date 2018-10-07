@@ -2446,7 +2446,7 @@ export const displayGen = function() {
          location: displayFx.uuid(),
          location_details: displayFx.uuid(),
          location_attributes: displayFx.uuid(),
-         location_courts: displayFx.uuid(),
+         location_map: displayFx.uuid(),
          points_valid: displayFx.uuid(),
          push2cloud: displayFx.uuid(),
          push2cloud_state: displayFx.uuid(),
@@ -2697,9 +2697,9 @@ export const displayGen = function() {
                   </div>
                   <div>${delete_location}${done}${save_location}${cancel}</div>
                </div>
-               <div class='detail_body'>
+               <div class='location_detail_body'>
                   <div id='${ids.location_attributes}' class='location_attributes'> </div>
-                  <div id='${ids.location_courts}' class='location_courts'>
+                  <div id='${ids.location_map}' class='location_map style='display: none''>
                   </div>
                </div>
             </div>
@@ -3476,6 +3476,8 @@ export const displayGen = function() {
          address: displayFx.uuid(),
          courts: displayFx.uuid(),
          identifiers: displayFx.uuid(),
+         latitude: displayFx.uuid(),
+         longitude: displayFx.uuid(),
          map: displayFx.uuid(),
       };
       let html = `
@@ -3483,15 +3485,7 @@ export const displayGen = function() {
             <div>
                <div class='location_attribute'>
                   <div class='loclabel'>${lang.tr('locations.abbreviation')}:</div>
-                  <input id='${ids.abbreviation}' class='locvalue_short'> 
-               </div>
-               <div class='location_attribute'>
-                  <div class='loclabel'>${lang.tr('locations.name')}:</div>
-                  <input id='${ids.name}' class='locvalue_long'> 
-               </div>
-               <div class='location_attribute'>
-                  <div class='loclabel'>${lang.tr('locations.address')}:</div>
-                  <input id='${ids.address}' class='locvalue_long'> 
+                  <input id='${ids.abbreviation}' placeholder='Court' class='locvalue_short'> 
                </div>
                <div class='location_attribute'>
                   <div class='loclabel'>${lang.tr('locations.courts')}:</div>
@@ -3501,45 +3495,30 @@ export const displayGen = function() {
                   <div class='loclabel'>${lang.tr('locations.identifiers')}:</div>
                   <input id='${ids.identifiers}' placeholder='1, 2, 3, 4' class='locvalue_short'>
                </div>
+               <div class='location_attribute'>
+                  <div class='loclabel'>Latitude</div>
+                  <input id='${ids.latitude}' class='locvalue_short'> 
+               </div>
+               <div class='location_attribute'>
+                  <div class='loclabel'>Longitude</div>
+                  <input id='${ids.longitude}' class='locvalue_short'> 
+               </div>
+               <div class='location_attribute'>
+                  <div class='loclabel'>${lang.tr('locations.name')}:</div>
+                  <input id='${ids.name}' class='locvalue_long'> 
+               </div>
+               <div class='location_attribute'>
+                  <div class='loclabel'>${lang.tr('locations.address')}:</div>
+                  <input id='${ids.address}' class='locvalue_long'> 
+               </div>
             </div>
          </div>
       `;
-            // <div style='height: 100%; width: 100%; min-width: 350px; min-height: 350px;' id='${ids.map}'></div>
-      d3.select(container.location_attributes.element).html(html);
+      container.location_attributes.element.innerHTML = html;
+      container.location_map.element.innerHTML = `
+         <div style='height: 100%; width: 100%; min-width: 350px; min-height: 350px; margin-top: 1em;' id='${ids.map}'></div>
+      `;
       let id_obj = displayFx.idObj(ids);
-
-      let geoposition = env.locations.geoposition;
-      if (geoposition && false) {
-         gpsLocation(geoposition.coords.latitude, geoposition.coords.longitude);
-      }
-
-      function gpsLocation(lat, lng) {
-         let mapLink = '<a href="http://openstreetmap.org">OpenStreetMap</a>';
-         let layer = L.tileLayer(
-            'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-               attribution: '&copy; ' + mapLink + ' Contributors',
-               maxZoom: 18,
-            });
-         let Esri_WorldImagery = L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-         });
-         let map = L.map(id_obj.map.id).setView([+lat, +lng], 16).addLayer(Esri_WorldImagery);
-         let marker = L.marker([+lat, +lng]).addTo(map);
-         
-         setTimeout(function() { map.invalidateSize(); }, 300);
-
-         map.on('click', function(e) {
-            let lat = (e.latlng.lat);
-            let lng = (e.latlng.lng);
-            let newLatLng = new L.LatLng(lat, lng);
-            marker.setLatLng(newLatLng);
-         });
-
-         map.on("contextmenu", function (event) {
-           console.log("Coordinates: " + event.latlng.toString());
-           L.marker(event.latlng).addTo(map);
-         });
-      }
 
       return id_obj;
    }
@@ -3635,7 +3614,7 @@ export const displayGen = function() {
 
       let match_priority = `
          <div style='margin: 1em;'>
-            <ul class="noindent noliststyle"> ${matches} </ul>
+            <ul class='noindent noliststyle match_priority'> ${matches} </ul>
             <div style='margin-top: 1em;'><i>Drag to Reorder</i></div>
          </div>
       `;
@@ -3671,9 +3650,7 @@ export const displayGen = function() {
          </div>
          <div grouping='eligible' class='eligible_teams opponent_container'></div>
       `;
-      // container.detail_opponents.element.innerHTML = match_priority;
 
-      // bug where selecting tab displays tab from another instance of jsTabs...
       let tabdata = [];
       tabdata.push({ tab: 'Opponents', content: detail_opponents });
       tabdata.push({ tab: 'Match Profile', content: match_priority });
@@ -5059,7 +5036,6 @@ export const displayGen = function() {
             });
             // let map = L.map(id_obj.map.id).setView([+club.lat, +club.long], 16).addLayer(layer); // street map
             let map = L.map(id_obj.map.id).setView([+club.lat, +club.long], 16).addLayer(Esri_WorldImagery); // satellite imagery
-            // gen.fx.setMap(map);
             env.locations.map = map;
 
             let marker = L.marker([+club.lat, +club.long]).addTo(env.locations.map);
@@ -5143,6 +5119,7 @@ export const displayGen = function() {
          bound: false,
          container,
       });
+      env.date_pickers.push(datePicker);
       datePicker.setStartRange(new Date(date));
 
       return datePicker;
@@ -5170,6 +5147,7 @@ export const displayGen = function() {
             }
          },
       });
+      env.date_pickers.push(startPicker);
       startPicker.setStartRange(new Date(start));
       if (end) startPicker.setEndRange(new Date(end));
 
@@ -5189,6 +5167,7 @@ export const displayGen = function() {
             }
          },
       });
+      env.date_pickers.push(endPicker);
       endPicker.setStartRange(new Date(start));
       endPicker.setMinDate(new Date(start));
       if (end) endPicker.setEndRange(new Date(end));

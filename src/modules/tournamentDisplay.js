@@ -3000,12 +3000,6 @@ export const tournamentDisplay = function() {
          player_detail.select('.eligible').select('.addall').style('display', e.format == 'D' ? 'none' : 'flex');
       }
 
-      function locationBackground(l, background='white') {
-         if (!l) return;
-         if (tournament.locations.map(v=>v.luid).indexOf(l.luid) < 0) background = 'lightyellow';
-         container.location_details.element.querySelector('.detail_body').style.background = background;
-      }
-
       function autoDrawVisibility(e) {
          let auto_setting = document.querySelector('.' + classes.auto_draw);
          let visibility = e.structure == 'feed' || e.active || !state.edit || !env.draws.autodraw ? 'none' : 'inline';
@@ -3964,12 +3958,44 @@ export const tournamentDisplay = function() {
          eventPlayers(e);
       }
 
+      // TODO: break this out into tmxMaps.js and hide all fx specific to google or leaflet
+      function locationMap({ element_id, coords, zoom }) {
+         zoom = (zoom == undefined) ? 16 : zoom;
+         if (coords.latitude != undefined && coords.longitude != undefined) {
+            container.location_map.element.style.display = 'inline';
+            return gpsLocation(coords.latitude, coords.longitude, zoom);
+         } else {
+            return {};
+         }
+
+         function gpsLocation(lat, lng, zoom) {
+            let view = 'satellite';
+            let layer = L.tileLayer(env.leaflet[view].tileLayer, { attribution: env.leaflet[view].attribution, maxZoom: env.leaflet[view].maxZoom });
+            let map = L.map(element_id).setView([+lat, +lng], zoom).addLayer(layer);
+            let marker = L.marker([+lat, +lng]).addTo(map);
+           
+            // necessary to make the map fill the parent element
+            setTimeout(function() { map.invalidateSize(); }, 300);
+
+            return { map, marker };
+         }
+      }
+
       function configureLocationAttributes(l) {
          let disabled = !state.edit
          let attributes = displayGen.displayLocationAttributes(container, l, state.edit);
 
-         let field_order = [ 'abbreviation', 'name', 'address', 'courts', 'identifiers' ];
-         let constraints = { 'abbreviation': { length: 3 }, 'name': { length: 5 }, 'address': { length: 5 }, 'courts': { number: true } };
+         let zoom = 16;
+         let coords = { latitude: l.latitude, longitude: l.longitude };
+         if (env.locations.geoposition && (!coords.latitude || !coords.longitude)) coords = env.locations.geopostion.coords;
+         if (!coords.latitude && !coords.longitude) {
+            zoom = 2;
+            coords = { latitude: 0, longitude: 0 };
+         }
+         let { map, marker } = locationMap({ element_id: attributes.map.id, coords, zoom });
+
+         let field_order = [ 'abbreviation', 'courts', 'identifiers', 'latitude', 'longitude', 'name', 'address' ];
+         let constraints = { 'abbreviation': { length: 3}, 'name': { length: 4 }, 'address': { length: 5 }, 'courts': { number: true }, 'latitude': { float: true }, 'longitude': { float: true } };
          field_order.forEach(field => {
             attributes[field].element.addEventListener('keydown', catchTab, false);
             attributes[field].element.value = l[field] || '';
@@ -3980,6 +4006,32 @@ export const tournamentDisplay = function() {
          });
 
          setTimeout(function() { attributes.abbreviation.element.focus(); }, 50);
+
+         if (map && state.edit) {
+            map.on('click', function(e) {
+               let lat = (e.latlng.lat);
+               let lng = (e.latlng.lng);
+               let newLatLng = new L.LatLng(lat, lng);
+               marker.setLatLng(newLatLng);
+               let message = 'Update Latitude/Longitude?';
+               displayGen.okCancelMessage(message, () => setLatLng(lat, lng), ()=>displayGen.closeModal());
+            });
+
+            map.on("contextmenu", function (event) {
+              console.log("Coordinates: " + event.latlng.toString());
+              // L.marker(event.latlng).addTo(map);
+            });
+         }
+
+         function setLatLng(lat, lng) {
+            l.latitude = lat;
+            l.longitude = lng;
+            attributes.latitude.element.value = lat;
+            attributes.longitude.element.value = lng;
+            map.setView(new L.LatLng(+l.latitude, +l.longitude), 16);
+            saveTournament(tournament);
+            displayGen.closeModal();
+         }
 
          function nextFieldFocus(field, increment=1, delay=50) {
             let next_field = field_order.indexOf(field) + increment;
@@ -3994,6 +4046,9 @@ export const tournamentDisplay = function() {
             if (!evt && !element) return;
             let value = element.value.trim();
             l[attr] = value;
+            if (evt && evt.which == 13 && map && ['latitude', 'longitude'].indexOf(attr) >= 0) {
+               map.setView(new L.LatLng(+l.latitude, +l.longitude), 16);
+            }
             if (required) {
                let valid = false;
                if (typeof required != 'object') {
@@ -4005,6 +4060,15 @@ export const tournamentDisplay = function() {
                      element.value = parseInt(value);
                      l[attr] = element.value;
                      valid = true;
+                  }
+                  if (required.float) {
+                     if (value.length && value.split('').reverse()[0] == '.') {
+                        valid = false;
+                     } else if (!isNaN(value)) {
+                        element.value = value;
+                        l[attr] = element.value;
+                        valid = true;
+                     }
                   }
                }
                attributes[attr].element.style.background = valid ? 'white' : 'yellow';
@@ -6484,7 +6548,6 @@ export const tournamentDisplay = function() {
          let actions = d3.select(container.location_details.element);
          actions.select('.event_name').html(l.name);
 
-         locationBackground(l);
          configureLocationAttributes(l);
 
          actions.style('display', 'flex');
@@ -9545,6 +9608,7 @@ export const tournamentDisplay = function() {
                }
             },
          });
+         env.date_pickers.push(pointsDatePicker);
          pointsDatePicker.setMinDate(tournament.start);
          penaltyReportIcon();
       }
@@ -9661,6 +9725,7 @@ export const tournamentDisplay = function() {
                }
             },
          })
+         env.date_pickers.push(startPicker);
          var endPicker = new Pikaday({
             field: container.end_date.element,
             defaultDate: end,
@@ -9679,6 +9744,7 @@ export const tournamentDisplay = function() {
                }
             },
          });
+         env.date_pickers.push(endPicker);
 
          container.start_date.element.addEventListener('keydown', catchTab, false);
          container.end_date.element.addEventListener('keydown', catchTab, false);
@@ -10488,6 +10554,7 @@ export const tournamentDisplay = function() {
                calcPlayerPoints({ date: this.getDate(), tournament, container });
             },
          });
+         env.date_pickers.push(startPicker);
 
          let endPicker = new Pikaday({
             field: container.end_date.element,
@@ -10501,62 +10568,12 @@ export const tournamentDisplay = function() {
                calcPlayerPoints({ date: this.getDate(), tournament, container });
             },
          });
+         env.date_pickers.push(endPicker);
 
          updateStartDate();
          updateEndDate();
       }
    }
-
-   /*
-   function optionNames(teams, designator) {
-      let upperName = (opponent) => opponent.name ? opponent.name.toUpperCase() : opponent.last_name.toUpperCase();
-      return teams.map(team => {
-         let seed = team[0].seed && !designator ? ` [${team[0].seed}]` : '';
-
-         // draw_order is order in ranked list of event opponents
-         let draw_order = seed ? '' : team[0].draw_order && !designator ? ` (${team[0].draw_order})` : '';
-
-         let info = designator ? ` [${designator}]` : '';
-         if (team.length == 1) { return opponentName({ opponent: team[0], designator }); }
-         return `${upperName(team[0])}/${upperName(team[1])}${seed}${info}`
-         
-      });
-   }
-
-   function opponentName({ opponent, designator, length_threshold }) {
-      if (!opponent) return '';
-      if (opponent.bye) return lang.tr('bye');
-      if (opponent.qualifier && !opponent.last_name) return lang.tr('qualifier');
-      length_threshold = length_threshold || 30;
-
-      let seed = opponent.seed && !designator ? ` [${opponent.seed}]` : '';
-      let draw_order = seed ? '' : opponent.draw_order && !designator ? ` (${opponent.draw_order})` : '';
-      let info = designator ? ` [${designator}]` : '';
-
-      var text;
-      if (opponent.name) {
-         text = `${uCase(opponent.name)}${seed}${draw_order}${inifo}`;
-         if (text.length > length_threshold && opponent.abbr) text = `${uCase(opponent.abbr)}${seed}${draw_order}${info}`;
-      } else {
-         let first_initial = opponent.first_name ? `, ${opponent.first_name[0]}` : '';
-         let first_name = opponent.first_name ? `, ${opponent.first_name}` : '';
-         let first_first_name = opponent.first_name && opponent.first_name.split(' ').length > 1 ? `, ${opponent.first_name.split(' ')[0]}` : first_name;
-         let last_last_name = opponent.last_name && opponent.last_name.trim().split(' ').length > 1 ? opponent.last_name.trim().split(' ').reverse()[0] : opponent.last_name;
-         let last_name = opponent.last_name ? opponent.last_name : '';
-         let last_first_i = `${uCase(last_name)}${first_initial || ''}${seed}${draw_order}${info}`;
-         let last_last_i = `${uCase(last_last_name)}${first_initial || ''}${seed}${draw_order}${info}`;
-
-         text = `${uCase(last_name)}${first_name}${seed}${draw_order}${info}`;
-         if (text.length > length_threshold) text = `${uCase(last_name)}${first_first_name}${seed}${draw_order}${info}`;
-         if (text.length > length_threshold) text = last_first_i;
-         if (text.length > length_threshold) text = last_last_i;
-      }
-
-      return text;
-
-      function uCase(name) { return name.toUpperCase(); }
-   }
-   */
 
    function drawIsCreated(evt) {
       if (!evt || !evt.draw) return false;

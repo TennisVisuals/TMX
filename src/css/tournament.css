@@ -367,6 +367,31 @@
 
 /* locations */
 
+.attribute_groups {
+   display: flex;
+	flex-wrap: wrap;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
+}
+
+.attribute_group {
+   display: flex;
+   flex-direction: row;
+   -webkit-flex-direction: row;
+   justify-content: space-between;
+   -webkit-justify-content: space-between;
+}
+
+.location_detail_body {
+   padding: .3em;
+   text-align: left;
+   width: 100%;
+   display: flex;
+   flex-direction: column;
+   -webkit-flex-direction: column;
+}
 .location_abbr {
    text-align: left;
    width: 15%;
@@ -394,10 +419,6 @@
    justify-content: flex-start;
    -webkit-align-content: center;
    align-content: center;
-   /*   
-   -webkit-align-items: center;
-   align-items: center;
-   */
 }
 
 .location_attribute {
@@ -405,15 +426,11 @@
    margin-bottom: .5em;
 
    display: flex;
-   flex-wrap: wrap;
+   flex-wrap: nowrap;
    flex-direction: row;
    -webkit-flex-direction: row;
    -webkit-justify-content: flex-start;
    justify-content: flex-start;
-   -webkit-align-content: center;
-   align-content: center;
-   -webkit-align-items: center;
-   align-items: center;
 }
 
 .loclabel {
@@ -425,7 +442,7 @@
 
 .locvalue_long {
    margin-left: .5em;
-   width: 30em;
+   width: 20em;
 }
 
 .locvalue_short {
@@ -436,6 +453,10 @@
 .location_courts {
    margin-left: .5em;
    width: 2em;
+}
+
+.location_map {
+   width: 100%;
 }
 
 /* teams */

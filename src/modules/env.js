@@ -1,9 +1,11 @@
 export const env = {
 
+   date_pickers: [],
+
    first_time_user: false,
 
    // version is Major.minor.added.changed.fixed
-   version: '1.2.23.50.41',
+   version: '1.2.24.53.42',
    version_check: undefined,
    reset_new_versions: false,
 
@@ -44,6 +46,17 @@ export const env = {
       geoposition: undefined,
       map: undefined,
       map_provider: 'leaflet', // 'google' or 'leaflet'
+   },
+   leaflet: {
+      map: {
+         tileLayer: 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 
+         attribution: '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a> Contributors',
+         maxZoom: 18
+      },
+      satellite: {
+         tileLayer: 'http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+         attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+      }
    },
    calendar: {
       start: undefined,

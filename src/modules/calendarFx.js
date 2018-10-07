@@ -58,6 +58,7 @@ export const calendarFx = function() {
             generateCalendar({ start, end, category });
          },
       });
+      env.date_pickers.push(startPicker);
 
       var endPicker = new Pikaday({
          field: calendar_container.end.element,
@@ -72,6 +73,7 @@ export const calendarFx = function() {
             generateCalendar({ start, end, category });
          },
       });
+      env.date_pickers.push(endPicker);
 
       updateStartDate();
       updateEndDate();
@@ -359,6 +361,7 @@ export const calendarFx = function() {
             }
          },
       });
+      env.date_pickers.push(startPicker);
       startPicker.setStartRange(new Date(start));
       if (end) startPicker.setEndRange(new Date(end));
 
@@ -378,6 +381,7 @@ export const calendarFx = function() {
             }
          },
       });
+      env.date_pickers.push(endPicker);
       endPicker.setStartRange(new Date(start));
       endPicker.setMinDate(new Date(start));
       if (end) endPicker.setEndRange(new Date(end));
