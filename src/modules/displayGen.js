@@ -1061,7 +1061,7 @@ export const displayGen = function() {
          </div>`;
       let score_icon = `
          <div class='${gen.info} flexcenter' label='${lang.tr("scr")}'>
-            <img src="./icons/scoreboard.png" style='width: 30px;'>
+            <img class='score_header' src="./icons/scoreboard.png" style='width: 30px;'>
          </div>`;
       let court_icon = `
          <div class='flexcenter ${gen.info}' style='width: 100%' label='${lang.tr("crt") || "Court"}'>
@@ -2570,13 +2570,13 @@ export const displayGen = function() {
 
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
-            <div class='tourlink icon_margin' context='tournament_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
+            <div class='tourlink icon_margin' context='tournament_tab'><div class='tiny_tour_icon'></div></div>
             <div class='doclink' url='tmx_tournament_information'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
 
       let points_tab = `
-         <div>
+         <div class='tab_section points_tab'>
             <div class='filter_row'>
                <div class='category_filter'>
                   <div class='calendar_date' style='font-weight: bold'>
@@ -2602,7 +2602,9 @@ export const displayGen = function() {
                </div>
                <div id='${ids.points}' class='player_points'></div>
             </div>
-
+         </div>
+         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='tourlink icon_margin' context='points_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
          </div>
       `;
 
@@ -2672,6 +2674,7 @@ export const displayGen = function() {
             </div>
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='tourlink icon_margin' context='teams_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
             <div class='doclink' url='tmx_tournament_teams'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
@@ -2702,10 +2705,10 @@ export const displayGen = function() {
             </div>
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='tourlink icon_margin' context='courts_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
             <div class='doclink' url='tmx_tournament_courts'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
-
 
       let schedule_tab = `
          <div id='${ids.schedule_tab}' class='schedule_tab'>
@@ -2753,10 +2756,14 @@ export const displayGen = function() {
             </div>
             <div id='${ids.schedule}' class='schedule_sheet'> </div>
          </div>
+         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='tourlink icon_margin' context='schedule_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
+            <div class='doclink' url='tmx_tournament_schedule'><div class='tiny_docs_icon' style='display: none'></div></div>
+         </div>
       `;
 
       let matches_tab = `
-         <div>
+         <div class='tab_section matches_tab'>
             <div class='filters'>
                <div class='${classes.filter_m}'><div class='filter_m action_icon filter_m_selected'></div></div>
                <div class='${classes.filter_w}'><div class='filter_w action_icon filter_w_selected'></div></div>
@@ -2767,12 +2774,13 @@ export const displayGen = function() {
             <div id='${ids.matches}' class='tournament_match flexcol flexcenter'> </div>
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='tourlink icon_margin' context='matches_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
             <div class='doclink' url='tmx_tournament_matches'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
 
       let draws_tab = `
-         <div class='draws'>
+         <div class='tab_section draws'>
             <div class='draw_options'>
                <div class='options_left'>
                   <div class='select_draw' id='${ids.select_draw}'></div>
@@ -2807,6 +2815,7 @@ export const displayGen = function() {
             </div>
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+            <div class='tourlink icon_margin' context='draws_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
             <div class='doclink' url='tmx_tournament_draws'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
@@ -2862,8 +2871,6 @@ export const displayGen = function() {
       ];
       let tabs = jsTabs.generate({ tabs: tabdata });
       let tab_refs = Object.assign({}, ...tabdata.map((t, i)=>({[t.ref]: i})));
-
-            //<img src='./icons/keys.png' class='club_link'>
       let authorize_button = `
          <div id='${ids.authorize}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.key")}' style='display: none'>
             <div class='action_icon_1_5 keys_black'></div>
@@ -3635,20 +3642,20 @@ export const displayGen = function() {
 
       let match_points = `
          <div style='margin: 1em;'>
+            <div style='margin-bottom: 1em;'><b>Singles Best-of Scoring</b></div>
             <div style='margin-bottom: 1em;'><b>Doubles Best-of Scoring</b></div>
-            <div style='margin-bottom: 1em;'><b>GEM Scores decide Ties</b></div>
+            <div style='margin-bottom: 1em; text-decoration: line-through;'><b>Doubles One-Point best of Scoring</b></div>
+            <div style='margin-bottom: 1em; text-decoration: line-through;'><b>GEM Scores decide Ties</b></div>
          </div>
       `;
 
       let removeall = !edit ? '' : `<div class='removeall ${gen.infoleft}' label='${lang.tr("tournaments.removeall")}'>-</div>`;
       let addall = !edit ? '' : `<div class='addall ${gen.infoleft}' label='${lang.tr("tournaments.addall")}'>+</div>`;
       let promoteall = !edit ? '' : `<div class='promoteall ${gen.infoleft}' label='${lang.tr("tournaments.addall")}'>+</div>`;
-      let approved_count = e && e.approved && e.approved.length ? `(${e.approved.length})` : '';
-      let eligible_count = '';
 
       let detail_opponents = `
          <div class='flexrow divider approved'>
-            <div>${lang.tr('events.approved')} <span id='${ids.approved_count}'>${approved_count}</span></div>
+            <div>${lang.tr('events.approved')} <span id='${ids.approved_count}'></span></div>
             ${removeall}
          </div>
          <div grouping='approved' class='approved_teams opponent_container'></div>
@@ -3673,7 +3680,10 @@ export const displayGen = function() {
       tabdata.push({ tab: 'Match Points', content: match_points });
 
       container.detail_opponents.element.innerHTML = jsTabs.generate({ tabs: tabdata, shadow: false });
-      return jsTabs.load({ el: container.detail_opponents.element, callback: tabCallback, tab });
+      jsTabs.load({ el: container.detail_opponents.element, callback: tabCallback, tab });
+
+      let id_obj = displayFx.idObj(ids);
+      return id_obj;
    }
 
    gen.displayEventDetails = ({ tournament, container, e, genders, inout, surfaces, formats, draw_types, edit }) => {
@@ -3891,6 +3901,12 @@ export const displayGen = function() {
    gen.displayEventTeams = ({ container, approved, eligible }) => {
       genGrouping(approved, 'approved');
       genGrouping(eligible, 'eligible');
+
+      let approved_count = approved && approved.length ? `(${approved.length})` : '';
+      let eligible_count = eligible && eligible.length ? `(${eligible.length})` : '';
+
+      container.approved_count.element.innerHTML = approved_count;
+      container.eligible_count.element.innerHTML = eligible_count;
 
       function genGrouping(teams, group_class) {
          let html = teams.map(row => opponentBox(row)).join('');
@@ -4229,7 +4245,7 @@ export const displayGen = function() {
 
    gen.displayTeamPlayers = ({ elem, players=[], team }) => {
       let html = `
-         <div class='team_player team_header'>
+         <div class='team_player team_header team_players_header'>
             <div class='flexrow'>
                <div class='rankrow manualorder'>#</div>
                <div>${lang.tr('pyr')}</div>
@@ -4259,7 +4275,7 @@ export const displayGen = function() {
                   <input puid='${player.puid}' order='${i}' class='rankrow manualorder' value='${player_order}' disabled>
                   <div class='contextAction flexcenter' contextaction='deleteTeamPlayer'>${player.last_name.toUpperCase()}, ${player.first_name} </div>
                </div>
-               <div class='flexcenter' style='padding-right: 2px;'>${player.sex}</div>
+               <div class='flexcenter' style='padding-right: 2px;'>${player.sex || 'X'}</div>
             </div>
          `;
          display_order[p.puid] = i;
@@ -5085,7 +5101,6 @@ export const displayGen = function() {
    function getRanks(tournament) {
       let tournament_date = tournament && (tournament.points_date || tournament.end);
       let calc_date = tournament_date ? new Date(tournament_date) : new Date();
-      // let points_table = gen.fx.pointsTable({calc_date});
       let points_table = rankCalc.pointsTable({calc_date});
       let rankings = [{key: '-', value: ''}];
       return !points_table.rankings ? rankings : rankings.concat(...Object.keys(points_table.rankings).map(r => ({ key: r, value: r })));
@@ -5094,13 +5109,11 @@ export const displayGen = function() {
    function getCategories(tournament) {
       let tournament_date = tournament && (tournament.points_date || tournament.end);
       let calc_date = tournament_date ? new Date(tournament_date) : new Date();
-      // let points_table = gen.fx.pointsTable({calc_date});
       let points_table = rankCalc.pointsTable({calc_date});
       let categories = [{key: '-', value: ''}];
       return !points_table.categories ? categories : categories
          .concat(...Object.keys(points_table.categories)
          .map(r => ({ key: r, value: r })));
-         // .map(r => ({ key: staging.legacyCategory(r, true), value: r })));
    }
 
    function getGenders() {
