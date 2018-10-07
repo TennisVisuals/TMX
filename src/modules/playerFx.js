@@ -21,11 +21,6 @@ export const playerFx = function() {
       displayTournament: () => console.log('display tournament'),
    };
 
-   // fx.fx = {
-      // env: () => { console.log('environment request'); return {}; },
-      // pointsTable: () => console.log('points table'),
-   // }
-
    fx.resetPlayerAction = () => {
       fx.action = undefined;
       fx.notInDB = undefined;
@@ -58,7 +53,6 @@ export const playerFx = function() {
 
    fx.optionsAllPlayers = ({ filter_values } = {}) => {
       return new Promise((resolve, reject) => {
-         // let env = fx.fx.env();
          var noaccents = !env.searchbox.diacritics;
 
          db.findAllPlayers().then(arr => {
@@ -136,7 +130,6 @@ export const playerFx = function() {
                         defaultDate: ranking_date,
                         setDefaultDate: true,
                         i18n: lang.obj('i18n'),
-                        // firstDay: fx.fx.env().calendar.first_day,
                         firstDay: env.calendar.first_day,
                         onSelect: function() { 
                            ranking_date = this.getDate();
@@ -456,7 +449,6 @@ export const playerFx = function() {
          defaultDate: start_date,
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
-         // firstDay: fx.fx.env().calendar.first_day,
          firstDay: env.calendar.first_day,
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
@@ -474,7 +466,6 @@ export const playerFx = function() {
       if (player.sex) player_container.gender.ddlb.setValue(player.sex, 'white');
 
       // IOC Awesomplete
-      // let ioc_codes = fx.fx.env().ioc_codes || [];
       let ioc_codes = env.ioc_codes || [];
       let list = ioc_codes.map(d => ({ label: d.name, value: d.ioc }));
       player_container.ioc.typeAhead = new Awesomplete(player_container.ioc.element, { list });
@@ -593,7 +584,6 @@ export const playerFx = function() {
 
    fx.editPlayer = editPlayer;
    function editPlayer({player_data={}, category, callback, date=new Date()} = {}) {
-      // let allowed = fx.fx.env().editing.players;
       let allowed = env.editing.players;
       let player = {
          first_name: player_data.first_name,
@@ -632,7 +622,6 @@ export const playerFx = function() {
          setDefaultDate: true,
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
-         // firstDay: fx.fx.env().calendar.first_day,
          firstDay: env.calendar.first_day,
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
@@ -653,7 +642,6 @@ export const playerFx = function() {
       }
 
       // IOC Awesomplete
-      // let ioc_codes = fx.fx.env().ioc_codes || [];
       let ioc_codes = env.ioc_codes || [];
       let list = ioc_codes.map(d => ({ label: d.name, value: d.ioc }));
       player_container.ioc.typeAhead = new Awesomplete(player_container.ioc.element, { list });
@@ -740,6 +728,57 @@ export const playerFx = function() {
       player_container.save.element.addEventListener('click', saveEditedPlayer);
       player_container.save.element.addEventListener('keydown', handleSaveKeyDown, false);
       player_container.save.element.addEventListener('keyup', handleSaveKeyUp, false);
+   }
+
+   fx.teamOptionNames = teamOptionNames;
+   function teamOptionNames(teams, designator) {
+      let upperName = (opponent) => opponent.name ? opponent.name.toUpperCase() : opponent.last_name.toUpperCase();
+      return teams.map(team => {
+         let seed = team[0].seed && !designator ? ` [${team[0].seed}]` : '';
+
+         // draw_order is order in ranked list of event opponents
+         let draw_order = seed ? '' : team[0].draw_order && !designator ? ` (${team[0].draw_order})` : '';
+
+         let info = designator ? ` [${designator}]` : '';
+         if (team.length == 1) { return opponentName({ opponent: team[0], designator }); }
+         return `${upperName(team[0])}/${upperName(team[1])}${seed}${info}`
+         
+      });
+   }
+
+   fx.opponentName = opponentName;
+   function opponentName({ opponent, designator, length_threshold }) {
+      if (!opponent) return '';
+      if (opponent.bye) return lang.tr('bye');
+      if (opponent.qualifier && !opponent.last_name) return lang.tr('qualifier');
+      length_threshold = length_threshold || 30;
+
+      let seed = opponent.seed && !designator ? ` [${opponent.seed}]` : '';
+      let draw_order = seed ? '' : opponent.draw_order && !designator ? ` (${opponent.draw_order})` : '';
+      let info = designator ? ` [${designator}]` : '';
+
+      var text;
+      if (opponent.name) {
+         text = `${uCase(opponent.name)}${seed}${draw_order}${inifo}`;
+         if (text.length > length_threshold && opponent.abbr) text = `${uCase(opponent.abbr)}${seed}${draw_order}${info}`;
+      } else {
+         let first_initial = opponent.first_name ? `, ${opponent.first_name[0]}` : '';
+         let first_name = opponent.first_name ? `, ${opponent.first_name}` : '';
+         let first_first_name = opponent.first_name && opponent.first_name.split(' ').length > 1 ? `, ${opponent.first_name.split(' ')[0]}` : first_name;
+         let last_last_name = opponent.last_name && opponent.last_name.trim().split(' ').length > 1 ? opponent.last_name.trim().split(' ').reverse()[0] : opponent.last_name;
+         let last_name = opponent.last_name ? opponent.last_name : '';
+         let last_first_i = `${uCase(last_name)}${first_initial || ''}${seed}${draw_order}${info}`;
+         let last_last_i = `${uCase(last_last_name)}${first_initial || ''}${seed}${draw_order}${info}`;
+
+         text = `${uCase(last_name)}${first_name}${seed}${draw_order}${info}`;
+         if (text.length > length_threshold) text = `${uCase(last_name)}${first_first_name}${seed}${draw_order}${info}`;
+         if (text.length > length_threshold) text = last_first_i;
+         if (text.length > length_threshold) text = last_last_i;
+      }
+
+      return text;
+
+      function uCase(name) { return (name && name.toUpperCase()) || '' }
    }
 
    return fx;
