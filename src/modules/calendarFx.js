@@ -191,6 +191,7 @@ export const calendarFx = function() {
 
       var trny = Object.assign({}, tournament_data);
       if (!trny.org) trny.org = env.org;
+      if (!trny.events) trny.events = [];
       if (!trny.metadata) trny.metadata = { format_version };
 
       var { container } = displayGen.createNewTournament(title, trny);
