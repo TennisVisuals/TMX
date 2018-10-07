@@ -1980,9 +1980,11 @@ export function drawFx(opts) {
       seed_limits: [ [0, 0], [4, 2], [11, 4], [21, 8], [41, 16], [97, 32] ],
       bye_placement: {
          "8": [2, 7, 5],
+         "12": [2, 11, 7],
          "16": [2, 15, 11, 6, 7, 10, 14],
+         "24": [2, 23, 14, 11, 8, 17, 20],
          "32": [2, 31, 23, 10, 15, 18, 26, 7, 6, 27, 19, 14, 11, 22, 30],
-         "64": [2, 63, 47, 18, 31, 34, 50, 15, 10, 55, 39, 26, 23,42, 58, 7, 5, 60, 44, 21, 28, 37, 53, 12, 13, 52, 36, 29, 20, 45, 61]
+         "64": [2, 63, 47, 18, 31, 34, 50, 15, 10, 55, 39, 26, 23, 42, 58, 7, 5, 60, 44, 21, 28, 37, 53, 12, 13, 52, 36, 29, 20, 45, 61],
       },
       compressed_draw_formats: true,
       fixed_bye_order: false,
@@ -3001,18 +3003,14 @@ export function drawFx(opts) {
       // first round matches with seeded position
       let pairs_with_seed = paired_positions.filter(f=>intersection(seed_positions, f).length > 0);
 
-      if (!info.structural_byes.length) {
-         let draw_size = info.draw_positions.length;
-         let bp = o.fixed_bye_order && o.bye_placement;
+      let draw_size = info.draw_positions.length;
+      let bp = o.fixed_bye_order && o.bye_placement;
 
+      if (!info.structural_byes.length) {
          if (bp[draw_size] && bp[draw_size].length >= bye_positions.length) {
             bye_positions = bye_positions.map((p, i) => bp[draw_size][i]);
          } else {
             let seed_placements = current_draw.seed_placements ? [].concat(...current_draw.seed_placements.map(m=>m.placements)).map(m=>m.position) : [];
-
-            // function isSeed(p) { return seed_placements.indexOf(p) >= 0; }
-            // let pws = pairs_with_seed.filter(p=>!isSeed(p[0]) || !isSeed(p[1]));
-            // let filtered_pairs = bye_positions.map((b, i) => pws[i]); 
 
             // if there are structural byes, then no seed should need bye
             // if there are not structural byes, distribute byes to seeds first, by seed order
@@ -3040,12 +3038,16 @@ export function drawFx(opts) {
          let pairs_no_seed_or_bye = pairs_no_seed.filter(pair => !intersection(pair, assignment).length);
          let flat_pairs = [].concat(...pairs_no_seed_or_bye);
 
-         // redefined undefined bye_positions to either be those asigned to adjacent pairs or pairs_no_seed_or_bye
-         bye_positions = assignment.map(b => {
-            if (b) return b;
-            if (pairs_no_seed_or_bye.length) return randomPop(pairs_no_seed_or_bye)[Math.floor(Math.random() * 2)];
-            console.log('filtered bye position')
-         }).filter(f=>f);
+         if (bp[draw_size] && bp[draw_size].length >= bye_positions.length) {
+            bye_positions = bye_positions.map((p, i) => bp[draw_size][i]);
+         } else {
+            // redefined undefined bye_positions to either be those asigned to adjacent pairs or pairs_no_seed_or_bye
+            bye_positions = assignment.map(b => {
+               if (b) return b;
+               if (pairs_no_seed_or_bye.length) return randomPop(pairs_no_seed_or_bye)[Math.floor(Math.random() * 2)];
+               console.log('filtered bye position')
+            }).filter(f=>f);
+         }
 
          // redefine pairs_no_seed to filter out pairs_no_seed_or_bye
          pairs_no_seed = pairs_no_seed.filter(pair => !intersection(pair, flat_pairs));
