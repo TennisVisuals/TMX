@@ -219,6 +219,7 @@ export const scheduleFx = function() {
             <div class='schedule_grid'>
                <div class='schedule_slots'>
                   <div class='oop_round_header'>
+                     <div class='tourlink icon_margin' context='schedule_tab'><div class='tiny_tour_icon' style='display: ${displaydocs}'></div></div>
                      <div class='doclink' url='tmx_tournament_schedule'><div class='tiny_docs_icon' style='display: ${displaydocs}'></div></div>
                   </div>
                   ${oop_round}
