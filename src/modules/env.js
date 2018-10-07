@@ -3,7 +3,7 @@ export const env = {
    first_time_user: false,
 
    // version is Major.minor.added.changed.fixed
-   version: '1.2.20.43.35',
+   version: '1.2.23.50.41',
    version_check: undefined,
    reset_new_versions: false,
 
