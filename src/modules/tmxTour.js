@@ -384,6 +384,8 @@ function scheduleTabTour() {
 function drawsTabTour() {
    if (!containers.tournament) return;
 
+   let teams = tElement('teams');
+
    let componentObj = (obj, intro) => ({ element: containers.tournament[obj].element, disableInteraction: true, intro });
 
    let steps = [
@@ -399,9 +401,15 @@ function drawsTabTour() {
    ]
    components.forEach(component => { if (tElement(component.step)) steps.push(componentObj(component.step, component.intro)); });
 
-   let class_objs = [
+   let player_classes = [
       { class: 'print_draw', intro: `<b>Generate PDF</b><p>Context sensitive PDFs<p>Generates printable PDF of the current draw<p>Generates "Player Order" If players/teams have not all been placed<p>Player Order is used to determine player draw positions when drawing numbers randomly` },
    ]
+
+   let team_classes = [
+      { class: 'print_draw', intro: `<b>Generate PDF</b><p>Context sensitive PDFs<p>Generates printable PDF of the current draw<p>Generates table of Dual Matches If a team match node has been selected (dual matches are visible)` },
+   ]
+
+   let class_objs = teams ? team_classes : player_classes;
 
    class_objs.forEach(cobj => {
       let element = tClass({ cls: cobj.class, parent_class: 'draws' });
