@@ -20,21 +20,29 @@ export const tmxTour = function() {
       let hints = document.querySelector('.introjs-hints');
       if (hints) hints.remove();
    }
-
    fx.hideHints = () => { guide.hideHints(); }
-
+   fx.active = () => document.querySelector('.introjs-overlay');
    fx.splashContainer = (container) => { containers.splash = container; }
+
+   fx.calendarContainer = (container) => { containers.calendar = container; }
    fx.tournamentContainer = (container, classes) => {
       containers.tournament = container;
       cobjs.tournament = classes;
    }
-   fx.calendarContainer = (container) => { containers.calendar = container; }
 
    fx.tournamentTours = (context) => {
+      if (context == 'calendar') return calendarTour();
       if (context == 'tournament_tab') return tournamentTabTour();
       if (context == 'events_tab') return eventsTabTour();
+      if (context == 'draws_tab') return drawsTabTour();
+      if (context == 'schedule_tab') return scheduleTabTour();
       if (context == 'players_tab') return playersTabTour();
-      if (context == 'calendar') return calendarTour();
+      if (context == 'matches_tab') return matchesTabTour();
+      if (context == 'points_tab') return pointsTabTour();
+
+      // TODO
+      if (context == 'courts_tab') return courtsTabTour();
+      if (context == 'teams_tab') return teamsTabTour();
    }
    fx.tournamentHints = (context) => {
       if (context == 'events_tab') return eventsTabHints();
@@ -47,7 +55,7 @@ export const tmxTour = function() {
    fx.splashTour = () => {
       if (!containers.splash) return;
 
-      let componentObj = (obj, intro, position='bottom') => ({ element: containers.splash[obj].element, disableInteraction: true, intro, position });
+      let splashObj = (obj, intro, position='bottom') => ({ element: containers.splash[obj].element, disableInteraction: true, intro, position });
 
       let steps = [];
 
@@ -69,7 +77,7 @@ export const tmxTour = function() {
       ];
 
       elements.forEach(obj => steps.push(introObj(obj.element, obj.intro)));
-      components.forEach(component => { if (sElement(component.step)) steps.push(componentObj(component.step, component.intro)); });
+      components.forEach(component => { if (sElement(component.step)) steps.push(splashObj(component.step, component.intro)); });
 
       steps.push({
          intro: `<b>Hints</b><p>Context Sensitive Hints are also available when you see the Hint Icon at the bottom of the page <div class='dotdot'></div>`,
@@ -145,7 +153,7 @@ function calendarTour() {
       { step: 'category', intro: 'Filter player list by category (Age or Rating)<p>Categories are defined by organization keys' },
       { step: 'add', intro: 'Click to create a new tournament and add it to the calendar' },
    ]
-   let header = components.map(component => { if (cElement(component.step)) return componentObj(component.step, component.intro); }).filter(f=>f);
+   let header = components.map(component => { if (cVisible(component.step)) return componentObj(component.step, component.intro); }).filter(f=>f);
 
    let target_classes = [
       { class: 'calendar_highlight', intro: 'Click on a tournament to view it<p>Right click to edit basic tournament details or to delete from the calendar' },
@@ -154,6 +162,251 @@ function calendarTour() {
    let targets = targetClasses('calendar', 'rows', target_classes);
 
    let steps = introduction.concat(...header, ...targets);
+
+   guide.setOptions({ steps });
+   guide.start();
+}
+
+function courtsTabTour() {
+   if (!containers.tournament) return;
+
+   let componentObj = (obj, intro) => ({ element: containers.tournament[obj].element, disableInteraction: true, intro });
+
+   let steps = [
+      { intro: `<b>Courts Tab</b><p>Define locations where tournament matches will be held<p>Specify the number of courts available at each location`, },
+   ];
+
+   guide.setOptions({ steps });
+   guide.start();
+}
+
+function pointsTabTour() {
+   if (!containers.tournament) return;
+
+  let componentObj = (obj, intro) => ({ element: containers.tournament[obj].element, disableInteraction: true, intro });
+
+   let steps = [
+      { intro: `<b>Points Tab</b><p>View points awarded for completed matches`, },
+   ];
+
+   let class_objs = [
+      { class: 'calendar_date', intro: '<b>Point Validity</b><p>Specify a date on which points become valid for rank list calculations' },
+      { class: 'filter_m', intro: 'Toggle visibility of points awarded for Male players' },
+      { class: 'filter_w', intro: 'Toggle visibility of points awarded for Female players' },
+   ]
+
+   class_objs.forEach(cobj => {
+      let element = tClass({ cls: cobj.class, parent_class: 'points_tab' });
+      if (element) steps.push(introObj(element, cobj.intro, cobj.position));
+   });
+
+   let components = [
+      { step: 'export_points', intro: '<b>Export Points</b><p>Download points awarded in JSON or CSV format<p>Additional export formats may be added with Configuration Keys' },
+   ]
+   components.forEach(component => { if (tElement(component.step)) steps.push(componentObj(component.step, component.intro)); });
+
+   guide.setOptions({ steps });
+   guide.start();
+}
+
+function matchesTabTour() {
+   if (!containers.tournament) return;
+
+  let componentObj = (obj, intro) => ({ element: containers.tournament[obj].element, disableInteraction: true, intro });
+
+   let steps = [
+      { intro: `<b>Matches Tab</b><p>View completed matches; score and change the status of scheduled and unscheduled matches`, },
+   ];
+
+   let class_objs = [
+      { class: 'filter_m', intro: 'Toggle visibility of matches played by Male players' },
+      { class: 'filter_w', intro: 'Toggle visibility of matches played by Female players' },
+   ]
+
+   class_objs.forEach(cobj => {
+      let element = tClass({ cls: cobj.class, parent_class: 'matches_tab' });
+      if (element) steps.push(introObj(element, cobj.intro, cobj.position));
+   });
+
+   let components = [
+      { step: 'export_matches', intro: '<b>Export Matches</b><p>Download match records in JSON or CSV format<p>Configuration keys are capable of adding additional download formats' },
+   ]
+   components.forEach(component => { if (tElement(component.step)) steps.push(componentObj(component.step, component.intro)); });
+
+   let column_headers = [
+      { class: 'match_block', intro: '<b>Match Actions</b><p>Click on an individual match row to set Start Time, Finish Time, Match Status, or enter a Score' },
+      { class: 'drawsize_header', intro: '<b>Match Round</b><p>Round of a draw in which match occurred' },
+      { class: 'status_header', intro: '<b>Match Status</b><p>Whether a match has been called to court, is in progress, or play has been suspended' },
+      { class: 'cal_header', intro: '<b>Match Date</b><p>' },
+      { class: 'surface_header', intro: '<b>Match Surface</b><p>' },
+      { class: 'time_header', intro: '<b>Completion Time</b><p>' },
+      { class: 'score_header', intro: '<b>Match Score</b><p>' },
+      { class: 'duration_header', intro: '<b>Match Duration</b><p>If start times and finish times have been entered for a match then a match duration is calculated' },
+   ]
+
+   if (tElement('matches')) {
+      let matches = containers.tournament.matches.element;
+
+      column_headers.forEach(action => {
+         let element = matches.querySelector(`.${action.class}`);
+         if (element) steps.push(introObj(element, action.intro));
+      });
+   }
+
+   guide.setOptions({ steps });
+   guide.start();
+}
+
+function teamsTabTour() {
+   if (!containers.tournament) return;
+
+   let componentObj = (obj, intro) => ({ element: containers.tournament[obj].element, disableInteraction: true, intro });
+
+   let overview = [
+      { intro: `<b>Teams Tab</b><p>Create and manage teams`, },
+   ];
+
+   let adding_players = [
+      { intro: `<b>Teams Tab</b><p>Add players to the currently selected team using the multi-function search box at the top of the screen`, },
+   ];
+
+   let components = [ { step: 'add_team', intro: 'The first step is to add a team!' }, ]
+   let basic = components.map(component => (tVisible(component.step)) ? componentObj(component.step, component.intro) : undefined).filter(f=>f);
+
+   let teams_classes = [
+      {
+         class: 'team_header',
+         intro: '<b>Teams List</b><p>Dashboard view of team details including number of players, number of matches, and matches won/lost'
+      },
+   ]
+
+   let team_details_classes = [
+      { class: 'team_display_name', intro: 'Click to customize team name' },
+   ]
+   let team_details_actions = [
+      { class: 'del', intro: '<b>Delete Team</b><p>Delete the currently selected team' },
+      { class: 'done', intro: '<b>Done</b><p>Close team details<p>You can also click on teams in the team list to toggle the detail view' },
+   ]
+   let teams_list = targetClasses('tournament', 'teams', teams_classes);
+   let details = targetClasses('tournament', 'team_details', team_details_classes);
+   let actions = targetClasses('tournament', 'team_details', team_details_actions);
+
+   let detail_classes = [
+      { class: 'team_rankings', intro: '<b>Team Rankings</b><p>Toggle edit fields to determine player order within teams' },
+      { class: 'share_team', intro: '<b>Share Team</b><p>Generate a key which will allow the team to be accessed from other instances of CourtHive/TMX' },
+   ]
+
+   let detail_actions = detail_classes.map(cobj => {
+      let element = tClass({ cls: cobj.class, element_name: 'team_details' });
+      if (element) return introObj(element, cobj.intro, cobj.position);
+   }).filter(f=>f);
+
+   let players_classes = [
+      { class: 'team_players_header', intro: '<b>Team Players</b><p>Right click on a player to delete from the team' }
+   ]
+
+   let players_items = [];
+   if (tElement('team_details')) {
+      let team_details = containers.tournament.team_details.element;
+
+      players_items = players_classes.map(item => {
+         let element = team_details.querySelector(`.${item.class}`);
+         if (element) return introObj(element, item.intro);
+      }).filter(f=>f);
+   }
+
+   let steps = [];
+   if (details.length) {
+      steps = adding_players.concat(...details, ...actions, ...detail_actions, ...players_items);
+   } else {
+      steps = overview.concat(...basic, ...teams_list);
+   }
+
+   guide.setOptions({ steps });
+   guide.start();
+}
+
+function scheduleTabTour() {
+   if (!containers.tournament) return;
+
+   let componentObj = (obj, intro) => ({ element: containers.tournament[obj].element, disableInteraction: true, intro });
+
+   let steps = [
+      { intro: `<b>Schedule Tab</b><p>In addition to scheduling matches you can add an umpire, change match status and score matches`, },
+   ];
+
+   let components = [ { step: 'schedule_day', intro: '<b>Schedule Day</b><p>Select the day of the tournament to view/edit' }, ];
+   components.forEach(component => { if (tElement(component.step)) steps.push(componentObj(component.step, component.intro)); });
+
+   let class_objs = [
+      { class: 'schedule_matches', intro: `<b>Schedule Matches</b><p>Toggle Scheduling Mode<p>When activated a list of unscheduled matches is visible and matches can be dragged and dropped into schedule cells` },
+      { class: 'schedule_details', intro: `<b>Schedule Details</b><p>Enter Notices (such as weather updates) and Umpire Notes regarding the order of play<p>These details will appear on PDFs as well as CourtHive.com/Live` },
+      { class: 'print_schedule', intro: `<b>Generate PDF</b><p>A PDF is generated for the currently selected day of the tournament` },
+      { class: 'publish_schedule', intro: `<b>Publish Schedule</b><p>Schedules are instantly available online at CourtHive.com/Live<p>White: Unpublished<br>Blue: Published<br>Yellow: Out of Date` },
+   ]
+
+   class_objs.forEach(cobj => {
+      let element = tClass({ cls: cobj.class, parent_class: 'schedule_tab' });
+      if (element) steps.push(introObj(element, cobj.intro, cobj.position));
+   });
+
+   if (tElement('scheduling')) {
+      let scheduling = [
+         { step: 'event_filter', intro: '<b>Event Filter</b><p>Matches to be scheduled can be filterd by the event in which they occur' },
+         { step: 'round_filter', intro: `<b>Round Filter</b><p>Matches to be scheduled can be filtered by the round in which they occur` },
+         { step: 'dual_filter', intro: '<b>Dual Matches Filter</b><p>Dual Matches can be filtered by the Teams which are competing' },
+         { step: 'order_filter', intro: `<b>Order Filter</b><p>Round Robin matches can be filtered by the order in which they are played` },
+         { step: 'autoschedule', intro: `<b>Auto Schedule</b><p>Automatically fills available schedule cells starting with a defined row` },
+         { step: 'clearschedule', intro: `<b>Clear Schedule</b><p>Remove scheduled matches<p>Filters can used to clear specific matches` },
+         { step: 'unscheduled', intro: `<b>Unscheduled Matches</b><p>Matches can be dragged and dropped into schedule cells<p>Clicking on schedule cells presents a search box which allows matches to be 'pulled' into a cell by typing player names` },
+      ]
+   scheduling.forEach(component => { if (tElement(component.step)) steps.push(componentObj(component.step, component.intro)); });
+   }
+
+   if (tElement('schedule')) {
+      let schedule = containers.tournament.schedule.element;
+
+      let byclass = [
+         { class: 'oop_round', intro: 'Click in this column to set schedule details for an entire row<p>Schedule details include match times, status, and chair umpire' },
+         { class: 'schedule_box', intro: 'When in scheduling mode click on an empty cell to search for matches by player names<p>Clicking on a scheduled match will either launch the scoring dialogue, or allow setting schedule details for a single match, depending on whether Scheduling Mode is active or not<p>Right clicking (or holding the shift key) changes the behavior of clicking on a match (instead of toggling Scheduling Mode)' },
+      ]
+
+      byclass.forEach(action => {
+         let element = schedule.querySelector(`.${action.class}`);
+         if (element) steps.push(introObj(element, action.intro));
+      });
+   }
+
+   guide.setOptions({ steps });
+   guide.start();
+}
+
+function drawsTabTour() {
+   if (!containers.tournament) return;
+
+   let componentObj = (obj, intro) => ({ element: containers.tournament[obj].element, disableInteraction: true, intro });
+
+   let steps = [
+      { intro: `<b>Draws Tab</b><p>View draws, place players/teams, add scores, print PDFs`, },
+   ];
+
+   let components = [
+      { step: 'select_draw', intro: '<b>Select Draw</b><p>Drop Down menu to select the draw to view / edit' },
+      { step: 'compass_direction', intro: '<b>Compass Direction</b><p>Drop Down menu to view draws for each compass direction' },
+      { step: 'recycle', intro: `<b>Regenerate Draw</b><p>Only visible when no scores have yet been entered` },
+      { step: 'player_reps', intro: '<b>Player Representatives</b><p>Dialogue to enter names of players who witnessed the draw creation' },
+      { step: 'publish_draw', intro: `<b>Publish Draw</b><p>Click to publish to CourtHive.com/Live<p>White: Unpublished<br>Blue: Published<br>Yellow: Out of Date` },
+   ]
+   components.forEach(component => { if (tElement(component.step)) steps.push(componentObj(component.step, component.intro)); });
+
+   let class_objs = [
+      { class: 'print_draw', intro: `<b>Generate PDF</b><p>Context sensitive PDFs<p>Generates printable PDF of the current draw<p>Generates "Player Order" If players/teams have not all been placed<p>Player Order is used to determine player draw positions when drawing numbers randomly` },
+   ]
+
+   class_objs.forEach(cobj => {
+      let element = tClass({ cls: cobj.class, parent_class: 'draws' });
+      if (element) steps.push(introObj(element, cobj.intro, cobj.position));
+   });
 
    guide.setOptions({ steps });
    guide.start();
@@ -210,25 +463,30 @@ function eventsTabTour() {
    if (!containers.tournament) return;
 
    let steps = [];
+   let teams = tElement('teams');
 
    let componentObj = (obj, intro) => ({ element: containers.tournament[obj].element, disableInteraction: true, intro });
 
    let events_tab = [ { intro: `<b>Events Tab</b><p>Create and manage tournament events<p>The draws tab will appear after you create your first event`, }, ];
-   let event_details = [ { intro: `<b>Event Details</b><p>Configure events and approve players`, }, ];
+   let event_details = teams
+      ? [ { intro: `<b>Event Details</b><p>Configure events and approve teams`}, ] 
+      : [ { intro: `<b>Event Details</b><p>Configure events and approve players`, }, ];
 
    let components = [ { step: 'events_add', intro: 'Before you can do anything you must add an event' }, ]
-   let basic = components.map(component => (tElement(component.step)) ? componentObj(component.step, component.intro) : undefined).filter(f=>f);
+   let basic = components.map(component => (tVisible(component.step)) ? componentObj(component.step, component.intro) : undefined).filter(f=>f);
 
-   let sections = [
-      { step: 'detail_fields', intro: 'Filter eligible players, configure event format, scoring format, and draw type' },
-      { step: 'draw_config', intro: 'Configure draw structure and link events<p>Events can only be linked when they have the same Gender, Category and Format' },
-   ]
+   let sections = teams
+      ? [ { step: 'detail_fields', intro: 'Configure event details, number of event matches, and scoring formats' } ]
+      : [ { step: 'detail_fields', intro: 'Filter eligible players, configure event format, scoring format, and draw type' } ]
+
+   if (!teams) sections.push({ step: 'draw_config', intro: 'Configure draw structure and link events<p>Events can only be linked when they have the same Gender, Category and Format' })
+
    let section_info = sections.map(section => (tElement(section.step)) ? componentObj(section.step, section.intro) : undefined).filter(f=>f);
 
    let events_classes = [
       {
          class: 'events_header',
-         intro: 'Dashboard view event details including draw size, number of players, number of matches, scheduled matches, and whether a draw has been generated / published'
+         intro: 'Dashboard view of event details including draw size, number of players, total number of matches, scheduled matches, and whether a draw has been generated / published'
       },
       {
          class: 'publish_status',
@@ -240,20 +498,31 @@ function eventsTabTour() {
       { class: 'event_name', intro: 'Click to customize event name' },
    ]
    let event_details_actions = [
-      { class: 'del', intro: 'Delete Event' },
-      { class: 'done', intro: 'Close event details<p>You can also click on events in the event list to toggle the detail view' },
+      { class: 'del', intro: '<b>Delete Event</b><p>Delete the currently selected event' },
+      { class: 'done', intro: '<b>Done</b><p>Close event details<p>You can also click on events in the event list to toggle the detail view' },
    ]
-   let event_detail_fields = [
+
+   let event_detail_fields = teams ? [] : [
       { class: 'egender', intro: 'Filter eligible players by gender' },
       { class: 'ecategory', intro: 'Filter eligible players by category' },
    ]
-   let event_opponents = [
-      { class: 'approved', intro: 'Players who are approved and will be included in the draw<p>Click to remove players' },
-      { class: 'event_teams', intro: 'Click on eligible players to build teams.<p>Click on teams to either approve or destroy (send players back to eligible)' },
-      { class: 'eligible', intro: 'Players who are eligible to play the event<p>Click on players to approve or nominate as a wildcard<p>Quickly approve players by holding the Shift key while clicking' },
-      { class: 'removeall', intro: 'Click to remove all approved players and return them to eligible status' },
-      { class: 'addall', intro: 'Click to promote all players/teams to approved status' },
+
+   let event_players = [
+      { class: 'approved', intro: '<b>Approved Players/Teams<b><p>Players who are approved and will be included in the draw<p>Click to remove players' },
+      { class: 'event_teams', intro: '<b>Doubles Teams</b><p>Click on eligible players to build teams.<p>Click on teams to either approve or destroy (send players back to eligible)' },
+      { class: 'eligible', intro: '<b>Eligible Players</b><p>Players who are eligible to play the event<p>Click on players to approve or nominate as a wildcard<p>Quickly approve players by holding the Shift key while clicking' },
+      { class: 'removeall', intro: '<b>Remove All</b><p>Click to remove all approved players and return them to eligible status' },
+      { class: 'addall', intro: '<b>Add All</b><p>Click to promote all players/teams to approved status' },
    ]
+
+   let event_teams = [
+      { class: 'approved', intro: '<b>Approved Teams</b><p>Teams who are approved and will be included in the draw<p>Click to remove teams' },
+      { class: 'eligible', intro: '<b>Eligible Teams</b><p>Teams who are eligible to play the event<p>Click on teams to approve' },
+      { class: 'removeall', intro: '<b>Remove All</b><p>Click to remove all approved teams and return them to eligible status' },
+      { class: 'addall', intro: '<b>Add All</b><p>Click to promote all teams to approved status' },
+   ];
+
+   let event_opponents = teams ? event_teams : event_players;
 
    let event_list = targetClasses('tournament', 'events', events_classes);
    let details = targetClasses('tournament', 'event_details', event_details_classes);
@@ -286,8 +555,31 @@ function eventsTabTour() {
 
 }
 
+function editIntro() {
+   if (!containers.tournament) return;
+
+   let componentObj = (obj, intro) => ({ element: containers.tournament[obj].element, disableInteraction: true, intro });
+
+   let opening = [
+      { intro: `<b>Editing Tournaments</b><p>To edit a tournament click on the 'Pencil' icon in the upper right corner`, },
+   ];
+
+   let sections = [
+      { step: 'edit', intro: '<b>Edit Mode</b><p>Click to enter tournament editing mode' },
+   ]
+   let section_info = sections.map(section => (tVisible(section.step)) ? componentObj(section.step, section.intro) : undefined).filter(f=>f);
+
+   let steps = opening.concat(...section_info);
+
+   guide.setOptions({ steps });
+   guide.start();
+}
+
 function tournamentTabTour() {
    if (!containers.tournament) return;
+
+   if (tVisible('edit')) return editIntro();
+   // if (containers.tournament.edit.element.style.display != 'none') return editIntro();
 
    let componentObj = (obj, intro) => ({ element: containers.tournament[obj].element, disableInteraction: true, intro });
 
@@ -300,26 +592,25 @@ function tournamentTabTour() {
    let trny_location = containers.tournament.location.element;
    let umpirebox = util.getParent(trny_location, 'attribute_box');
 
+   let tabs = document.querySelector('.tabs');
+
    let steps = [
       { intro: `<b>Tournaments Tab</b><p>Add basic tournament details which will appear on PDF headers and online tournament pages<p>Manage copies of the Tournament Record`, },
-      {
-         element: containers.tournament.edit_notes.element,
-         disableInteraction: true,
-         intro: '<b>Notes Editor</b><p>Click to toggle the WYSIWYG Notes editor. <p>Notes will appear online when a tournament is published.',
-      },
    ];
 
    let components = [
+      { step: 'edit_notes', intro: '<b>Notes Editor</b><p>Click to toggle the WYSIWYG Notes editor. <p>Notes will appear online when a tournament is published.' },
       { step: 'push2cloud', intro: 'Send a copy of the tournament record to the CourtHive Cloud Server' },
       { step: 'localdownload', intro: 'Save a copy of the tournament record to your computer/tablet' },
       { step: 'pubTrnyInfo', intro: '<b>Publish</b><p>Send Tournament Information to Courthive.com/Live<p>Does not publish events or schedules!' },
       { step: 'authorize', intro: '<b>Authorization</b><p>Unauthorized: <b>Blue</b><p>Authorized: <b>Green</b><p>If you are an Admin you can click to generate authorization keys' },
       { step: 'cloudfetch', intro: '<b>Cloud Fetch</b><p>Download a copy of the tournament record from the CourtHive Cloud Server.<p>Right-click to merge tournament events which have been published.' },
-      { step: 'publink', intro: '<b>Tournament Link</b><p>Generate a printable QR Code of the Website Address where the tournament can be viewd on Courthive.com/Live' },
+      { step: 'pub_link', intro: '<b>Tournament Link</b><p>Generate a printable QR Code of the Website Address where the tournament can be viewd on Courthive.com/Live' },
       { step: 'delegate', intro: '<b>Delegate</b><p>Delegate control of the tournament to a mobile device.' },
    ]
 
    let elements = [
+      { element: tabs, intro: '<b>Section Tabs</b><p>Select various aspects of the tournament to edit/view<p>Additional tabs become visible as information is added to the tournament<p>For instance, courts must be defined before scheduling is possible' },
       { element: dates, intro: 'Set tournament start and end dates' },
       { element: orginfo, intro: 'Specify and Organization and Organizers' },
       { element: umpirebox, intro: 'Set the Location and Head Umpire' },
@@ -332,12 +623,12 @@ function tournamentTabTour() {
    guide.start();
 }
 
-function cElement(elem) { return validElement('calendar', elem); }
+function tVisible(elem) { return visibleElement('tournament', elem); }
+function cVisible(elem) { return visibleElement('calendar', elem); }
 function tElement(elem) { return validElement('tournament', elem); }
 function sElement(elem) { return validElement('splash', elem); }
-function validElement(obj, elem) {
-   return containers[obj][elem] && containers[obj][elem].element && containers[obj][elem].element.style.display != 'none'; 
-}
+function visibleElement(obj, elem) { return containers[obj][elem] && containers[obj][elem].element && containers[obj][elem].element.style.display != 'none'; }
+function validElement(obj, elem) { return visibleElement(obj, elem) && containers[obj][elem].element.innerHTML; }
 function tClass({ cls, element_name, parent_class }) {
    let root = element_name && tElement(element_name) ? containers.tournament[element_name].element : parent_class ? document.querySelector(`.${parent_class}`) : document;
    let element = (cobjs.tournament[cls] && root.querySelector(`.${cobjs.tournament[cls]}`)) || (parent_class  && root.querySelector(`.${cls}`));
@@ -357,4 +648,3 @@ function targetClasses(obj, element_name, targets) {
    }
    return steps;
 }
-
