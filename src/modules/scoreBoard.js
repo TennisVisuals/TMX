@@ -1,7 +1,6 @@
 import { util } from './util';
 import { UUID } from './UUID';
 import { dd } from './dropdown';
-import { theme } from './theme';
 import { lang } from './translator';
 import { displayFx } from './displayFx';
 import { eventManager } from './eventManager';
