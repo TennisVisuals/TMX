@@ -484,10 +484,14 @@ function eventsTabTour() {
    let basic = components.map(component => (tVisible(component.step)) ? componentObj(component.step, component.intro) : undefined).filter(f=>f);
 
    let sections = teams
-      ? [ { step: 'detail_fields', intro: 'Configure event details, number of event matches, and scoring formats' } ]
-      : [ { step: 'detail_fields', intro: 'Filter eligible players, configure event format, scoring format, and draw type' } ]
+      ? [
+         { step: 'detail_fields', intro: 'Configure event details, number of event matches, and scoring formats' },
+      ]
+      : [
+         { step: 'detail_fields', intro: 'Filter eligible players, configure event format, scoring format, and draw type' },
+         { step: 'draw_config', intro: 'Configure draw structure and link events<p>Events can only be linked when they have the same Gender, Category and Format' }
+      ]
 
-   if (!teams) sections.push({ step: 'draw_config', intro: 'Configure draw structure and link events<p>Events can only be linked when they have the same Gender, Category and Format' })
 
    let section_info = sections.map(section => (tElement(section.step)) ? componentObj(section.step, section.intro) : undefined).filter(f=>f);
 
@@ -524,11 +528,19 @@ function eventsTabTour() {
    ]
 
    let event_teams = [
+      { class: 'tabs', intro: '<b>Configuration Sections</b><p>Opponents: Approve Teams<p>Profile: Match order and point values<p>Points: How match points are calculated to determine the winner' },
+   ]
+
+   let st = [
       { class: 'approved', intro: '<b>Approved Teams</b><p>Teams who are approved and will be included in the draw<p>Click to remove teams' },
       { class: 'eligible', intro: '<b>Eligible Teams</b><p>Teams who are eligible to play the event<p>Click on teams to approve' },
       { class: 'removeall', intro: '<b>Remove All</b><p>Click to remove all approved teams and return them to eligible status' },
       { class: 'addall', intro: '<b>Add All</b><p>Click to promote all teams to approved status' },
+      { class: 'match_priority', intro: '<b>Match Priority</b><p>Click to edit match point value<p>Click multiple times to cycle through match gender options' },
    ];
+
+   function inSelectedTab(element) { return util.getParent(element, 'tab').classList.contains('selected'); }
+   let subtabs = targetClasses('tournament', 'event_details', st).filter(s=>inSelectedTab(s.element));
 
    let event_opponents = teams ? event_teams : event_players;
 
@@ -536,7 +548,7 @@ function eventsTabTour() {
    let details = targetClasses('tournament', 'event_details', event_details_classes);
    let actions = targetClasses('tournament', 'event_details', event_details_actions);
    let detailfields = targetClasses('tournament', 'detail_fields', event_detail_fields);
-   let players = targetClasses('tournament', 'event_details', event_opponents);
+   let opponents = targetClasses('tournament', 'event_details', event_opponents);
 
    let class_objs = [
       { class: 'auto_draw', intro: 'Toggle automate draws' },
@@ -550,7 +562,7 @@ function eventsTabTour() {
    }).filter(f=>f);
 
    if (details.length) {
-      steps = event_details.concat(...details, ...detail_icons, ...actions, ...section_info, ...players);
+      steps = event_details.concat(...opponents, ...subtabs, ...details, ...detail_icons, ...section_info, ...actions);
    } else {
       steps = events_tab.concat(...basic, ...event_list);
    }
