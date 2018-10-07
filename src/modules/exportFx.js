@@ -2,10 +2,13 @@ import { db } from './db'
 import { env } from './env'
 import { UUID } from './UUID';
 import { util } from './util';
+import { matchFx } from './matchFx';
 import { staging } from './staging';
 import { lang } from './translator';
+import { playerFx } from './playerFx';
 import { importFx } from './importFx';
 import { rankCalc } from './rankCalc';
+import { scoreBoard } from './scoreBoard';
 import { displayGen } from './displayGen';
 import { cleanScore } from './cleanScore';
 import { tournamentFx } from './tournamentFx';
@@ -14,13 +17,12 @@ import { rrDraw, treeDraw, drawFx } from './drawFx';
 export const exportFx = function() {
    let exp = {};
    let dfx = drawFx();
+   let mfx = matchFx;
 
    let o = {
       rows_per_page: 34,
       minimum_empty: 8,
    }
-
-   // exp.fx = { env: () => console.log('environment fx'), }
 
    exp.options = (values) => {
       if (!values) return o;
@@ -130,7 +132,6 @@ export const exportFx = function() {
       let qualifying = match.round_name && match.round_name.indexOf('Q') == 0 && match.round_name.indexOf('QF') < 0;
       let draw_type = match.consolation ? 'Consolation' : qualifying ? 'Qualifying' : 'Main';
 
-      // let sanctioning = (exp.fx.env && exp.fx.env().org && exp.fx.env().org.name) || '';
       let sanctioning = (env.org && env.org.name) || '';
 
       let profileID = (profile_url) => {
@@ -408,7 +409,6 @@ export const exportFx = function() {
       var time_detail = !match.schedule ? "" : `${match.schedule.time_prefix || ''} ${match.schedule.time || ''}`;
       var score = util.containsNumber(match.score) && match.score.indexOf('LIVE') < 0 && match.score;
 
-      // let reverse_scores = exp.fx.env && exp.fx.env().schedule && !exp.fx.env().schedule.scores_in_draw_order;
       let reverse_scores = env.schedule && !env.schedule.scores_in_draw_order;
       if (score && match.winner == 1 && reverse_scores) score = dfx.reverseScore(score);
       var unknowns = [];
@@ -1355,11 +1355,151 @@ export const exportFx = function() {
       }
    }
 
-   function dualSheet({ tournament={}, data, logo, selected_event, event, save }) {
-      console.log('dual match:', data.dual_match);
-      console.log('dual teams:', data.dual_teams);
-      console.log('dual matches:', data.dual_matches);
+   function dualMatchBox(match) {
+      let winner_index = match.match.winner_index;
+      let existing = match.match.score ? scoreBoard.convertStringScore({
+         string_score: match.match.score,
+         score_format: match.match.score_format || {},
+         winner_index
+      }) : undefined;
+      let sets = existing || [];
+      while (sets.length < 5) sets.unshift([{}, {}]);
 
+      let scores = sets.map((set, i) => set.map(o => opponentScore(o, i)));
+
+      function getScore(o) { return o.games != undefined ? o.games : o.supertiebreak || ''; }
+      function getTiebreak(o) { return o.tiebreak != undefined ? o.tiebreak : o.spacer ? '&nbsp;' : ''; }
+      function opponentScore(opponent, i) {
+         let border = [false, true, (i == 4) ? true : false, true];
+         return { text: getScore(opponent), style: 'gameScore', border }; 
+      }
+      function maxTextLength(set) { return set.reduce((p, c) => c.text.toString().length > p ? c.text.toString().length : p, 0); }
+
+      let total_width = 250;
+      let score_sizes = { 1: 7, 2: 12 };
+      let score_lengths = scores.map(maxTextLength);
+      let score_widths = score_lengths.map(l=>score_sizes[l] || 0);
+      let score_width = score_widths.reduce((p, c) => p + c, 0);
+      let opponents_width = total_width - score_width;
+      let team1_width = match.format == 'singles' ? opponents_width : opponents_width / 2;
+      let team2_width = match.format == 'singles' ? 0 : opponents_width / 2;
+
+      let widths = [team1_width, team2_width, ...score_widths];
+
+      let scorebox = {
+			style: 'scoreBox',
+			color: '#444',
+			table: {
+				widths,
+				headerRows: 1,
+				body: [
+               matchHeader(match),
+               matchRoundName(match),
+               teamScoreLine(match, scores, 0),
+               teamScoreLine(match, scores, 1),
+				]
+			},
+			layout: {
+				paddingLeft: function(i, node) { return 1; },
+				paddingRight: function(i, node) { return 1; },
+				// paddingTop: function(i, node) { return 1; },
+				// paddingBottom: function(i, node) { return 2; },
+				// hLineWidth: function (i, node) { return (i === 0 || i === node.table.body.length) ? 2 : 1; },
+				// vLineWidth: function (i, node) { return (i === 0 || i === node.table.widths.length) ? 2 : 1; },
+				// hLineColor: function (i, node) { return (i === 0 || i === node.table.body.length) ? 'black' : 'gray'; },
+				// vLineColor: function (i, node) { return (i === 0 || i === node.table.widths.length) ? 'black' : 'gray'; },
+				// fillColor: function (i, node) { return (i % 2 == 0) ? '#000000' : null;}
+			}
+		};
+
+      return scorebox;
+
+      function matchHeader(match) {
+         let order = !match || !match.order ? '1' : match.order;
+         let format = (match && match.format && match.format[0].toUpperCase() + match.format.slice(1)) || 'Singles';
+         let identifier = `#${match.sequence || 1} ${format}`;
+         return [{text: identifier, fillColor: '#eeeeee', style: 'matchHeader', colSpan: 7, alignment: 'center'}, {}, {}, {}, {}, {}, {}];
+      }
+
+      function matchRoundName(match) {
+         let round_name = (match && match.round_name && lang.tr(`round_names.${match.round_name}`)) || lang.tr('mtc');
+         return [{colSpan: 7, style: 'roundHeader', border: [false, true, false, false], text: round_name}, '', '', '', '', '', ''];				
+      }
+
+      function playerScoreLine(match, scores, index=0) {
+         let opponent = match && match.teams && match.teams[index] && match.teams[index][0];
+         let opponent_name = playerFx.opponentName({ opponent }) || `${lang.tr('opnt')} ${index + 1}`;
+         let player_score = scores.map(s=>s[index]);
+         let line = [ { text: opponent_name, border:[true, true, false, true], colSpan: 2 }, '', ...player_score ];
+         return line;
+      }
+
+      function teamScoreLine(match, scores, index) {
+         if (!match.format || match.format == 'singles') return playerScoreLine(match, scores, index);
+         let team = match && match.teams && match.teams[index];
+         let opponent1 = playerFx.opponentName({ opponent: team && team[0], length_threshold: 20 });
+         let opponent1_name = opponent1 || `${lang.tr('opnt')} ${index + 1}`;
+         let opponent2 = playerFx.opponentName({ opponent: team && team[1], length_threshold: 20 });
+         let opponent2_name = opponent2 || `${lang.tr('opnt')} ${index + 1}`;
+
+         let team_score = scores.map(s=>s[index]);
+         let line = [ { text: opponent1_name, border:[true, true, false, true] }, { text: opponent2_name, border:[false, true, false, true] }, ...team_score ]
+         return line;
+      }
+   }
+
+   function dualMatchesTeams(dual_teams) {
+
+      let team1 = dual_teams[0].full_name || '';
+      let team2 = dual_teams[1].full_name || '';
+
+      let t = {
+			table: {
+			   widths: [30, '*', 25, '*', 30],
+            body: [ 
+               [ '', { text: team1, style: 'centeredColumn' }, 'vs.', { text: team2, style: 'centeredColumn' }, '' ]
+            ]
+			},
+			layout: {
+				paddingLeft: function(i, node) { return 0; },
+				paddingRight: function(i, node) { return 0; },
+				paddingTop: function(i, node) { return 20; },
+				paddingBottom: function(i, node) { return 1; },
+				hLineWidth: function (i, node) { return 0 },
+				vLineWidth: function (i, node) { return 0 },
+				hLineColor: function (i, node) { return 0 },
+				vLineColor: function (i, node) { return 0 },
+			}
+		}
+      return t;
+   }
+
+   function dualMatchesTable(scoreboxes) {
+      let groups = util.chunkArray(scoreboxes, 2);
+      let body = groups.map(scoreRow);
+
+      let t = {
+			table: {
+			   widths: [270, 30, 270],
+            body
+			},
+			layout: {
+				paddingLeft: function(i, node) { return 0; },
+				paddingRight: function(i, node) { return 0; },
+				paddingTop: function(i, node) { return 20; },
+				paddingBottom: function(i, node) { return 1; },
+				hLineWidth: function (i, node) { return 0 },
+				vLineWidth: function (i, node) { return 0 },
+				hLineColor: function (i, node) { return 0 },
+				vLineColor: function (i, node) { return 0 },
+			}
+		}
+      return t;
+
+      function scoreRow(group) { return [group[0] || '', '', group[1] || ''] };
+   }
+
+   function dualSheet({ tournament={}, data, logo, selected_event, event, save }) {
       let evt = event || (tournament.events && tournament.events[selected_eent]);
       let player_representatives = evt && evt.player_representatives || []; 
       let event_organizers = tournament && tournament.organizers ? [tournament.organizers] : []; 
@@ -1367,11 +1507,17 @@ export const exportFx = function() {
       let timestamp = localizeDate(created, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       let page_header = drawSheetPageHeader(tournament, logo, 'draw_sheet', selected_event, event);
 
+      let matches = mfx.dualMatchMatches(evt, data.dual_match.match.muid);
+
+      let team_header = dualMatchesTeams(data.dual_teams);
+      let scoreboxes = matches.map(dualMatchBox);
+      let dual_matches = dualMatchesTable(scoreboxes);
+
       let date = new Date(tournament.start);
       let year = date.getFullYear();
       let month = date.getMonth();
 
-      let content = [page_header, ' '];
+      let content = [page_header, team_header, dual_matches];
 
       var docDefinition = {
          pageSize: 'A4',
@@ -1381,43 +1527,28 @@ export const exportFx = function() {
 
          content,
          styles: {
-            docTitle: {
+            scoreBox: {
+               margin: [0, 0, 0, 0],
+               fontSize: 10,
+            },
+            matchHeader: {
+               bold: true,
                fontSize: 11,
-               bold: true,
+               color: 'black'
             },
-            subtitle: {
-               fontSize: 10,
+            roundHeader: {
+               bold: true,
                italics: true,
-               bold: true,
+               fontSize: 12,
+               color: 'black'
             },
-            docName: {
-               fontSize: 10,
-               bold: true,
-            },
-            tableHeader: {
-               fontSize: 9,
-            },
-            tableData: {
-               fontSize: 9,
-               bold: true,
-            },
-            centeredTableHeader: {
+            gameScore: {
                alignment: 'center',
                fontSize: 9,
                bold: true,
-            },
-            signatureBox: {
-               border: true,
             },
             centeredColumn: {
                alignment: 'center',
-               border: true,
-            },
-            italicCenteredColumn: {
-               alignment: 'center',
-               border: true,
-               bold: true,
-               italics: true,
             },
          }
       };
