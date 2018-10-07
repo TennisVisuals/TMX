@@ -1429,7 +1429,8 @@ export const config = function() {
       let message =`
          <h2 style='margin: 1em;'>Release Notes</h2>
          <div class='releasenotes'>
-            <h3 class='flexjustifystart'>Version: 1.2.18.40.32</h3>
+            <h3 class='flexjustifystart'>Version: 1.2.21.45.38</h3>
+            <div class='flexjustifystart'>PDF Printing of Dual Match Events</div>
             <div class='flexjustifystart'>Livescoring results received from delegated matches</div>
             <div class='flexjustifystart'>6 character Authorization and Delegation keys</div>
 
