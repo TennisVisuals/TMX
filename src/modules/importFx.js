@@ -109,7 +109,6 @@ export const importFx = function() {
    load.processSheetData = processSheetData;
    function processSheetData(rows) {
       let players = [];
-      // let ioc_codes = load.fx.env().ioc_codes || [];
       let ioc_codes = env.ioc_codes || [];
       let code_by_country = Object.assign({}, ...ioc_codes.map(c => ({ [compressName(c.name)]: c.ioc })));
 
@@ -764,7 +763,7 @@ export const importFx = function() {
          if (!file_content.length) return;
 
          if (load.loaded.meta.filetype.indexOf('xls') >= 0) {
-            loadWorkbook({ file_content });
+            loadWorkbook({ file_content, callback, accepted_types: ['tournament', 'CHi'] });
          } else if (load.loaded.meta.filetype == 'csv') {
             loadJSON({ json: CSV2JSON(file_content) });
          } else if (load.loaded.meta.filetype.indexOf('json') >= 0) {
@@ -890,12 +889,16 @@ export const importFx = function() {
       let workbook_type = identifyWorkbook(workbook);
 
       if (accepted_types && accepted_types.indexOf(workbook_type) < 0) {
+         if (workbook_type == 'UTR') {
+            // UTR format players don't get added to Player Database...  they can only be added to Tournament Players
+            let message = `<div>UTR Player List</div><p>Can only be imported directly into a tournament</div>`;
+            displayGen.popUpMessage(message);
+         }
          return (typeof callback == 'function') ? callback([]) : false;
       }
 
       if (workbook_type == 'UTR') {
          let players = extractPlayers(workbook);
-         // UTR format players don't get added to Player Database...  they can only be added to Tournament Players
          return (typeof callback == 'function') ? callback(players) : true;
       }
 
@@ -923,8 +926,13 @@ export const importFx = function() {
             return callback(players);
          }
 
-         addPlayers().then(addTournaments).then(addRankings).then(addClubs).then(done);
-         function done() { displayGen.busy.done(id); reload(); }
+         addPlayers().then(addTournaments).then(addRankings).then(addClubs).then(notify);
+        
+         function notify() {
+            displayGen.busy.done(id);
+            let message = 'Players Imported';
+            displayGen.okCancelMessage(message, reload, () => displayGen.closeModal());
+         }
       }
    }
 
@@ -980,7 +988,10 @@ export const importFx = function() {
          player.ioc = player.ioc ? (player.ioc.match(/\D+/g) || [])[0] : '';
          processRatings(player);
       });
-      return players;
+
+      // insure there are no duplicate PUIDs
+      let puid_map = Object.assign({}, ...players.map(player => ({[player.puid]: player})));
+      return Object.keys(puid_map).map(k=>puid_map[k]);
    }
    
    function processRatings(player) {
