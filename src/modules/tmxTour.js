@@ -20,7 +20,12 @@ export const tmxTour = function() {
       let hints = document.querySelector('.introjs-hints');
       if (hints) hints.remove();
    }
-   fx.hideHints = () => { guide.hideHints(); }
+   fx.hintsActive = () => {
+      let active = Array.from(document.querySelectorAll('.introjs-hint'))
+         .map(h=>h.classList.contains('introjs-hidehint'))
+         .reduce((p, c) => !c || p, false);
+      return active;
+   }
    fx.active = () => document.querySelector('.introjs-overlay');
    fx.splashContainer = (container) => { containers.splash = container; }
 
@@ -31,6 +36,8 @@ export const tmxTour = function() {
    }
 
    fx.tournamentTours = (context) => {
+      document.body.scrollIntoView();
+
       if (context == 'calendar') return calendarTour();
       if (context == 'tournament_tab') return tournamentTabTour();
       if (context == 'events_tab') return eventsTabTour();
@@ -45,8 +52,12 @@ export const tmxTour = function() {
       if (context == 'teams_tab') return teamsTabTour();
    }
    fx.tournamentHints = (context) => {
-      if (context == 'events_tab') return eventsTabHints();
-      if (context == 'players_tab') return playersTabHints();
+      if (fx.hintsActive()) {
+         fx.clear();
+      } else {
+         if (context == 'events_tab') return eventsTabHints();
+         if (context == 'players_tab') return playersTabHints();
+      }
    }
 
    fx.splashHints = () => {
@@ -540,7 +551,7 @@ function eventsTabTour() {
    ];
 
    function inSelectedTab(element) { return util.getParent(element, 'tab').classList.contains('selected'); }
-   let subtabs = targetClasses('tournament', 'event_details', st).filter(s=>inSelectedTab(s.element));
+   let subtabs = !teams ? [] : targetClasses('tournament', 'event_details', st).filter(s=>inSelectedTab(s.element));
 
    let event_opponents = teams ? event_teams : event_players;
 
