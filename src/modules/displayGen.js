@@ -209,7 +209,7 @@ export const displayGen = function() {
       function cleanUp() { 
          gen.escapeFx = undefined;
          document.body.style.overflow  = null;
-         svg.remove(); 
+         if (svg) svg.remove(); 
       }
    }
 
@@ -2489,6 +2489,7 @@ export const displayGen = function() {
          ranking_order: displayFx.uuid(),
          reg_link: displayFx.uuid(),
          team_rankings: displayFx.uuid(),
+         roster_link: displayFx.uuid(),
          share_team: displayFx.uuid(),
          print_draw_order: displayFx.uuid(),
          refresh_registrations: displayFx.uuid(),
@@ -2663,7 +2664,10 @@ export const displayGen = function() {
                      <div class='${classes.team_rankings} info' label='${lang.tr("teams.rankings")}'>
                         <div class='action_icon ranking_order ranking_order_inactive'></div>
                      </div>
-                     <div class='${classes.share_team} info' label='${lang.tr("teams.share")}' style='display: none; margin-left: 1em;'>
+                     <div class='${classes.roster_link} ${gen.info}' label='${lang.tr("signin.reglink")}' style='margin-left: .5em;'>
+                        <div class='action_icon roster_link link_inactive'></div>
+                     </div>
+                     <div class='${classes.share_team} info' label='${lang.tr("teams.share")}' style='display: none; margin-left: .5em;'>
                         <div class='action_icon shareteam'></div>
                      </div>
                   </div>
@@ -3838,20 +3842,17 @@ export const displayGen = function() {
       return displayFx.idObj(ids);
    }
 
-   gen.configQualificationDraw = ({ container, e, structure_options, feed_options, skip_options, sequential_options, qualcounts }) => {
+   gen.configQualificationDraw = ({ container, e, qualcounts }) => {
       let ids = {
-         structure: displayFx.uuid(),
          qualifiers: displayFx.uuid(),
          elimination: displayFx.uuid(),
       }
       let config = `
          <div class='detail_fields'>
             <div class='column'>
-               <div class='entry_label'>${lang.tr('draws.structure')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('qualifiers')}</div>
             </div>
             <div class='column'>
-               <div class='entry_field' id='${ids.structure}'></div>
                <div class='entry_field' id='${ids.qualifiers}'></div>
             </div>
          </div>
@@ -3862,7 +3863,6 @@ export const displayGen = function() {
       `;
       d3.select(container.draw_config.element).html(config);
 
-      dd.attachDropDown({ id: ids.structure, options: structure_options });
       dd.attachDropDown({ id: ids.qualifiers,  options: qualcounts });
       dd.attachDropDown({ id: ids.elimination, options: [{ key: lang.tr('none'), value: ''}] });
       return displayFx.idObj(ids);
