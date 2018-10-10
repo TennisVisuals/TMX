@@ -1192,49 +1192,48 @@ export function treeDraw() {
 
       // for each height adjust all source nodes by apprpriate offset
       // if link is a feed node then also adjust the target node
-      heights
-         .forEach(ht => {
-            links.forEach(l => {
-               if (l.source.height >= ht) {
-                  // FUTURE TODO
-                  // let direction = isEven(rh[ht].fed) ? -1 : 1;
-                  let direction = 1;
-                  if (offsets[rh[ht].round - 1]) {
-                     // add bracket source offset
+      heights.forEach(ht => {
+         links.forEach(l => {
+            if (l.source.height >= ht) {
+               // FUTURE TODO
+               // let direction = isEven(rh[ht].fed) ? -1 : 1;
+               let direction = 1;
+               if (offsets[rh[ht].round - 1]) {
+                  // add bracket source offset
+                  if (direction > 0) {
+                     let source_offset = (offsets[rh[ht].round - 1] - (offsets[0] / 2));
+                     let last_offset = (offsets[rh[ht].round - 1]/2) - (offsets[0] / 2);
+                     l.source.x += (lastRound(ht) ? last_offset : source_offset);
+                  } else {
+                     // FUTURE TODO
+                     let source_offset = (offsets[rh[ht].round - 1] + (offsets[0] / 2));
+                     let last_offset = (offsets[rh[ht].round - 1]/2) + (offsets[0] / 2);
+                     l.source.x -= (lastRound(ht) ? last_offset : source_offset);
+                  }
+                  // modify position of feed arm
+                  if (l.target.data.feed) {
                      if (direction > 0) {
-                        let source_offset = (offsets[rh[ht].round - 1] - (offsets[0] / 2));
-                        let last_offset = (offsets[rh[ht].round - 1]/2) - (offsets[0] / 2);
-                        l.source.x += (lastRound(ht) ? last_offset : source_offset);
+                        // first correct for other adjustments
+                        l.target.x += (l.source.x - l.target.x);
+                        // then add proper offset
+                        let offset = offsets[l.source.data.round] || offsets[0] * Math.pow(2, l.source.data.round) || 0;
+                        if (lastRound(l.source.height)) { offset = offsets[0] * Math.pow(2, l.source.data.round - 1); }
+                        l.target.x += offset;
                      } else {
                         // FUTURE TODO
-                        let source_offset = (offsets[rh[ht].round - 1] + (offsets[0] / 2));
-                        let last_offset = (offsets[rh[ht].round - 1]/2) + (offsets[0] / 2);
-                        l.source.x -= (lastRound(ht) ? last_offset : source_offset);
+                        // first correct for other adjustments
+                        l.target.x = l.target.x - (l.source.x - l.target.x);
+                        // then add proper offset
+                        let offset = offsets[l.source.data.round] || offsets[0] * Math.pow(2, l.source.data.round) || 0;
+                        if (lastRound(l.source.height)) { offset = offsets[0] * Math.pow(2, l.source.data.round - 1); }
+                        l.target.x = l.target.x - offset;
                      }
-                     // modify position of feed arm
-                     if (l.target.data.feed) {
-                        if (direction > 0) {
-                           // first correct for other adjustments
-                           l.target.x += (l.source.x - l.target.x);
-                           // then add proper offset
-                           let offset = offsets[l.source.data.round] || offsets[0] * Math.pow(2, l.source.data.round) || 0;
-                           if (lastRound(l.source.height)) { offset = offsets[0] * Math.pow(2, l.source.data.round - 1); }
-                           l.target.x += offset;
-                        } else {
-                           // FUTURE TODO
-                           // first correct for other adjustments
-                           l.target.x = l.target.x - (l.source.x - l.target.x);
-                           // then add proper offset
-                           let offset = offsets[l.source.data.round] || offsets[0] * Math.pow(2, l.source.data.round) || 0;
-                           if (lastRound(l.source.height)) { offset = offsets[0] * Math.pow(2, l.source.data.round - 1); }
-                           l.target.x = l.target.x - offset;
-                        }
-                        if (l.target.x > max_height) { max_height = l.target.x; }
-                     }
+                     if (l.target.x > max_height) { max_height = l.target.x; }
                   }
                }
-            });
+            }
          });
+      });
 
       if (invert_first) links[0].source.y = links[0].source.y - (2 * round_width);
 
@@ -1814,7 +1813,9 @@ export function treeDraw() {
          }
       }
       let info = dfx.drawInfo(data);
-      return !info.unassigned.length && !d.data.team && dfx.teamMatch(d) ? o.edit_fields.opacity : 0;
+      let placement_complete = !info.unassigned.length || data.scoring_active;
+      let match_no_winner = !d.data.team && dfx.teamMatch(d);
+      return placement_complete && match_no_winner ? o.edit_fields.opacity : 0;
    }
 
    function drawPosition(d) { return d.data.dp || '' }
@@ -1980,10 +1981,11 @@ export function drawFx(opts) {
       seed_limits: [ [0, 0], [4, 2], [11, 4], [21, 8], [41, 16], [97, 32] ],
       bye_placement: {
          "8": [2, 7, 5],
-         "12": [2, 11, 7],
+         "12": [5, 8, 11],
          "16": [2, 15, 11, 6, 7, 10, 14],
-         "24": [2, 23, 14, 11, 8, 17, 20],
+         "24": [5, 20, 14, 11, 8, 17, 23],
          "32": [2, 31, 23, 10, 15, 18, 26, 7, 6, 27, 19, 14, 11, 22, 30],
+         "48": [4, 45, 33, 16, 21, 28, 40, 9, 10, 30, 27, 22, 15, 34, 46],
          "64": [2, 63, 47, 18, 31, 34, 50, 15, 10, 55, 39, 26, 23, 42, 58, 7, 5, 60, 44, 21, 28, 37, 53, 12, 13, 52, 36, 29, 20, 45, 61],
       },
       compressed_draw_formats: true,
