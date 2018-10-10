@@ -140,8 +140,12 @@ export const exportFx = function() {
       }
 
       if (!winners) console.log('match:', match);
+
+      let schedule_date = match.schedule && match.schedule.day && new Date(match.schedule.day);
+      let match_date = schedule_date && schedule_date <= match.tournament.end ? schedule_date : match.date > match.tournament.end ? match.tournament.end : match.date;
+
       return {
-         "Date": dateFormatUTR(match.date),
+         "Date": dateFormatUTR(match_date),
 
          "Winner 1 Name": util.normalizeName(`${players[winners[0]].last_name}, ${players[winners[0]].first_name}`),
          "Winner 1 Third Party ID": normalID(players[winners[0]].cropin || ''),
