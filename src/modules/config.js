@@ -987,16 +987,13 @@ export const config = function() {
 
       if (env.locations.map_provider == 'google') fetchFx.loadGoogleMaps();
 
-      coms.emitTmx({
-         event: 'Connection',
-         client: 'tmx',
-         version: env.version
-      });
-
       function notShared() {
          coms.emitTmx({ 
             event: 'Connection',
             notice: `lat/lng: Geolocation Not Shared`,
+            latitude: '0.00',
+            longitude: '0.00',
+            version: env.version
          });
       }
 
@@ -1013,6 +1010,12 @@ export const config = function() {
       // used to locate known tournaments in vicinity; auto-fill country
       if (env.locations.geolocate && window.navigator.onLine && window.navigator.geolocation) {
          window.navigator.geolocation.getCurrentPosition(shared, notShared);
+      } else if (window.navigator.onLine) {
+         coms.emitTmx({
+            event: 'Connection',
+            client: 'tmx',
+            version: env.version
+         });
       }
       env.version_check = new Date().getTime();
    }
@@ -1431,6 +1434,10 @@ export const config = function() {
       let message =`
          <h2 style='margin: 1em;'>Release Notes</h2>
          <div class='releasenotes'>
+            <h3 class='flexjustifystart'>Version: 1.3.0.0.0</h3>
+            <div class='flexjustifystart'>"Guided Tours" - integrated context-sensitive documentation & hints</div>
+            <div class='flexjustifystart'>Support for Consolation Feed-In draws</div>
+
             <h3 class='flexjustifystart'>Version: 1.2.21.45.38</h3>
             <div class='flexjustifystart'>PDF Printing of Dual Match Events</div>
             <div class='flexjustifystart'>Livescoring results received from delegated matches</div>
