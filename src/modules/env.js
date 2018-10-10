@@ -5,7 +5,7 @@ export const env = {
    first_time_user: false,
 
    // version is Major.minor.added.changed.fixed
-   version: '1.2.24.53.42',
+   version: '1.3.0.0.0.beta',
    version_check: undefined,
    reset_new_versions: false,
 
@@ -54,7 +54,7 @@ export const env = {
          maxZoom: 18
       },
       satellite: {
-         tileLayer: 'http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+         tileLayer: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
       }
    },
@@ -161,10 +161,16 @@ export const env = {
          compass: true,
          playoff: true,
       },
+      subtypes: {
+         qualification: {
+            preround: true,
+            incidentals: false
+         }
+      },
       structures: {
          feedin: {
             elimination: true,
-            consolation: false
+            consolation: true
          },
       },
       gem_seeding: false,
