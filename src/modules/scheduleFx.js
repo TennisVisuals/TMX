@@ -80,7 +80,6 @@ export const scheduleFx = function() {
          let tournamentOOP = {
             title: lang.tr('phrases.oop_system'),
             notice: tournament.schedule.notice,
-            // options: fx.fx.env && fx.fx.env().schedule,
             options: env.schedule,
             umpirenotes: tournament.schedule.umpirenotes,
             days_matches,
@@ -212,7 +211,6 @@ export const scheduleFx = function() {
          return html;
       }).join('');
 
-      // let displaydocs = editable && fx.fx.env().documentation ? 'flex' : 'none';
       let displaydocs = editable && env.documentation ? 'flex' : 'none';
       let html = `
          <div class='schedule_scroll_container'>
