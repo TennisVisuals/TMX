@@ -59,7 +59,9 @@ export const tournamentFx = function() {
          'F': lang.tr('draws.feedin'),
          'P': lang.tr('pyo'),
       }
-      let type = pre ? lang.tr('draws.preround'): types[e.draw_type] || lang.tr('draws.maindraw');
+      let q_subtypes = (env.draws.subtypes && env.draws.subtypes.qualification) || {};
+      let preround_naming = q_subtypes.preround ? lang.tr('draws.preround') : q_subtypes.incidentals ? lang.tr('draws.incidentals') : (types[e.draw_type] || lang.tr('draws.maindraw'));
+      let type = pre ? preround_naming : (types[e.draw_type] || lang.tr('draws.maindraw'));
       let name = `${e.name}&nbsp;${type}`;
       return { type, name }
    }
@@ -121,6 +123,16 @@ export const tournamentFx = function() {
       }
    }
 
+   fx.teamActiveInLinked = (linked_info, team_ids) => {
+      let advanced_positions = linked_info.match_nodes.filter(n=>n.data.match && n.data.match.players);
+      let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
+      let position_in_linked = [].concat(...linked_info.nodes
+         .filter(n => n.data.team && util.intersection(n.data.team.map(t=>t.id), team_ids).length)
+         .map(n => n.data.dp));
+      return util.intersection(active_player_positions, position_in_linked).length;
+   }
+
+   /*
    function playerActiveInLinked(qlinkinfo, plyr) {
       let advanced_positions = qlinkinfo.match_nodes.filter(n=>n.data.match && n.data.match.players);
       let active_player_positions = [].concat(...advanced_positions.map(n=>n.data.match.players.map(p=>p.draw_position)));
@@ -129,13 +141,14 @@ export const tournamentFx = function() {
          .map(n => n.data.dp));
       return util.intersection(active_player_positions, position_in_linked).length;
    }
+   */
 
-   function winnerRemoved({ tournament, e, qlink, qlinkinfo, previous_winner, outcome }) {
+   function opponentRemoved({ tournament, e, elink, qlink, flinkinfo, previous_winner, previous_loser, outcome }) {
       if (qlink) {
          qlink.approved = qlink.approved ? qlink.approved.filter(a=>previous_winner.indexOf(a) < 0): [];
          qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
-         if (qlinkinfo) {
-            qlinkinfo.nodes.forEach(node => {
+         if (flinkinfo) {
+            flinkinfo.nodes.forEach(node => {
                if (!node.height && node.data.team && util.intersection(node.data.team.map(t=>t.id), previous_winner).length) {
                   node.data.qualifier = true;
                   node.data.team = node.data.team.map(team => ({ bye: undefined, entry: 'Q', qualifier: true, draw_position: outcome.draw_position }) );
@@ -144,17 +157,21 @@ export const tournamentFx = function() {
          }
       }
 
-      // must occur after team removed from linked draw approved
-      e.qualified = e.qualified ? e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0) : [];
-      fx.setDrawSize(tournament, e);
+      if (e.draw_type == 'Q') {
+         // must occur after team removed from linked draw approved
+         e.qualified = e.qualified ? e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0) : [];
+         fx.setDrawSize(tournament, e);
+      }
 
-      // must occur after e.qualified is updated
-      // approvedChanged(qlink);
-      // fx.setDrawSize(tournament, qlink);
+      if (elink) {
+         console.log('deal with impact of player being removed from consolation');
+      }
+
       if (qlink) qlink.up_to_date = false;
+      if (elink) elink.up_to_date = false;
    }
 
-   function qualifierChanged({ e, outcome, qlink, qlinkinfo, previous_winner, current_winner }) {
+   function qualifierChanged({ e, outcome, qlink, flinkinfo, previous_winner, current_winner }) {
       // replace qualifier
       e.qualified = e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0);
       e.qualified.push(outcome.teams[outcome.winner])
@@ -166,8 +183,8 @@ export const tournamentFx = function() {
          qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
          let new_opponent = outcome.teams[outcome.winner].map(p => Object.assign({}, p, { seed: undefined, entry: 'Q' }));
          qlink.draw.opponents.push(new_opponent);
-         if (qlinkinfo) qlinkinfo.nodes.forEach(n => {
-            if (!n.height && util.intersection(n.data.team.map(t=>t.id), previous_winner).length) {
+         if (flinkinfo) flinkinfo.nodes.forEach(n => {
+            if (!n.height && n.data.team && util.intersection(n.data.team.map(t=>t.id), previous_winner).length) {
                let draw_position = n.data.team[0].draw_position;
                let new_team = new_opponent.map(t => Object.assign({}, t, { draw_position, qualifier: true, entry: 'Q' }));
                n.data.team = new_team;
@@ -176,6 +193,28 @@ export const tournamentFx = function() {
       }
 
       fx.logEventChange(e, { fx: 'qualifier changed', d: { team: outcome.teams[outcome.winner].map(t=>t.id) } });
+   }
+
+   function consolationChanged({ e, outcome, elink, flinkinfo, previous_loser, current_loser }) {
+      console.log('consolation player changed');
+
+      // modify linked draw
+      if (elink) {
+         let new_opponent = outcome.teams[1 - outcome.winner].map(p => Object.assign({}, p, { seed: undefined, entry: 'Q' }));
+
+         // elink.draw.opponents = elink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_loser).length == 0);
+         // elink.draw.opponents.push(new_opponent);
+
+         if (flinkinfo) flinkinfo.nodes.forEach(n => {
+            if (!n.height && n.data.team && util.intersection(n.data.team.map(t=>t.id), previous_loser).length) {
+               let draw_position = n.data.team[0].draw_position;
+               let new_team = new_opponent.map(t => Object.assign({}, t, { draw_position }));
+               n.data.team = new_team;
+            }
+         });
+      }
+
+      fx.logEventChange(e, { fx: 'consolation player changed', d: { team: outcome.teams[1 - outcome.winner].map(t=>t.id) } });
    }
 
    fx.safeScoreTreeDraw = ({ tournament, e, muid, existing_scores, outcome }) => {
@@ -262,8 +301,14 @@ export const tournamentFx = function() {
       let active_in_linked = null;
       let compass = e.draw && e.draw.compass;
 
-      let qlink = e.draw_type == 'Q' && fx.findEventByID(tournament, e.links['E']);
-      let qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
+      // qlink is a forward link from a qualification draw to an elimination draw
+      let qlink = e.draw_type == 'Q' && fx.findEventByID(tournament, e.links['E'])
+      // elink is a forward link from an elimination draw to a consolation draw
+      let elink = e.draw_type == 'E' && fx.findEventByID(tournament, e.links['C']);
+
+      // flink is a forward link dependency
+      let flink = qlink || elink;
+      let flinkinfo = flink && flink.draw && dfx.drawInfo(flink.draw);
 
       let node = !existing_scores ? null : dfx.findMatchNodeByTeamPositions(current_draw, outcome.positions);
       let previous_winner = node && node.match && node.match.winner ? node.match.winner.map(m=>m.id) : undefined;
@@ -290,8 +335,12 @@ export const tournamentFx = function() {
                active_in_linked = util.intersection(active_player_positions, position_in_linked).length;
             }
          }
-      } else {
-         active_in_linked = qlink && qlinkinfo && previous_winner && playerActiveInLinked(qlinkinfo, previous_winner);
+      } else if (e.draw_type == 'Q') {
+         // active_in_linked = flink && flinkinfo && previous_winner && playerActiveInLinked(flinkinfo, previous_winner);
+         active_in_linked = flink && flinkinfo && previous_winner && fx.teamActiveInLinked(flinkinfo, previous_winner);
+      } else if (e.draw_type == 'E') {
+         // active_in_linked = flink && flinkinfo && previous_loser && playerActiveInLinked(flinkinfo, previous_loser);
+         active_in_linked = flink && flinkinfo && previous_loser && fx.teamActiveInLinked(flinkinfo, previous_loser);
       }
 
       let winner_changed = !previous_winner || !current_winner ? undefined : util.intersection(previous_winner, current_winner).length == 0;
@@ -302,12 +351,13 @@ export const tournamentFx = function() {
          if (compass) {
             fx.removeDirectionalPlayer(tournament, e, target_draw, previous_loser, linked_info);
          } else {
-            winnerRemoved({ tournament, e, qlink, qlinkinfo, previous_winner, outcome });
+            opponentRemoved({ tournament, e, elink, qlink, flinkinfo, previous_winner, previous_loser, outcome });
          }
-         if (qlink) result.approved_changed = qlink;
+         if (flink) result.approved_changed = flink;
          result.winner_removed = true;
       } else if (winner_changed) {
-         if (qlink) qualifierChanged({ e, outcome, qlink, qlinkinfo, previous_winner, current_winner });
+         if (qlink) qualifierChanged({ e, outcome, qlink, flinkinfo, previous_winner, current_winner });
+         if (elink) consolationChanged({ e, outcome, elink, flinkinfo, previous_loser, current_loser });
          if (compass) fx.removeDirectionalPlayer(tournament, e, target_draw, previous_loser, linked_info);
          result.winner_changed = true;
       }
@@ -315,6 +365,20 @@ export const tournamentFx = function() {
       if (!existing_scores) {
          // no existing scores so advance position
          dfx.advancePosition({ node: current_draw, position: outcome.position });
+         if (fx.isConsolationFeedIn(elink)) { 
+            // must get eligible players for consolation event because eligiblePlayers() adds exit profiles
+            // eligiblePlayers has to retrieve all event matches to add exit profiles... there is no doubt an opportunity to simplify here
+            let c_eligible = fx.eligiblePlayers(tournament, elink);
+            let eligible_player = c_eligible && c_eligible.players && c_eligible.players.reduce((p, c) => c.puid == current_loser ? c : p, undefined);
+            if (eligible_player) {
+               let info = dfx.drawInfo(e.draw);
+               eligible_player.elimination_position = info.assigned_positions[eligible_player.puid];
+
+               // placeConsolationOpponent expects a team...
+               fx.placeConsolationOpponent(elink, [eligible_player]);
+               elink.regenerate = 'consolation player placed';
+            }
+         }
       } else if (!outcome.score) {
          var possible_to_remove = (!node.ancestor || !node.ancestor.team);
          if (!possible_to_remove) return { error: 'phrases.cannotchangewinner' };
@@ -834,9 +898,15 @@ export const tournamentFx = function() {
             e.draw_size = !e.draw ? 0 : dfx.drawInfo(e.draw).draw_positions.length;
          },
          C() {
-            // TODO: unless structure is feed-in, draw_size should be half of the main draw to which it is linked
-            let draw_size = Math.max(0, e.approved && e.approved.length ? dfx.acceptedDrawSizes(e.approved.length) : 0);
-            e.draw_size = draw_size;
+            if (fx.isConsolationFeedIn(e)) {
+               let linked_elimination = fx.findEventByID(tournament, e.links['E']);
+               let elimination_info = linked_elimination && dfx.drawInfo(linked_elimination.draw);
+               e.feed_base = (elimination_info && elimination_info.draw_positions.length / 2) || 0;
+               e.draw_size = dfx.feedDrawSize({ num_players: e.feed_base, skip_rounds: e.skip_rounds, feed_rounds: e.feed_rounds });
+            } else {
+               let draw_size = Math.max(0, e.approved && e.approved.length ? dfx.acceptedDrawSizes(e.approved.length) : 0);
+               e.draw_size = draw_size;
+            }
          },
          S() {
             let qualifiers = 0;
@@ -990,14 +1060,12 @@ export const tournamentFx = function() {
             let alternate_ids = all_loser_ids.filter(i=>no_wins_ids.indexOf(i) < 0);
             let ep = exitProfiles(completed_matches);
             available_players.forEach(p => {
-               if (alternate_ids.indexOf(p.id) >= 0) {
-                  p.alternate = true;
-                  p.exit_profile = ep[p.id];
-               }
+               if (alternate_ids.indexOf(p.id) >= 0) { p.alternate = true; }
+               p.exit_profile = ep[p.id];
             });
 
             // if building a consolation draw for an elimination event, available players are those who have lost in a linked elimination event...
-            let alts = env.drawFx.consolation_alternates;
+            let alts = env.drawFx.consolation_alternates || fx.isConsolationFeedIn(e);
             available_players = available_players
                .filter(p=>no_wins_ids.indexOf(p.id) >= 0 || (alts && alternate_ids.indexOf(p.id) >= 0));
          }
@@ -1352,6 +1420,58 @@ export const tournamentFx = function() {
       return {};
    }
 
+   fx.removeConsolationTeam = (tournament, e, target_draw, losing_team_ids, linked_info) => {
+      if (!target_draw) return {};
+      fx.logEventChange(e, { fx: 'consolation player removed', d: { losing_team_ids } });
+      linked_info.nodes.forEach(node => {
+         if (node.data.team && util.intersection(node.data.team.map(t=>t.id), losing_team_ids).length) { delete node.data.team; }
+      });
+      return {};
+   }
+
+   fx.placeConsolationOpponent = (evt, opponent) => {
+      let player = opponent[0];
+      let round = player.exit_profile.exit_round;
+      let position = fx.getConsolationPosition(evt.draw_size, round, player.elimination_position);
+      /*
+      let origin = Math.ceil(player.elimination_position / Math.pow(2, round));
+      let round_base = util.range(0, round - 1).map(r=>evt.draw_size/Math.pow(2, r)).reduce((a, b) => a + b, 0);
+      let round_size = evt.draw_size/Math.pow(2, round - 1);
+      let position = round == 1 ? origin : round_base + (round_size - origin) + 1;
+      // the 1st round goes from top to bottom
+      // the 2nd round goes from bottom to top
+      // the 3rd round starts at the bottom of the 2nd quarter, goes up and around
+      // the 4th round starts at the bottom of the 3rd quarter, goes up and around
+      */
+      dfx.assignPosition({ node: evt.draw, position, team: opponent });
+   }
+
+   fx.getConsolationPosition = (draw_size, round, elimination_position) => {
+      let origin = Math.ceil(elimination_position / Math.pow(2, round));
+      let round_base = util.range(0, round - 1).map(r=>draw_size/Math.pow(2, r)).reduce((a, b) => a + b, 0);
+      let round_size = draw_size/Math.pow(2, round - 1);
+      // the 1st round goes from top to bottom
+      // the 2nd round goes from bottom to top
+      // the 3rd round starts at the bottom of the 2nd quarter, goes up and around
+      // the 4th round starts at the bottom of the 3rd quarter, goes up and around
+      let position = round == 1 ? origin : round_base + (round_size - origin) + 1;
+      return position;
+   }
+
+   fx.consolationOpponentsInRound = (opponents, round) => opponents.filter(o=>o[0].exit_profile.exit_round == round);
+
+   fx.placeConsolationRoundOpponents = (evt, opponents, round) => {
+      let oir = opponentsInRound(opponents, round);
+      oir.forEach(opponent => {
+         let origin = Math.ceil(opponent[0].elimination_position / Math.pow(2, round));
+         let round_base = util.range(0, round - 1).map(r=>evt.draw_size/Math.pow(2, r)).reduce((a, b) => a + b, 0);
+         let round_size = evt.draw_size/Math.pow(2, round - 1);
+         let position = round == 1 ? origin : round_base + (round_size - origin) + 1;
+         dfx.assignPosition({ node: evt.draw, position, team: opponent });
+      });
+      function consolataionOpponentsInRound(opponents, round) { return opponents.filter(o=>o[0].exit_profile.exit_round == round) }
+   }
+
    // MISC
    fx.logEventChange = (evt, change) => {
       if (!evt.log) evt.log = [];
@@ -1373,6 +1493,7 @@ export const tournamentFx = function() {
    }
 
    fx.isTeam = (t) => { return ['team', 'dual'].indexOf(t.type) >= 0; }
+   fx.isConsolationFeedIn = (e) => e && e.structure == 'feed' && e.draw_type == 'C';
    function internationalRanking(p) { return p.int > 0; }
    function teamHash(team) { return team.map(p=>p.id).join('|'); }
    function puidHash(team) { return team.map(p=>p.puid).sort().join('|'); }
