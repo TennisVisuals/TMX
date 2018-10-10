@@ -296,6 +296,7 @@ export const lang = function() {
          consolation: 'Consolation',
          qualification: 'Qualification',
          preround: 'Pre-Round',
+         incidentals: 'Incidentals',
          remove: 'Remove',
          changestatus: 'Change Status',
          penalty: 'Assess Penalty',
