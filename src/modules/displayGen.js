@@ -1861,7 +1861,7 @@ export const displayGen = function() {
                         <input id='${ids.first_name}' value='${p.first_name || ''}'>
                      </div>
                      <div class='flexjustifystart playerattrvalue' style='display: ${birth}'>
-                        <input id='${ids.birth}' value=''>
+                        <input id='${ids.birth}' value='${p.birth || ''}' placeholder='YYYY-MM-DD'>
                      </div>
                      <div id='${ids.gender}' class='flexjustifystart genderddlb' style='display: ${gender}'> </div>
                      <div class='flexjustifystart playerattrvalue'>
@@ -2493,6 +2493,7 @@ export const displayGen = function() {
          share_team: displayFx.uuid(),
          print_draw_order: displayFx.uuid(),
          refresh_registrations: displayFx.uuid(),
+         refresh_roster: displayFx.uuid(),
          print_schedule: displayFx.uuid(),
          schedule_matches: displayFx.uuid(),
          publish_schedule: displayFx.uuid(),
@@ -2666,6 +2667,9 @@ export const displayGen = function() {
                      </div>
                      <div class='${classes.roster_link} ${gen.info}' label='${lang.tr("signin.reglink")}' style='margin-left: .5em;'>
                         <div class='action_icon roster_link link_inactive'></div>
+                     </div>
+                     <div class='${classes.refresh_roster}' label='${lang.tr("refresh.general")}'>
+                        <div class='action_icon refresh_roster refresh_icon'></div>
                      </div>
                      <div class='${classes.share_team} info' label='${lang.tr("teams.share")}' style='display: none; margin-left: .5em;'>
                         <div class='action_icon shareteam'></div>
@@ -2842,7 +2846,7 @@ export const displayGen = function() {
                      <div class='action_icon ranking_order ranking_order_inactive'></div>
                   </div>
                   <div class='${classes.refresh_registrations}' label='${lang.tr("refresh.general")}'>
-                     <div class='action_icon refresh_registrations'></div>
+                     <div class='action_icon refresh_registrations refresh_icon'></div>
                   </div>
                   <div class='${classes.reg_link} ${gen.info}' label='${lang.tr("signin.reglink")}' style='display: none'>
                      <div class='action_icon reg_link link_inactive'></div>
@@ -3483,39 +3487,51 @@ export const displayGen = function() {
          latitude: displayFx.uuid(),
          longitude: displayFx.uuid(),
          map: displayFx.uuid(),
+         googlemap: displayFx.uuid(),
       };
       let html = `
-         <div class='attribute_groups'>
-            <div>
-               <div class='location_attribute'>
-                  <div class='loclabel'>${lang.tr('locations.abbreviation')}:</div>
-                  <input id='${ids.abbreviation}' placeholder='Court' class='locvalue_short'> 
+         <div class='tournament_attrs'>
+               <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+                  <div class='location_attribute'>
+                     <div class='loclabel'>${lang.tr('locations.abbreviation')}:</div>
+                     <input id='${ids.abbreviation}' class='locvalue_short'> 
+                  </div>
+                  <div class='flexrow'>
+                     <div class='location_attribute'>
+                        <div class='loclabel'>${lang.tr('locations.courts')}:</div>
+                        <input id='${ids.courts}' class='location_courts'>
+                     </div>
+                     <div class='location_attribute'>
+                        <div class='locname'>${lang.tr('locations.identifiers')}:</div>
+                        <input id='${ids.identifiers}' placeholder='1, 2, 3, 4' class='locvalue_short'>
+                     </div>
+                  </div>
+                  <div class='location_attribute'>
+                     <div class='loclabel'>${lang.tr('locations.name')}:</div>
+                     <input id='${ids.name}' class='locvalue'> 
+                  </div>
                </div>
-               <div class='location_attribute'>
-                  <div class='loclabel'>${lang.tr('locations.courts')}:</div>
-                  <input id='${ids.courts}' class='location_courts'>
+               <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+                  <div class='location_attribute'>
+                     <div class='loclabel'>${lang.tr('locations.address')}:</div>
+                     <input id='${ids.address}' class='locvalue'> 
+                  </div>
+                  <div class='flexrow'>
+                     <div class='flexcol'>
+                        <div class='location_attribute'>
+                           <div class='loclabel'>Latitude</div>
+                           <input id='${ids.latitude}' class='locvalue_short'> 
+                        </div>
+                        <div class='location_attribute'>
+                           <div class='loclabel'>Longitude</div>
+                           <input id='${ids.longitude}' class='locvalue_short'> 
+                        </div>
+                     </div>
+                     <div style='margin-left: 1em;'>
+                        <div id='${ids.googlemap}' class='googlemaps action_icon_large' ></div>
+                     </div>
+                  </div>
                </div>
-               <div class='location_attribute'>
-                  <div class='loclabel'>${lang.tr('locations.identifiers')}:</div>
-                  <input id='${ids.identifiers}' placeholder='1, 2, 3, 4' class='locvalue_short'>
-               </div>
-               <div class='location_attribute'>
-                  <div class='loclabel'>Latitude</div>
-                  <input id='${ids.latitude}' class='locvalue_short'> 
-               </div>
-               <div class='location_attribute'>
-                  <div class='loclabel'>Longitude</div>
-                  <input id='${ids.longitude}' class='locvalue_short'> 
-               </div>
-               <div class='location_attribute'>
-                  <div class='loclabel'>${lang.tr('locations.name')}:</div>
-                  <input id='${ids.name}' class='locvalue_long'> 
-               </div>
-               <div class='location_attribute'>
-                  <div class='loclabel'>${lang.tr('locations.address')}:</div>
-                  <input id='${ids.address}' class='locvalue_long'> 
-               </div>
-            </div>
          </div>
       `;
       container.location_attributes.element.innerHTML = html;
@@ -4739,7 +4755,7 @@ export const displayGen = function() {
       gen.actionMessage({ message, actionFx: confirmFx, action: lang.tr('actions.ok'), cancelAction: () => gen.closeModal() });
    }
 
-   gen.enterSheetLink = (existing_link, submitFx) => {
+   gen.enterLink = (existing_link, message, submitFx) => {
       let ids = {
          link: displayFx.uuid(),
          cancel: displayFx.uuid(),
@@ -4747,7 +4763,7 @@ export const displayGen = function() {
       };
       let html = `
          <div style='min-height: 150px'>
-         <h2>${lang.tr('phrases.entersheeturl')}</h2>
+         <h2>${message}</h2>
          <div class='flexcenter flexcol'>
             <input id='${ids.link}' value='' style='text-align: center; width: 25em; margin: 1em;'>
             <div class='flexrow' style='margin-top: 1em;'>

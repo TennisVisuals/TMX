@@ -5,7 +5,7 @@ export const env = {
    first_time_user: false,
 
    // version is Major.minor.added.changed.fixed
-   version: '1.3.0.0.0.beta',
+   version: '1.3.2.2.0',
    version_check: undefined,
    reset_new_versions: false,
 
@@ -18,12 +18,7 @@ export const env = {
       abbr: undefined,
       ouid: undefined,
    },
-   editing: {
-      players: {
-         birth: true,
-         gender: true
-      }
-   },
+   // editing: { players: { birth: true, gender: true } },
    assets: {
       flags: '/media/flags/',
       ioc_codes: './assets/ioc_codes',
@@ -64,7 +59,16 @@ export const env = {
       category: undefined,
       first_day: 0
    },
-   players: { identify: true },
+   players: {
+      identify: true,
+      require: {
+         ioc: false
+      },
+      editing: {
+         birth: true,
+         gender: true
+      }
+   },
    points: {
       walkover_wins: ['QF', 'SF', 'F'],
       points_table: {

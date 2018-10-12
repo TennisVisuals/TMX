@@ -1359,7 +1359,9 @@ export const tournamentDisplay = function() {
                first_name: firstCap(name[0]),
                last_name: firstCap(name.slice(1).join(' ')),
             }
+
             let category_filter = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : tournament.category;
+
             pfx.createNewPlayer({ player_data: new_player, category: category_filter, callback: addNewTournamentPlayer, date: tournament.start });
          }
       }
@@ -1864,10 +1866,18 @@ export const tournamentDisplay = function() {
       }
 
       function delegateMatch(match, teams, score_format) {
-         let evt = tfx.findEventByID(tournament, match.euid);
+         let evt = tfx.findEventByID(tournament, match.euid || match.event.euid);
          let key_uuid = (+new Date).toString(36).slice(-6).toUpperCase();
 
+         let coords;
+         let schedule = match.schedule;
+         if (schedule && schedule.luid && tournament.locations) {
+            let loc = tournament.locations.reduce((p, c) => c.luid == schedule.luid ? c : p, undefined);
+            if (loc) coords = { latitude: loc.latitude, longitude: loc.longitude }
+         }
+
          let content = {
+            location: coords,
             event: {
                name: evt.broadcast_name,
                euid: evt.euid,
@@ -1894,6 +1904,8 @@ export const tournamentDisplay = function() {
                   }
                }
          }
+
+         console.log('content:', content);
 
          let ctext = (!env.isMobile) ? `<h2>${key_uuid}</h2><h2>${lang.tr('phrases.keycopied')}</h2>` : `<h2>${lang.tr('tournaments.key')}</h2>${key_uuid}`;
 
@@ -1994,9 +2006,10 @@ export const tournamentDisplay = function() {
 
          container.points_valid.element.disabled = !state.edit;
 
-         document.querySelector('.refresh_registrations').style.opacity = state.edit ? 1 : 0;
+         Array.from(document.querySelectorAll('.refresh_icon')).forEach(i=>i.style.opacity = state.edit ? 1 : 0);
          document.querySelector('.' + classes.refresh_registrations).classList[state.edit ? 'add' : 'remove']('info');
 
+         document.querySelector('.roster_link').style.opacity = state.edit ? 1 : 0;
          document.querySelector('.reg_link').style.opacity = state.edit ? 1 : 0;
          if (state.edit) {
             db.findSetting('fetchRegisteredPlayers').then(regLinkState, util.logError);
@@ -2089,7 +2102,7 @@ export const tournamentDisplay = function() {
          let id_map = Object.assign(...players.map(p => ({ [p.puid]: p })));
 
          // check for overlap with existing players, add any newly retrieved attributes to existing
-         tournament.players.forEach(p => { if (id_map[p.puid]) Object.assign(p, id_map[p.id]); });
+         tournament.players.forEach(p => { if (id_map[p.puid]) { Object.assign(p, id_map[p.puid]); } });
 
          // add any new players that don't already exist in tournament
          players.forEach(pushNewPlayer);
@@ -2442,6 +2455,10 @@ export const tournamentDisplay = function() {
                   if (!player) return;
                   if (!player.rankings) player.rankings = {};
 
+                  if (displayed.team && displayed.team.roster_link) {
+                     return displayGen.popUpMessage('Cannot add players to fixed (linked) roster');
+                  }
+
                   let rank_category = staging.legacyCategory(tournament.category);
                   fetchFx.fetchRankList(rank_category).then(addRanking, addPlayer);
 
@@ -2562,9 +2579,63 @@ export const tournamentDisplay = function() {
 
       util.addEventToClass(classes.team_rankings, () => enableTeamRankings());
       util.addEventToClass(classes.roster_link, () => defineRosterLink());
+      util.addEventToClass(classes.refresh_roster, () => updateRosterPlayers());
 
       function defineRosterLink() {
-         console.log('define roster link');
+         let existing_link = displayed.team && displayed.team.roster_link;
+         displayGen.enterLink(existing_link, lang.tr('phrases.entersheeturl'), processLink);
+         function processLink(link) {
+            displayGen.closeModal();
+            if (!link) {
+               if (displayed.team) delete displayed.team.roster_link;
+               showRosterRefresh(displayed.team);
+               return;
+            }
+            let parts = link.split('/');
+            let roster_link = parts.reduce((p, c) => (!p || c.length > p.length) ? c : p, undefined);
+            let new_url = existing_link && roster_link != existing_link;
+            if (new_url && (parts.indexOf('docs.google.com') < 0 || parts.indexOf('spreadsheets') < 0)) return invalidURL();
+
+            if (!existing_link || new_url) {
+               displayed.team.roster_link = roster_link;
+               updateRosterPlayers();
+            } else {
+               saveTournament(tournament);
+            }
+
+            showRosterRefresh(displayed.team);
+         }
+      }
+
+      function updateRosterPlayers(show_notice = true) {
+         let roster_link = displayed.team && displayed.team.roster_link;
+         if (!state.edit || !roster_link) return;
+         let id = show_notice ? displayGen.busy.message(`<p>${lang.tr("refresh.roster")}</p>`) : undefined;
+         let done = (roster) => {
+            displayGen.busy.done(id, true);
+            if (roster && roster.length) addRosterPlayers(roster);
+         }
+         fetchFx.fetchGoogleSheet(displayed.team.roster_link).then(done, invalidURLorNotShared);
+      }
+   
+      function addRosterPlayers(players) {
+         if (players && !players.length) return displayGen.popUpMessage('Players not found: Check Headers/Tab Names.');
+
+         players.forEach(player => { player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; });
+         tfx.addPlayers(tournament, players);
+         
+         if (!displayed.team.players) displayed.team.players = {};
+         let roster_puids = players.map(p=>p.puid);
+         let existing_puids = Object.keys(displayed.team.players);
+         existing_puids.forEach(puid => { if (roster_puids.indexOf(puid) < 0) delete displayed.team.players[puid]; });
+
+         // now make sure these puids are not part of any other team!!
+         let new_puids = roster_puids.filter(puid => existing_puids.indexOf(puid) < 0);
+         new_puids.forEach(puid => displayed.team.players[puid] = { order: 0 });
+         teamList();
+
+         displayTeam({team: displayed.team});
+         saveTournament(tournament);
       }
 
       function enableTeamRankings() {
@@ -3061,6 +3132,9 @@ export const tournamentDisplay = function() {
          container.team_edit_name.element.focus();
       }
 
+      function showRosterRefresh(team) {
+         document.querySelector('.refresh_roster').style.opacity = state.edit && team.roster_link ? 1 : 0;
+      }
       function displayTeam({ team, index } = {}) {
          if (!team) return;
          displayed.team = team;
@@ -3077,8 +3151,7 @@ export const tournamentDisplay = function() {
          let ioc_idioms = Object.assign({}, ...ioc_codes.map(d => ({ [d.ioc]: d.name })));
          team_details.ioc.element.value = (team.ioc && ioc_idioms[team.ioc]) || '';
 
-         let roster_link = document.querySelector('.' + classes.roster_link);
-         roster_link.querySelector('.roster_link').style.opacity = 1;
+         showRosterRefresh(team);
 
          util.eachElementClass(container.team_details.element, 'team_attr_edit', (el) => el.disabled = !state.edit);
 
@@ -3145,6 +3218,7 @@ export const tournamentDisplay = function() {
             selection_flag = true; 
             team.ioc = c.text.value; 
             team_details.ioc.element.value = c.text.label;
+            team_details.ioc.typeAhead.suggestions = [];
          }
          team_details.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
          team_details.ioc.element.addEventListener('keydown', catchTab , false);
@@ -3174,6 +3248,7 @@ export const tournamentDisplay = function() {
                team.club = c.text.value.id; 
                team.club_code = c.text.value.code; 
                team_details.club.element.value = c.text.label;
+               team_details.club.typeAhead.suggestions = [];
             }
             team_details.club.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
             team_details.club.element.addEventListener('keydown', catchTab , false);
@@ -3999,6 +4074,9 @@ export const tournamentDisplay = function() {
 
       // TODO: break this out into tmxMaps.js and hide all fx specific to google or leaflet
       function locationMap({ element_id, coords, zoom }) {
+
+         if (!window.navigator.onLine) return {};
+
          zoom = (zoom == undefined) ? 16 : zoom;
          if (coords.latitude != undefined && coords.longitude != undefined) {
             container.location_map.element.style.display = 'inline';
@@ -4020,9 +4098,32 @@ export const tournamentDisplay = function() {
          }
       }
 
+      function getLatLng() {
+         displayGen.enterLink('', 'Enter Google Maps URL', processLink);
+         function processLink(link) {
+            displayGen.closeModal();
+            if (!link) { return; }
+            let parts = link.split('/');
+            console.log('Link:', link);
+            /*
+            let reg_link = parts.reduce((p, c) => (!p || c.length > p.length) ? c : p, undefined);
+            let new_url = existing_link && reg_link != existing_link;
+
+            if (new_url && (parts.indexOf('docs.google.com') < 0 || parts.indexOf('spreadsheets') < 0)) return invalidURL();
+
+            if (!existing_link || new_url) {
+               tournament.reg_link = reg_link;
+               updateRegisteredPlayers(true);
+               saveTournament(tournament);
+            }
+            */
+         }
+      }
+
       function configureLocationAttributes(l) {
          let disabled = !state.edit
          let attributes = displayGen.displayLocationAttributes(container, l, state.edit);
+         attributes.googlemap.element.addEventListener('click', getLatLng);
 
          let zoom = 16;
          let coords = { latitude: l.latitude, longitude: l.longitude };
@@ -4033,8 +4134,8 @@ export const tournamentDisplay = function() {
          }
          let { map, marker } = locationMap({ element_id: attributes.map.id, coords, zoom });
 
-         let field_order = [ 'abbreviation', 'courts', 'identifiers', 'latitude', 'longitude', 'name', 'address' ];
-         let constraints = { 'abbreviation': { length: 3}, 'name': { length: 4 }, 'address': { length: 5 }, 'courts': { number: true }, 'latitude': { float: true }, 'longitude': { float: true } };
+         let field_order = [ 'abbreviation', 'courts', 'identifiers', 'name', 'address', 'latitude', 'longitude' ];
+         let constraints = { 'abbreviation': { length: 3}, 'name': { length: 4 }, 'address': { length: 5 }, 'courts': { number: true } };
          field_order.forEach(field => {
             attributes[field].element.addEventListener('keydown', catchTab, false);
             attributes[field].element.value = l[field] || '';
@@ -6596,6 +6697,7 @@ export const tournamentDisplay = function() {
             courts: 0,
             address: '',
             luid: UUID.new(),
+            abbreviation: 'Court'
          };
          displayLocation({ location: l });
       }
@@ -6857,8 +6959,8 @@ export const tournamentDisplay = function() {
                if (p.first_name) new_player_data.first_name = p.first_name;
                if (p.last_name) new_player_data.last_name = p.last_name;
                new_player_data.full_name = tfx.fullName(new_player_data, false);
-               if (p.ioc) new_player_data.ioc = p.ioc;
-               if (p.birth) new_player_data.birth = p.birth;
+               if (p.ioc != undefined) new_player_data.ioc = p.ioc;
+               if (p.birth != undefined) new_player_data.birth = p.birth;
                if (p.sex) new_player_data.sex = p.sex;
                new_player_data.school = p.school || '';
                new_player_data.school_abbr = p.school_abbr || '';
@@ -9952,7 +10054,8 @@ export const tournamentDisplay = function() {
       }
 
       function editRegistrationLink() {
-         displayGen.enterSheetLink(tournament.reg_link, processLink);
+         let existing_link = tournament.reg_link;
+         displayGen.enterLink(existing_link, lang.tr('phrases.entersheeturl'), processLink);
          function processLink(link) {
             displayGen.closeModal();
             if (!link) {
@@ -9960,14 +10063,17 @@ export const tournamentDisplay = function() {
                return;
             }
             let parts = link.split('/');
-            if (parts.indexOf('docs.google.com') < 0 || parts.indexOf('spreadsheets') < 0) return invalidURL();
             let reg_link = parts.reduce((p, c) => (!p || c.length > p.length) ? c : p, undefined);
-            if (reg_link.length < 40) return invalidURL();
-            tournament.reg_link = reg_link;
-            saveTournament(tournament);
-         }
+            let new_url = existing_link && reg_link != existing_link;
 
-         function invalidURL() { displayGen.popUpMessage(`<div>${lang.tr('phrases.invalidsheeturl')}</div>`); }
+            if (new_url && (parts.indexOf('docs.google.com') < 0 || parts.indexOf('spreadsheets') < 0)) return invalidURL();
+
+            if (!existing_link || new_url) {
+               tournament.reg_link = reg_link;
+               updateRegisteredPlayers(true);
+               saveTournament(tournament);
+            }
+         }
       }
 
       function enableManualRankings(enabled) {
@@ -10023,18 +10129,6 @@ export const tournamentDisplay = function() {
             fetchFx.fetchGoogleSheet(tournament.reg_link).then(done, invalidURLorNotShared);
          } else {
             fetchFx.fetchRegisteredPlayers(tournament.tuid, tournament.category).then(done, notConfigured);
-         }
-
-         function invalidURLorNotShared(data) {
-            displayGen.busy.done(id, true);
-            let message = `
-               <div class='flexcol'>
-                  <div>${lang.tr('phrases.invalidsheeturl')}</div>
-                  <div>${lang.tr('or')}</div>
-                  <div>Sheet needs to be shared with CourtHive Server</div>
-               </div>
-            `;
-            displayGen.popUpMessage();
          }
       }
 
@@ -10695,6 +10789,20 @@ export const tournamentDisplay = function() {
    function clearSelection() { if (window.getSelection) window.getSelection().removeAllRanges(); }
    function puidHash(team) { return team.map(p=>p && p.puid).sort().join('|'); }
    function teamHash(team) { return team.map(p=>p && p.id).join('|'); }
+   function invalidURL() { displayGen.popUpMessage(`<div>${lang.tr('phrases.invalidsheeturl')}</div>`); }
+   function invalidURLorNotShared(data) {
+      displayGen.busy.done(id, true);
+      let message = `
+         <div class='flexcol'>
+            <div>${lang.tr('phrases.invalidsheeturl')}</div>
+            <div>${lang.tr('or')}</div>
+            <div>Sheet needs to be shared so that "Anyone with the link can <b>view</b>"</div>
+            <div>${lang.tr('or')}</div>
+            <div>Sheet needs to be shared privately with CourtHive Server</div>
+         </div>
+      `;
+      displayGen.popUpMessage(message);
+   }
 
    return fx;
 }();

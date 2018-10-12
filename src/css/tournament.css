@@ -246,6 +246,18 @@
    margin-bottom: 1em;
 }
 
+.attribute_row {
+   display: flex;
+   -webkit-flex-direction: column;
+   flex-direction: column;
+   -webkit-justify-content: space-between;
+   justify-content: space-between;
+   -webkit-align-content: space-between;
+   align-content: space-between;
+   margin-right: 1em;
+   margin-bottom: 1em;
+}
+
 .attr_label {
    margin-right: 1em;
    text-align: left;
@@ -424,6 +436,7 @@
 .location_attribute {
    width: 100%;
    margin-bottom: .5em;
+   white-space: nowrap;
 
    display: flex;
    flex-wrap: nowrap;
@@ -433,11 +446,23 @@
    justify-content: flex-start;
 }
 
-.loclabel {
-   min-width: 8em;
+.locname {
    font-weight: bold;
    text-align: left;
    margin-left: .5em;
+   margin-right: 2px;
+}
+
+.loclabel {
+   min-width: 6em;
+   font-weight: bold;
+   text-align: left;
+   margin-left: .5em;
+}
+
+.locvalue {
+   margin-left: .5em;
+   width: 100%;
 }
 
 .locvalue_long {

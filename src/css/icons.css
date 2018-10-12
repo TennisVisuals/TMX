@@ -105,6 +105,12 @@
    padding-bottom: 2em;
    background-size: 100%;
 }
+.action_icon_large {
+   width: 3em;
+   height: 0;
+   padding-bottom: 3em;
+   background-size: 100%;
+}
 .action_icon_1_5 {
    width: 1.5em;
    height: 0;
@@ -125,12 +131,13 @@
 .ranking_order_active { background-image: url("img/rank.png"); opacity: 0; }
 .link_inactive { background-image: url("img/link_inactive.png"); opacity: 0; }
 .link_active { background-image: url("img/link_active.png"); opacity: 0; }
-.refresh_registrations { background-image: url("img/refresh_black.png"); opacity: 0; }
+.refresh_icon { background-image: url("img/refresh_black.png"); opacity: 0; }
 .shareteam { background-image: url("img/shareteam.png"); }
 .filter_w_selected { background-image: url("img/w_selected.png"); }
 .filter_m_selected { background-image: url("img/m_selected.png"); }
 .filter_w_gray { background-image: url("img/w_gray.png"); }
 .filter_m_gray { background-image: url("img/m_gray.png"); }
+.googlemaps { background-image: url("img/google-maps.png"); }
 
 .keys_black { background-image: url("img/keys.png"); }
 .keys_blue { background-image: url("img/keys_blue.png"); }

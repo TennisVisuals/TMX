@@ -424,20 +424,20 @@ export const playerFx = function() {
          sex: player_data.sex || 'M',
       }
 
-      // let points_table = fx.fx.pointsTable({calc_date: date});
       let points_table = rankCalc.pointsTable({calc_date: date});
       let categories = points_table && points_table.categories;
       category = category ? staging.legacyCategory(category) : 0;
-      let ages = category && categories && categories[category] && categories[category].ages ? categories[category].ages : { from: 6, to: 100 };
+      let ages = category && categories && categories[category] && categories[category].ages;
       let year = new Date().getFullYear();
       let min_year = year - ((ages && parseInt(ages.from)) || 0);
       let max_year = year - ((ages && parseInt(ages.to)) || 0);
       let daterange = { start: `${max_year}-01-01`, end: `${min_year}-12-31` };
+      let require_ioc = env.players.require.ioc;
 
       let player_container = displayGen.createNewPlayer(player);
       player_container.last_name.element.style.background = player.last_name ? 'white' : 'yellow';
       player_container.first_name.element.style.background = player.first_name ? 'white' : 'yellow';
-      player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
+      player_container.ioc.element.style.background = (!require_ioc || player.ioc) ? 'white' : 'yellow';
       player_container.birth.element.style.background = !ages || util.validDate(player.birth, daterange) ? 'white' : 'yellow';
 
       // try to make a reasonable start year
@@ -447,7 +447,7 @@ export const playerFx = function() {
       let birthdayPicker = new Pikaday({
          field: player_container.birth.element,
          i18n: lang.obj('i18n'),
-         defaultDate: start_date,
+         // defaultDate: start_date,
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
          firstDay: env.calendar.first_day,
@@ -477,7 +477,8 @@ export const playerFx = function() {
          selection_flag = true; 
          player.ioc = c.text.value; 
          player_container.ioc.element.value = c.text.label;
-         player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
+         player_container.ioc.element.style.background = (!require_ioc || player.ioc) ? 'white' : 'yellow';
+         player_container.ioc.typeAhead.suggestions = [];
       }
       player_container.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
       player_container.ioc.element.addEventListener('keydown', catchTab , false);
@@ -489,8 +490,8 @@ export const playerFx = function() {
                player_container.ioc.typeAhead.next();
                player_container.ioc.typeAhead.select(0);
             } else {
-               player_container.ioc.element.value = '';
-               player_container.ioc.element.style.background = 'yellow';
+               player_container.ioc.element.value = ioc_codes.reduce((p, c) => p || (c.ioc == player.ioc ? c.name : ''), undefined) || '';
+               player_container.ioc.element.style.background = !require_ioc ? 'white' : 'yellow';
             }
             nextFieldFocus(evt.shiftKey ? 'first_name' : 'ioc');
          }
@@ -508,6 +509,7 @@ export const playerFx = function() {
             player.club = c.text.value.id; 
             player.club_code = c.text.value.code; 
             player_container.club.element.value = c.text.label;
+            player_container.ioc.typeAhead.suggestions = [];
          }
          player_container.club.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
          player_container.club.element.addEventListener('keydown', catchTab , false);
@@ -535,7 +537,7 @@ export const playerFx = function() {
 
       let saveNewPlayer = () => { 
          let valid_date = !ages || util.validDate(player.birth, daterange);
-         if (!valid_date || !player.first_name || !player.last_name || !player.ioc) return;
+         if (!valid_date || !player.first_name || !player.last_name || (require_ioc && !player.ioc)) return;
          player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
          if (!player.club && player_container.club.element.value) player.club_name = player_container.club.element.value;
 
@@ -586,7 +588,7 @@ export const playerFx = function() {
 
    fx.editPlayer = editPlayer;
    function editPlayer({player_data={}, category, callback, date=new Date()} = {}) {
-      let allowed = env.editing.players;
+      let allowed = env.players.editing;
       let player = {
          first_name: player_data.first_name,
          last_name: player_data.last_name,
@@ -597,21 +599,21 @@ export const playerFx = function() {
          sex: player_data.sex || 'M'
       }
 
-      // let points_table = fx.fx.pointsTable({calc_date: date});
       let points_table = rankCalc.pointsTable({calc_date: date});
       let categories = points_table && points_table.categories;
       category = category ? staging.legacyCategory(category) : 0;
-      let ages = category && categories && categories[category] && categories[category].ages ? categories[category].ages : { from: 6, to: 100 };
+      let ages = category && categories && categories[category] && categories[category].ages;
       let year = new Date().getFullYear();
       let min_year = year - ((ages && parseInt(ages.from)) || 0);
       let max_year = year - ((ages && parseInt(ages.to)) || 0);
       let daterange = { start: `${max_year}-01-01`, end: `${min_year}-12-31` };
+      let require_ioc = env.players.require.ioc;
 
       let player_container = displayGen.editPlayer(player, allowed);
       player_container.last_name.element.style.background = player.last_name ? 'white' : 'yellow';
       player_container.first_name.element.style.background = player.first_name ? 'white' : 'yellow';
-      player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
-      player_container.birth.element.style.background = player.birth ? 'white' : 'yellow';
+      player_container.ioc.element.style.background = (!require_ioc || player.ioc) ? 'white' : 'yellow';
+      player_container.birth.element.style.background = (!ages || player.birth) ? 'white' : 'yellow';
 
       // try to make a reasonable start year
       let start_year = year - max_year < 17 ? max_year : min_year - 10;
@@ -620,7 +622,7 @@ export const playerFx = function() {
       let birthdayPicker = new Pikaday({
          field: player_container.birth.element,
          i18n: lang.obj('i18n'),
-         defaultDate: start_date,
+         // defaultDate: start_date,
          setDefaultDate: true,
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
@@ -655,7 +657,8 @@ export const playerFx = function() {
          selection_flag = true; 
          player.ioc = c.text.value; 
          player_container.ioc.element.value = c.text.label;
-         player_container.ioc.element.style.background = player.ioc ? 'white' : 'yellow';
+         player_container.ioc.typeAhead.suggestions = [];
+         player_container.ioc.element.style.background = (!require_ioc || player.ioc) ? 'white' : 'yellow';
       }
       player_container.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
       player_container.ioc.element.addEventListener('keydown', catchTab , false);
@@ -667,8 +670,8 @@ export const playerFx = function() {
                player_container.ioc.typeAhead.next();
                player_container.ioc.typeAhead.select(0);
             } else {
-               player_container.ioc.element.value = '';
-               player_container.ioc.element.style.background = 'yellow';
+               player_container.ioc.element.value = ioc_codes.reduce((p, c) => p || (c.ioc == player.ioc ? c.name : ''), undefined) || '';
+               player_container.ioc.element.style.background = !require_ioc ? 'white' : 'yellow';
             }
             nextFieldFocus(evt.shiftKey ? 'first_name' : 'ioc');
          }
@@ -676,13 +679,13 @@ export const playerFx = function() {
       });
 
       let defineAttr = (attr, evt, required, elem) => {
-         player[attr] = elem ? elem.value : evt? evt.target.value : undefined;
+         player[attr] = elem ? elem.value : evt ? evt.target.value : '';
          if (required) player_container[attr].element.style.background = player[attr] ? 'white' : 'yellow';
          if ((!evt || evt.which == 13 || evt.which == 9) && (!required || (required && player[attr]))) return nextFieldFocus(attr);
       }
 
       let saveEditedPlayer = () => { 
-         if (!player.first_name || !player.last_name || !player.ioc) return;
+         if (!player.first_name || !player.last_name || (require_ioc && !player.ioc)) return;
          player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
 
          let parenthetical = /\((.*)\)/;
@@ -713,9 +716,9 @@ export const playerFx = function() {
 
       function validateBirth(elem, evt) {
          let datestring = elem.value;
-         let valid_date = util.validDate(datestring, daterange);
+         let valid_date = (!ages && !datestring) || util.validDate(datestring, daterange);
          elem.style.background = valid_date ? 'white' : 'yellow';
-         if (valid_date) return defineAttr('birth', evt, true, elem);
+         if (valid_date) return defineAttr('birth', evt, ages, elem);
       }
 
       player_container.last_name.element.addEventListener('keydown', (evt) => { if (evt.shiftKey && evt.which == 9) nextFieldFocus('email'); });

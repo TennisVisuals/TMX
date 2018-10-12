@@ -111,16 +111,29 @@ export const importFx = function() {
       let players = [];
       let ioc_codes = env.ioc_codes || [];
       let code_by_country = Object.assign({}, ...ioc_codes.map(c => ({ [compressName(c.name)]: c.ioc })));
+      let iocs = ioc_codes.map(c=>c.ioc.toLowerCase());
 
       rows.forEach(row => {
          let player = {};
-         player.first_name = findAttr(row, ['First Name']);
-         player.last_name = findAttr(row, ['Last Name']);
+         player.first_name = findAttr(row, ['First', 'First Name']);
+         player.last_name = findAttr(row, ['Last', 'Last Name']);
+
+         let name = findAttr(row, ['Name']);
+         if (name && (!player.first_name || !player.last_name)) {
+            let names = name.split(' ');
+            if (names.length >= 2) {
+               player.first_name = names[0];
+               player.last_name = names[names.length - 1];
+            }
+         }
 
          if (!player.first_name || !player.last_name) return;
 
+         player.email = findAttr(row, ['e-mail', 'email']);
+         player.phone = findAttr(row, ['phone']);
          player.school = findAttr(row, ['School']);
          player.profile = findAttr(row, ['Profile', 'UTR Profile', 'UTR Player Profile Link']);
+         player.location = findAttr(row, ['Location']);
 
          let parenthetical = /\((.*)\)/;
          if (player.school && player.school.match(parenthetical)) {
@@ -129,25 +142,53 @@ export const importFx = function() {
 
          player.school_abbr = findAttr(row, ['School Abbreviation', 'School Abbr', 'School Code']);
 
-         let submission_id = findAttr(row, ['Submission ID']);
-         player.puid = findAttr(row, ['PUID']) || (submission_id ? `GS${submission_id}` : UUID.new());
-         player.id = row['ID'] || player.puid;
-
          let gender = findAttr(row, ['Gender', 'Sex']);
          if (['Male', 'Man', 'M', 'Boy'].indexOf(gender) >= 0) player.sex = 'M';
          if (['Female', 'W', 'Girl', 'Woman'].indexOf(gender) >= 0) player.sex = 'W';
 
          let country = findAttr(row, ['Country']);
-         if (country) { player.ioc = code_by_country[compressName(country)]; }
+         if (country) { player.ioc = iocs.indexOf(country.toLowerCase()) >= 0 ? country.toLowerCase() : code_by_country[compressName(country)]; }
 
          let birth = findAttr(row, ['Birth', 'Birthdate', 'Birthday', 'Birth Date', 'Date of Birth']);
          if (birth) {
             let birthdate = new Date(birth);
             player.birth = [birthdate.getFullYear(), birthdate.getMonth() + 1, birthdate.getDate()].join('-');
          }
+
+         let loclast = (!player.location ? '' : `${noSpaceComma(player.location)}${player.last_name}${player.first_name.slice(0,2)}`).toLowerCase();
+         let hackuuid = player.email || player.phone || player.profile;
+         if (hackuuid) hackuuid = hackuuid.split('').reverse().join('');
+
+         let temp_id = findAttr(row, ['ID']);
+         let id = (temp_id && temp_id.indexOf('google') < 0) ? temp_id : undefined;
+         let submission_id = findAttr(row, ['Submission ID']);
+         player.id = findAttr(row, ['UUID', 'Unique ID', 'Uniquie Identifier']) || id;
+         player.puid = findAttr(row, ['UUID', 'PUID']) || (submission_id ? `GS${submission_id}` : (player.id || hackuuid || loclast || UUID.new()));
+
+         let ratings = getRatings(row);
+         Object.assign(player, ratings);
+         processRatings(player);
+
          players.push(player);
       });
 
+      function getRatings(row) {
+         let headers = [ 
+            { attr: 'rating_utr_singles', header: 'Verified SinglesUtr' }, 
+            { attr: 'rating_utr_singles', header: 'Rating', sheet_name: 'Matched Players' }, 
+            { attr: 'rating_utr_singles_status', header: 'Verified SinglesUtr Status' }, 
+            { attr: 'rating_utr_singles_status', header: 'RatingStatus' }, 
+            { attr: 'rating_utr_doubles', header: 'Verified DoublesUtr' }, 
+            { attr: 'rating_utr_doubles', header: 'DoublesRating', sheet_name: 'Matched Players' }, 
+            { attr: 'rating_utr_doubles_status', header: 'Verified DoublesUtr Status' }, 
+            { attr: 'rating_utr_doubles_status', header: 'RatingStatusDoubles' }, 
+         ];
+         let attributes = Object.assign({}, ...headers.map(obj => {
+            let value = findAttr(row, [obj.header]);
+            if (value) return { [obj.attr]: value }
+         }).filter(f=>f));
+         return attributes;
+      }
       function compressName(name) { return name.split(' ').join('').toLowerCase(); }
 
       function findAttr(row, attrs = []) {
@@ -157,6 +198,8 @@ export const importFx = function() {
 
       return players;
    }
+
+   function noSpaceComma(text) { return text.split(' ').reverse().join('').split(',').join(''); }
 
    load.importPlayerList = (rows, id) => {
       let player_list = [];

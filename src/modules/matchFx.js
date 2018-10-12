@@ -90,11 +90,19 @@ export const matchFx = function() {
          team_players = [];
       }
 
+      let coords;
+      let schedule = match.match.schedule;
+      if (schedule && schedule.luid && tournament.locations) {
+         let loc = tournament.locations.reduce((p, c) => c.luid == schedule.luid ? c : p, undefined);
+         if (loc) coords = { latitude: loc.latitude, longitude: loc.longitude }
+      }
+
       let obj = {
          consolation: e.draw_type == 'C', 
          draw_positions: e.draw_size,
          date: match.match.date,
-         schedule: match.match.schedule,
+         schedule,
+         location: coords,
          format: match.format == 'doubles' || e.format == 'D' ? 'doubles' : 'singles',
          gender: e.gender,
          muid: match.match.muid,

@@ -600,6 +600,7 @@ export const lang = function() {
       
       refresh: {
          general: 'Refresh',
+         roster: 'Updating Team Roster...',
          registered: 'Updating Registered Players...',
          players: 'Updating Players...',
          calendar: 'Updating Calendar...',
