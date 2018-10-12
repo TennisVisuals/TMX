@@ -4039,7 +4039,6 @@ export const tournamentDisplay = function() {
 
       // TODO: break this out into tmxMaps.js and hide all fx specific to google or leaflet
       function locationMap({ element_id, coords, zoom }) {
-
          if (!window.navigator.onLine) return {};
 
          zoom = (zoom == undefined) ? 16 : zoom;
@@ -4067,7 +4066,7 @@ export const tournamentDisplay = function() {
          let disabled = !state.edit
          let attributes = displayGen.displayLocationAttributes(container, l, state.edit);
          attributes.googlemap.element.addEventListener('click', getLatLng);
-         attributes.geoloc.element.addEventListener('click', getUserPosition);
+         attributes.geoloc.element.addEventListener('click', promptGetUserPosition);
 
          let zoom = 16;
          let coords = { latitude: l.latitude, longitude: l.longitude };
@@ -4097,7 +4096,7 @@ export const tournamentDisplay = function() {
                let lng = (e.latlng.lng);
                let newLatLng = new L.LatLng(lat, lng);
                marker.setLatLng(newLatLng);
-               let message = 'Update Latitude/Longitude?';
+               let message = lang.tr('phrases.updatelatlng');
                displayGen.okCancelMessage(message, () => setLatLng(lat, lng), ()=>displayGen.closeModal());
             });
 
@@ -4106,7 +4105,14 @@ export const tournamentDisplay = function() {
             });
          }
 
+         function promptGetUserPosition() {
+            if (!state.edit) return;
+            let message = lang.tr('phrases.usecurrentlocation');
+            displayGen.okCancelMessage(message, getUserPosition, ()=>displayGen.closeModal());
+         }
+
          function getUserPosition() {
+            displayGen.closeModal();
             var options = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
             navigator.permissions.query({
                  name: 'geolocation'
@@ -4127,6 +4133,7 @@ export const tournamentDisplay = function() {
          }
 
          function getLatLng() {
+            if (!state.edit) return;
             displayGen.enterLink('', lang.tr('phrases.entergooglemapsurl'), processLink);
             function processLink(link) {
                displayGen.closeModal();
@@ -6722,7 +6729,9 @@ export const tournamentDisplay = function() {
                   .style('display', 'inline')
                   .on('click', () => { 
                      if (!tournament.locations) tournament.locations = [];
-                     if (!l.abbreviation || !l.name || !l.address) return;
+                     if (!l.abbreviation || !l.name || !l.address) {
+                        return displayGen.popUpMessage(`Location details are incoplete!`);
+                     }
 
                      tournament.locations.push(l);
                      let i = tournament.locations.length - 1;
@@ -9877,7 +9886,6 @@ export const tournamentDisplay = function() {
             }
             endPicker.setStartRange(start);
             endPicker.setMinDate(start);
-            // unscheduleStrandedMatches();
             saveTournament(tournament);
          }
          function updateEndDate() {
@@ -9885,12 +9893,10 @@ export const tournamentDisplay = function() {
             startPicker.setEndRange(end);
             startPicker.setMaxDate(end);
             endPicker.setEndRange(end);
-            // unscheduleStrandedMatches();
             saveTournament(tournament);
          }
          function unscheduleStrandedMatches({ proposed_start, proposed_end }) {
             return new Promise((resolve, reject) => {
-               // let date_range = util.dateRange(tournament.start, tournament.end).map(d=>util.formatDate(d));
                let date_range = util.dateRange(proposed_start, proposed_end).map(d=>util.formatDate(d));
                let { scheduled } = mfx.scheduledMatches(tournament);
                let stranded = scheduled.filter(s=>date_range.indexOf(s.schedule.day) < 0);

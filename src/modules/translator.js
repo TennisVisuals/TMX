@@ -404,6 +404,8 @@ export const lang = function() {
          invalidgooglemapsurl: 'Invalid Google Maps Link',
          geolocationdenied: 'Geolocation has been denied',
          unblockgeo: 'Unblock in browser settings',
+         usecurrentlocation: 'Use your current position?',
+         updatelatlng: 'Update Latitude/Longitude?',
          cleardraw: 'Existing Draw will be cleared!',
          clearselection: 'Clear Selection',
          selectplayer: 'Select Player',

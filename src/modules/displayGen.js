@@ -883,7 +883,7 @@ export const displayGen = function() {
       function playerBlock(p) {
          var player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
          var ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
-         var flag = `<div class='flexcenter' style='margin-right: .3em'><img onerror="this.style.visibility='hidden'" width='16px' height='10px' src="${flag_root}${player_ioc}.png"></div>`.trim();
+         var flag = `<div class='flexcenter' style='margin-right: .3em'><img onerror="this.style.visibility='hidden'" width='16px' height='10px' src="${flag_root}${player_ioc.toUpperCase()}.png"></div>`.trim();
          var first_name = util.normalizeName(p.first_name, false);
          var last_name = p.last_name ? util.normalizeName(p.last_name, false) : '';
          var full_name = `${first_name} ${last_name}`.trim();
@@ -901,7 +901,7 @@ export const displayGen = function() {
          if (!p.puid && potentials) return potentialBlock(p, side);
          var player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
          var ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
-         var flag =  !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="${flag_root}${player_ioc}.png">`;
+         var flag =  !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="${flag_root}${player_ioc.toUpperCase()}.png">`;
          var penalty = !tournament ? undefined : matchPenalties(tournament.players, p.puid, match.muid);
          var penalty_icon = !penalty ? '' : `<img height="10px" src="./icons/penalty.png">`;
          var assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
@@ -916,7 +916,7 @@ export const displayGen = function() {
       function potentialBlock(p, side) {
          var player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
          var ioc = player_ioc ? `{${player_ioc.toUpperCase()}}` : '';
-         var flag =  !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="${flag_root}${player_ioc}.png">`;
+         var flag =  !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="${flag_root}${player_ioc.toUpperCase()}.png">`;
          var assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
          var left = side == 'right' ? `${assoc} ` : '';
          var right = side == 'left' ? ` ${assoc}` : '';
@@ -4782,6 +4782,8 @@ export const displayGen = function() {
 
       let id_obj = displayFx.idObj(ids);
       id_obj.link.element.value = existing_link || '';
+
+      id_obj.link.element.focus();
 
       id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
       id_obj.submitlink.element.addEventListener('click', submitLink);
