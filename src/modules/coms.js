@@ -1,4 +1,5 @@
 import { db } from './db'
+import { env } from './env'
 import { sharedFx } from './sharedFx';
 import { lang } from './translator';
 import { displayGen } from './displayGen';
@@ -56,6 +57,41 @@ export const coms = function() {
          if (setting && setting.auth && util.string2boolean(setting.auth.versioning)) {
             coms.emitTmx({ updateVersion: { version, client: 'tmx', notice: `Version ${version} available` } });
          }
+      });
+   }
+
+   mod.notShared = (err) => {
+      mod.emitTmx({ 
+         event: 'Connection',
+         notice: `lat/lng: Geolocation Not Shared`,
+         latitude: '0.00',
+         longitude: '0.00',
+         version: env.version
+      });
+   }
+
+   mod.connectAction = () => {
+      let options = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
+      navigator
+         .permissions.query({ name: 'geolocation' })
+         .then(function(result) {
+            if (result.state == 'granted' && window.navigator.onLine) {
+               navigator.geolocation.getCurrentPosition(mod.locationShared, mod.notShared, options);
+            } else {
+               mod.emitTmx({ notice: 'Connection', client: 'tmx', version: env.version });
+            }
+          });
+
+   }
+
+   mod.locationShared = (pos) => {
+      env.locations.geoposition = pos;
+      mod.emitTmx({ 
+         event: 'Geoposition',
+         notice: `lat/lng: ${pos.coords.latitude}, ${pos.coords.longitude}`,
+         latitude: pos.coords.latitude,
+         longitude: pos.coords.longitude,
+         version: env.version
       });
    }
 
@@ -149,18 +185,11 @@ export const coms = function() {
    }
 
    mod.emitTmx = (data) => {
-      // TODO: keep this in o so db call unnecessary...?
-     
-      db.findSetting('userUUID').then(sendTMX, err => { console.log('db error:', err); sendTMX({ value: 'db error'}); });
-
-      function sendTMX(uuuid) {
-         Object.assign(data, { timestamp: new Date().getTime(), uuuid: uuuid ? uuuid.value : undefined });
-         if (connected) {
-            oi.socket.emit('tmx', data);
-         } else {
-            // TODO: make this a persistent que in db...
-            queue.push({ header: 'tmx', data });
-         }
+      Object.assign(data, { timestamp: new Date().getTime(), uuuid: env.uuuid });
+      if (connected) {
+         oi.socket.emit('tmx', data);
+      } else {
+         queue.push({ header: 'tmx', data });
       }
    }
 

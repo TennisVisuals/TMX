@@ -341,6 +341,7 @@ export const lang = function() {
          draw: 'Print',
          signin: 'Sign-In Sheet',
          ranklist: 'Rank List',
+         playerlist: 'Player List',
       },
 
       teams: {
@@ -398,7 +399,11 @@ export const lang = function() {
       phrases: {
          playerimport: 'Player Import',
          entersheeturl: 'Enter Sheet URL',
+         entergooglemapsurl: 'Enter Google Maps Link',
          invalidsheeturl: 'Invalid Sheet URL',
+         invalidgooglemapsurl: 'Invalid Google Maps Link',
+         geolocationdenied: 'Geolocation has been denied',
+         unblockgeo: 'Unblock in browser settings',
          cleardraw: 'Existing Draw will be cleared!',
          clearselection: 'Clear Selection',
          selectplayer: 'Select Player',

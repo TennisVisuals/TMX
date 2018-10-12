@@ -138,6 +138,7 @@
 .filter_w_gray { background-image: url("img/w_gray.png"); }
 .filter_m_gray { background-image: url("img/m_gray.png"); }
 .googlemaps { background-image: url("img/google-maps.png"); }
+.geolocation { background-image: url("img/geoloc.png"); }
 
 .keys_black { background-image: url("img/keys.png"); }
 .keys_blue { background-image: url("img/keys_blue.png"); }

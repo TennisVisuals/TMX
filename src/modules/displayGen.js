@@ -2497,6 +2497,7 @@ export const displayGen = function() {
          print_schedule: displayFx.uuid(),
          schedule_matches: displayFx.uuid(),
          publish_schedule: displayFx.uuid(),
+         publish_players: displayFx.uuid(),
          schedule_details: displayFx.uuid(),
       }
 
@@ -2850,6 +2851,9 @@ export const displayGen = function() {
                   </div>
                   <div class='${classes.reg_link} ${gen.info}' label='${lang.tr("signin.reglink")}' style='display: none'>
                      <div class='action_icon reg_link link_inactive'></div>
+                  </div>
+                  <div class='${classes.publish_players} ${gen.info}' label='${lang.tr("draws.publish")}' style='display: none;'>
+                     <div style='margin-left: 1em;' class='schedule_publish_state unpublished action_icon'></div>
                   </div>
                </div>
             </div>
@@ -3488,6 +3492,7 @@ export const displayGen = function() {
          longitude: displayFx.uuid(),
          map: displayFx.uuid(),
          googlemap: displayFx.uuid(),
+         geoloc: displayFx.uuid(),
       };
       let html = `
          <div class='tournament_attrs'>
@@ -3527,8 +3532,9 @@ export const displayGen = function() {
                            <input id='${ids.longitude}' class='locvalue_short'> 
                         </div>
                      </div>
-                     <div style='margin-left: 1em;'>
+                     <div class='flexrow' style='margin-left: 1em;'>
                         <div id='${ids.googlemap}' class='googlemaps action_icon_large' ></div>
+                        <div id='${ids.geoloc}' class='geolocation action_icon_large' ></div>
                      </div>
                   </div>
                </div>
@@ -4393,20 +4399,17 @@ export const displayGen = function() {
       return displayFx.idObj(ids);
    }
 
-   gen.signInSheetFormat = () => {
+   gen.playersTabPrinting = () => {
       let ids = {
          singles: displayFx.uuid(),
          doubles: displayFx.uuid(),
+         playerlist: displayFx.uuid(),
       }
       let html = `
          <div class='flexccol'>
-            <div class='flexcol' style='width: 100%'>
-               <div class='flexcenter' style='margin: .5em;'><h2>${lang.tr('print.signin')}</h2></div>
-            </div>
-            <div class='config_actions'>
-               <div id='${ids.singles}' class='btn btn-large config_submit'>${lang.tr('sgl')}</div>
-               <div id='${ids.doubles}' class='btn btn-large config_submit'>${lang.tr('dbl')}</div>
-            </div>
+            <div id='${ids.singles}' class='btn btn-large config_submit'>${lang.tr('sgl')} ${lang.tr('print.signin')}</div>
+            <div id='${ids.doubles}' class='btn btn-large config_submit'>${lang.tr('dbl')} ${lang.tr('print.signin')}</div>
+            <div id='${ids.playerlist}' class='btn btn-large config_submit'>${lang.tr('print.playerlist')}</div>
          </div>
       `;
       gen.showConfigModal(html);

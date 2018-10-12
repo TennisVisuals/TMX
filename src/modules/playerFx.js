@@ -765,7 +765,7 @@ export const playerFx = function() {
 
       var text;
       if (opponent.name) {
-         text = `${uCase(opponent.name)}${seed}${draw_order}${inifo}`;
+         text = `${uCase(opponent.name)}${seed}${draw_order}${info}`;
          if (text.length > length_threshold && opponent.abbr) text = `${uCase(opponent.abbr)}${seed}${draw_order}${info}`;
       } else {
          let first_initial = opponent.first_name ? `, ${opponent.first_name[0]}` : '';

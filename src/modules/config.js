@@ -163,9 +163,6 @@ export const config = function() {
          publishing: true,
          schedule: true,
       },
-      settings: {
-         uuuid: undefined,
-      }
    }
 
    function idiomLimit(opts) {
@@ -668,7 +665,9 @@ export const config = function() {
       function dbUpgrade() { displayGen.showConfigModal('<h2>Database Upgraded</h2><div style="margin: 1em;">Please refresh your cache or load tmx+</div>'); }
 
       function DBReady() {
+         coms.connectAction();
          persistStorage();
+
          idiomSelector().then(idiomsReady);
          importFx.loadCache();
          if (env.auto_update.players) { updatePlayers(); }
@@ -717,14 +716,6 @@ export const config = function() {
 
          function setEnv(settings) {
 
-            /*
-            externalRequests().forEach(ex => {
-               if (ex.parser && ex.parser.fx) {
-                  env.parsers[ex.key] = util.createFx(ex.parser.fx);
-               }
-            });
-            */
-
             let app = getKey('appComponents');
             if (app && app.components) {
                util.boolAttrs(app.components);
@@ -735,7 +726,6 @@ export const config = function() {
             if (org) { Object.keys(env.org).forEach(key => { if (org[key]) env.org[key] = org[key]; }); }
 
             let pt = getKey('pointsTable');
-            // if (pt) o.settings.points_table = pt.table;
             if (pt) env.points.points_table = pt.table;
 
             let misc = getKey('envSettings');
@@ -810,17 +800,29 @@ export const config = function() {
                env.draws.rr_draw = rd.options;
             }
 
-            o.settings.uuuid = settings.reduce((p, c) => c.key == 'userUUID' ? c : p, undefined);
-            if (!o.settings.uuuid) {
+            let uuuid = getKey('userUUID');
+            if (!uuuid || !uuuid.value) {
                env.first_time_user = true;
-               o.settings.uuuid = UUID.generate();
-               db.addSetting({ key: 'userUUID', value: o.settings.uuuid });
+               env.uuuid = UUID.generate();
+               db.addSetting({ key: 'userUUID', value: env.uuuid });
+               coms.emitTmx({ notice: 'New TMX Client', version: env.version });
+            } else {
+               env.uuuid = uuuid.value;
             }
 
             settingsLoaded();
 
             // turn off info labels...
             // if no info displayGen.info = '';
+
+            /*
+            externalRequests().forEach(ex => {
+               if (ex.parser && ex.parser.fx) {
+                  env.parsers[ex.key] = util.createFx(ex.parser.fx);
+               }
+            });
+            */
+
             resolve();
 
             // function externalRequests() { return settings.filter(s => s.category && s.category == 'externalRequest'); }
@@ -867,11 +869,9 @@ export const config = function() {
          });
          navigator.storage.persist().then(persistent => {
             env.storage = persistent ? true : 'user agent control'
-            coms.emitTmx({ 
-               event: 'Persistence',
-               notice: `Persistence: ${env.storage}`,
-               persistent
-            });
+            if (persistent !== true) {
+               coms.emitTmx({ event: 'Persistence', notice: `Persistence: ${env.storage}`, version: env.version, persistent });
+            }
             if (env.storage != true ) {
                fx.addMessage({
                   title: 'warn',
@@ -891,6 +891,7 @@ export const config = function() {
          coms.emitTmx({ 
             event: 'Persistence',
             notice: `Persistence Not Supported`,
+            version: env.version,
             persistent: false
          });
       }
@@ -987,36 +988,6 @@ export const config = function() {
 
       if (env.locations.map_provider == 'google') fetchFx.loadGoogleMaps();
 
-      function notShared() {
-         coms.emitTmx({ 
-            event: 'Connection',
-            notice: `lat/lng: Geolocation Not Shared`,
-            latitude: '0.00',
-            longitude: '0.00',
-            version: env.version
-         });
-      }
-
-      function shared(pos) {
-         env.locations.geoposition = pos;
-         coms.emitTmx({ 
-            event: 'Connection',
-            notice: `lat/lng: ${pos.coords.latitude}, ${pos.coords.longitude}`,
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            version: env.version
-         });
-      }
-      // used to locate known tournaments in vicinity; auto-fill country
-      if (env.locations.geolocate && window.navigator.onLine && window.navigator.geolocation) {
-         window.navigator.geolocation.getCurrentPosition(shared, notShared);
-      } else if (window.navigator.onLine) {
-         coms.emitTmx({
-            event: 'Connection',
-            client: 'tmx',
-            version: env.version
-         });
-      }
       env.version_check = new Date().getTime();
    }
 

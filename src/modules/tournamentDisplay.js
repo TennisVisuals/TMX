@@ -54,12 +54,6 @@ export const tournamentDisplay = function() {
 
    function acknowledgeBroadcast(ack) { console.log('acknowledgement:', ack); }
 
-   fx.drawOptions = ({draw}) => {
-      let type = draw.options().bracket ? 'rr_draw' : 'tree_draw';
-      if (env.draws[type]) draw.options(env.draws[type]);
-   }
-
-   // fx.settingsLoaded = (env) => {
    fx.settingsLoaded = () => {
       dfx.options(env.drawFx);
       scoreBoard.options(env.scoreboard.options);
@@ -145,64 +139,6 @@ export const tournamentDisplay = function() {
          displayGen.escapeModal();
          createTournamentContainer({tournament, dbmatches, selected_tab, display_points: true, editing});
       }
-   }
-
-   function getTournamentOptions(tournament) {
-      var category = staging.legacyCategory(tournament.category);
-
-      var opts = tournament.rank_opts || { category, sgl_rank: tournament.rank, dbl_rank: tournament.rank };
-
-      if (tournament.accepted) {
-         if (tournament.accepted.M) {
-            opts.category = staging.legacyCategory(tournament.accepted.M.category);
-            opts.sgl_rank = tournament.accepted.M.sgl_rank;
-            opts.dbl_rank = tournament.accepted.M.dbl_rank;
-            opts.M = tournament.accepted.M;
-         }
-         if (tournament.accepted.W) {
-            opts.w_category = staging.legacyCategory(tournament.accepted.W.category);
-            opts.w_sgl_rank = tournament.accepted.W.sgl_rank;
-            opts.w_dbl_rank = tournament.accepted.W.dbl_rank;
-            opts.W = tournament.accepted.W;
-         }
-      }
-
-      return opts;
-   }
-
-   function tournamentOpts(opts = {}, container) {
-      let numberValue = (val) => !val || isNaN(val) ? 0 : parseInt(val);
-
-      let ddlb = util.intersection(Object.keys(container), ['category', 'dbl_rank', 'sgl_rank']).length == 3;
-      if (!ddlb) {
-         console.log('missing ddlb');
-         return opts;
-      }
-
-      if (Object.keys(opts).length) {
-         container.category.ddlb.setValue(opts.category, 'white');
-         container.dbl_rank.ddlb.setValue(opts.dbl_rank, 'white');
-         container.sgl_rank.ddlb.setValue(opts.sgl_rank, 'white');
-
-         if (opts.W) {
-            if (container.w_category.ddlb && opts.W.category) container.w_category.ddlb.setValue(opts.W.category, 'white');
-            if (container.w_category.ddlb && opts.W.sgl_rank) container.w_sgl_rank.ddlb.setValue(opts.W.sgl_rank, 'white');
-            if (container.w_category.ddlb && opts.W.dbl_rank) container.w_dbl_rank.ddlb.setValue(opts.W.dbl_rank, 'white');
-         }
-      } else {
-         opts = {
-            category: container.category.ddlb.getValue(),
-            dbl_rank: container.dbl_rank.ddlb.getValue(),
-            sgl_rank: container.sgl_rank.ddlb.getValue(),
-         }
-
-         // if both genders are present
-         if (container.w_category.ddlb) opts['W'] = { category: container.w_category.ddlb.getValue() };
-         if (container.w_dbl_rank.ddlb) opts['W'].dbl_rank = container.w_dbl_rank.ddlb.getValue();
-         if (container.w_sgl_rank.ddlb) opts['W'].sgl_rank = container.w_sgl_rank.ddlb.getValue();
-         if (opts.W) opts.M = { category: opts.category, sgl_rank: opts.sgl_rank, dbl_rank: opts.dbl_rank }
-      }
-      return opts;
    }
 
    function createTournamentContainer({tournament, dbmatches, selected_tab, display_points = false, editing}) {
@@ -323,7 +259,7 @@ export const tournamentDisplay = function() {
       util.addEventToClass(classes.refresh_registrations, () => replaceRegisteredPlayers(true), undefined, 'contextmenu');
 
       // set up printing events
-      util.addEventToClass(classes.print_sign_in, printSignInList);
+      util.addEventToClass(classes.print_sign_in, playersTabPrinting);
       util.addEventToClass(classes.print_draw, printDraw);
       util.addEventToClass(classes.print_draw, () => console.log('context menu print'), document, 'contextmenu');
 
@@ -403,6 +339,16 @@ export const tournamentDisplay = function() {
          displayGen.okCancelMessage(lang.tr('schedule.unpublish'), () => unPublishOOP(tournament), () => displayGen.closeModal());
       }
 
+      util.addEventToClass(classes.publish_players, (evt) => {
+         if (evt.ctrlKey || evt.shiftKey) return unPublishPlayers();
+         publishPlayers();
+      });
+      util.addEventToClass(classes.publish_players, unPublishPlayers, undefined, 'contextmenu');
+      function unPublishPlayers() {
+         if (!state.edit || !tournament.published || !tournament.published.players || !tournament.published.players.timestamp) return;
+         displayGen.okCancelMessage(lang.tr('players.unpublish'), () => unPublishPlayers(tournament), () => displayGen.closeModal());
+      }
+
       function unPublishOOP(tournament) {
          let org = env.org;
          let ouid = org && org.ouid;
@@ -468,6 +414,14 @@ export const tournamentDisplay = function() {
                return unPublishOOP(tournament);
             }
          }
+      }
+
+      function publishPlayers() {
+         displayGen.popUpMessage('Publish Player List. Not yet implemented');
+      }
+
+      function unPublishPlayers() {
+         console.log('unpublish players');
       }
 
       container.penalty_report.element.addEventListener('click', () => {
@@ -2233,7 +2187,7 @@ export const tournamentDisplay = function() {
          }
       }
 
-      function printSignInList() {
+      function playersTabPrinting() {
          if (!tournament.players || !tournament.players.length) return;
          let t_players = tournament.players
             .filter(player=>filters.indexOf(player.sex) < 0)
@@ -2249,9 +2203,9 @@ export const tournamentDisplay = function() {
             return;
          }
 
-         let sisobj = displayGen.signInSheetFormat();
+         let ptp_obj = displayGen.playersTabPrinting();
          displayGen.escapeModal();
-         sisobj.singles.element.addEventListener('click', () => {
+         ptp_obj.singles.element.addEventListener('click', () => {
             t_players = tfx.orderPlayersByRank(t_players, tournament.category);
             // default configuration is ordered Sign-In List
             exportFx.orderedPlayersPDF({
@@ -2262,13 +2216,24 @@ export const tournamentDisplay = function() {
             });
             displayGen.closeModal();
          });
-         sisobj.doubles.element.addEventListener('click', () => {
+         ptp_obj.doubles.element.addEventListener('click', () => {
             exportFx.doublesSignInPDF({
                tournament,
                save: env.printing.save_pdfs,
                doc_name: `${lang.tr('dbl')} ${lang.tr('print.signin')}`
             });
             displayGen.closeModal();
+         });
+         ptp_obj.playerlist.element.addEventListener('click', () => {
+            /*
+            exportFx.doublesSignInPDF({
+               tournament,
+               save: env.printing.save_pdfs,
+               doc_name: `${lang.tr('dbl')} ${lang.tr('print.signin')}`
+            });
+            */
+            displayGen.closeModal();
+            displayGen.popUpMessage('Not yet implemented');
          });
       }
 
@@ -4098,32 +4063,11 @@ export const tournamentDisplay = function() {
          }
       }
 
-      function getLatLng() {
-         displayGen.enterLink('', 'Enter Google Maps URL', processLink);
-         function processLink(link) {
-            displayGen.closeModal();
-            if (!link) { return; }
-            let parts = link.split('/');
-            console.log('Link:', link);
-            /*
-            let reg_link = parts.reduce((p, c) => (!p || c.length > p.length) ? c : p, undefined);
-            let new_url = existing_link && reg_link != existing_link;
-
-            if (new_url && (parts.indexOf('docs.google.com') < 0 || parts.indexOf('spreadsheets') < 0)) return invalidURL();
-
-            if (!existing_link || new_url) {
-               tournament.reg_link = reg_link;
-               updateRegisteredPlayers(true);
-               saveTournament(tournament);
-            }
-            */
-         }
-      }
-
       function configureLocationAttributes(l) {
          let disabled = !state.edit
          let attributes = displayGen.displayLocationAttributes(container, l, state.edit);
          attributes.googlemap.element.addEventListener('click', getLatLng);
+         attributes.geoloc.element.addEventListener('click', getUserPosition);
 
          let zoom = 16;
          let coords = { latitude: l.latitude, longitude: l.longitude };
@@ -4159,8 +4103,46 @@ export const tournamentDisplay = function() {
 
             map.on("contextmenu", function (event) {
               console.log("Coordinates: " + event.latlng.toString());
-              // L.marker(event.latlng).addTo(map);
             });
+         }
+
+         function getUserPosition() {
+            var options = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
+            navigator.permissions.query({
+                 name: 'geolocation'
+             }).then(function(result) {
+                 if (result.state == 'granted') {
+                    navigator.geolocation.getCurrentPosition(success, coms.notShared, options);
+                 } else if (result.state == 'prompt') {
+                    navigator.geolocation.getCurrentPosition(success, coms.notShared, options);
+                 } else if (result.state == 'denied') {
+                    geolocationDenied();
+                 }
+                 result.onchange = function(what) { if (result.state == 'granted') navigator.geolocation.getCurrentPosition(success, coms.notShared, options); }
+             });
+            function success(pos) {
+               coms.locationShared(pos);
+               setLatLng(pos.coords.latitude, pos.coords.longitude);
+            };
+         }
+
+         function getLatLng() {
+            displayGen.enterLink('', lang.tr('phrases.entergooglemapsurl'), processLink);
+            function processLink(link) {
+               displayGen.closeModal();
+               if (!link) { return; }
+               let parts = link.split('/');
+               let ll = parts.reduce((p, c) => c && c[0] == '@' ? c : p, undefined);
+               let lparts = ll && ll.split(',');
+               let latitude = lparts && lparts[0].slice(1);
+               let longitude = lparts && lparts[1];
+
+               if (latitude && longitude) {
+                  setLatLng(latitude, longitude);
+               } else {
+                  invalidURL('invalidgooglemapsurl');
+               }
+            }
          }
 
          function setLatLng(lat, lng) {
@@ -4173,6 +4155,9 @@ export const tournamentDisplay = function() {
             map.setView(new L.LatLng(+l.latitude, +l.longitude), 16);
             saveTournament(tournament);
             displayGen.closeModal();
+
+            let newLatLng = new L.LatLng(lat, lng);
+            marker.setLatLng(newLatLng);
          }
 
          function nextFieldFocus(field, increment=1, delay=50) {
@@ -6777,11 +6762,20 @@ export const tournamentDisplay = function() {
          // TODO: update scheduling tab?
       }
 
+      function playersPublishState() {
+         let published = tournament.published && tournament.published.players;
+         let published_state = published ? (tournament.published.players.up_to_date ? 'publisheduptodate' : 'publishedoutofdate') : 'unpublished';
+         let publish_class_name = `schedule_publish_state ${published_state} action_icon`;
+         let publish_players = document.querySelector(`.${classes.publish_players}`);
+         publish_players.querySelector('div').className = publish_class_name;
+      }
+
       function playersTab({ doubles } = {}) {
          if (state.edit) enableAddPlayer();
          if (!tournament.categories) tournament.categories = [tournament.category];
          toggleManualRank(false);
          state.manual_ranking = undefined;
+         document.querySelector('.' + classes.publish_players).style.display = state.edit && env.org && env.org.ouid ? 'inline' : 'none';
 
          // create an array of ids of all players who are selected for any event
          // used to prevent sign-out of approved players
@@ -7647,7 +7641,7 @@ export const tournamentDisplay = function() {
                let approved_opponents = tfx.approvedOpponents({ tournament, e: evt });
                let seed_limit = dfx.seedLimit(approved_opponents.length);
 
-               fx.drawOptions({ draw: tree_draw });
+               drawOptions({ draw: tree_draw });
                tree_draw.options({ names: { seed_number: seeding }, details: { seeding }});
                tree_draw.options({ seeds: { limit: seed_limit } });
                tree_draw.options({ compass: { display: true } });
@@ -7665,7 +7659,7 @@ export const tournamentDisplay = function() {
             let seed_limit = dfx.seedLimit(approved_opponents.length);
             if (evt.draw_type == 'Q') seed_limit = (evt.qualifiers * 2) || seed_limit;
 
-            fx.drawOptions({ draw: tree_draw });
+            drawOptions({ draw: tree_draw });
             tree_draw.options({ names: { seed_number: seeding }, details: { seeding }});
             tree_draw.options({ seeds: { limit: seed_limit } });
 
@@ -7678,7 +7672,7 @@ export const tournamentDisplay = function() {
                .selector(container.draws.element)
                .bracketSize(evt.draw.bracket_size || bracket_sizes.default_bracket_size);
 
-            fx.drawOptions({ draw: rr_draw });
+            drawOptions({ draw: rr_draw });
             rr_draw();
          }
       };
@@ -9832,7 +9826,7 @@ export const tournamentDisplay = function() {
       function legacyTournamentOptions() {
          let legacy = displayGen.legacyTournamentTab(container.tournament.element, tournament);
          Object.assign(container, legacy.container);
-         legacyTournament(tournament, container);
+         tfx.legacyTournament(tournament, container);
       }
 
       function tournamentOptions(days) {
@@ -10253,7 +10247,7 @@ export const tournamentDisplay = function() {
       let dbl_matches = mz.filter(f=>f.format == 'doubles').length;
 
       // retrieve options from container
-      let rankings = mz.length ? tournamentOpts(undefined, container) : {};
+      let rankings = mz.length ? tfx.legacyTournamentOpts(undefined, container) : {};
       let category = rankings.category;
 
       if (!rankings.category || !points_date) {
@@ -10279,7 +10273,7 @@ export const tournamentDisplay = function() {
 
    function addAcceptedRankings(container, tournament, matches, category) {
       let tuid = tournament.tuid;
-      let rankings = matches.length ? tournamentOpts(undefined, container) : {};
+      let rankings = matches.length ? tfx.legacyTournamentOpts(undefined, container) : {};
       if (tuid) rankCalc.addAcceptedRanking({tuid, category, rankings});
    }
 
@@ -10702,80 +10696,7 @@ export const tournamentDisplay = function() {
 
    function sameOrg(tournament) {
       let ouid = env.org && env.org.ouid;
-      // return !tournament.ouid || (tournament.ouid && tournament.ouid == ouid);
       return (!tournament.org || !tournament.org.ouid) || (tournament.org.ouid && tournament.org.ouid == ouid);
-   }
-
-   function legacyTournament(tournament, container) {
-
-      configureDDLBs(tournament, container);
-      configureDateSelectors(tournament, container);
-
-      function configureDDLBs(tournament, container) {
-         let cpp = (value) => { calcPlayerPoints({ tournament, container }); }
-         container.category.ddlb = new dd.DropDown({ element: container.category.element, onChange: cpp });
-         container.dbl_rank.ddlb = new dd.DropDown({ element: container.dbl_rank.element, onChange: cpp });
-         container.sgl_rank.ddlb = new dd.DropDown({ element: container.sgl_rank.element, onChange: cpp });
-
-         if (tournament.genders.length > 1 || tournament.genders.indexOf('W') >= 0) {
-            container.w_category.ddlb = new dd.DropDown({ element: container.w_category.element, onChange: cpp });
-            container.w_dbl_rank.ddlb = new dd.DropDown({ element: container.w_dbl_rank.element, onChange: cpp });
-            container.w_sgl_rank.ddlb = new dd.DropDown({ element: container.w_sgl_rank.element, onChange: cpp });
-         }
-
-         // set ddlb options
-         let opts = getTournamentOptions(tournament);
-         tournamentOpts(opts, container);
-      }
-
-      function configureDateSelectors(tournament, container) {
-         let start = new Date(tournament.start);
-         let end = new Date(tournament.end);
-
-         function updateStartDate() {
-            tournament.start = start.getTime();
-            startPicker.setStartRange(new Date(start));
-            endPicker.setStartRange(new Date(start));
-            endPicker.setMinDate(new Date(start));
-         };
-         function updateEndDate() {
-            tournament.end = end.getTime();
-            startPicker.setEndRange(new Date(end));
-            startPicker.setMaxDate(new Date(end));
-            endPicker.setEndRange(new Date(end));
-         };
-
-         let startPicker = new Pikaday({
-            field: container.start_date.element,
-            i18n: lang.obj('i18n'),
-            defaultDate: start,
-            setDefaultDate: true,
-            firstDay: env.calendar.first_day,
-            onSelect: function() {
-               start = this.getDate();
-               updateStartDate();
-               calcPlayerPoints({ date: this.getDate(), tournament, container });
-            },
-         });
-         env.date_pickers.push(startPicker);
-
-         let endPicker = new Pikaday({
-            field: container.end_date.element,
-            i18n: lang.obj('i18n'),
-            defaultDate: end,
-            setDefaultDate: true,
-            firstDay: env.calendar.first_day,
-            onSelect: function() {
-               end = this.getDate();
-               updateEndDate();
-               calcPlayerPoints({ date: this.getDate(), tournament, container });
-            },
-         });
-         env.date_pickers.push(endPicker);
-
-         updateStartDate();
-         updateEndDate();
-      }
    }
 
    function drawIsCreated(evt) {
@@ -10786,10 +10707,25 @@ export const tournamentDisplay = function() {
       return created ? new Date().getTime() : undefined;
    }
 
+   function drawOptions({draw}) {
+      let type = draw.options().bracket ? 'rr_draw' : 'tree_draw';
+      if (env.draws[type]) draw.options(env.draws[type]);
+   }
+
    function clearSelection() { if (window.getSelection) window.getSelection().removeAllRanges(); }
    function puidHash(team) { return team.map(p=>p && p.puid).sort().join('|'); }
    function teamHash(team) { return team.map(p=>p && p.id).join('|'); }
-   function invalidURL() { displayGen.popUpMessage(`<div>${lang.tr('phrases.invalidsheeturl')}</div>`); }
+   function geolocationDenied() {
+      let message = `
+         <div>${lang.tr('phrases.geolocationdenied')}</div>
+         <p>${lang.tr('phrases.unblockgeo')}</p>
+      `;
+      displayGen.popUpMessage(message);
+   }
+   function invalidURL(phrase='invalidsheeturl') {
+      let message = lang.tr(`phrases.${phrase}`);
+      displayGen.popUpMessage(`<div>${message}</div>`);
+   }
    function invalidURLorNotShared(data) {
       displayGen.busy.done(id, true);
       let message = `

@@ -134,6 +134,7 @@ export const importFx = function() {
          player.school = findAttr(row, ['School']);
          player.profile = findAttr(row, ['Profile', 'UTR Profile', 'UTR Player Profile Link']);
          player.location = findAttr(row, ['Location']);
+         player.rank = findAttr(row, ['Rank']);
 
          let parenthetical = /\((.*)\)/;
          if (player.school && player.school.match(parenthetical)) {
