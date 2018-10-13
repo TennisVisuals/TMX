@@ -340,6 +340,67 @@ export const matchFx = function() {
       }
    }
 
+   // LEGACY... from parsed matches...
+   // takes a list of matches creates a list of players and events they played/are playing
+   fx.matchPlayers = matchPlayers;
+   function matchPlayers(matches) {
+      if (!matches) return [];
+      addMatchDraw(matches);
+
+      let players = [].concat(...matches.map(match => {
+         let gender = rankCalc.determineGender(match);
+         // add player sex if doesn't exist already
+         match.players.forEach(player => player.sex = player.sex || gender);
+         return match.players;
+      }));
+
+      // make a list of all events in which a player is participating
+      let player_events = {};
+      matches.forEach(match => {
+         match.puids.forEach(puid => { 
+            if (!player_events[puid]) player_events[puid] = []; 
+            let format = match.format == 'doubles' ? 'd' : 's';
+            player_events[puid].push(`${format}_${match.draw || 'M'}`);
+         })
+      });
+
+      let hashes = [];
+      let uplayers = players
+         .map(player => {
+            let hash = `${player.hash}${player.puid}`;
+            if (hashes.indexOf(hash) < 0) {
+               hashes.push(hash);
+               return player;
+            }
+         })
+         .filter(f=>f)
+         .sort((a, b) => {
+            let a1 = util.replaceDiacritics(a.full_name);
+            let b1 = util.replaceDiacritics(b.full_name);
+            return a1 < b1 ? -1 : a1 > b1 ? 1 : 0
+         });
+
+      uplayers.forEach(player => {
+         // add player events to player objects
+         if (player_events[player.puid]) player.events = unique(player_events[player.puid]).join(', ');
+      });
+
+      return uplayers;
+
+      function addMatchDraw(matches) {
+         // TODO: .round needs to be replaced with .round_name
+         matches.forEach(match => { 
+            if (!match.gender) match.gender = rankCalc.determineGender(match); 
+            if (match.consolation) match.draw = 'C';
+            if (match.round && match.round.indexOf('Q') == 0 && match.round.indexOf('QF') < 0) match.draw = 'Q';
+
+            // TODO: RR is not always Q... if there is only one bracket...
+            if (match.round && match.round.indexOf('RR') == 0) match.draw = 'Q';
+         });
+      }
+
+   }
+
    fx.isTeam = (t) => { return ['team', 'dual'].indexOf(t.type) >= 0; }
 
    return fx;

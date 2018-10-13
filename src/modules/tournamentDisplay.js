@@ -1155,7 +1155,7 @@ export const tournamentDisplay = function() {
       // NOTE: this was done to build up a player list from parsed matches...
       // if there are any matches, add match players first
       // this must be invoked before tabs created...
-      // mergePlayers(matchPlayers(dbmatches), false);
+      // mergePlayers(mfx.matchPlayers(dbmatches), false);
 
       tournamentTab();
       drawsTab();
@@ -1324,6 +1324,7 @@ export const tournamentDisplay = function() {
          let category_filter = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : tournament.category;
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
+         // TODO GMT
          let calc_date = tournament_date ? new Date(tournament_date) : new Date();
 
          let points_table = rankCalc.pointsTable({calc_date});
@@ -1731,6 +1732,7 @@ export const tournamentDisplay = function() {
 
          // TODO: insure that env.org.abbr is appropriately set when externalRequest URLs are configured
          let tournament_date = tournament && tournament.start;
+         // TODO GMT
          let calc_date = tournament_date ? new Date(tournament_date) : new Date();
          let categories = rankCalc.orgCategories({calc_date});
 
@@ -3065,6 +3067,7 @@ export const tournamentDisplay = function() {
 
       function getCategoryRatings(category) {
          let tournament_date = tournament && tournament.start;
+         // TODO GMT
          let calc_date = tournament_date ? new Date(tournament_date) : new Date();
          let points_table = rankCalc.pointsTable({calc_date});
          let ctgs = points_table && points_table.categories;
@@ -5764,6 +5767,7 @@ export const tournamentDisplay = function() {
 
          schedulePublishState();
 
+         // TODO GMT
          // TODO: consider the possibility that tournament dates may not include all dates within a range
          let date_range = util.dateRange(tournament.start, tournament.end);
          if (currently_selected_day && date_range.indexOf(new Date(currently_selected_day)) < 0) currently_selected_day = undefined;
@@ -5791,6 +5795,7 @@ export const tournamentDisplay = function() {
          let courts = courtFx.courtData(tournament);
          let oop_rounds = util.range(1, env.schedule.max_matches_per_court + 1);
 
+         // TODO GMT
          let date_options = date_range.map(d => ({ key: calendarFx.localizeDate(d), value: util.formatDate(d) }));
          dd.attachDropDown({ 
             id: container.schedule_day.id, 
@@ -6804,6 +6809,7 @@ export const tournamentDisplay = function() {
          let category = staging.legacyCategory(tournament.category, true);
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
+         // TODO GMT
          let calc_date = tournament_date ? new Date(tournament_date) : new Date();
          let categories = rankCalc.orgCategories({ calc_date }).map(r => ({ key: r, value: r }));
          let prior_value = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : undefined;
@@ -6935,6 +6941,7 @@ export const tournamentDisplay = function() {
                      }
                      function confirmIdentity(new_player_data) {
                         if (!new_player_data) return;
+         // TODO GMT
                         new_player_data.birth = util.formatDate(new_player_data.birth);
                         new_player_data.full_name = tfx.fullName(new_player_data, false);
                         displayGen.changePlayerIdentity(clicked_player, new_player_data, changePlayerIdentity);
@@ -7251,6 +7258,7 @@ export const tournamentDisplay = function() {
          if (tfx.isTeam(tournament)) return;
 
          var tournament_date = tournament && (tournament.points_date || tournament.end);
+         // TODO GMT
          var points_date = tournament_date ? new Date(tournament_date) : new Date();
          if (!mz || !mz.length) return;
 
@@ -9801,6 +9809,7 @@ export const tournamentDisplay = function() {
          }
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
+         // TODO GMT
          let points_date = tournament_date ? new Date(tournament_date) : new Date();
          let pointsDatePicker = new Pikaday({
             field: container.points_valid.element,
@@ -9866,6 +9875,7 @@ export const tournamentDisplay = function() {
             container[field].element.value = tournament[field] || '';
          });
 
+         // TODO GMT
          let day_times = days.map(d=>new Date(d).getTime());
          let max_start = Math.min(...day_times);
          let min_end = Math.max(...day_times);
@@ -10239,6 +10249,7 @@ export const tournamentDisplay = function() {
    function calcPlayerPoints({ date, tournament, matches, container, filters=[] }) {
 
       let tournament_date = tournament && (tournament.points_date || date || tournament.end);
+      // TODO GMT
       let points_date = tournament_date ? new Date(tournament_date) : new Date();
       let tuid = tournament.tuid;
 
@@ -10328,6 +10339,7 @@ export const tournamentDisplay = function() {
 
    function pointsTabVisible(container, tournament, visible=true) {
       let tournament_date = tournament && (tournament.points_date || tournament.end);
+      // TODO GMT
       let calc_date = tournament_date ? new Date(tournament_date) : new Date();
       let points_table = rankCalc.pointsTable({calc_date});
       let display = (visible && points_table && points_table.mappings) || false;
@@ -10486,71 +10498,6 @@ export const tournamentDisplay = function() {
       searchBox.focus();
    }
 
-   fx.calcYear = (year) => {
-      db.findAllTournaments().then(tz => {
-         let ty = tz.filter(t=>new Date(t.start).getFullYear() == year);
-         console.log(ty.length);
-         fx.calcTournaments(ty).then(() => console.log('done'));
-      });
-   }
-   function calcTournament(t) { return calcTournamentPoints({tournament: t}); }
-   fx.calcTournaments = (tournaments) => util.performTask(calcTournament, tournaments, false);
-
-   fx.calcTournamentPoints = calcTournamentPoints;
-   function calcTournamentPoints({ tournament }) {
-      return new Promise( (resolve, reject) => {
-         var tournament_date = tournament && (tournament.points_date || tournament.end);
-         var points_date = tournament_date ? new Date(tournament_date) : new Date();
-         var points_table = rankCalc.pointsTable({ calc_date: points_date });
-
-         var rankings = {
-            category: undefined,
-            sgl_rank: undefined,
-            dbl_rank: undefined,
-         }
-
-         if (tournament.accepted) {
-            if (tournament.accepted.M) {
-               rankings.category = tournament.accepted.M.category;
-               rankings.sgl_rank = tournament.accepted.M.sgl_rank;
-               rankings.dbl_rank = tournament.accepted.M.dbl_rank;
-               rankings.M = tournament.accepted.M;
-            }
-            if (tournament.accepted.W) {
-               rankings.w_category = tournament.accepted.W.category;
-               rankings.w_sgl_rank = tournament.accepted.W.sgl_rank;
-               rankings.w_dbl_rank = tournament.accepted.W.dbl_rank;
-               rankings.W = tournament.accepted.W;
-            }
-            db.deleteTournamentPoints(tournament.tuid).then(fetchMatches, (err) => console.log(err));
-         } else if (tournament.category == '10') {
-            console.log('U10...');
-            resolve();
-         } else {
-            console.log('no accepted rankings... points not calculated', tournament);
-            resolve();
-         }
-
-         var addPointEvents = (point_events) => util.performTask(db.addPointEvent, point_events, false);
-
-         function fetchMatches() {
-            db.db.matches.where('tournament.tuid').equals(tournament.tuid).toArray(calcPoints); 
-         }
-
-         function calcPoints(matches) {
-            var match_data = { matches, category: rankings.category, rankings, date: points_date, points_table };
-            var points = rankCalc.bulkPlayerPoints(match_data);
-
-            var singles_points = Object.keys(points.singles).map(player => points.singles[player]);
-            var doubles_points = Object.keys(points.doubles).map(player => points.doubles[player]);
-            var all_points = [].concat(...singles_points, ...doubles_points);
-
-            var valid_points = all_points.filter(p => p.points != undefined && p.puid);
-            addPointEvents(valid_points).then(resolve({tournament, point_events: valid_points.length}), reject);
-         }
-      });
-   }
-
    // used exclusively when draws are generated from existing matches
    function generateDrawBrackets(matches) {
       var brackets = dfx.findBrackets(matches);
@@ -10639,65 +10586,6 @@ export const tournamentDisplay = function() {
       let genders = util.unique([].concat(...match_genders, ...player_genders));
       tournament.genders = genders;
       return genders;
-   }
-
-   function addMatchDraw(matches) {
-      // TODO: .round needs to be replaced with .round_name
-      matches.forEach(match => { 
-         if (!match.gender) match.gender = rankCalc.determineGender(match); 
-         if (match.consolation) match.draw = 'C';
-         if (match.round && match.round.indexOf('Q') == 0 && match.round.indexOf('QF') < 0) match.draw = 'Q';
-
-         // TODO: RR is not always Q... if there is only one bracket...
-         if (match.round && match.round.indexOf('RR') == 0) match.draw = 'Q';
-      });
-   }
-
-   // takes a list of matches creates a list of players and events they played/are playing
-   fx.matchPlayers = matchPlayers;
-   function matchPlayers(matches) {
-      if (!matches) return [];
-      addMatchDraw(matches);
-
-      let players = [].concat(...matches.map(match => {
-         let gender = rankCalc.determineGender(match);
-         // add player sex if doesn't exist already
-         match.players.forEach(player => player.sex = player.sex || gender);
-         return match.players;
-      }));
-
-      // make a list of all events in which a player is participating
-      let player_events = {};
-      matches.forEach(match => {
-         match.puids.forEach(puid => { 
-            if (!player_events[puid]) player_events[puid] = []; 
-            let format = match.format == 'doubles' ? 'd' : 's';
-            player_events[puid].push(`${format}_${match.draw || 'M'}`);
-         })
-      });
-
-      let hashes = [];
-      let uplayers = players
-         .map(player => {
-            let hash = `${player.hash}${player.puid}`;
-            if (hashes.indexOf(hash) < 0) {
-               hashes.push(hash);
-               return player;
-            }
-         })
-         .filter(f=>f)
-         .sort((a, b) => {
-            let a1 = util.replaceDiacritics(a.full_name);
-            let b1 = util.replaceDiacritics(b.full_name);
-            return a1 < b1 ? -1 : a1 > b1 ? 1 : 0
-         });
-
-      uplayers.forEach(player => {
-         // add player events to player objects
-         if (player_events[player.puid]) player.events = unique(player_events[player.puid]).join(', ');
-      });
-
-      return uplayers;
    }
 
    function sameOrg(tournament) {

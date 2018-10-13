@@ -952,6 +952,63 @@ export const rankCalc = function() {
 
    rank.validPointsTable = (table) => { return typeof table == 'object' && Object.keys(table).length; }
 
+   // UNUSED ???
+   rank.calcTournamentPoints = calcTournamentPoints;
+   function calcTournamentPoints({ tournament }) {
+      return new Promise( (resolve, reject) => {
+         var tournament_date = tournament && (tournament.points_date || tournament.end);
+         // TODO GMT
+         var points_date = tournament_date ? new Date(tournament_date) : new Date();
+         var points_table = rank.pointsTable({ calc_date: points_date });
+
+         var rankings = {
+            category: undefined,
+            sgl_rank: undefined,
+            dbl_rank: undefined,
+         }
+
+         if (tournament.accepted) {
+            if (tournament.accepted.M) {
+               rankings.category = tournament.accepted.M.category;
+               rankings.sgl_rank = tournament.accepted.M.sgl_rank;
+               rankings.dbl_rank = tournament.accepted.M.dbl_rank;
+               rankings.M = tournament.accepted.M;
+            }
+            if (tournament.accepted.W) {
+               rankings.w_category = tournament.accepted.W.category;
+               rankings.w_sgl_rank = tournament.accepted.W.sgl_rank;
+               rankings.w_dbl_rank = tournament.accepted.W.dbl_rank;
+               rankings.W = tournament.accepted.W;
+            }
+            db.deleteTournamentPoints(tournament.tuid).then(fetchMatches, (err) => console.log(err));
+         } else if (tournament.category == '10') {
+            console.log('U10...');
+            resolve();
+         } else {
+            console.log('no accepted rankings... points not calculated', tournament);
+            resolve();
+         }
+
+         var addPointEvents = (point_events) => util.performTask(db.addPointEvent, point_events, false);
+
+         function fetchMatches() {
+            db.db.matches.where('tournament.tuid').equals(tournament.tuid).toArray(calcPoints); 
+         }
+
+         function calcPoints(matches) {
+            var match_data = { matches, category: rankings.category, rankings, date: points_date, points_table };
+            var points = rank.bulkPlayerPoints(match_data);
+
+            var singles_points = Object.keys(points.singles).map(player => points.singles[player]);
+            var doubles_points = Object.keys(points.doubles).map(player => points.doubles[player]);
+            var all_points = [].concat(...singles_points, ...doubles_points);
+
+            var valid_points = all_points.filter(p => p.points != undefined && p.puid);
+            addPointEvents(valid_points).then(resolve({tournament, point_events: valid_points.length}), reject);
+         }
+      });
+   }
+
    function performTask(fx, data, bulkResults = true) {
       return new Promise(function(resolve, reject) {
          let results = [];
