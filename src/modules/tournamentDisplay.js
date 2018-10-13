@@ -1244,8 +1244,15 @@ export const tournamentDisplay = function() {
             }
 
             function addPlayer() {
-               pushNewPlayer(new_player);
-               cleanUp();
+               db.findClub(new_player.club + '').then(club => {
+                  if (club && club.code) new_player.club_code = club.code;
+                  finish();
+               });
+
+               function finish() {
+                  pushNewPlayer(new_player);
+                  cleanUp();
+               }
             }
          }
 
@@ -1324,8 +1331,8 @@ export const tournamentDisplay = function() {
          let category_filter = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : tournament.category;
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
-         // TODO GMT
-         let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+         // let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+         let calc_date = util.offsetDate(tournament_date);
 
          let points_table = rankCalc.pointsTable({calc_date});
          let categories = points_table && points_table.categories;
@@ -1732,8 +1739,8 @@ export const tournamentDisplay = function() {
 
          // TODO: insure that env.org.abbr is appropriately set when externalRequest URLs are configured
          let tournament_date = tournament && tournament.start;
-         // TODO GMT
-         let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+         // let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+         let calc_date = util.offsetDate(tournament_date);
          let categories = rankCalc.orgCategories({calc_date});
 
          // TODO: this shouldn't be done *every* time that edit state is activated
@@ -3067,8 +3074,8 @@ export const tournamentDisplay = function() {
 
       function getCategoryRatings(category) {
          let tournament_date = tournament && tournament.start;
-         // TODO GMT
-         let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+         // let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+         let calc_date = util.offsetDate(tournament_date);
          let points_table = rankCalc.pointsTable({calc_date});
          let ctgs = points_table && points_table.categories;
          let ratings = ctgs && ctgs[category] && ctgs[category].ratings;
@@ -4117,18 +4124,24 @@ export const tournamentDisplay = function() {
          function getUserPosition() {
             displayGen.closeModal();
             var options = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
-            navigator.permissions.query({
-                 name: 'geolocation'
-             }).then(function(result) {
-                 if (result.state == 'granted') {
-                    navigator.geolocation.getCurrentPosition(success, coms.notShared, options);
-                 } else if (result.state == 'prompt') {
-                    navigator.geolocation.getCurrentPosition(success, coms.notShared, options);
-                 } else if (result.state == 'denied') {
-                    geolocationDenied();
-                 }
-                 result.onchange = function(what) { if (result.state == 'granted') navigator.geolocation.getCurrentPosition(success, coms.notShared, options); }
-             });
+
+            if (navigator && navigator.permissions && navigator.permissions.query) {
+               navigator.permissions.query({
+                    name: 'geolocation'
+                }).then(function(result) {
+                    if (result.state == 'granted') {
+                       navigator.geolocation.getCurrentPosition(success, coms.notShared, options);
+                    } else if (result.state == 'prompt') {
+                       navigator.geolocation.getCurrentPosition(success, coms.notShared, options);
+                    } else if (result.state == 'denied') {
+                       geolocationDenied();
+                    }
+                    result.onchange = function(what) { if (result.state == 'granted') navigator.geolocation.getCurrentPosition(success, coms.notShared, options); }
+                }, util.logError);
+            } else if (navigator && navigator.geolocation && navigator.geolocation.getCurrentPosition) {
+                navigator.geolocation.getCurrentPosition(success, coms.notShared, options);
+            }
+
             function success(pos) {
                coms.locationShared(pos);
                setLatLng(pos.coords.latitude, pos.coords.longitude);
@@ -5767,7 +5780,6 @@ export const tournamentDisplay = function() {
 
          schedulePublishState();
 
-         // TODO GMT
          // TODO: consider the possibility that tournament dates may not include all dates within a range
          let date_range = util.dateRange(tournament.start, tournament.end);
          if (currently_selected_day && date_range.indexOf(new Date(currently_selected_day)) < 0) currently_selected_day = undefined;
@@ -5795,7 +5807,6 @@ export const tournamentDisplay = function() {
          let courts = courtFx.courtData(tournament);
          let oop_rounds = util.range(1, env.schedule.max_matches_per_court + 1);
 
-         // TODO GMT
          let date_options = date_range.map(d => ({ key: calendarFx.localizeDate(d), value: util.formatDate(d) }));
          dd.attachDropDown({ 
             id: container.schedule_day.id, 
@@ -6809,8 +6820,8 @@ export const tournamentDisplay = function() {
          let category = staging.legacyCategory(tournament.category, true);
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
-         // TODO GMT
-         let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+         // let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+         let calc_date = util.offsetDate(tournament_date);
          let categories = rankCalc.orgCategories({ calc_date }).map(r => ({ key: r, value: r }));
          let prior_value = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : undefined;
          if (categories.map(o=>o.value).indexOf(prior_value) < 0) prior_value = undefined;
@@ -6941,7 +6952,6 @@ export const tournamentDisplay = function() {
                      }
                      function confirmIdentity(new_player_data) {
                         if (!new_player_data) return;
-         // TODO GMT
                         new_player_data.birth = util.formatDate(new_player_data.birth);
                         new_player_data.full_name = tfx.fullName(new_player_data, false);
                         displayGen.changePlayerIdentity(clicked_player, new_player_data, changePlayerIdentity);
@@ -7258,8 +7268,8 @@ export const tournamentDisplay = function() {
          if (tfx.isTeam(tournament)) return;
 
          var tournament_date = tournament && (tournament.points_date || tournament.end);
-         // TODO GMT
-         var points_date = tournament_date ? new Date(tournament_date) : new Date();
+         // var points_date = tournament_date ? new Date(tournament_date) : new Date();
+         var points_date = util.offsetDate(tournament_date);
          if (!mz || !mz.length) return;
 
          checkAllPlayerPUIDs(tournament.players).then(proceed, util.logError);
@@ -9809,8 +9819,8 @@ export const tournamentDisplay = function() {
          }
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
-         // TODO GMT
-         let points_date = tournament_date ? new Date(tournament_date) : new Date();
+         // let points_date = tournament_date ? new Date(tournament_date) : new Date();
+         let points_date = util.offsetDate(tournament_date);
          let pointsDatePicker = new Pikaday({
             field: container.points_valid.element,
             i18n: lang.obj('i18n'),
@@ -9875,16 +9885,17 @@ export const tournamentDisplay = function() {
             container[field].element.value = tournament[field] || '';
          });
 
-         // TODO GMT
-         let day_times = days.map(d=>new Date(d).getTime());
+         let day_times = days.map(d=>util.offsetDate(d).getTime());
          let max_start = Math.min(...day_times);
          let min_end = Math.max(...day_times);
 
-         let start = new Date(tournament.start);
-         let end = new Date(tournament.end);
-         if (start > new Date(max_start)) {
+         let start = util.offsetDate(tournament.start);
+         let end = util.offsetDate(tournament.end);
+
+         // if (start > new Date(max_start)) {
+         if (start > util.offsetDate(max_start)) {
             tournament.start = max_start;
-            start = new Date(max_start);
+            start = util.offsetDate(max_start);
          }
 
          function updateStartDate() {
@@ -9892,7 +9903,8 @@ export const tournamentDisplay = function() {
             startPicker.setStartRange(start);
             if (tournament.end < tournament.start) {
                tournament.end = tournament.start;
-               endPicker.setDate(new Date(tournament.end));
+               // endPicker.setDate(new Date(tournament.end));
+               endPicker.setDate(util.offsetDate(tournament.end));
             }
             endPicker.setStartRange(start);
             endPicker.setMinDate(start);
@@ -9928,6 +9940,7 @@ export const tournamentDisplay = function() {
                }
             });
          }
+
          var startPicker = new Pikaday({
             field: container.start_date.element,
             defaultDate: start,
@@ -10249,8 +10262,8 @@ export const tournamentDisplay = function() {
    function calcPlayerPoints({ date, tournament, matches, container, filters=[] }) {
 
       let tournament_date = tournament && (tournament.points_date || date || tournament.end);
-      // TODO GMT
-      let points_date = tournament_date ? new Date(tournament_date) : new Date();
+      // let points_date = tournament_date ? new Date(tournament_date) : new Date();
+      let points_date = util.offsetDate(tournament_date);
       let tuid = tournament.tuid;
 
       // legacy... if match doesn't include round_name, add it
@@ -10339,8 +10352,8 @@ export const tournamentDisplay = function() {
 
    function pointsTabVisible(container, tournament, visible=true) {
       let tournament_date = tournament && (tournament.points_date || tournament.end);
-      // TODO GMT
-      let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+      // let calc_date = tournament_date ? new Date(tournament_date) : new Date();
+      let calc_date = util.offsetDate(tournament_date);
       let points_table = rankCalc.pointsTable({calc_date});
       let display = (visible && points_table && points_table.mappings) || false;
       tabVisible(container, 'PT', display);

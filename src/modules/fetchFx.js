@@ -561,7 +561,6 @@ export const fetchFx = function() {
          function checkSettings(fetchobj) {
             if (!fetchobj || !navigator.onLine) return promptLoadPlayers();
 
-
             let uuid = tuid;
             let preprocessor = fetchobj.preprocessor && fetchobj.preprocessor.fx && util.createFx(fetchobj.preprocessor.fx);
             if (fetchobj.scrapers) {

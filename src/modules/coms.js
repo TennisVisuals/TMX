@@ -72,16 +72,18 @@ export const coms = function() {
 
    mod.connectAction = () => {
       let options = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
-      navigator
-         .permissions.query({ name: 'geolocation' })
-         .then(function(result) {
-            if (result.state == 'granted' && window.navigator.onLine) {
-               navigator.geolocation.getCurrentPosition(mod.locationShared, mod.notShared, options);
-            } else {
-               mod.emitTmx({ notice: 'Connection', client: 'tmx', version: env.version });
-            }
-          });
 
+      if (navigator && navigator.permissions && navigator.permissions.query) {
+         navigator
+            .permissions.query({ name: 'geolocation' })
+            .then(function(result) {
+               if (result.state == 'granted' && window.navigator.onLine) {
+                  navigator.geolocation.getCurrentPosition(mod.locationShared, mod.notShared, options);
+               } else {
+                  mod.emitTmx({ notice: 'Connection', client: 'tmx', version: env.version });
+               }
+             }, (err) => console.log('error:', err));
+      }
    }
 
    mod.locationShared = (pos) => {

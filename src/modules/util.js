@@ -65,7 +65,7 @@ export const util = function() {
    util.formatDate = formatDate;
    function formatDate(date, separator = '-', format='YMD') {
       if (!date) return '';
-
+      if (!isNaN(date)) date = util.offsetTime(date);
 
       let d = new Date(date);
       let month = '' + (d.getMonth() + 1);
@@ -315,11 +315,13 @@ export const util = function() {
    util.log2 = (val) => Math.log(val) / Math.LN2;
    util.nearestPow2 = (val) => Math.pow(2, Math.round( Math.log(val) / Math.log(2)));
 
-   util.offsetTime = (date) => {
-      var targetTime = new Date(date);
+   util.offsetDate = (date) => {
+      var targetTime = date ? new Date(date) : new Date();
       var tzDifference = targetTime.getTimezoneOffset();
       return new Date(targetTime.getTime() + tzDifference * 60 * 1000);
    }
+
+   util.offsetTime = (date) => util.offsetDate(date).getTime();
 
    util.validDate = (datestring, range) => {
       if (!datestring) return false;
@@ -329,8 +331,10 @@ export const util = function() {
       if (dateparts[0].length != 4) return false;
       if (+dateparts[1] > 12 || +dateparts[1] < 1) return false;
       if (+dateparts[2] > 31 || +dateparts[2] < 1) return false;
-      if (range && range.start) { if (new Date(datestring) < new Date(range.start)) return false; }
-      if (range && range.end) { if (new Date(datestring) > new Date(range.end)) return false; }
+      // if (range && range.start) { if (new Date(datestring) < new Date(range.start)) return false; }
+      // if (range && range.end) { if (new Date(datestring) > new Date(range.end)) return false; }
+      if (range && range.start) { if (util.offsetDate(datestring) < util.offsetDate(range.start)) return false; }
+      if (range && range.end) { if (util.offsetDate(datestring) > util.offsetDate(range.end)) return false; }
       return true;
    }
 
@@ -341,7 +345,8 @@ export const util = function() {
    }
 
    function isValidDateRange(minDate, maxDate) {
-      return (new Date(minDate) <= new Date(maxDate));
+      // return (new Date(minDate) <= new Date(maxDate));
+      return (util.offsetDate(minDate) <= util.offsetDate(maxDate));
    }
 
    util.dateUTC = (date) => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
@@ -352,10 +357,13 @@ export const util = function() {
        if (error) {
           console.log('error occured!!!... Please Enter Valid Dates');
        } else {
-           var currentDate = new Date(startDt);
-           var end = new Date(endDt);
+           // var currentDate = new Date(startDt);
+           // var end = new Date(endDt);
+           var currentDate = util.offsetDate(startDt);
+           var end = util.offsetDate(endDt);
            while (currentDate <= end) {
-               between.push(new Date(currentDate));
+               // between.push(new Date(currentDate));
+               between.push(util.offsetDate(currentDate));
                currentDate.setDate(currentDate.getDate() + 1);
            }
        }

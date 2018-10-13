@@ -25,31 +25,41 @@ export const calendarFx = function() {
    fx.displayCalendar = displayCalendar;
    function displayCalendar() {
       let category = env.calendar.category;
-      let month_start = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+      let time_now = util.offsetDate();
+      let month_start = new Date(time_now.getFullYear(), time_now.getMonth(), 1).getTime();
 
-      let start = env.calendar.start || util.dateUTC(new Date());
-      let end = env.calendar.end || new Date(start).setMonth(new Date(start).getMonth()+1);
+      // let start = env.calendar.start || util.dateUTC(new Date());
+      let start = util.offsetDate(env.calendar.start);
+      // let end = env.calendar.end || new Date(start).setMonth(new Date(start).getMonth()+1);
+      let end = env.calendar.end ? util.offsetDate(env.calendar.end) : new Date(new Date(start).setMonth(new Date(start).getMonth()+1));
 
       let calendar_container = displayGen.calendarContainer();
       tmxTour.calendarContainer(calendar_container);
 
       function updateStartDate() {
          fx.setCalendar({start});
-         startPicker.setStartRange(new Date(start));
-         endPicker.setStartRange(new Date(start));
-         endPicker.setMinDate(new Date(start));
+         // startPicker.setStartRange(new Date(start));
+         // endPicker.setStartRange(new Date(start));
+         // endPicker.setMinDate(new Date(start));
+         startPicker.setStartRange(start);
+         endPicker.setStartRange(start);
+         endPicker.setMinDate(start);
       };
       function updateEndDate() {
          fx.setCalendar({end});
-         startPicker.setEndRange(new Date(end));
-         startPicker.setMaxDate(new Date(end));
-         endPicker.setEndRange(new Date(end));
+         // startPicker.setEndRange(new Date(end));
+         // startPicker.setMaxDate(new Date(end));
+         // endPicker.setEndRange(new Date(end));
+         startPicker.setEndRange(end);
+         startPicker.setMaxDate(end);
+         endPicker.setEndRange(end);
       };
 
       var startPicker = new Pikaday({
          field: calendar_container.start.element,
          i18n: lang.obj('i18n'),
-         defaultDate: new Date(start),
+         // defaultDate: new Date(start),
+         defaultDate: start,
          setDefaultDate: true,
          firstDay: env.calendar.first_day,
          onSelect: function() {
@@ -63,8 +73,10 @@ export const calendarFx = function() {
       var endPicker = new Pikaday({
          field: calendar_container.end.element,
          i18n: lang.obj('i18n'),
-         minDate: new Date(start),
-         defaultDate: new Date(end),
+         // minDate: new Date(start),
+         // defaultDate: new Date(end),
+         minDate: start,
+         defaultDate: end,
          setDefaultDate: true,
          firstDay: env.calendar.first_day,
          onSelect: function() {
@@ -108,11 +120,13 @@ export const calendarFx = function() {
       generateCalendar({ start, end, category });
 
       function generateCalendar({ start, end, category }) {
+
          // increment end by one day so that "between" function in db.js
          // captures tournaments that end on the selected end date...
-         end += 86400000;
+         let milli_start = start.getTime();
+         let milli_end = end.getTime() + 86400000;
 
-         db.findTournamentsBetween(start, end).then(displayTournyCal, util.logError);
+         db.findTournamentsBetween(milli_start, milli_end).then(displayTournyCal, util.logError);
 
          function displayTournyCal(tournaments) {
             var categories = util.unique(tournaments.map(t => t.category)).sort();
@@ -231,9 +245,7 @@ export const calendarFx = function() {
          trny.category = value;
       }
 
-      // dd.attachDropDown({ id: container.category.id, options: fx.fx.orgCategoryOptions() });
       dd.attachDropDown({ id: container.category.id, options: rankCalc.orgCategoryOptions() });
-      // dd.attachDropDown({ id: container.rank.id, label: `${lang.tr('trnk')}:`, options: fx.fx.orgRankingOptions() });
       dd.attachDropDown({ id: container.rank.id, label: `${lang.tr('trnk')}:`, options: rankCalc.orgRankingOptions() });
 
       container.category.ddlb = new dd.DropDown({ element: container.category.element, onChange: setCategory });
@@ -315,8 +327,10 @@ export const calendarFx = function() {
       function validRange() {
          if (!trny.start || !trny.end) return true;
        
-         let sdate = new Date(trny.start);
-         let edate = new Date(trny.end);
+         // let sdate = new Date(trny.start);
+         // let edate = new Date(trny.end);
+         let sdate = util.offsetDate(trny.start);
+         let edate = util.offsetDate(trny.end);
          let days = Math.round((edate-sdate)/(1000*60*60*24));
          let valid = (days >= 0 && days < 15);
          container.start.element.style.background = valid ? 'white' : 'yellow';
@@ -341,8 +355,10 @@ export const calendarFx = function() {
          container.end.element.style.background = util.validDate(container.end.element.value) ? 'white' : 'yellow';
       }
 
-      let start = trny.start || util.dateUTC(new Date());
-      let end = trny.end || null;
+      // let start = trny.start || util.dateUTC(new Date());
+      // let end = trny.end || null;
+      let start = util.offsetDate(trny.start);
+      let end = util.offsetDate(trny.end);
 
       var startPicker = new Pikaday({
          field: container.start.element,
@@ -351,8 +367,11 @@ export const calendarFx = function() {
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
          onSelect: function() { 
-            let this_date = this.getDate();
-            start = new Date(util.dateUTC(this_date));
+
+            // let this_date = this.getDate();
+            // start = new Date(util.dateUTC(this_date));
+            start = this.getDate();
+
             updateStartDate();
             validateDate(undefined, 'start', container.start.element);
             if (end < start) {
@@ -362,16 +381,21 @@ export const calendarFx = function() {
          },
       });
       env.date_pickers.push(startPicker);
-      startPicker.setStartRange(new Date(start));
-      if (end) startPicker.setEndRange(new Date(end));
+      // startPicker.setStartRange(new Date(start));
+      // if (end) startPicker.setEndRange(new Date(end));
+      startPicker.setStartRange(start);
+      if (end) startPicker.setEndRange(end);
 
       var endPicker = new Pikaday({
          field: container.end.element,
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
          onSelect: function() {
-            let this_date = this.getDate();
-            end = new Date(util.dateUTC(this_date));
+
+            // let this_date = this.getDate();
+            // end = new Date(util.dateUTC(this_date));
+            end = this.getDate();
+
             updateEndDate();
             updateCategoriesAndRankings();
             validateDate(undefined, 'end', container.end.element);
@@ -382,9 +406,12 @@ export const calendarFx = function() {
          },
       });
       env.date_pickers.push(endPicker);
-      endPicker.setStartRange(new Date(start));
-      endPicker.setMinDate(new Date(start));
-      if (end) endPicker.setEndRange(new Date(end));
+      // endPicker.setStartRange(new Date(start));
+      // endPicker.setMinDate(new Date(start));
+      // if (end) endPicker.setEndRange(new Date(end));
+      endPicker.setStartRange(start);
+      endPicker.setMinDate(start);
+      if (end) endPicker.setEndRange(end);
 
       container.name.element.addEventListener('keydown', util.catchTab, false);
       container.association.element.addEventListener('keydown', util.catchTab, false);
@@ -410,15 +437,21 @@ export const calendarFx = function() {
 
       function updateStartDate() {
          trny.start = start;
-         startPicker.setStartRange(new Date(start));
-         endPicker.setStartRange(new Date(start));
-         endPicker.setMinDate(new Date(start));
+         // startPicker.setStartRange(new Date(start));
+         // endPicker.setStartRange(new Date(start));
+         // endPicker.setMinDate(new Date(start));
+         startPicker.setStartRange(start);
+         endPicker.setStartRange(start);
+         endPicker.setMinDate(start);
       };
       function updateEndDate() {
          trny.end = end;
-         startPicker.setEndRange(new Date(end));
-         startPicker.setMaxDate(new Date(end));
-         endPicker.setEndRange(new Date(end));
+         // startPicker.setEndRange(new Date(end));
+         // startPicker.setMaxDate(new Date(end));
+         // endPicker.setEndRange(new Date(end));
+         startPicker.setEndRange(end);
+         startPicker.setMaxDate(end);
+         endPicker.setEndRange(end);
       };
       function updateCategoriesAndRankings() {
          console.log('categories and rankings may change when tournament dates change');
