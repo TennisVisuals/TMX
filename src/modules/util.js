@@ -66,6 +66,7 @@ export const util = function() {
    function formatDate(date, separator = '-', format='YMD') {
       if (!date) return '';
 
+
       let d = new Date(date);
       let month = '' + (d.getMonth() + 1);
       let day = '' + d.getDate();
@@ -313,6 +314,12 @@ export const util = function() {
    }
    util.log2 = (val) => Math.log(val) / Math.LN2;
    util.nearestPow2 = (val) => Math.pow(2, Math.round( Math.log(val) / Math.log(2)));
+
+   util.offsetTime = (date) => {
+      var targetTime = new Date(date);
+      var tzDifference = targetTime.getTimezoneOffset();
+      return new Date(targetTime.getTime() + tzDifference * 60 * 1000);
+   }
 
    util.validDate = (datestring, range) => {
       if (!datestring) return false;
