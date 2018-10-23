@@ -140,6 +140,14 @@ export const config = function() {
       }
    }
 
+   var device = {
+      isStandalone: 'standalone' in window.navigator && window.navigator.standalone,
+      isIDevice: (/iphone|ipod|ipad/i).test(window.navigator.userAgent),
+      isIpad: (/iPad/i).test(window.navigator.userAgent),
+      isWindows: (/indows/i).test(window.navigator.userAgent),
+      isMobile: /Mobi/.test(navigator.userAgent),
+   }
+
    // not visible/accesible outside of this module
    var o = {
       components: {
@@ -150,7 +158,8 @@ export const config = function() {
          club_search: true,
          settings: true,
          documentation: true,
-         importexport: true,
+         importexport: !device.isMobile && !device.isIpad,
+         datastorage: false,
          keys: true
       },
       settings_tabs: {
@@ -163,6 +172,15 @@ export const config = function() {
          publishing: true,
          schedule: true,
       },
+      export_tabs: {
+         players: false,
+         matches: false,
+         points: false
+      },
+      data_tabs: {
+         sheets: true,
+         server: true,
+      }
    }
 
    function idiomLimit(opts) {
@@ -246,13 +264,12 @@ export const config = function() {
       return new Promise((resolve, reject) => {
          if (!settings) resolve();
          newSettings();
-         // db.db.settings.where('key').equals('superUser').delete().then(newSettings, reject);
          function newSettings() { Promise.all(settings.map(s=>db.addSetting(s))).then(resolve, reject) }
       });
    }
 
    function editSettings() {
-      db.findAllSettings().then(displaySettings);
+      db.findAllSettings().then(displaySettings, util.logError);
 
       function displaySettings(settings) {
          let external_request_settings = settings.filter(s=>s.category == 'externalRequest');
@@ -564,8 +581,8 @@ export const config = function() {
          } else {
             rankCalc.pointCalc(ds.getDate());
          }
+         ds.destroy();
       }
-      ds.destroy();
    }
 
    fx.search = () => {
@@ -829,14 +846,6 @@ export const config = function() {
             function getKey(key) { return settings.reduce((p, c) => c.key == key ? c : p, undefined); }
          }
       });
-   }
-
-   var device = {
-      isStandalone: 'standalone' in window.navigator && window.navigator.standalone,
-      isIDevice: (/iphone|ipod|ipad/i).test(window.navigator.userAgent),
-      isIpad: (/iPad/i).test(window.navigator.userAgent),
-      isWindows: (/indows/i).test(window.navigator.userAgent),
-      isMobile: /Mobi/.test(navigator.userAgent),
    }
 
    fx.geoposition = () => { return env.locations.geoposition; }
@@ -1139,6 +1148,7 @@ export const config = function() {
       splashEvent(container, 'settings', editSettings);
       splashEvent(container, 'documentation', () => window.open(`/docs/${env.ioc}`, '_blank'));
       splashEvent(container, 'importexport', () => {  showHome(displayImportExport); });
+      splashEvent(container, 'datastorage', dataStorage);
       splashEvent(container, 'keys', displayKeyActions);
 
       tmxTour.splashContainer(container);
@@ -1186,6 +1196,7 @@ export const config = function() {
          if (actions.container.select.element) actions.container.select.element.addEventListener('click', submitKey);
          function submitKey(value) {
             let selection = actions.container.keys.ddlb.getValue();
+            if (!navigator.onLine && location.hostname != 'localhost') return displayGen.popUpMessage(lang.tr('phrases.noconnection')); 
             if (selection) coms.sendKey(selection);
          }
 
@@ -1199,12 +1210,63 @@ export const config = function() {
       importFx.initDragAndDrop(importFx.reset);
    }
 
-   function exportData() {
-      var tabs = {
-//         players: displayGen.exportRange({ label: lang.tr('bd'), id_names: { start: 'py_start', end: 'py_end', export: 'py_export' }}),
-         points: displayGen.exportRange({ id_names: { start: 'pt_start', end: 'pt_end', export: 'pt_export' }}),
-         matches: displayGen.exportRange({ id_names: { start: 'mt_start', end: 'mt_end', export: 'mt_export' }}),
+   function dataStorage() {
+      db.findAllSettings().then(displayDataStorage);
+
+      function displayDataStorage(settings) {
+         let sheet_data_storage = settings.filter(s=>s.category == 'sheetDataStorage');
+
+         let tabs = {
+            sheets: displayGen.sheetDataStorage(sheet_data_storage),
+            server: displayGen.serverDataStorage()
+         }
+
+         if (!Object.keys(tabs).length) return displayGen.popUpMessage('Data Storage options disabled'); 
+
+         let tabdata = [];
+         if (o.data_tabs.sheets) tabdata.push({ tab: lang.tr('settings.sheetdata'), content: tabs.sheets.html });
+         if (o.data_tabs.server) tabdata.push({ tab: 'Server Data', content: tabs.server.html });
+
+         let { container } = displayGen.tabbedModal({ tabs, tabdata, title: lang.tr('settings.data') });
+
+         if (container.save.element) container.save.element.addEventListener('click', saveSettings);
+         if (container.cancel.element) container.cancel.element.addEventListener('click', revertSettings);
+
+         if (container.server_players.element) container.server_players.element.addEventListener('click', exportFx.sendPlayers2Server);
+         if (container.server_clubs.element) container.server_clubs.element.addEventListener('click', exportFx.sendClubs2Server);
+
+         function revertSettings() {
+            envSettings();
+            displayGen.closeModal();
+         }
+
+         function saveSettings() {
+            let settings = [];
+
+            if (o.data_tabs.sheets) {
+               sheet_data_storage.forEach(item => {
+                  let setting = {
+                     key: item.key,
+                     url: container[item.key].element.value,
+                     category: 'sheetDataStorage',
+                  }
+                  settings.push(setting);
+               });
+            }
+
+            updateSettings(settings).then(settingsLoaded, err => console.log('update settings failed:', err));
+            displayGen.closeModal();
+         }
       }
+   }
+
+   function exportData() {
+      var tabs = {};
+      if (o.export_tabs.players) tabs.players = displayGen.exportRange({ label: lang.tr('bd'), id_names: { start: 'py_start', end: 'py_end', export: 'py_export' }});
+      if (o.export_tabs.points) tabs.points = displayGen.exportRange({ id_names: { start: 'pt_start', end: 'pt_end', export: 'pt_export' }});
+      if (o.export_tabs.matches) tabs.matches = displayGen.exportRange({ id_names: { start: 'mt_start', end: 'mt_end', export: 'mt_export' }});
+
+      if (!Object.keys(tabs).length) return displayGen.popUpMessage('Export options disabled'); 
 
       var tabdata = [];
       if (tabs.players && tabs.players.html) tabdata.push({ tab: lang.tr('pyr'), content: tabs.players.html });
@@ -1315,7 +1377,6 @@ export const config = function() {
             }
          }
       }
-
    }
 
    function displayTeams() {
@@ -1405,6 +1466,10 @@ export const config = function() {
       let message =`
          <h2 style='margin: 1em;'>Release Notes</h2>
          <div class='releasenotes'>
+            <h3 class='flexjustifystart'>Version: 1.3.12.23.16</h3>
+            <div class='flexjustifystart'>Ability to include tournament-specific social media links</div>
+            <div class='flexjustifystart'>Fixes for global timezone support</div>
+
             <h3 class='flexjustifystart'>Version: 1.3.0.0.0</h3>
             <div class='flexjustifystart'>"Guided Tours" - integrated context-sensitive documentation & hints</div>
             <div class='flexjustifystart'>Support for Consolation Feed-In draws</div>
