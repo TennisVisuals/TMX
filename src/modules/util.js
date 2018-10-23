@@ -331,8 +331,6 @@ export const util = function() {
       if (dateparts[0].length != 4) return false;
       if (+dateparts[1] > 12 || +dateparts[1] < 1) return false;
       if (+dateparts[2] > 31 || +dateparts[2] < 1) return false;
-      // if (range && range.start) { if (new Date(datestring) < new Date(range.start)) return false; }
-      // if (range && range.end) { if (new Date(datestring) > new Date(range.end)) return false; }
       if (range && range.start) { if (util.offsetDate(datestring) < util.offsetDate(range.start)) return false; }
       if (range && range.end) { if (util.offsetDate(datestring) > util.offsetDate(range.end)) return false; }
       return true;
@@ -345,11 +343,10 @@ export const util = function() {
    }
 
    function isValidDateRange(minDate, maxDate) {
-      // return (new Date(minDate) <= new Date(maxDate));
       return (util.offsetDate(minDate) <= util.offsetDate(maxDate));
    }
 
-   util.dateUTC = (date) => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+   util.timeUTC = (date) => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 
    util.dateRange = (startDt, endDt) => {
        var error = ((util.isDate(endDt)) && (util.isDate(startDt)) && isValidDateRange(startDt, endDt)) ? false : true;
@@ -357,14 +354,12 @@ export const util = function() {
        if (error) {
           console.log('error occured!!!... Please Enter Valid Dates');
        } else {
-           // var currentDate = new Date(startDt);
-           // var end = new Date(endDt);
            var currentDate = util.offsetDate(startDt);
            var end = util.offsetDate(endDt);
            while (currentDate <= end) {
-               // between.push(new Date(currentDate));
-               between.push(util.offsetDate(currentDate));
-               currentDate.setDate(currentDate.getDate() + 1);
+              // must be a *new* Date otherwise it is an array of the same object
+              between.push(new Date(currentDate));
+              currentDate.setDate(currentDate.getDate() + 1);
            }
        }
        return between;
