@@ -101,13 +101,26 @@ export const importFx = function() {
    }
 
    function importJotForm(rows, callback) {
-      let players = processSheetData(rows);
+      let players = processSheetPlayers(rows);
       if (callback && typeof callback == 'function') callback(players);
       displayGen.busy.done();
    }
 
-   load.processSheetData = processSheetData;
-   function processSheetData(rows) {
+   load.identifySheetType = (rows) => {
+      if (!rows || !rows.length) return undefined;
+      let keys = Object.keys(rows[0]).map(k=>k.toLowerCase());
+      if (!keys.length) return;
+
+      let player_name = (['first', 'last', 'first name', 'last name'].filter(k=>keys.indexOf(k) >= 0).length == 2);
+      let player_gender = (['gender', 'sex'].filter(k=>keys.indexOf(k) >= 0).length);
+      let player_profile = (['profile', 'utr profile', 'utr player profile link'].filter(k=>keys.indexOf(k) >= 0).length);
+      let player_birth = (['birth', 'birthdate', 'birthday', 'birth date', 'date of birth'].filter(k=>keys.indexOf(k) >= 0).length);
+
+      if (player_name || player_gender || player_profile || player_birth) return 'players';
+   }
+
+   load.processSheetPlayers = processSheetPlayers;
+   function processSheetPlayers(rows) {
       let players = [];
       let ioc_codes = env.ioc_codes || [];
       let code_by_country = Object.assign({}, ...ioc_codes.map(c => ({ [compressName(c.name)]: c.ioc })));
@@ -870,23 +883,24 @@ export const importFx = function() {
 
    function identifyJSON(json) {
       let keys = Object.keys(Array.isArray(json) ? json[0] : json);
+      if (!keys.length) return;
 
-      if (keys.length && ['Submission Date', 'Submission ID'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'jotFormCSV';
-      if (keys.length && ['id', 'category', 'ranking', 'points'].filter(k=>keys.indexOf(k) >= 0).length == 4) return 'ranklistCSV';
-      if (keys.length && ['website', 'courts'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'clubs';
-      if (keys.length && ['born', 'right_to_play'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'playersCSV';
-      if (keys.length && ['start', 'end', 'draws'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'tournamentsCSV';
-      if (keys.length && ['clay', 'hard', 'carpet'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'clubsCSV';
+      if (['Submission Date', 'Submission ID'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'jotFormCSV';
+      if (['id', 'category', 'ranking', 'points'].filter(k=>keys.indexOf(k) >= 0).length == 4) return 'ranklistCSV';
+      if (['website', 'courts'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'clubs';
+      if (['born', 'right_to_play'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'playersCSV';
+      if (['start', 'end', 'draws'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'tournamentsCSV';
+      if (['clay', 'hard', 'carpet'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'clubsCSV';
 
-      if (keys.length && ['key', 'category'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'settings';
-      if (keys.length && ['sex', 'puid'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'players';
-      if (keys.length && ['muid', 'puids', 'score'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'matches';
-      if (keys.length && ['muid', 'puid', 'points'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'points';
+      if (['key', 'category'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'settings';
+      if (['sex', 'puid'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'players';
+      if (['muid', 'puids', 'score'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'matches';
+      if (['muid', 'puid', 'points'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'points';
 
-      if (keys.length && ['start', 'end', 'category'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'tournaments';
-      if (keys.length && ['sid', 'tuid', 'old_id'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'tournaments';
+      if (['start', 'end', 'category'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'tournaments';
+      if (['sid', 'tuid', 'old_id'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'tournaments';
 
-      if (keys.length && ['titles', 'draws', 'details'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'draws';
+      if (['titles', 'draws', 'details'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'draws';
    }
 
    function loadTask(fx, arr, what = '', callback) {
