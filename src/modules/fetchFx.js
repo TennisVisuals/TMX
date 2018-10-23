@@ -335,15 +335,68 @@ export const fetchFx = function() {
       });
    }
 
+   function extractSheetID(url) {
+      let parts = url.split('/');
+      if ((parts.indexOf('docs.google.com') < 0 || parts.indexOf('spreadsheets') < 0)) return undefined;
+      return parts.reduce((p, c) => (!p || c.length > p.length) ? c : p, undefined);
+   }
+
    fx.fetchNewPlayers = fetchNewPlayers;
    function fetchNewPlayers() {
       return new Promise((resolve, reject) => {
-         db.findSetting('fetchNewPlayers').then(checkSettings, reject);
+         db.findAllSettings().then(checkSettings, reject);
 
-         function checkSettings(fetchobj) {
-            if (!fetchobj) return reject({ error: lang.tr('phrases.notconfigured') });
-            fetchobj.url = checkURL(fetchobj.url);
-            db.findAllPlayers().then(plyrz => fetchNew(plyrz, fetchobj));
+         function checkSettings(settings=[]) {
+            let fetch_new_players = settings.reduce((p, c) => c.key == 'fetchNewPlayers' ? c : p, undefined);
+            let sync_players = settings.reduce((p, c) => c.key == 'syncPlayers' ? c : p, undefined);
+
+            if (fetch_new_players && fetch_new_players.url) {
+               fetch_new_players.url = checkURL(fetch_new_players.url);
+               db.findAllPlayers().then(plyrz => fetchNew(plyrz, fetch_new_players));
+            } else if (sync_players && sync_players.url) {
+               sync_players.url = checkURL(sync_players.url);
+               let sheet_id = extractSheetID(sync_players.url);
+               if (sheet_id) {
+                  fx.fetchGoogleSheet(sheet_id).then(updatePlayerDB, displayGen.invalidURLorNotShared);
+               } else {
+                  return reject({ error: lang.tr('phrases.invalidsheeturl') });
+               }
+            } else {
+               return reject({ error: lang.tr('phrases.notconfigured') });
+            }
+         }
+
+         function updatePlayerDB(incoming_players) {
+            displayGen.closeModal();
+
+            if (!incoming_players || !incoming_players.length) return finish();
+            let incoming_puids = incoming_players.map(p=>p.puid);
+            db.findAllPlayers().then(plyrz => update(plyrz));
+
+            function update(plyrz) {
+               let existing_puids = plyrz.map(p=>p.puid);
+               let existing_puid_map = Object.assign({}, ...plyrz.map(p => ({ [p.puid]: p })));
+               let new_puids = incoming_puids.filter(i=>existing_puids.indexOf(i) < 0);
+               let modify_puids = incoming_puids.filter(i=>existing_puids.indexOf(i) >= 0);
+
+               // first add all the new players to the update
+               let update_players = incoming_players.filter(p=>new_puids.indexOf(p.puid) >= 0);
+
+               // for each incoming player that exists, add along with existing data
+               incoming_players.forEach(p => {
+                  if (existing_puids.indexOf(p.puid) >= 0) {
+                     update_players.push(Object.assign(existing_puid_map[p.puid], p));
+                  }
+               });
+
+               db.db.players.toCollection().delete().then(updateAction, finish);
+               function updateAction() { util.performTask(db.addPlayer, incoming_players, false).then(finish, finish); }
+            }
+            function finish() {
+               displayGen.closeModal();
+               resolve();
+            }
+
          }
 
          function fetchNew(plyrz, fetchobj) {
@@ -517,10 +570,16 @@ export const fetchFx = function() {
          let request = JSON.stringify(request_object);
          function responseHandler(data) {
             if (data.result && data.result.rows && data.result.rows.length) {
-               let players = importFx.processSheetData(data.result.rows);
-               players.forEach(player => player.full_name = tournamentFx.fullName(player, false));
-               if (players.length == 0) console.log('No Players found... suggestions for sheet format/must be on first sheet');
-               resolve(players);
+               let sheet_type = importFx.identifySheetType(data.result.rows);
+               if (sheet_type == 'players') {
+                  let players = importFx.processSheetPlayers(data.result.rows);
+                  players.forEach(player => player.full_name = tournamentFx.fullName(player, false));
+                  if (players.length == 0) console.log('No Players found... suggestions for sheet format/must be on first sheet');
+                  resolve(players);
+               } else {
+                  console.log('unknown sheet type');
+                  reject(data);
+               }
             } else {
                reject(data);
             }
@@ -699,7 +758,7 @@ export const fetchFx = function() {
    }
 
    function checkURL(url) {
-      return (url.indexOf('http') == 0) ? url : `${window.location.origin}${url}`;
+      return (url && url.indexOf('http') == 0) ? url : `${window.location.origin}/${url}`;
    }
 
    return fx;
