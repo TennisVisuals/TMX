@@ -5,7 +5,7 @@ export const env = {
    first_time_user: false,
 
    // version is Major.minor.added.changed.fixed
-   version: '1.3.4.10.6',
+   version: '1.3.14.25.26',
    version_check: undefined,
    reset_new_versions: false,
 
@@ -60,6 +60,7 @@ export const env = {
       first_day: 0
    },
    players: {
+      merge: true,
       identify: true,
       require: {
          ioc: false
@@ -253,6 +254,7 @@ export const env = {
    server: {
       requests: {
          externalRequest: [ 'fetchClubs', 'fetchNewPlayers', 'fetchNewTournaments', 'fetchRankList', 'fetchRegisteredPlayers' ],
+         sheetDataStorage: [ 'syncClubs', 'syncPlayers', 'syncTournaments' ],
          userInterface: [ 'defaultIdiom', ],
       },
    }
