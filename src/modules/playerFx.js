@@ -303,8 +303,8 @@ export const playerFx = function() {
          rank: p.rank,
          school: p.school,
          profile: p.profile,
-         ratings: p.ratings,
-         rankings: p.rankings,
+         ratings: p.ratings && JSON.parse(JSON.stringify(p.ratings)),
+         rankings: p.rankings && JSON.parse(JSON.stringify(p.rankings)),
          club_code: p.club_code,
          full_name: p.full_name,
          last_name: p.last_name,
@@ -429,8 +429,8 @@ export const playerFx = function() {
       category = category ? staging.legacyCategory(category) : 0;
       let ages = category && categories && categories[category] && categories[category].ages;
       let year = new Date().getFullYear();
-      let min_year = year - ((ages && parseInt(ages.from)) || 0);
-      let max_year = year - ((ages && parseInt(ages.to)) || 0);
+      let min_year = year - ((ages && parseInt(ages.from)) || 4);
+      let max_year = year - ((ages && parseInt(ages.to)) || 90);
       let daterange = { start: `${max_year}-01-01`, end: `${min_year}-12-31` };
       let require_ioc = env.players.require.ioc;
 
@@ -438,7 +438,6 @@ export const playerFx = function() {
       player_container.last_name.element.style.background = player.last_name ? 'white' : 'yellow';
       player_container.first_name.element.style.background = player.first_name ? 'white' : 'yellow';
       player_container.ioc.element.style.background = (!require_ioc || player.ioc) ? 'white' : 'yellow';
-      player_container.birth.element.style.background = !ages || util.validDate(player.birth, daterange) ? 'white' : 'yellow';
 
       // try to make a reasonable start year
       let start_year = year - max_year < 17 ? max_year : min_year - 10;
@@ -447,7 +446,7 @@ export const playerFx = function() {
       let birthdayPicker = new Pikaday({
          field: player_container.birth.element,
          i18n: lang.obj('i18n'),
-         // defaultDate: start_date,
+         defaultDate: start_date,
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
          firstDay: env.calendar.first_day,
