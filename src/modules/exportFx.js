@@ -2144,6 +2144,17 @@ export const exportFx = function() {
       });
    }
 
+   exp.sendPlayers2Server = () => {
+      console.log('send players to server');
+      displayGen.popUpMessage('Send Players to server. Not yet implemented');
+      exp.downloadPlayers();
+   }
+
+   exp.sendClubs2Server = () => {
+      console.log('send clubs to server');
+      displayGen.popUpMessage('Send Clubs to server. Not yet implemented');
+   }
+
    /*************************** Spreadheet Export ****************************/
    exp.saveWorkbook = (filename = 'export.xlsx') => {
       let wbout = XLSX.write(importFx.loaded.workbook, {bookType:'xlsx', bookSST:true, type: 'binary'});
