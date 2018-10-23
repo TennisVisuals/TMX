@@ -131,6 +131,7 @@ html {
 .splash_upload { background-image: url("img/upload.png"); }
 .splash_download { background-image: url("img/download.png"); }
 .splash_importexport { background-image: url("img/import_export.png"); }
+.splash_datastorage { background-image: url("img/database.png"); }
 .splash_documentation { background-image: url("img/docs.png"); }
 .splash_settings { background-image: url("img/settings.png"); }
 .icon_spreadsheet { background-image: url("img/spreadsheet.png"); }

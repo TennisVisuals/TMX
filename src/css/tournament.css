@@ -1396,6 +1396,13 @@ button.ratings-submit:hover { background: #68FF33; }
    border-bottom: 1px solid black;
 }
 
+.social_links {
+   max-width: 90%;
+   width: 90%;
+   min-height: 10em;
+   resize: none;
+}
+
 /* release notes */
 
 .releasenotes {

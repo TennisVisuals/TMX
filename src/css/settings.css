@@ -8,6 +8,10 @@
    justify-content: space-between;
 }
 
+.settingslabel {
+  white-space: nowrap;
+}
+
 .settingsrow {
    height: 100%;
    display: flex;
