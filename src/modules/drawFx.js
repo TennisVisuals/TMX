@@ -545,7 +545,7 @@ export function roundRobin() {
             let sc = scores[d.row - 1][d.mc - 1];
             let num = sc ? sc.match(/\d+/g) : undefined;
             if (sc && !num && d.match.loser) {
-               let indicator = d.match.loser[0].draw_position == d.row ? '-' : '+';
+               let indicator = !d.match.loser[0] ? 'x' : d.match.loser[0].draw_position == d.row ? '-' : '+';
                sc += ` (${indicator})`;
             }
             return sc;
@@ -1044,8 +1044,9 @@ export function treeDraw() {
       player_ratings: false,
       club_codes: true,
       draw_entry: true,
+      feed_arms: false,
       seeding: true,
-      feed_arms: false
+      ioc: true,
    }
 
    let dfx = drawFx();
@@ -1084,6 +1085,7 @@ export function treeDraw() {
          datascan.seeding = opponents.reduce((p, c) => c.seed || p, undefined) ? true : false;
          datascan.player_rankings = opponents.reduce((p, c) => c.rank || p, undefined) ? true : false;
          datascan.player_ratings = opponents.reduce((p, c) => c.ratings || p, undefined) ? true : false;
+         datascan.ioc = opponents.reduce((p, c) => c.ioc || p, undefined) ? true : false;
       }
       datascan.feed_arms = info.nodes.reduce((p, c) => c.data.feed || p, undefined);
       if (datascan.feed_arms) o.margins.bottom = o.minPlayerHeight;
@@ -1144,7 +1146,7 @@ export function treeDraw() {
          left_column_offset -= o.detail_offsets.width;
          calcRoundWidth();
       }
-      let flags = round_width < o.flags.threshold ? false : o.flags.display && o.flags.path;
+      let flags = round_width < o.flags.threshold ? false : o.flags.display && o.flags.path && datascan.ioc;
 
       // TODO: why is this divided by 12 and 1.5?
       let imagesize = Math.min(round_width / 12, playerHeight / 1.5);
@@ -2384,6 +2386,12 @@ export function drawFx(opts) {
       function d2b(dec) { return (dec >>> 0).toString(2); }
    }
 
+   fx.calcFeedBase = ({ draw_positions }) => {
+      let positions = draw_positions && draw_positions.length;
+      if (!p2(positions)) { positions += sByes(positions); }
+      if (positions && p2(positions)) return positions / 2;
+   }
+
    fx.feedDrawSize = feedDrawSize;
    function feedDrawSize({ num_players, skip_rounds, feed_rounds }) {
       let s = 0;
@@ -2484,19 +2492,21 @@ export function drawFx(opts) {
       }
       return bye_positions;
 
-      // number of structural byes
-      function sByes(players) {
-         if (p2(players)) return 0;
-         let b=1;
-         while (b < players && !p2(players - b)) { b += 1 };
-         return b;
-      }
+   }
 
-      // check for power of 2
-      function p2(n) {
-         if (isNaN(n)) return false; 
-         return n && (n & (n - 1)) === 0;
-      }
+   // number of structural byes
+   fx.sByes = sByes;
+   function sByes(players) {
+      if (p2(players)) return 0;
+      let b=1;
+      while (b < players && !p2(players - b)) { b += 1 };
+      return b;
+   }
+
+   // check for power of 2
+   function p2(n) {
+      if (isNaN(n)) return false; 
+      return n && (n & (n - 1)) === 0;
    }
 
    fx.dispersion = dispersion;
@@ -3682,8 +3692,10 @@ export function drawFx(opts) {
 
       let matches = [].concat(...Object.keys(pre).filter(key=>data[key]).map(key => {
          let info = drawInfo(data[key]);
+         let max_round = data[key].max_round;
+         let round_offset = max_round ? info.depth - max_round : 0;
          let round_names = names.map(n=>`${pre[key]}-${n}`);
-         return treeMatches({ match_nodes: info.upcoming_match_nodes, round_names, potentials: true });
+         return treeMatches({ match_nodes: info.upcoming_match_nodes, max_round, round_offset, round_names, potentials: true });
       })).filter(m=>m && m.match);
 
       return matches;
@@ -3695,8 +3707,10 @@ export function drawFx(opts) {
 
       let matches = [].concat(...Object.keys(pre).filter(key=>data[key]).map(key => {
          let info = drawInfo(data[key]);
+         let max_round = data[key].max_round;
+         let round_offset = max_round ? info.depth - max_round : 0;
          let round_names = names.map(n=>`${pre[key]}-${n}`);
-         return treeMatches({ match_nodes: info.match_nodes, round_names });
+         return treeMatches({ match_nodes: info.match_nodes, max_round, round_offset, round_names });
       }));
 
       return matches;
@@ -3868,6 +3882,22 @@ export function drawFx(opts) {
          if (match.winner && match.loser) {
             let wH = puidHash(match.winner);
             let lH = puidHash(match.loser);
+
+            if (!wH || !lH) {
+               // if there is an undefined winner/loser then the match was cancelled
+               let team1 = match.teams && match.teams[0] && puidHash(match.teams[0]);
+               let team2 = match.teams && match.teams[1] && puidHash(match.teams[1]);
+               if (team1) {
+                  checkTeam(team1);
+                  team_results[team1].matches_cancelled += 1;
+               }
+               if (team2) {
+                  checkTeam(team2);
+                  team_results[team2].matches_cancelled += 1;
+               }
+               return;
+            }
+
             checkTeam(wH);
             checkTeam(lH);
             if (match.score && disqualifyingScore(match.score)) disqualified.push(lH);
@@ -3901,6 +3931,7 @@ export function drawFx(opts) {
          if (!team_results[puid_hash]) team_results[puid_hash] = {
             matches_won: 0,
             matches_lost: 0,
+            matches_cancelled: 0,
             sets_won: 0,
             sets_lost: 0,
             games_won: 0,
@@ -4059,12 +4090,11 @@ export function drawFx(opts) {
          let total_opponents = team_puids.length;
 
          // order is an array of objects formatted for processing by ties()
-         // let order = teamz.reduce((arr, team, i) => { arr.push({ puid: puidHash(team), i, results: team[0].results }); return arr; }, []);
          let order = team_puids.reduce((arr, team_puid, i) => { arr.push({ puid: team_puid, i, results: team_results[team_puid] }); return arr; }, []);
-         let complete = order.filter(o => total_opponents - 1 == o.results.matches_won + o.results.matches_lost);
+         let complete = order.filter(o => total_opponents - 1 == o.results.matches_won + o.results.matches_lost + o.results.matches_cancelled);
 
          // if not all opponents have completed their matches, no orders are assigned
-         if (total_opponents != complete.length) return;
+         if (total_opponents != complete.length) { return; }
 
          complete.forEach(p => p.order_hash = orderHash(p));
          complete.forEach(p => p.ratio_hash = ratioHash(p));
