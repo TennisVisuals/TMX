@@ -2,6 +2,7 @@ import { env } from './env'
 import { util } from './util';
 import { coms } from './coms';
 import { UUID } from './UUID';
+import { dd } from './dropdown';
 import { drawFx } from './drawFx';
 import { staging } from './staging';
 import { matchFx } from './matchFx';
@@ -24,7 +25,7 @@ export const tournamentFx = function() {
       players.forEach(player => {
          if (puids.indexOf(player.puid) < 0 && ids.indexOf(player.id) < 0) {
             player.full_name = fx.fullName(player, false);
-            tournament.players.push(player);
+            tournament.players.push(playerFx.playerCopy(player));
             added += 1;
          }
       });
@@ -143,12 +144,12 @@ export const tournamentFx = function() {
    }
    */
 
-   function opponentRemoved({ tournament, e, elink, qlink, flinkinfo, previous_winner, previous_loser, outcome }) {
+   function opponentRemoved({ tournament, e, elink, qlink, dlinkinfo, previous_winner, previous_loser, outcome }) {
       if (qlink) {
          qlink.approved = qlink.approved ? qlink.approved.filter(a=>previous_winner.indexOf(a) < 0): [];
          qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
-         if (flinkinfo) {
-            flinkinfo.nodes.forEach(node => {
+         if (dlinkinfo) {
+            dlinkinfo.nodes.forEach(node => {
                if (!node.height && node.data.team && util.intersection(node.data.team.map(t=>t.id), previous_winner).length) {
                   node.data.qualifier = true;
                   node.data.team = node.data.team.map(team => ({ bye: undefined, entry: 'Q', qualifier: true, draw_position: outcome.draw_position }) );
@@ -171,7 +172,7 @@ export const tournamentFx = function() {
       if (elink) elink.up_to_date = false;
    }
 
-   function qualifierChanged({ e, outcome, qlink, flinkinfo, previous_winner, current_winner }) {
+   function qualifierChanged({ e, outcome, qlink, dlinkinfo, previous_winner, current_winner }) {
       // replace qualifier
       e.qualified = e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0);
       e.qualified.push(outcome.teams[outcome.winner])
@@ -183,7 +184,7 @@ export const tournamentFx = function() {
          qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
          let new_opponent = outcome.teams[outcome.winner].map(p => Object.assign({}, p, { seed: undefined, entry: 'Q' }));
          qlink.draw.opponents.push(new_opponent);
-         if (flinkinfo) flinkinfo.nodes.forEach(n => {
+         if (dlinkinfo) dlinkinfo.nodes.forEach(n => {
             if (!n.height && n.data.team && util.intersection(n.data.team.map(t=>t.id), previous_winner).length) {
                let draw_position = n.data.team[0].draw_position;
                let new_team = new_opponent.map(t => Object.assign({}, t, { draw_position, qualifier: true, entry: 'Q' }));
@@ -195,21 +196,23 @@ export const tournamentFx = function() {
       fx.logEventChange(e, { fx: 'qualifier changed', d: { team: outcome.teams[outcome.winner].map(t=>t.id) } });
    }
 
-   function consolationChanged({ e, outcome, elink, flinkinfo, previous_loser, current_loser }) {
-      console.log('consolation player changed');
+   function consolationChanged({ e, outcome, elink, dlinkinfo, previous_loser, current_loser }) {
 
       // modify linked draw
       if (elink) {
-         let new_opponent = outcome.teams[1 - outcome.winner].map(p => Object.assign({}, p, { seed: undefined, entry: 'Q' }));
+         let new_opponent = outcome.teams[1 - outcome.winner].map(p => Object.assign({}, p, { seed: undefined }));
 
+         // at present consolation feed-in draws don't keep opponents lists...
          // elink.draw.opponents = elink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_loser).length == 0);
          // elink.draw.opponents.push(new_opponent);
 
-         if (flinkinfo) flinkinfo.nodes.forEach(n => {
+         if (dlinkinfo) dlinkinfo.nodes.forEach(n => {
             if (!n.height && n.data.team && util.intersection(n.data.team.map(t=>t.id), previous_loser).length) {
                let draw_position = n.data.team[0].draw_position;
                let new_team = new_opponent.map(t => Object.assign({}, t, { draw_position }));
                n.data.team = new_team;
+               let has_bye = n.parent && n.parent.children && n.parent.children.reduce((p, c) => (c.data && c.data.bye) || p, undefined);
+               if (has_bye) { n.parent.data.team = new_team; }
             }
          });
       }
@@ -231,13 +234,7 @@ export const tournamentFx = function() {
       let completed = dual_match.score && ['W.O.', 'RET.', 'DEF.'].reduce((p, c) => (dual_match.score.indexOf(c) >= 0 ? c : false) || p, undefined);
       let match_record = e && e.draw && e.draw.dual_matches && e.draw.dual_matches[dual_match.match.muid];
 
-      if (!e.score_goal) e.score_goal = getDualEventScoreGoal(e);
-
-      /*
-      let av = (e.matchorder && e.matchorder.map(m=>util.parseInt(m.value)).reduce((a, b) => (a || 0) + (b || 0))) || 0;
-      let more_than_half = moreThanHalf(av);
-      if (!e.score_goal) e.score_goal = more_than_half;
-      */
+      e.score_goal = getDualEventScoreGoal(e);
 
       match_record && match_record.matches
          .map(m => ({ winner: m.match.winner_index, value: m.value }))
@@ -252,9 +249,8 @@ export const tournamentFx = function() {
    }
 
    fx.scoreDualMatchDraw = ({ tournament, e, dual_match, dual_teams, muid, outcome }) => {
-      var result = { success: true };
-
       let match = e.draw.dual_matches[dual_match.match.muid].matches.reduce((p, c) => c.match.muid == muid ? c : p, undefined);
+      if (!match) return { success: false}
 
       match.match.score = outcome.score
       match.match.score_format = outcome.score_format;
@@ -263,20 +259,21 @@ export const tournamentFx = function() {
       match.match.loser = outcome.teams[1 - outcome.winner];
       match.match.date = match.date || new Date().getTime();
 
+      return fx.advanceDualMatchPosition( { e, dual_match, dual_teams });
+   }
+
+   fx.advanceDualMatchPosition = ({ e, dual_match, dual_teams }) => {
+      var result = { success: true };
       let { score, active_matches } = fx.calcDualMatchesScore(e, dual_match);
       let score_goal = e.score_goal;
 
       let max_score = Math.max(...score);
+
       if (max_score < score_goal && dual_match.match.winner_index != undefined) {
          console.log('if advanced, remove winner');
          // ... as long as there is no advancement beyond this position ...
 
-         delete dual_match.match.winner_index;
-         delete dual_match.match.winner;
-         delete dual_match.match.loser;
-         delete dual_match.match.date;
-         delete dual_match.team;
-         delete dual_match.dp;
+         fx.deleteDualMatchOutcome({ dual_match });
       } else if (max_score >= score_goal) {
          let winner_index = (score[0] >= score_goal) ? 0 : 1;
          let winner = dual_teams[winner_index];
@@ -288,6 +285,17 @@ export const tournamentFx = function() {
       e.active = active_matches;
 
       return result;
+   }
+
+   fx.deleteDualMatchOutcome = ({ dual_match }) => {
+      delete dual_match.match.winner_index;
+      delete dual_match.match.winner;
+      delete dual_match.match.loser;
+      delete dual_match.match.score;
+      delete dual_match.match.date;
+      delete dual_match.score;
+      delete dual_match.team;
+      delete dual_match.dp;
    }
 
    fx.scoreTreeDraw = ({ tournament, e, muid, existing_scores, outcome }) => {
@@ -306,9 +314,9 @@ export const tournamentFx = function() {
       // elink is a forward link from an elimination draw to a consolation draw
       let elink = e.draw_type == 'E' && fx.findEventByID(tournament, e.links['C']);
 
-      // flink is a forward link dependency
-      let flink = qlink || elink;
-      let flinkinfo = flink && flink.draw && dfx.drawInfo(flink.draw);
+      // dlink is a link dependency
+      let dlink = qlink || elink;
+      let dlinkinfo = dlink && dlink.draw && dfx.drawInfo(dlink.draw);
 
       let node = !existing_scores ? null : dfx.findMatchNodeByTeamPositions(current_draw, outcome.positions);
       let previous_winner = node && node.match && node.match.winner ? node.match.winner.map(m=>m.id) : undefined;
@@ -336,11 +344,11 @@ export const tournamentFx = function() {
             }
          }
       } else if (e.draw_type == 'Q') {
-         // active_in_linked = flink && flinkinfo && previous_winner && playerActiveInLinked(flinkinfo, previous_winner);
-         active_in_linked = flink && flinkinfo && previous_winner && fx.teamActiveInLinked(flinkinfo, previous_winner);
+         // active_in_linked = dlink && dlinkinfo && previous_winner && playerActiveInLinked(dlinkinfo, previous_winner);
+         active_in_linked = dlink && dlinkinfo && previous_winner && fx.teamActiveInLinked(dlinkinfo, previous_winner);
       } else if (e.draw_type == 'E') {
-         // active_in_linked = flink && flinkinfo && previous_loser && playerActiveInLinked(flinkinfo, previous_loser);
-         active_in_linked = flink && flinkinfo && previous_loser && fx.teamActiveInLinked(flinkinfo, previous_loser);
+         // active_in_linked = dlink && dlinkinfo && previous_loser && playerActiveInLinked(dlinkinfo, previous_loser);
+         active_in_linked = dlink && dlinkinfo && previous_loser && fx.teamActiveInLinked(dlinkinfo, previous_loser);
       }
 
       let winner_changed = !previous_winner || !current_winner ? undefined : util.intersection(previous_winner, current_winner).length == 0;
@@ -351,13 +359,13 @@ export const tournamentFx = function() {
          if (compass) {
             fx.removeDirectionalPlayer(tournament, e, target_draw, previous_loser, linked_info);
          } else {
-            opponentRemoved({ tournament, e, elink, qlink, flinkinfo, previous_winner, previous_loser, outcome });
+            opponentRemoved({ tournament, e, elink, qlink, dlinkinfo, previous_winner, previous_loser, outcome });
          }
-         if (flink) result.approved_changed = flink;
+         if (dlink) result.approved_changed = dlink;
          result.winner_removed = true;
       } else if (winner_changed) {
-         if (qlink) qualifierChanged({ e, outcome, qlink, flinkinfo, previous_winner, current_winner });
-         if (elink) consolationChanged({ e, outcome, elink, flinkinfo, previous_loser, current_loser });
+         if (qlink) qualifierChanged({ e, outcome, qlink, dlinkinfo, previous_winner, current_winner });
+         if (elink) consolationChanged({ e, outcome, elink, dlinkinfo, previous_loser, current_loser });
          if (compass) fx.removeDirectionalPlayer(tournament, e, target_draw, previous_loser, linked_info);
          result.winner_changed = true;
       }
@@ -375,7 +383,7 @@ export const tournamentFx = function() {
                eligible_player.elimination_position = info.assigned_positions[eligible_player.puid];
 
                // placeConsolationOpponent expects a team...
-               fx.placeConsolationOpponent(elink, [eligible_player]);
+               fx.placeConsolationOpponent(e, elink, [eligible_player]);
                elink.regenerate = 'consolation player placed';
             }
          }
@@ -901,7 +909,7 @@ export const tournamentFx = function() {
             if (fx.isConsolationFeedIn(e)) {
                let linked_elimination = fx.findEventByID(tournament, e.links['E']);
                let elimination_info = linked_elimination && dfx.drawInfo(linked_elimination.draw);
-               e.feed_base = (elimination_info && elimination_info.draw_positions.length / 2) || 0;
+               e.feed_base = dfx.calcFeedBase({ draw_positions: elimination_info && elimination_info.draw_positions}) || 0;
                e.draw_size = dfx.feedDrawSize({ num_players: e.feed_base, skip_rounds: e.skip_rounds, feed_rounds: e.feed_rounds });
             } else {
                let draw_size = Math.max(0, e.approved && e.approved.length ? dfx.acceptedDrawSizes(e.approved.length) : 0);
@@ -1204,8 +1212,8 @@ export const tournamentFx = function() {
 
    fx.playerSort = (players) => {
       return players.sort((a, b) => {
-         let sort_a = `${a.last_name.toUpperCase()}, ${util.normalizeName(a.first_name)}`;
-         let sort_b = `${b.last_name.toUpperCase()}, ${util.normalizeName(b.first_name)}`;
+         let sort_a = `${a.last_name && a.last_name.toUpperCase()}, ${util.normalizeName(a.first_name)}`;
+         let sort_b = `${b.last_name && b.last_name.toUpperCase()}, ${util.normalizeName(b.first_name)}`;
          let a1 = util.replaceDiacritics(sort_a);
          let b1 = util.replaceDiacritics(sort_b);
          let result = a1 < b1 ? -1 : a1 > b1 ? 1 : 0
@@ -1429,27 +1437,23 @@ export const tournamentFx = function() {
       return {};
    }
 
-   fx.placeConsolationOpponent = (evt, opponent) => {
+   fx.placeConsolationOpponent = (el_evt, c_evt, opponent) => {
       let player = opponent[0];
       let round = player.exit_profile.exit_round;
-      let position = fx.getConsolationPosition(evt.draw_size, round, player.elimination_position);
-      /*
-      let origin = Math.ceil(player.elimination_position / Math.pow(2, round));
-      let round_base = util.range(0, round - 1).map(r=>evt.draw_size/Math.pow(2, r)).reduce((a, b) => a + b, 0);
-      let round_size = evt.draw_size/Math.pow(2, round - 1);
-      let position = round == 1 ? origin : round_base + (round_size - origin) + 1;
-      // the 1st round goes from top to bottom
-      // the 2nd round goes from bottom to top
-      // the 3rd round starts at the bottom of the 2nd quarter, goes up and around
-      // the 4th round starts at the bottom of the 3rd quarter, goes up and around
-      */
-      dfx.assignPosition({ node: evt.draw, position, team: opponent });
+      let position = fx.getConsolationPosition(el_evt, c_evt.draw_size, round, player.elimination_position);
+      dfx.assignPosition({ node: c_evt.draw, position, team: opponent });
    }
 
-   fx.getConsolationPosition = (draw_size, round, elimination_position) => {
+   fx.getConsolationPosition = (el_evt, consolation_draw_size, round, elimination_position) => {
+      if (!util.powerOfTwo(el_evt.draw_size)) {
+         let el_info = dfx.drawInfo(el_evt.draw);
+         let structural_byes = (el_info.structural_byes && el_info.structural_byes.map(node => node.data && node.data.dp).filter(f=>f)) || [];
+         let additions = structural_byes.map(b=>elimination_position >= b ? 1 : 0).reduce((a, b) => a + b, 0);
+         elimination_position += additions;
+      }
       let origin = Math.ceil(elimination_position / Math.pow(2, round));
-      let round_base = util.range(0, round - 1).map(r=>draw_size/Math.pow(2, r)).reduce((a, b) => a + b, 0);
-      let round_size = draw_size/Math.pow(2, round - 1);
+      let round_base = util.range(0, round - 1).map(r=>consolation_draw_size/Math.pow(2, r)).reduce((a, b) => a + b, 0);
+      let round_size = consolation_draw_size/Math.pow(2, round - 1);
       // the 1st round goes from top to bottom
       // the 2nd round goes from bottom to top
       // the 3rd round starts at the bottom of the 2nd quarter, goes up and around
