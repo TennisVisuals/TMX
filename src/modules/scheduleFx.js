@@ -19,7 +19,7 @@ export const scheduleFx = function() {
       if (!tournament.schedule) tournament.schedule = {};
 
       var date_range = util.dateRange(tournament.start, tournament.end);
-      var date_options = date_range.map(d => ({ key: calendarFx.localizeDate(d), value: util.formatDate(d) }));
+      let date_options = date_range.map(d => ({ key: calendarFx.localizeDate(d), value: util.formatDate(util.timeUTC(d)) }));
 
       var scheduled = mfx.scheduledMatches(tournament).scheduled;
       if (!scheduled.length) return;
@@ -290,7 +290,7 @@ export const scheduleFx = function() {
       let match_status = match.status ? `<div class='match_status'>${match.status}</div>` : '';
       let category = (match.event && match.event.category) || '';
       let displayed_score = score ? `<div class='match_score${complete ? ' complete' : ''}'>${score}</div>` : match_status;
-      let umpire = match_status || (match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : '&nbsp;');
+      let umpire = (score && match_status) || (match.umpire ? `<div class='match_umpire'>${match.umpire}</div>` : '&nbsp;');
       let heading = match.schedule.heading ? `${match.schedule.heading} ` : '';
       let time_icon = match.schedule.start || match.schedule.end ?
          `${match.schedule.start || ''}&nbsp;<div class='time_header tiny_icon'></div>&nbsp;${match.schedule.end || ''}`: '';
