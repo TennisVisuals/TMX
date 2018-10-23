@@ -510,7 +510,8 @@ export const displayGen = function() {
    }
 
    function displayDate(timestamp) {
-      let date = new Date(timestamp);
+      // let date = new Date(timestamp);
+      let date = util.offsetDate(timestamp);
       return [util.zeroPad(date.getMonth() + 1), util.zeroPad(date.getDate())].join('&#8209;');
       // return [date.getFullYear(), util.zeroPad(date.getMonth() + 1), util.zeroPad(date.getDate())].join('-');
       // return [util.zeroPad(date.getDate()), util.zeroPad(date.getMonth() + 1), date.getFullYear()].join('&nbsp;');
@@ -883,7 +884,7 @@ export const displayGen = function() {
       function playerBlock(p) {
          var player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
          var ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
-         var flag = `<div class='flexcenter' style='margin-right: .3em'><img onerror="this.style.visibility='hidden'" width='16px' height='10px' src="${flag_root}${player_ioc.toUpperCase()}.png"></div>`.trim();
+         var flag = player_ioc ? `<div class='flexcenter' style='margin-right: .3em'><img onerror="this.style.visibility='hidden'" width='16px' height='10px' src="${flag_root}${player_ioc.toUpperCase()}.png"></div>`.trim() : '';
          var first_name = util.normalizeName(p.first_name, false);
          var last_name = p.last_name ? util.normalizeName(p.last_name, false) : '';
          var full_name = `${first_name} ${last_name}`.trim();
@@ -901,7 +902,7 @@ export const displayGen = function() {
          if (!p.puid && potentials) return potentialBlock(p, side);
          var player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
          var ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
-         var flag =  !flags ? ioc : `<img onerror="this.style.visibility='hidden'" width="15px" src="${flag_root}${player_ioc.toUpperCase()}.png">`;
+         var flag =  !flags ? ioc : player_ioc ? `<img onerror="this.style.visibility='hidden'" width="15px" src="${flag_root}${player_ioc.toUpperCase()}.png">` : '';
          var penalty = !tournament ? undefined : matchPenalties(tournament.players, p.puid, match.muid);
          var penalty_icon = !penalty ? '' : `<img height="10px" src="./icons/penalty.png">`;
          var assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
@@ -1577,8 +1578,63 @@ export const displayGen = function() {
       return { ids, html, ddlb }
    }
 
+   gen.serverDataStorage = (settings) => {
+      let ids = {
+         server_players: displayFx.uuid(),
+         server_clubs: displayFx.uuid(),
+      }
+
+//                  <div class='flexcol settings'><button class='btn btn-large edit-submit' id='${ids.server_clubs}'>Send Local Clubs</button></div>
+      let html = `
+               <div class='flexcenter'>
+                  <div class='flexcol settings'><button class='btn btn-large edit-submit' id='${ids.server_players}'>Send Local Players</button></div>
+               </div>
+      `;
+
+      return { ids, html };
+   }
+
+   gen.sheetDataStorage = (settings) => {
+      let request_keys = env.server.requests.sheetDataStorage || [];
+      
+      // filter out keys that are not currently implemented
+      let keys = settings.map(s=>s.key).filter(k=>request_keys.indexOf(k)>=0);
+
+      // add any keys that are not pressent in the database
+      request_keys.forEach(key => { 
+         if (keys.indexOf(key) < 0) {
+            settings.push({ key }); 
+            keys.push(key); 
+         }
+      });
+
+      let ids = {};
+      keys.forEach(k=>ids[k] = displayFx.uuid());
+
+      let settings_keys = keys.map(key => {
+         let label = lang.tr(`requests.${key}`) || key;
+         return `<div class='setting settingslabel'>${label}:</div>`
+      }).join('');
+      let settings_values = settings.map(s => {
+         if (keys.indexOf(s.key) < 0) return '';
+         return `<div class='flexjustifystart settingvalue'>
+                   <input id='${ids[s.key]}' value='${s.url || ''}'>
+                 </div>`
+      }).join('');
+
+      let html = `
+               <div class='flexcenter' style='margin-bottom: 1em;'>${lang.tr('phrases.sheetdataurls')}</div>
+               <div class='settingsrow'>
+                  <div class='flexcol settings'> ${settings_keys} </div>
+                  <div class='flexcol settings_values'> ${settings_values} </div>
+               </div>
+      `;
+
+      return { ids, html };
+   }
+
    gen.externalRequestSettings = (settings) => {
-      let request_keys = env.server.requests.externalRequest;
+      let request_keys = env.server.requests.externalRequest || [];
       
       // filter out keys that are not currently implemented
       let keys = settings.map(s=>s.key).filter(k=>request_keys.indexOf(k)>=0);
@@ -2395,6 +2451,8 @@ export const displayGen = function() {
       let ids = {
          name: displayFx.uuid(),
          notes: displayFx.uuid(),
+         social: displayFx.uuid(),
+         social_links: displayFx.uuid(),
          edit: displayFx.uuid(),
          finish: displayFx.uuid(),
          draws: displayFx.uuid(),
@@ -2507,6 +2565,7 @@ export const displayGen = function() {
                <div class='options_left'>
                   <div id='${ids.penalty_report}' class='${gen.info}' label='${lang.tr("ptz")}' style='display: none'> <div class='penalty action_icon'></div> </div>
                   <div id='${ids.edit_notes}' class='${gen.info}' label='${lang.tr("notes")}' style='display: none'> <div class='tnotes action_icon'></div> </div>
+                  <div id='${ids.social}' class='${gen.info}' label='${lang.tr("social")}' style='display: none; margin-left: .5em;'> <div class='social action_icon'></div> </div>
                </div>
                <div class='options_center'>
                </div>
@@ -2570,6 +2629,7 @@ export const displayGen = function() {
             <div id='${ids.notes_container}' class='tournament_notes ql-container ql-snow' style='display: none'>
                <div id='${ids.notes_display}' class='tournament_notes ql-editor'></div>
             </div>
+            <textarea id='${ids.social_links}' class='social_links' style='display: none;' wrap='soft' placeholder='Enter a list of all social media links'></textarea>
 
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
@@ -4144,6 +4204,7 @@ export const displayGen = function() {
          tournaments: displayFx.uuid(),
          documentation: displayFx.uuid(),
          importexport: displayFx.uuid(),
+         datastorage: displayFx.uuid(),
          keys: displayFx.uuid(),
       }
 
@@ -4155,13 +4216,14 @@ export const displayGen = function() {
       let clubs = action(components.clubs, ids.clubs, lang.tr('clb'), 'splash_clubs');
       let tournaments = action(components.tournaments, ids.tournaments, lang.tr('trn'), 'splash_tournament');
       let importexport = action(components.importexport, ids.importexport, lang.tr('importexport'), 'splash_importexport');
+      let datastorage = action(components.datastorage, ids.datastorage, lang.tr('datastorage'), 'splash_datastorage');
       let documentation = action(components.documentation, ids.documentation, lang.tr('documentation'), 'splash_documentation');
       let keys = action(components.keys, ids.keys, lang.tr('keys'), 'splash_keys');
 
       let html = `
          <div class='splash_screen'>
             <div class='splash_org flexcenter' id='${ids.org}'></div>
-            <div class='actions container'>${players}${clubs}${tournaments}${settings}${documentation}${importexport}${keys}</div>
+            <div class='actions container'>${players}${clubs}${tournaments}${settings}${documentation}${importexport}${datastorage}${keys}</div>
          </div>
       `;
 
@@ -4173,6 +4235,70 @@ export const displayGen = function() {
          if (!bool) return '';
          return `<div id='${id}' class='${gen.info} action' label="${label}"><div class='splash_icon ${icon}'></div></div>`;
       }
+   }
+
+   gen.publishPlayerList = (attributes={}) => {
+      if (searchBox.element) searchBox.element.blur();
+      let ids = {
+         year: displayFx.uuid(),
+         rating: displayFx.uuid(),
+         rank: displayFx.uuid(),
+         gender: displayFx.uuid(),
+         school: displayFx.uuid(),
+         club: displayFx.uuid(),
+         ioc: displayFx.uuid(),
+
+         publish: displayFx.uuid(),
+         unpublish: displayFx.uuid(),
+         cancel: displayFx.uuid(),
+      }
+      let html = `
+         <div class='flexcol' style='margin-left: 2em; margin-right: 2em;'>
+            <h2>${lang.tr('print.playerlist')}</h2>
+            <div class='flexcol' style='width: 100%;'>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('gdr')}:</label>
+                    <input type='checkbox' id="${ids.gender}" ${attributes.gender ? 'checked' : ''}>
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('yr')}:</label>
+                    <input type='checkbox' id="${ids.year}" ${attributes.year ? 'checked' : ''}>
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('rnk')}:</label>
+                    <input type='checkbox' id="${ids.rank}" ${attributes.ranking ? 'checked' : ''}>
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('rtg')}:</label>
+                    <input type='checkbox' id="${ids.rating}" ${attributes.rating ? 'checked' : ''}>
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('cnt')}:</label>
+                    <input type='checkbox' id="${ids.ioc}" ${attributes.ioc ? 'checked' : ''}>
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('scl')}:</label>
+                    <input type='checkbox' id="${ids.school}" ${attributes.school ? 'checked' : ''}>
+                </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('clb')}:</label>
+                    <input type='checkbox' id="${ids.club}" ${attributes.club ? 'checked' : ''}>
+                </div>
+            </div>
+            <div class='flexcenter' style='margin-bottom: 2em; margin-top: 1em;'>
+               <button id='${ids.publish}' class='btn btn-small edit-submit' style='margin-right: 2em'>${lang.tr('actions.publish')}</button>
+               <button id='${ids.unpublish}' class='btn btn-small edit-submit' style='margin-right: 2em'>${lang.tr('actions.unpublish')}</button>
+               <button id='${ids.cancel}' class='btn btn-small edit-cancel'>${lang.tr('actions.cancel')}</button>
+            </div>
+         </div>
+      `;
+      document.body.style.overflow  = 'hidden';
+      document.getElementById('processing').style.display = "flex";
+      setProcessingText(html);
+      displayGen.escapeModal();
+      let id_obj = displayFx.idObj(ids);
+      if (id_obj.cancel) id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
+      return id_obj;
    }
 
    gen.addTeamOptions = () => {
@@ -4314,6 +4440,25 @@ export const displayGen = function() {
                <div id='${ids.download}' class='action ${gen.info}' label='${lang.tr("phrases.exportdata")}'><div class='splash_icon splash_download'></div></div>
             </div>
             <div class='flexcenter' style='width: 100%;'>${lang.tr('phrases.draganddrop')}</div>
+         </div>
+         <input type="file" name="files[]" id="file" class="dropzone__file" data-multiple-caption="{count} files selected" multiple style='display: none' />
+      `;
+
+      html += '</div>';
+      gen.reset();
+      selectDisplay(html, 'importexport');
+
+      return displayFx.idObj(ids);
+   }
+
+   gen.dataStorage = () => {
+      let ids = { 
+      }
+      let html = `<div class='dropzone flexcenter container'>
+         <div class='flexcol'>
+            <div class='actions'>
+               Data Storage
+            </div>
          </div>
          <input type="file" name="files[]" id="file" class="dropzone__file" data-multiple-caption="{count} files selected" multiple style='display: none' />
       `;
@@ -4743,7 +4888,7 @@ export const displayGen = function() {
                <div>${clicked_player.last_name}</div>
                <div>${clicked_player.ioc || ''}</div>
                <div>${lang.tr('gdr')}: ${clicked_player.sex}</div>
-               <div>${clicked_player.birth}</div>
+               <div>${util.formatDate(clicked_player.birth)}</div>
             </div>
             <div style='display: grid'>
                <div style='font-weight: bold; text-decoration: underline;'>${lang.tr('new')}</div>
@@ -5133,7 +5278,7 @@ export const displayGen = function() {
          firstDay: env.calendar.first_day,
          onSelect: function() { 
             let this_date = this.getDate();
-            date = new Date(util.dateUTC(this_date));
+            date = new Date(util.timeUTC(this_date));
             this.setStartRange(new Date(date));
             if (dateFx && typeof dateFx == 'function') dateFx(date);
          },
@@ -5144,6 +5289,20 @@ export const displayGen = function() {
       datePicker.setStartRange(new Date(date));
 
       return datePicker;
+   }
+
+   gen.invalidURLorNotShared = (data) => {
+      displayGen.busy.done(undefined, true);
+      let message = `
+         <div class='flexcol'>
+            <div>${lang.tr('phrases.invalidsheeturl')}</div>
+            <div>${lang.tr('or')}</div>
+            <div>Sheet needs to be shared so that "Anyone with the link can <b>view</b>"</div>
+            <div>${lang.tr('or')}</div>
+            <div>Sheet needs to be shared privately with CourtHive Server</div>
+         </div>
+      `;
+      gen.popUpMessage(message);
    }
 
    gen.dateRange = ({ start, start_element, startFx, end, end_element, endFx }) => {
@@ -5160,7 +5319,7 @@ export const displayGen = function() {
          firstDay: env.calendar.first_day,
          onSelect: function() { 
             let this_date = this.getDate();
-            start = new Date(util.dateUTC(this_date));
+            start = new Date(util.timeUTC(this_date));
             updateStartDate();
             if (end < start) {
                endPicker.gotoYear(start.getFullYear());
@@ -5180,7 +5339,7 @@ export const displayGen = function() {
          setDefaultDate: true,
          onSelect: function() {
             let this_date = this.getDate();
-            end = new Date(util.dateUTC(this_date));
+            end = new Date(util.timeUTC(this_date));
             updateEndDate();
             if (end < start) {
                startPicker.gotoYear(end.getFullYear());
