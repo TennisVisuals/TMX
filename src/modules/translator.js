@@ -65,6 +65,7 @@ export const lang = function() {
       delete:  'Delete',
       continue: 'Do you wish to continue?',
       notes:   'Notes',
+      social:  'Social Media',
       merge:   'Merge',
       week:    'Week',
       warn:    'WARNING',
@@ -180,10 +181,11 @@ export const lang = function() {
       version: 'Version',
       messages: 'Messages',
       support: 'Support',
+      datastorage: 'Data Storage',
       releasenotes: 'Release Notes',
-      newversion: 'New Version Available',
-      importexport: 'Import / Export',
       documentation: 'Documentation',
+      importexport: 'Import / Export',
+      newversion: 'New Version Available',
 
       i18n: {
           previousMonth : 'Previous Month',
@@ -204,6 +206,7 @@ export const lang = function() {
          points: 'Points',
          draws: 'Draws',
          data: 'Data',
+         sheetdata: 'Sheet Data',
          publishing: 'Publishing',
          printing: 'Printing',
          savepdfs: 'Save PDFs',
@@ -397,6 +400,7 @@ export const lang = function() {
       },
 
       phrases: {
+         sheetdataurls: 'Enter Google Sheet URLs for Synchronizing Data',
          playerimport: 'Player Import',
          entersheeturl: 'Enter Sheet URL',
          entergooglemapsurl: 'Enter Google Maps Link',
@@ -542,12 +546,20 @@ export const lang = function() {
          delete_team: 'Delete Team',
          add_player: 'Add Player',
          add_team: 'Add Team',
+         publish: 'Publish',
+         unpublish: 'Unpublish',
          manage_players: 'Manage Players',
          manage_teams: 'Manage Teams',
          add_location: 'Add Location',
          delete_location: 'Delete Location',
          delete_tournament: 'Delete Tournament',
          edit_tournament: 'Edit Tournament',
+      },
+
+      requests: {
+         syncClubs: 'Synchronize Clubs',
+         syncTournaments: 'Synchronize Tournaments',
+         syncPlayers: 'Synchronize Players',
       },
 
       signin: {
