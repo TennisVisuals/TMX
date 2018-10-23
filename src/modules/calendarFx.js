@@ -25,12 +25,8 @@ export const calendarFx = function() {
    fx.displayCalendar = displayCalendar;
    function displayCalendar() {
       let category = env.calendar.category;
-      let time_now = util.offsetDate();
-      let month_start = new Date(time_now.getFullYear(), time_now.getMonth(), 1).getTime();
 
-      // let start = env.calendar.start || util.dateUTC(new Date());
       let start = util.offsetDate(env.calendar.start);
-      // let end = env.calendar.end || new Date(start).setMonth(new Date(start).getMonth()+1);
       let end = env.calendar.end ? util.offsetDate(env.calendar.end) : new Date(new Date(start).setMonth(new Date(start).getMonth()+1));
 
       let calendar_container = displayGen.calendarContainer();
@@ -38,18 +34,12 @@ export const calendarFx = function() {
 
       function updateStartDate() {
          fx.setCalendar({start});
-         // startPicker.setStartRange(new Date(start));
-         // endPicker.setStartRange(new Date(start));
-         // endPicker.setMinDate(new Date(start));
          startPicker.setStartRange(start);
          endPicker.setStartRange(start);
          endPicker.setMinDate(start);
       };
       function updateEndDate() {
          fx.setCalendar({end});
-         // startPicker.setEndRange(new Date(end));
-         // startPicker.setMaxDate(new Date(end));
-         // endPicker.setEndRange(new Date(end));
          startPicker.setEndRange(end);
          startPicker.setMaxDate(end);
          endPicker.setEndRange(end);
@@ -58,12 +48,11 @@ export const calendarFx = function() {
       var startPicker = new Pikaday({
          field: calendar_container.start.element,
          i18n: lang.obj('i18n'),
-         // defaultDate: new Date(start),
          defaultDate: start,
          setDefaultDate: true,
          firstDay: env.calendar.first_day,
          onSelect: function() {
-            start = this.getDate().getTime();
+            start = this.getDate();
             updateStartDate();
             generateCalendar({ start, end, category });
          },
@@ -73,14 +62,12 @@ export const calendarFx = function() {
       var endPicker = new Pikaday({
          field: calendar_container.end.element,
          i18n: lang.obj('i18n'),
-         // minDate: new Date(start),
-         // defaultDate: new Date(end),
          minDate: start,
          defaultDate: end,
          setDefaultDate: true,
          firstDay: env.calendar.first_day,
          onSelect: function() {
-            end = this.getDate().getTime();
+            end = this.getDate();
             updateEndDate();
             generateCalendar({ start, end, category });
          },
@@ -110,8 +97,8 @@ export const calendarFx = function() {
 
          tournament.log = [];
          if (!tournament.tuid) tournament.tuid = UUID.new();
-         tournament.end = new Date(tournament.end).getTime();
-         tournament.start = new Date(tournament.start).getTime();
+         tournament.end = util.offsetTime(tournament.end);
+         tournament.start = util.offsetTime(tournament.start);
 
          function refresh() { generateCalendar({start, end, category}); }
          db.addTournament(tournament).then(refresh, console.log);
@@ -355,7 +342,7 @@ export const calendarFx = function() {
          container.end.element.style.background = util.validDate(container.end.element.value) ? 'white' : 'yellow';
       }
 
-      // let start = trny.start || util.dateUTC(new Date());
+      // let start = trny.start || util.timeUTC(new Date());
       // let end = trny.end || null;
       let start = util.offsetDate(trny.start);
       let end = util.offsetDate(trny.end);
@@ -369,7 +356,7 @@ export const calendarFx = function() {
          onSelect: function() { 
 
             // let this_date = this.getDate();
-            // start = new Date(util.dateUTC(this_date));
+            // start = new Date(util.timeUTC(this_date));
             start = this.getDate();
 
             updateStartDate();
@@ -393,7 +380,7 @@ export const calendarFx = function() {
          onSelect: function() {
 
             // let this_date = this.getDate();
-            // end = new Date(util.dateUTC(this_date));
+            // end = new Date(util.timeUTC(this_date));
             end = this.getDate();
 
             updateEndDate();
