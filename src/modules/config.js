@@ -1466,8 +1466,10 @@ export const config = function() {
       let message =`
          <h2 style='margin: 1em;'>Release Notes</h2>
          <div class='releasenotes'>
-            <h3 class='flexjustifystart'>Version: 1.3.12.23.16</h3>
+            <h3 class='flexjustifystart'>Version: 1.3.17.28.25</h3>
+            <div class='flexjustifystart'>Ability to print player list and publish list online</div>
             <div class='flexjustifystart'>Ability to include tournament-specific social media links</div>
+            <div class='flexjustifystart'>Enhanced support for mobile devices</div>
             <div class='flexjustifystart'>Fixes for global timezone support</div>
 
             <h3 class='flexjustifystart'>Version: 1.3.0.0.0</h3>
