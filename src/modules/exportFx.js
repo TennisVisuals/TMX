@@ -29,6 +29,11 @@ export const exportFx = function() {
       util.keyWalk(values, o);
    }
 
+   function displayYear(timestamp) {
+      let date = new Date(timestamp);
+      return date.getFullYear();
+   }
+
    function download(filename, dataStr) {
      let a = document.createElement('a');
      a.style.display = 'none';
@@ -1571,6 +1576,15 @@ export const exportFx = function() {
       }
    }
 
+   exp.playerList = ({ tournament, players, attributes, doc_name='courthive', save }) => {
+      return new Promise((resolve, reject) => {
+         getLogo().then(showPDF);
+         function showPDF(logo) {
+            tournamentPlayerList({ tournament, players, attributes, logo, doc_name, save });
+         }
+      });
+   }
+
    exp.doublesSignInPDF = ({ tournament, teams, category, gender, event_name, doc_name='courthive', save }) => {
       return new Promise((resolve, reject) => {
          getLogo().then(showPDF);
@@ -1612,8 +1626,186 @@ export const exportFx = function() {
       });
    }
 
-   function doublesSignInSheet({ tournament={}, teams=[], players=[], category, gender, event_name='', logo, doc_name, save }) {
+   function tournamentPlayerList({ tournament={}, players=[], attributes={}, logo, doc_name, save }) {
+      let date = util.formatDate(tournament.start);
+      let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
+      let ratings_type = attributes.ratings_type || 'utr';
+      let sponsor = tournament.sponsor ? ` - ${tournament.sponsor}` : '';
+      let tournament_name = `${tournament.name}${sponsor}`;
+
+      let empty = (x) => Array.from({length: x}, () => undefined);
+      let empty_rows = o.rows_per_page - (players.length % o.rows_per_page);
+      let rows = [].concat(...players, ...empty(empty_rows));
+
+      let datascan = {};
+      datascan.rank = players.reduce((p, c) => c.modified_ranking || c.category_ranking || p, undefined) ? true : false;
+      datascan.rating = players.reduce((p, c) => c.ratings || p, undefined) ? true : false;
+      datascan.club = players.reduce((p, c) => c.club_code || p, undefined) ? true : false;
+      datascan.school = players.reduce((p, c) => c.school || p, undefined) ? true : false;
+      datascan.ioc = players.reduce((p, c) => c.ioc || p, undefined) ? true : false;
+      datascan.year = players.reduce((p, c) => c.birth || p, undefined) ? true : false;
+      datascan.gender = players.reduce((p, c) => c.sex || p, undefined) ? true : false;
+
+      let prototype = [ 
+         { header: { text: '#', style: 'centeredTableHeader' }, row: { value: 'counter', style: 'centeredColumn' }, },
+         { header: { text: lang.tr('lnm'), style: 'tableHeader' }, row: { value: 'last_name' }, },
+         { header: { text: lang.tr('fnm'), style: 'tableHeader' }, row: { value: 'first_name' }, },
+      ];
+
+      let d = datascan;
+      let a = attributes;
+
+      if (a.rank && d.rank) prototype.push({ header: { text: lang.tr('prnk'), style: 'centeredTableHeader' }, row: { value: 'rank', style: 'centeredColumn' }});
+      if (a.rating && d.rating) prototype.push({ header: { text: lang.tr('rtg'), style: 'centeredTableHeader' }, row: { value: 'rating', style: 'centeredColumn' }});
+      if (a.ioc && d.ioc) prototype.push({ header: { text: lang.tr('cnt'), style: 'centeredTableHeader' }, row: { value: 'ioc', style: 'centeredColumn' }});
+      if (a.club && d.club) prototype.push({ header: { text: lang.tr('clb'), style: 'centeredTableHeader' }, row: { value: 'club', style: 'centeredColumn' }});
+      if (a.school && d.school) prototype.push({ header: { text: lang.tr('scl'), style: 'centeredTableHeader' }, row: { value: 'school', style: 'centeredColumn' }});
+      if (a.year && d.year) prototype.push({ header: { text: lang.tr('yr'), style: 'centeredTableHeader' }, row: { value: 'year', style: 'centeredColumn' }});
+      if (a.gender && d.gender) prototype.push({ header: { text: lang.tr('gdr'), style: 'centeredTableHeader' }, row: { value: 'gender', style: 'centeredColumn' }});
+
+      prototype.push({ header: { text: ' ' }, row: {} });
+
+      let column_count = prototype.length;
+
+      let page_header = [
+         { 
+            border: [ false, false, false, false ],
+            colSpan: column_count,
+            table: {
+               widths: ['auto', 'auto', '*', '*', '*', 'auto'],
+               headerRows: 2,
+               body: [
+                  [
+                     { 
+                        table: {
+                           widths: ['*'],
+                           body: [
+                              [{ text: tournament_name || ' ', style: 'docTitle' }],
+                              [{ text: " ", style: 'subtitle' }],
+                           ]
+                        },
+                        colSpan: 5, 
+                        layout: 'noBorders',
+                     }, 
+                     {}, {}, {}, {}, 
+                     {
+                        width: 100,
+                        image: logo || '',
+                        alignment: 'center',
+                     },
+                  ],
+                  [ {text: doc_name || lang.tr('signin.doc_name'), colSpan: 6, style: 'docName', alignment: 'center'}, ],
+                  [ {text: lang.tr('signin.doc_subname'), colSpan: 6, style: 'docName', alignment: 'center'}, ],
+               ]
+            },
+            layout: {
+               defaultBorder: false,
+               paddingLeft: function(i, node) { return 0; },
+               paddingRight: function(i, node) { return 0; },
+               paddingTop: function(i, node) { return 0; },
+               paddingBottom: function(i, node) { return 0; },
+            }
+         }
+      ];
+
+      while (page_header.length < column_count) page_header.push({});
+
+      let blank = { border: [false, false, false, false], text: ' ' };
+      let dummy = new Array(column_count).fill(blank);
+      let header_row = prototype.map(p=>p.header);
+
+      rows = rows.map((row, i) => {
+         if (row) {
+
+            let rating_value = !ratings_type || !row.ratings ? '' :
+               (row.ratings[ratings_type] && row.ratings[ratings_type].singles && row.ratings[ratings_type].singles.value) || '';
+            let rating = rating_value && !isNaN(rating_value) && parseFloat(rating_value) > 0 ? parseFloat(rating_value).toFixed(2) : '';
+
+            let valz = {
+               rating,
+               counter: i + 1,
+               gender: row.sex,
+               school: row.school,
+               club: row.club_code,
+               rank: row.modified_ranking || row.category_ranking,
+               ioc: row.ioc && row.ioc.toUpperCase(),
+               year: row.birth && displayYear(row.birth),
+               last_name: row.last_name && row.last_name.toUpperCase().trim(),
+               first_name: row.first_name && util.normalizeName(row.first_name, false),
+            }
+            return prototype.map(p => ({ text: valz[p.row.value] || ' ', style: p.row.style }));
+         } else {
+            return dummy;
+         }
+      }).filter(f=>f);
+
+      let player_rows = [].concat([page_header], [dummy], [header_row], rows);
+      let table_rows = {
+         fontSize: 10,
+         table: {
+            headerRows: 3,
+            widths: new Array(column_count - 1).fill('auto').concat('*'),
+            body: player_rows,
+         },
+         layout: 'noBorders',
+      }
+
+      var docDefinition = {
+         pageSize: 'A4',
+         pageOrientation: 'portrait',
+
+         content: [
+            table_rows,
+         ],
+
+         styles: {
+            docTitle: {
+               fontSize: 16,
+               bold: true,
+            },
+            subtitle: {
+               fontSize: 12,
+               italics: true,
+            },
+            docName: {
+               fontSize: 14,
+               bold: true,
+            },
+            tableHeader: {
+               fontSize: 11,
+               bold: true,
+            },
+            centeredTableHeader: {
+               alignment: 'center',
+               fontSize: 11,
+               bold: true,
+            },
+            signatureBox: {
+               border: true,
+            },
+            centeredColumn: {
+               alignment: 'center',
+               border: true,
+            },
+            italicCenteredColumn: {
+               alignment: 'center',
+               border: true,
+               bold: true,
+               italics: true,
+            },
+         }
+      };
+
+      if (save) {
+         let filename = `${doc_name}.pdf`;
+         exp.savePDF(docDefinition, filename);
+      } else {
+         exp.openPDF(docDefinition);
+      }
+   }
+
+   function doublesSignInSheet({ tournament={}, teams=[], players=[], category, gender, event_name='', logo, doc_name, save }) {
       let date = util.formatDate(tournament.start);
       let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
@@ -1705,6 +1897,7 @@ export const exportFx = function() {
          { border: [false, false, false, false], text: ' ' },
          { border: [false, false, false, false], text: ' ' },
       ];
+
       let header_row = [ 
          { text: '#', style: 'centeredTableHeader' }, 
          { text: lang.tr('lnm'), style: 'tableHeader' }, 
@@ -1807,6 +2000,7 @@ export const exportFx = function() {
          exp.openPDF(docDefinition);
       }
    }
+
    function signInSheet({ tournament={}, players, category, gender, event_name='', logo, doc_name='courthive', extra_pages=true, save }) {
       let date = util.formatDate(tournament.start);
       let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
@@ -1898,6 +2092,7 @@ export const exportFx = function() {
          { border: [false, false, false, false], text: ' ' },
          { border: [false, false, false, false], text: ' ' },
       ];
+
       let header_row = [ 
          { text: '#', style: 'centeredTableHeader' }, 
          { text: lang.tr('lnm'), style: 'tableHeader' }, 
