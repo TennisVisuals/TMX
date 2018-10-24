@@ -313,9 +313,12 @@ export const importFx = function() {
       });
    }
 
-   function importTournaments(rows) {
-      let callback = () => searchBox.searchSelect('tournaments');
-      let id = displayGen.busy.message(`<p>${lang.tr('phrases.trnyz')}</p>`, callback);
+   function importTournaments(rows, callback) {
+      let callbacks = () => {
+         if (callback && typeof callback == 'function') callback();
+         searchBox.searchSelect('tournaments');
+      }
+      let id = displayGen.busy.message(`<p>${lang.tr('phrases.trnyz')}</p>`, callbacks);
       let tournaments = [];
       if (!Array.isArray(rows)) rows = [rows];
 
@@ -343,9 +346,7 @@ export const importFx = function() {
       });
       util.performTask(db.addTournament, tournaments, false).then(done, done);
 
-      function done(foo) { 
-         setTimeout(function() { displayGen.busy.done(id); }, 2000);
-      }
+      function done(foo) { setTimeout(function() { displayGen.busy.done(id); }, 2000); }
    }
 
    load.addNewTournaments = (trnys) => {
@@ -665,7 +666,15 @@ export const importFx = function() {
       }
    }
 
+   load.loadTournamentDragAndDrop = (dropzone, initFx, callback) => {
+      load.loadDragAndDrop({ dropzone, initFx, callback, processFx: loadTournamentRecord });
+   }
+
    load.loadPlayersDragAndDrop = (dropzone, initFx, callback) => {
+      load.loadDragAndDrop({ dropzone, initFx, callback, processFx: loadPlayerFile });
+   }
+
+   load.loadDragAndDrop = ({ dropzone, initFx, callback, processFx }) => {
       let isAdvancedUpload = function() {
          let div = document.createElement('div');
          return (('draggable' in div) || ('ondragstart' in div && 'ondrop' in div)) && 'FormData' in window && 'FileReader' in window;
@@ -710,8 +719,44 @@ export const importFx = function() {
          if (initFx && typeof initFx == 'function') initFx();
 
          let file = files[0];
-         loadPlayerFile(file, callback);
+         if (processFx && typeof processFx == 'function') {
+            processFx(file, callback);
+         } else {
+            console.log('no processing function');
+         }
       };
+   }
+
+   function loadTournamentRecord(file, callback) {
+      load.loaded.meta = load.parseFileName(file.name);
+
+      let reader = new FileReader();
+      reader.onload = function(evt) {
+         if (evt.target.error) {
+            displayMessage(lang.tr('phrases.fileerror'));
+            return;
+         }
+
+         let file_content = evt.target.result;
+         if (!file_content.length) return;
+
+         if (load.loaded.meta.filetype.indexOf('json') >= 0) {
+            if (file_content.indexOf('"~') >= 0) {
+               loadJSON({ json: CircularJSON.parse(file_content), callback });
+            } else {
+               loadJSON({ json: JSON.parse(file_content), callback });
+            }
+         }
+      };
+
+      if (!load.loaded.meta.filetype) {
+         displayMessage(lang.tr('phrases.invalid'));
+         return;
+      } else {
+         if (['json'].indexOf(load.loaded.meta.filetype) >= 0) {
+            reader.readAsText(file);
+         }
+      }
    }
 
    function loadPlayerFile(file, callback) {
@@ -752,6 +797,17 @@ export const importFx = function() {
             reader.readAsBinaryString(file);
          }
       }
+   }
+
+   load.importTournamentRecord = () => {
+      return new Promise((resolve, reject) => {
+         let id_obj = displayGen.dropZone();
+         let callback = () => {
+            searchBox.searchSelect('tournaments');
+            resolve();
+         }
+         importFx.loadTournamentDragAndDrop(id_obj.dropzone.element, ()=>{}, callback);
+      });
    }
 
    load.initDragAndDrop = (initFx, callback) => {
@@ -928,7 +984,7 @@ export const importFx = function() {
    function loadSettings(arr) {
       loadTask(db.addSetting, arr, 'Settings', reload);
    }
-   function loadTournaments(arr) { loadTask(db.addTournament, arr, 'Tournaments'); };
+   function loadTournaments(arr, callback) { loadTask(db.addTournament, arr, 'Tournaments', callback); };
    function loadPointEvents(arr) { loadTask(db.addPointEvent, arr.filter(e => e.points && e.puid), 'Points'); };
 
    function loadPlayerList(arr) { 
