@@ -1,3 +1,4 @@
+import { env } from './env';
 import { util } from './util';
 import { UUID } from './UUID';
 import { dd } from './dropdown';
@@ -81,7 +82,11 @@ export const scoreBoard = function() {
       var set_scores;
       var action_drawer;
 
-      if (floating) sobj = fx.floatingScoreBoard({ muid, teams, flags });
+      if (floating) {
+         sobj = fx.floatingScoreBoard({ muid, teams, flags });
+         sobj.docs.element.style.display = 'inline';
+         sobj.details.element.style.display = 'none';
+      }
       if (round_name) sobj.round_name.element.innerHTML = round_name;
       sobj.details.element.innerHTML = matchStatus(match);
       sobj.scoring.element.style.display = lock ? 'none' : 'inline';
@@ -245,8 +250,14 @@ export const scoreBoard = function() {
          sobj.clear.element.addEventListener('click', clearScores , false);
          sobj.scoring.element.addEventListener('click', toggleScoring , false);
          sobj.delegate.element.addEventListener('click', toggleDelegation , false);
+         sobj.docs.element.addEventListener('click', displayDocs , false);
          sobj.delegation_key.element.addEventListener('click', delegationKey , false);
 
+         function displayDocs(evt) {
+            let click_context = util.getParent(evt.target, 'doclink');
+            let url = click_context.getAttribute('url');
+            if (url) window.open(`/docs/${env.ioc}/${url}.html`, '_blank');
+         }
          function delegationKey() {
             let directive = {
                teams,
@@ -1063,14 +1074,6 @@ export const scoreBoard = function() {
 
       let gfs = stg.games_for_set;
       let tbat_options = tiebreakAtOptions(gfs);
-      /*
-      let tbat_options = [
-         { key: lang.tr('none'), value: undefined },
-         { key: `${gfs-1}-${gfs-1}`, value: gfs - 1 },
-         { key: `${gfs}-${gfs}`, value: gfs },
-      ];
-      */
-
       dd.attachDropDown({ 
          id: sobj.tiebreaksat.id, 
          options: tbat_options,
@@ -1090,10 +1093,8 @@ export const scoreBoard = function() {
       dd.attachDropDown({ 
          id: sobj.finalset.id, 
          options: [
-            {key: 'Normal', value: 'N'},
-            {key: 'Supertiebreak', value: 'S'},
-            // TODO: implement "Long" final set
-            // {key: 'Long', value: 'L'},
+            {key: lang.tr('scoring.normal'), value: 'N'},
+            {key: lang.tr('scoring.supertiebreak'), value: 'S'},
          ],
       });
       sobj.finalset.ddlb = new dd.DropDown({ element: sobj.finalset.element, id: sobj.finalset.id, onChange: finalSet });
@@ -1367,6 +1368,7 @@ function mobileDelegation() {
    let ids = {
       edit_delegation: UUID.idGen(),
       delegation_key: UUID.idGen(),
+      scoreboard_docs: UUID.idGen(),
    }
    let html = `
          <div id='${ids.edit_delegation}' class="scoreboard-config scoreboard-action">
@@ -1388,6 +1390,7 @@ function generateScoreBoard({ muid, teams, flags, round_name, match }) {
       favorite: UUID.idGen(),
       scoring: UUID.idGen(),
       delegate: UUID.idGen(),
+      docs: UUID.idGen(),
       clear: UUID.idGen(),
       cancel: UUID.idGen(),
       accept: UUID.idGen(),
@@ -1472,9 +1475,8 @@ function generateScoreBoard({ muid, teams, flags, round_name, match }) {
 
             </div>
             <div class="info">
-               <span class="info-text">
-                  <span id="${ids.details}" class="court">${matchStatus(match)}</span>
-               </span>
+               <div id='${ids.docs}' class='doclink' url='tmx_tournament_scoring' style='display: none;'><div class='tiny_docs_white'></div></div>
+               <span class="info-text"> <span id="${ids.details}" class="court">${matchStatus(match)}</span> </span>
                <div id='${ids.delegate}' class='options' style='display: none'>&#x25B7;</div>
             </div>
          </div>
