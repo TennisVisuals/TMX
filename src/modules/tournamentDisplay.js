@@ -677,13 +677,25 @@ export const tournamentDisplay = function() {
 
       container.notes.element.querySelector('.ql-editor').innerHTML = tournament.notes || '';
 
-      container.social.element.addEventListener('click', () => {
-         let visible = container.social_links.element.style.display == 'inline';
+      container.stats.element.addEventListener('click', () => {
+         let visible = container.stat_charts.element.style.display == 'inline';
          if (!visible) {
             container.notes_entry.element.style.display = 'none';
             container.notes_container.element.style.display = 'none';
+            container.social_media.element.style.display = 'none';
          }
-         container.social_links.element.style.display = (visible ? 'none' : 'inline');
+         container.stat_charts.element.style.display = (visible ? 'none' : 'inline');
+         container.tournament_attrs.element.style.display = (visible ? 'flex' : 'none');
+      });
+
+      container.social.element.addEventListener('click', () => {
+         let visible = container.social_media.element.style.display == 'inline';
+         if (!visible) {
+            container.notes_entry.element.style.display = 'none';
+            container.notes_container.element.style.display = 'none';
+            container.stat_charts.element.style.display = 'none';
+         }
+         container.social_media.element.style.display = (visible ? 'none' : 'inline');
          container.tournament_attrs.element.style.display = (visible ? 'flex' : 'none');
          if (visible) {
             parseSocialLinks();
@@ -697,11 +709,13 @@ export const tournamentDisplay = function() {
          Object.keys(tournament.media.social).map(k=>tournament.media.social[k]).join('\n')
 
       container.social_links.element.value = social_links;
-      // container.social_links.element.addEventListener('input', parseSocialLinks);
 
       container.edit_notes.element.addEventListener('click', () => {
          let visible = container.notes_entry.element.style.display == 'inline';
-         if (!visible) { container.social_links.element.style.display = 'none'; }
+         if (!visible) {
+            container.social_media.element.style.display = 'none';
+            container.stat_charts.element.style.display = 'none';
+         }
          container.notes_entry.element.style.display = (visible ? 'none' : 'inline');
          container.notes_container.element.style.display = (visible ? 'inline' : 'none');
          container.tournament_attrs.element.style.display = (visible ? 'flex' : 'none');
@@ -1960,11 +1974,22 @@ export const tournamentDisplay = function() {
          container.edit.element.addEventListener('click', () => { if (!state.edit) activateEdit(); });
          container.finish.element.addEventListener('click', () => { deactivateEdit(); });
          container.cloudfetch.element.addEventListener('contextmenu', () => {
-            if (!env.isMobile) coms.requestTournamentEvents(tournament.tuid);
+            coms.requestTournamentEvents(tournament.tuid);
          });
          container.cloudfetch.element.addEventListener('click', (evt) => {
+            let cloudfetch = displayGen.cloudFetchMenu();
+            cloudfetch.tournament.element.addEventListener('click', () => {
+               coms.requestTournament(tournament.tuid);
+            });
+            cloudfetch.events.element.addEventListener('click', () => {
+               coms.requestTournamentEvents(tournament.tuid);
+            });
+
+            /*
             if (evt.ctrlKey || evt.shiftKey) return coms.requestTournamentEvents(tournament.tuid);
             coms.requestTournament(tournament.tuid);
+            */
+
          });
          container.authorize.element.addEventListener('contextmenu', revokeAuthorization);
          container.authorize.element.addEventListener('click', (evt) => {
@@ -2097,6 +2122,7 @@ export const tournamentDisplay = function() {
          container.pub_link.element.style.display = bool && publications ? 'inline' : 'none';
          container.edit_notes.element.style.display = bool && same_org ? 'inline' : 'none';
          container.social.element.style.display = bool && same_org ? 'inline' : 'none';
+         container.stats.element.style.display = tournament.stats && bool && same_org ? 'inline' : 'none';
          container.push2cloud.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
          container.pubTrnyInfo.element.style.display = bool && same_org && ouid ? 'inline' : 'none';
          container.localdownload.element.style.display = bool && same_org ? 'inline' : 'none';
@@ -2251,51 +2277,50 @@ export const tournamentDisplay = function() {
 
       function playersTabPrinting() {
          if (!tournament.players || !tournament.players.length) return;
-         let t_players = tournament.players
-            .filter(player=>filters.indexOf(player.sex) < 0)
-            .filter(player=>(player.withdrawn == 'N' || !player.withdrawn) && !player.signed_in);
-
-         if (!t_players.length) {
-            // if there are no players who have not signed in, print a blank doubles sign-in sheet
-            exportFx.doublesSignInPDF({
-               tournament,
-               save: env.printing.save_pdfs,
-               doc_name: `${lang.tr('dbl')} ${lang.tr('print.signin')}`
-            });
-            return;
-         }
 
          let ptp_obj = displayGen.playersTabPrinting();
+
          displayGen.escapeModal();
          ptp_obj.singles.element.addEventListener('click', () => {
+            displayGen.closeModal();
+            let t_players = tournament.players
+               .filter(player=>filters.indexOf(player.sex) < 0)
+               .filter(player=>(player.withdrawn == 'N' || !player.withdrawn) && !player.signed_in);
+
+            if (!t_players) return;      
+
             t_players = tfx.orderPlayersByRank(t_players, tournament.category);
-            // default configuration is ordered Sign-In List
             exportFx.orderedPlayersPDF({
                tournament,
                players: t_players,
                save: env.printing.save_pdfs,
                doc_name: `${lang.tr('sgl')} ${lang.tr('print.signin')}`
             });
-            displayGen.closeModal();
          });
          ptp_obj.doubles.element.addEventListener('click', () => {
+            displayGen.closeModal();
             exportFx.doublesSignInPDF({
                tournament,
                save: env.printing.save_pdfs,
                doc_name: `${lang.tr('dbl')} ${lang.tr('print.signin')}`
             });
-            displayGen.closeModal();
          });
          ptp_obj.playerlist.element.addEventListener('click', () => {
-            /*
-            exportFx.doublesSignInPDF({
-               tournament,
-               save: env.printing.save_pdfs,
-               doc_name: `${lang.tr('dbl')} ${lang.tr('print.signin')}`
-            });
-            */
             displayGen.closeModal();
-            displayGen.popUpMessage('Not yet implemented');
+
+            let t_players = tournament.players
+               .filter(player=>filters.indexOf(player.sex) < 0)
+               .filter(player=>(player.withdrawn == 'N' || !player.withdrawn));
+
+            if (!t_players) return;      
+
+            exportFx.playerList({
+               tournament,
+               players: t_players,
+               save: env.printing.save_pdfs,
+               attributes: { club: true, rank: true, rating: true, ioc: true, school: true, year: true, gender: true  },
+               doc_name: `${lang.tr('print.playerlist')}`
+            });
          });
       }
 
@@ -2970,7 +2995,7 @@ export const tournamentDisplay = function() {
 
          function loadPlayers() {
             displayGen.closeModal();
-            let id_obj = displayGen.importPlayers();
+            let id_obj = displayGen.dropZone();
             let callback = (players) => {
                displayGen.closeModal();
                if (players && !players.length) return displayGen.popUpMessage('Players not found: Check Headers/Tab Names.');
@@ -3601,6 +3626,7 @@ export const tournamentDisplay = function() {
          }
 
          let setLink = (value) => {
+            tmxTour.clear();
             let previous_link = e.links[linkType(type)];
             let linked_event = tfx.findEventByID(tournament, value);
 
@@ -3799,6 +3825,7 @@ export const tournamentDisplay = function() {
          // var sequential_options = [1, 2, 3, 4].map(v=>({ key: v, value: v}));
 
          function setStructure(value) {
+            tmxTour.clear();
             let linked_consolation = tfx.findEventByID(tournament, e.links['C']);
             if (value == 'feed' && e.draw_type == 'E' && linked_consolation && linked_consolation.structure == 'feed') {
                removeStructure(linked_consolation);
@@ -4832,6 +4859,7 @@ export const tournamentDisplay = function() {
          }
 
          let setFormat = (value) => { 
+            tmxTour.clear();
             // cleanup
             delete e.teams;
             modifyApproved.removeAll(e);
@@ -4906,6 +4934,7 @@ export const tournamentDisplay = function() {
          details.inout.ddlb.setValue(e.inout || tournament.inout || '', 'white');
 
          let setDrawType = (value) => {
+            tmxTour.clear();
             warnIfCreated(e).then(doIt, () => { return; });
             function doIt() {
                if (e.draw_type != value) { e.regenerate = 'setDrawType'; }
@@ -7865,7 +7894,6 @@ export const tournamentDisplay = function() {
             let offset_top = dual.offsetTop;
             if (offset_top) window.scrollTo(0, offset_top - 90);
          } else {
-            console.log('scroll into view');
             dual.scrollIntoView();
          }
 
