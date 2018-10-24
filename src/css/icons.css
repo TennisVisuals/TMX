@@ -59,6 +59,14 @@
 .cleardraw { background-image: url("img/recycle.png"); }
 .compass { background-image: url("img/compassrose.png"); }
 
+.tiny_docs_white {
+   width: 1em;
+   height: 0;
+   padding-bottom: 1em;
+   background-size: 100%;
+   background-image: url("img/docs_white.png");
+}
+
 .tiny_docs_icon {
    width: 1em;
    height: 0;
@@ -154,6 +162,7 @@
 .penalty { background-image: url("img/penalty.png"); }
 .tnotes { background-image: url("img/notes.png"); }
 .social { background-image: url("img/social.png"); }
+.stats { background-image: url("img/statsblack.png"); }
 .medical_icon {
    background-image: url("img/redcross.png");
    width: 1em;

@@ -1397,8 +1397,7 @@ button.ratings-submit:hover { background: #68FF33; }
 }
 
 .social_links {
-   max-width: 90%;
-   width: 90%;
+   width: 100%;
    min-height: 10em;
    resize: none;
 }
@@ -1413,4 +1412,9 @@ button.ratings-submit:hover { background: #68FF33; }
    justify-content: flex-start;
    -webkit-align-content: flex-start;
    align-content: flex-start;
+}
+
+.stat_charts {
+   min-height: 10em;
+   width: 95%;
 }
