@@ -8,7 +8,9 @@ import { fetchFx } from './fetchFx';
 import { staging } from './staging';
 import { lang } from './translator';
 import { tmxTour } from './tmxTour';
+import { importFx } from './importFx';
 import { rankCalc } from './rankCalc';
+import { searchBox } from './searchBox';
 import { displayGen } from './displayGen';
 import { tournamentDisplay } from './tournamentDisplay';
 
@@ -33,13 +35,15 @@ export const calendarFx = function() {
       tmxTour.calendarContainer(calendar_container);
 
       function updateStartDate() {
-         fx.setCalendar({start});
+         // use timeUTC so that the date doesn't drift by repeated use of offsetDate
+         fx.setCalendar({start: new Date(util.timeUTC(start)) });
          startPicker.setStartRange(start);
          endPicker.setStartRange(start);
          endPicker.setMinDate(start);
       };
       function updateEndDate() {
-         fx.setCalendar({end});
+         // use timeUTC so that the date doesn't drift by repeated use of offsetDate
+         fx.setCalendar({end: new Date(util.timeUTC(end)) });
          startPicker.setEndRange(end);
          startPicker.setMaxDate(end);
          endPicker.setEndRange(end);
@@ -87,8 +91,20 @@ export const calendarFx = function() {
       category = staging.legacyCategory(category, true);
 
       calendar_container.add.element.addEventListener('click', (evt) => {
-         if (evt.ctrlKey || evt.shiftKey) return fetchFx.fetchTournament();
-         createNewTournament({ title: lang.tr('tournaments.new'), callback: modifyTournament })
+         let t_menu = displayGen.newTournamentMenu();
+         t_menu.create.element.addEventListener('click', () => {
+            displayGen.closeModal();
+            createNewTournament({ title: lang.tr('tournaments.new'), callback: modifyTournament })
+         });
+         t_menu.fetchbyid.element.addEventListener('click', () => {
+            displayGen.closeModal();
+            fetchFx.fetchTournament();
+         });
+         t_menu.import.element.addEventListener('click', () => {
+            displayGen.closeModal();
+            importFx.importTournamentRecord().then(done, util.logError);
+            function done() { fx.displayCalendar(); }
+         });
       });
       calendar_container.add.element.addEventListener('contextmenu', () => fetchFx.fetchTournament());
 
@@ -129,7 +145,8 @@ export const calendarFx = function() {
 
             function dt(evt) {
                if (evt.ctrlKey || evt.shiftKey) return tournamentContextOptions(evt);
-               return tournamentDisplay.displayTournament({tuid: util.getParent(evt.target, 'calendar_click').getAttribute('tuid')});
+               let tuid = util.getParent(evt.target, 'calendar_click').getAttribute('tuid');
+               return tournamentDisplay.displayTournament({tuid});
             }
             function tournamentContextOptions(evt) {
                var mouse = { x: evt.clientX, y: evt.clientY }
@@ -151,9 +168,15 @@ export const calendarFx = function() {
                         var caption = `<p>${lang.tr('actions.delete_tournament')}:</p> <p>${tournament_data.name}</p>`;
                         displayGen.okCancelMessage(caption, deleteTournament, () => displayGen.closeModal());
                         function deleteTournament() {
-                           unpublishTournament(tuid);
-                           db.deleteTournament(tuid).then(() => fx.displayCalendar(), util.logError);
                            displayGen.closeModal();
+                           coms.requestAcknowledgement({ uuid: tuid, callback: unpublishAck });
+                           unpublishTournament(tuid);
+                           // db.deleteTournament(tuid).then(done, util.logError);
+                        }
+                        function unpublishAck() { db.deleteTournament(tuid).then(done, util.logError); }
+                        function done() {
+                           fx.displayCalendar();
+                           searchBox.searchSelect('tournaments');
                         }
                      } else if (choice.key == 'merge') {
                         fetchFx.fetchTournament(tuid, mouse, modifyTournament);
@@ -167,7 +190,6 @@ export const calendarFx = function() {
 
                      let deleteTournamentEvents = { tuid, ouid, delete_tournament: true };
                      coms.emitTmx({ deleteTournamentEvents })
-                     displayGen.closeModal();
                      if (tournament_data.events) {
                         tournament_data.events.forEach(evt => {
                            evt.published = false;
@@ -178,8 +200,12 @@ export const calendarFx = function() {
                   }
                }
             }
-            Array.from(calendar_container.container.element.querySelectorAll('.calendar_click')).forEach(elem => {
+            Array.from(calendar_container.container.element.querySelectorAll('.calclk')).forEach(elem => {
                elem.addEventListener('click', dt);
+               elem.addEventListener('contextmenu', tournamentContextOptions);
+            });
+            Array.from(calendar_container.container.element.querySelectorAll('.calctx')).forEach(elem => {
+               elem.addEventListener('click', tournamentContextOptions);
                elem.addEventListener('contextmenu', tournamentContextOptions);
             });
          }
