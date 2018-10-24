@@ -103,7 +103,7 @@ export const fetchFx = function() {
             obj.search_field.element.addEventListener("keyup", function(e) { 
                if (e.which == 13) {
                   let id = obj.search_field.element.value;
-                  if (id) fetchFx(id, fetchHTML).then(completeFetch, (err)=>{ console.log('invalid', id); console.log('error:', err); });
+                  if (id) fetchFx(id, fetchHTML).then(completeFetch, ()=>displayGen.popUpMessage(lang.tr('phrases.notfound')));
                   removeEntryModal();
                }
             });
@@ -603,7 +603,7 @@ export const fetchFx = function() {
 
          function loadAction() {
             displayGen.closeModal();
-            let id_obj = displayGen.importPlayers();
+            let id_obj = displayGen.dropZone();
             let callback = (players) => {
                if (players && !players.length) return displayGen.popUpMessage('Players not found: Check Headers/Tab Names.');
                players.forEach(player => { player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; });
