@@ -29,7 +29,8 @@ export const displayGen = function() {
       content: undefined,
       arrowFx: undefined,
       escapeFx: undefined,
-      closeonclick: undefined
+      closeonclick: undefined,
+      clickaway: undefined
    };
 
    let caldates = {
@@ -264,14 +265,11 @@ export const displayGen = function() {
       setTimeout(function() { document.getElementById('processing').addEventListener('click', closeOnClick); }, 300);
       setTimeout(function() { util.addEventToClass('closeeditmodal', () => gen.closeModal('edit')); }, 300);
       setTimeout(function() { util.addEventToClass('closemodal', () => gen.closeModal()); }, 300); 
+      setTimeout(function() { util.addEventToClass('modal', clickAway); }, 300); 
    }
 
-   function closeOnClick() {
-      if (gen.closeonclick) {
-         gen.closeModal();
-         delete gen.closeonclick;
-      }
-   }
+   function closeOnClick() { if (gen.closeonclick) { gen.closeModal(); delete gen.closeonclick; } }
+   function clickAway() { if (gen.clickaway) { gen.closeModal(); delete gen.clickaway; } }
 
    gen.closeModal = (which) => {
       searchBox.active = {};
@@ -2254,9 +2252,16 @@ export const displayGen = function() {
       let countries = display.countries ? `<div class='registered_attr flexcenter'>${ioc}</div>` : '';
       let schools = display.schools ? `<div class='${school_class}'>${school}</div>` : '';
 
+      let rating_value = !ratings_type || !p.ratings ? '' :
+         (p.ratings[ratings_type] && p.ratings[ratings_type].singles && p.ratings[ratings_type].singles.value) || '';
+      let player_rating = rating_value && !isNaN(rating_value) && parseFloat(rating_value) > 0 ? parseFloat(rating_value).toFixed(2) : '';
+      if (player_rating == 0) player_rating = '';
+
+      /*
       let player_rating = !ratings_type || !p.ratings ? '' :
          (p.ratings[ratings_type] && p.ratings[ratings_type].singles && p.ratings[ratings_type].singles.value) || '';
-      if (player_rating == 0) player_rating = '';
+      */
+
       let html = `
          <div puid='${p.puid}' index='${i}' class='player_click signin-row flexrow detail' ${style}>
             <div class='registered_count flexjustifystart'>${i || ''}</div>
@@ -2348,6 +2353,44 @@ export const displayGen = function() {
          </div>`;
 
       gen.showEdit(html, false);
+      return displayFx.idObj(ids);
+   }
+
+   gen.cloudFetchMenu = () => {
+      let ids = {
+         tournament: displayFx.uuid(),
+         events: displayFx.uuid(),
+      }
+      let html = `
+         <div class='flexcol' style='width: 100%'>
+            <div id='${ids.tournament}' class='menuitem menuseparator'>${lang.tr('tournaments.fetchtournament')}</div>
+            <div id='${ids.events}' class='menuitem'>${lang.tr('tournaments.mergeevents')}</div>
+         </div>
+      `;
+      document.getElementById('processing').style.display = "flex";
+      setProcessingText(html);
+      gen.closeonclick = true;
+      gen.clickaway = true;
+      displayGen.escapeModal();
+      return displayFx.idObj(ids);
+   }
+
+   gen.newTournamentMenu = () => {
+      let ids = {
+         create: displayFx.uuid(),
+         fetchbyid: displayFx.uuid(),
+         import: displayFx.uuid(),
+      }
+      let html = `
+         <div class='flexcol' style='width: 100%'>
+            <div id='${ids.create}' class='menuitem menuseparator'>${lang.tr('tournaments.new')}</div>
+            <div id='${ids.fetchbyid}' class='menuitem menuseparator'>${lang.tr('tournaments.loadbyid')}</div>
+            <div id='${ids.import}' class='menuitem'>${lang.tr('tournaments.import')}</div>
+         </div>
+      `;
+      document.getElementById('processing').style.display = "flex";
+      setProcessingText(html);
+      displayGen.escapeModal();
       return displayFx.idObj(ids);
    }
 
@@ -2452,7 +2495,10 @@ export const displayGen = function() {
          name: displayFx.uuid(),
          notes: displayFx.uuid(),
          social: displayFx.uuid(),
+         stats: displayFx.uuid(),
          social_links: displayFx.uuid(),
+         social_media: displayFx.uuid(),
+         stat_charts: displayFx.uuid(),
          edit: displayFx.uuid(),
          finish: displayFx.uuid(),
          draws: displayFx.uuid(),
@@ -2565,6 +2611,7 @@ export const displayGen = function() {
                <div class='options_left'>
                   <div id='${ids.penalty_report}' class='${gen.info}' label='${lang.tr("ptz")}' style='display: none'> <div class='penalty action_icon'></div> </div>
                   <div id='${ids.edit_notes}' class='${gen.info}' label='${lang.tr("notes")}' style='display: none'> <div class='tnotes action_icon'></div> </div>
+                  <div id='${ids.stats}' class='${gen.info}' label='${lang.tr("stats")}' style='display: none; margin-left: .5em;'> <div class='stats action_icon'></div> </div>
                   <div id='${ids.social}' class='${gen.info}' label='${lang.tr("social")}' style='display: none; margin-left: .5em;'> <div class='social action_icon'></div> </div>
                </div>
                <div class='options_center'>
@@ -2629,7 +2676,10 @@ export const displayGen = function() {
             <div id='${ids.notes_container}' class='tournament_notes ql-container ql-snow' style='display: none'>
                <div id='${ids.notes_display}' class='tournament_notes ql-editor'></div>
             </div>
-            <textarea id='${ids.social_links}' class='social_links' style='display: none;' wrap='soft' placeholder='Enter a list of all social media links'></textarea>
+            <div id='${ids.social_media}' class='flexcenter' style='display: none; width: 100%;'>
+               <textarea id='${ids.social_links}' class='social_links' wrap='soft' placeholder='Enter a list of all social media links'></textarea>
+            </div>
+            <div id='${ids.stat_charts}' class='stat_charts' style='display: none'></div>
 
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
@@ -2753,7 +2803,7 @@ export const displayGen = function() {
       let save_location = ` <button type="button" class='btn save' style='display: none'>${lang.tr('actions.save_location')}</button> `;
 
       let courts_tab = `
-         <div class='events'>
+         <div class='events courts_tab'>
             <div class='event_list'>
                <div id='${ids.locations_actions}' class='events_actions flexrow' style="display: none;"> ${add_location} </div>
                <div id='${ids.locations}' class='event_rows' style='display: none'> </div>
@@ -2895,25 +2945,29 @@ export const displayGen = function() {
             <div class='filter_row'>
                <div class='category_filter'>
                   <div class='flexcenter entry_field' id='${ids.category_filter}'></div>
-                  <div class='${classes.print_sign_in} ${gen.infoleft}' label='${lang.tr("print.signin")}'style='display: none'>
-                     <div class='print action_icon'></div>
-                  </div>
-               </div>
-               <div class='filters'>
-                  <div class='${classes.filter_m}'><div class='filter_m action_icon filter_m_selected'></div></div>
-                  <div class='${classes.filter_w}'><div class='filter_w action_icon filter_w_selected'></div></div>
-                  <div class=''><div class='action_icon'></div></div>
-                  <div class='${classes.ranking_order} ${modify_info}' label='${lang.tr("signin.modifyrankings")}'>
+                  <div class='${classes.ranking_order} ${modify_info}' style='margin-left: 1em;' label='${lang.tr("signin.modifyrankings")}'>
                      <div class='action_icon ranking_order ranking_order_inactive'></div>
                   </div>
+               </div>
+               <div class='flexrow'>
                   <div class='${classes.refresh_registrations}' label='${lang.tr("refresh.general")}'>
                      <div class='action_icon refresh_registrations refresh_icon'></div>
                   </div>
                   <div class='${classes.reg_link} ${gen.info}' label='${lang.tr("signin.reglink")}' style='display: none'>
                      <div class='action_icon reg_link link_inactive'></div>
                   </div>
+               </div>
+               <div class='filters'>
+                  <div class='${classes.filter_m}'><div class='filter_m action_icon filter_m_selected'></div></div>
+                  <div class='${classes.filter_w}'><div class='filter_w action_icon filter_w_selected'></div></div>
+
+                  <div class=''><div class='action_icon'></div></div>
+
+                  <div class='${classes.print_sign_in} ${gen.infoleft}' label='${lang.tr("print.signin")}' style='margin-right: 1em; display: none;'>
+                     <div class='print action_icon'></div>
+                  </div>
                   <div class='${classes.publish_players} ${gen.info}' label='${lang.tr("draws.publish")}' style='display: none;'>
-                     <div style='margin-left: 1em;' class='schedule_publish_state unpublished action_icon'></div>
+                     <div class='schedule_publish_state unpublished action_icon'></div>
                   </div>
                </div>
             </div>
@@ -3557,32 +3611,32 @@ export const displayGen = function() {
       let html = `
          <div class='tournament_attrs'>
                <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                  <div class='location_attribute'>
+                  <div class='location_attribute locabbr'>
                      <div class='loclabel'>${lang.tr('locations.abbreviation')}:</div>
                      <input id='${ids.abbreviation}' class='locvalue_short'> 
                   </div>
                   <div class='flexrow'>
-                     <div class='location_attribute'>
+                     <div class='location_attribute loccourts'>
                         <div class='loclabel'>${lang.tr('locations.courts')}:</div>
                         <input id='${ids.courts}' class='location_courts'>
                      </div>
-                     <div class='location_attribute'>
+                     <div class='location_attribute locids'>
                         <div class='locname'>${lang.tr('locations.identifiers')}:</div>
                         <input id='${ids.identifiers}' placeholder='1, 2, 3, 4' class='locvalue_short'>
                      </div>
                   </div>
-                  <div class='location_attribute'>
+                  <div class='location_attribute locationname'>
                      <div class='loclabel'>${lang.tr('locations.name')}:</div>
                      <input id='${ids.name}' class='locvalue'> 
                   </div>
                </div>
                <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                  <div class='location_attribute'>
+                  <div class='location_attribute locaddress'>
                      <div class='loclabel'>${lang.tr('locations.address')}:</div>
                      <input id='${ids.address}' class='locvalue'> 
                   </div>
                   <div class='flexrow'>
-                     <div class='flexcol'>
+                     <div class='loclatlong flexcol'>
                         <div class='location_attribute'>
                            <div class='loclabel'>Latitude</div>
                            <input id='${ids.latitude}' class='locvalue_short'> 
@@ -3856,10 +3910,10 @@ export const displayGen = function() {
             </div>
             <div class='column'>
                <div class='entry_field roundlimit' id='${ids.roundlimit}' style='display: none;'></div>
-               <div class='entry_field' id='${ids.structure}'></div>
-               <div class='entry_field feedconfig' style='display: none;' id='${ids.skiprounds}'></div>
-               <div class='entry_field feedconfig' style='display: none;' id='${ids.feedrounds}'></div>
-               <div class='entry_field feedconfig' style='display: none;' id='${ids.sequential}'></div>
+               <div class='entry_field structure' id='${ids.structure}'></div>
+               <div class='entry_field feedconfig skiprounds' style='display: none;' id='${ids.skiprounds}'></div>
+               <div class='entry_field feedconfig feedrounds' style='display: none;' id='${ids.feedrounds}'></div>
+               <div class='entry_field feedconfig sequential' style='display: none;' id='${ids.sequential}'></div>
                <div class='entry_field qualifiers' style='display: none;' id='${ids.qualifiers}'></div>
             </div>
          </div>
@@ -3906,8 +3960,8 @@ export const displayGen = function() {
                <div class='entry_label qualifiers' style='text-align: right; display: none;'>${lang.tr('qualifiers')}</div>
             </div>
             <div class='column'>
-               <div class='entry_field' id='${ids.brackets}'></div>
-               <div class='entry_field' id='${ids.bracket_size}'></div>
+               <div class='entry_field brackets' id='${ids.brackets}'></div>
+               <div class='entry_field bracket_size' id='${ids.bracket_size}'></div>
                <div class='entry_field qualifiers' style='display: none;' id='${ids.qualifiers}'></div>
             </div>
          </div>
@@ -3935,7 +3989,7 @@ export const displayGen = function() {
                <div class='entry_label' style='text-align: right'>${lang.tr('qualifiers')}</div>
             </div>
             <div class='column'>
-               <div class='entry_field' id='${ids.qualifiers}'></div>
+               <div class='entry_field qualifiers' id='${ids.qualifiers}'></div>
             </div>
          </div>
          <div class='linked_draw elimination' style='display: none'>
@@ -4185,12 +4239,10 @@ export const displayGen = function() {
 
       return `
          <div tuid='${tournament.tuid}' class='calendar_click calendar_row calendar_highlight ${background} ${received}'>
-            <span class='dates' style='overflow: hidden'> ${displayDate(tournament.start)}&nbsp;/ ${displayDate(tournament.end)} </span>
-            <div class='name ctxclk'>${tournament.name}</div>
-            <div class='category flexcol'>${categories || ''}</div>
-            <div class='rank'>${tournament.rank || ''}</div>
-            <!-- <div class='actual'>${actual_rankings}</div> -->
-            <!-- <div class='draws'>${tournament.draws || ''}</div> -->
+            <span class='dates calctx' style='overflow: hidden'> ${displayDate(tournament.start)}&nbsp;/ ${displayDate(tournament.end)} </span>
+            <div class='name calclk ctxclk'>${tournament.name}</div>
+            <div class='category calctx flexcol'>${categories || ''}</div>
+            <div class='rank calctx'>${tournament.rank || ''}</div>
          </div>
       `;
    }
@@ -4408,7 +4460,7 @@ export const displayGen = function() {
       }
    }
 
-   gen.importPlayers = () => {
+   gen.dropZone = () => {
       let ids = { 
          dropzone: displayFx.uuid()
       }
@@ -4551,14 +4603,16 @@ export const displayGen = function() {
          playerlist: displayFx.uuid(),
       }
       let html = `
-         <div class='flexccol'>
-            <div id='${ids.singles}' class='btn btn-large config_submit'>${lang.tr('sgl')} ${lang.tr('print.signin')}</div>
-            <div id='${ids.doubles}' class='btn btn-large config_submit'>${lang.tr('dbl')} ${lang.tr('print.signin')}</div>
-            <div id='${ids.playerlist}' class='btn btn-large config_submit'>${lang.tr('print.playerlist')}</div>
+         <div class='flexcol' style='width: 100%'>
+            <div id='${ids.singles}' class='menuitem menuseparator'>${lang.tr('sgl')} ${lang.tr('print.signin')}</div>
+            <div id='${ids.doubles}' class='menuitem menuseparator'>${lang.tr('dbl')} ${lang.tr('print.signin')}</div>
+            <div id='${ids.playerlist}' class='menuitem'>${lang.tr('print.playerlist')}</div>
          </div>
       `;
-      gen.showConfigModal(html);
-
+      document.getElementById('processing').style.display = "flex";
+      setProcessingText(html);
+      gen.clickaway = true;
+      displayGen.escapeModal();
       return displayFx.idObj(ids);
    }
 
