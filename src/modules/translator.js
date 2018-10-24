@@ -66,6 +66,7 @@ export const lang = function() {
       continue: 'Do you wish to continue?',
       notes:   'Notes',
       social:  'Social Media',
+      stats:   'Statistics',
       merge:   'Merge',
       week:    'Week',
       warn:    'WARNING',
@@ -268,7 +269,9 @@ export const lang = function() {
       scoring: {
          retire: 'Retire',
          default: 'Default',
-         walkover: 'Walkover'
+         walkover: 'Walkover',
+         supertiebreak: 'Supertiebreak',
+         normal: 'Normal',
       },
 
       draws: {
@@ -373,8 +376,10 @@ export const lang = function() {
          new: 'New Tournament',
          add: 'Add Tournament',
          id: 'Tournament ID',
+         loadbyid: 'Load by ID',
          edit: 'Edit',
          done: 'Finish',
+         import: 'Import Record',
          removeall: 'Remove All',
          addall: 'Add All',
          key: 'Authorization',
@@ -382,6 +387,8 @@ export const lang = function() {
          unofficial: 'Unofficial',
          auth: 'Authorized',
          fetch: 'Download',
+         fetchtournament: 'Download Tournament Record',
+         mergeevents: 'Merge Events from server',
          renewlist: 'Renew List',
          natlassoc: 'National Association',
          tennisclub: 'Tennis Club',
