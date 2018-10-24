@@ -144,6 +144,52 @@ function eventsTabHints() {
 
    components.forEach(component => { if (tElement(component.obj)) hints.push(componentObj(component.obj, component.hint)); });
 
+   let config_actions = [
+      { class: 'structure', hint: '<b>Structure</b><p>Main Draw Elimination events may have a "Standard" draw structure or a "Staggered Entry" structure whereby higher ranked or rated players "Feed In" to the draw at later rounds', position: 'top-left' },
+      { class: 'roundlimit', hint: `<b>Round Limit</b><p>Complete the draw after a specified number of rounds<p>In "Level Based Play" events there may be events which do not complete because of time limitations`, position: 'top-left' },
+      { class: 'skiprounds', hint: '<b>Skip Rounds</b><p>The number of rounds to play normally before players begin to "Feed In" to the draw', position: 'top-left' },
+      { class: 'feedrounds', hint: '<b>Feed Rounds</b><p>The number of rounds which will allow players to "Feed In" to the draw', position: 'top-left' },
+      { class: 'sequential', hint: '<b>Sequential Rounds</b><p><i>Not currently implemented</i>', position: 'top-left' },
+      { class: 'qualifiers', hint: '<b>Qualifiers</b><p>Define the number of qualifiers who will be approved for the main draw', position: 'top-left' },
+      { class: 'qualification', hint: '<b>Set Link</b><p>Define a linked qualification event<p>Quailifying players will automatically be approved for this event', position: 'top-middle' },
+      { class: 'consolation', hint: '<b>Set Link</b><p>Define a linked consolation event<p>Players who lose in this event will automatically be eligible for consolation<p>In <b>Settings</b> it is possible to allow players from all rounds of an elimination event to become eligible for consolation', position: 'top-middle' },
+      { class: 'elimination', hint: '<b>Set Link</b><p>Define the elimination event<p>Players from the elimination event will automatically appear as Eligible', position: 'top-middle' },
+      { class: 'brackets', hint: '<b>Brackets</b><p>The number of brackets to allow for this event', position: 'top-left' },
+      { class: 'bracket_size', hint: '<b>Bracket Size</b><p>The maximum number of players per bracket<p>Some brackets may have a single BYE', position: 'top-left' },
+   ];
+
+   let details = [
+      { class: 'edrawtype', hint: '<b>Draw Type</b><p>Define event type as Elimination, Qualification, Round Robin, Consolation, Compass, or Playoff<p>Available options depend on what other events are possible to link; for instance, it is not possible to create a Consolation or Playoff event without an existing Elimination or Qualification event', position: 'top-left' },
+   ]
+
+   let opponents = [
+      { class: 'event_teams', hint: '<b>Doubles Teams</b><p>Teams are constructed by selecting eligible players IN ORDER', position: 'top-middle' },
+   ];
+
+   if (tElement('draw_config')) {
+      let draw_config = containers.tournament.draw_config.element;
+      config_actions.forEach(action => {
+         let element = draw_config.querySelector(`.${action.class}`);
+         if (element && element.style.display != 'none') hints.push(hintObj(element, action.hint, action.position));
+      });
+   }
+
+   if (tElement('detail_fields')) {
+      let detail_fields = containers.tournament.detail_fields.element;
+      details.forEach(action => {
+         let element = detail_fields.querySelector(`.${action.class}`);
+         if (element && element.style.display != 'none') hints.push(hintObj(element, action.hint, action.position));
+      });
+   }
+
+   if (tElement('detail_opponents')) {
+      let detail_opponents = containers.tournament.detail_opponents.element;
+      opponents.forEach(action => {
+         let element = detail_opponents.querySelector(`.${action.class}`);
+         if (element && element.style.display != 'none') hints.push(hintObj(element, action.hint, action.position));
+      });
+   }
+
    guide.setOptions({ hints });
    guide.addHints();
    guide.showHints();
@@ -186,6 +232,34 @@ function courtsTabTour() {
    let steps = [
       { intro: `<b>Courts Tab</b><p>Define locations where tournament matches will be held<p>Specify the number of courts available at each location`, },
    ];
+
+   let classes = [
+      { class: 'add', intro: `There must be at least one court location defined in order to schedule matches<p>The <b>Schedule Tab</b> will appear after the first location is defined` },
+   ];
+
+   let attr_visible = tElement('location_details');
+
+   let attributes = !attr_visible ? [] : [
+      { class: 'locabbr', intro: `The location abbreviation appears at the top of each column in the schedule` },
+      { class: 'loccourts', intro: `The number of courts available at a location` },
+      { class: 'locids', intro: `By default courts are labeled sequentially:<br> 1, 2, 3, 4, ...<p>Enter any comma or space delimited string to define custom labels` },
+      { class: 'locationname', intro: `The location name is used to identify the location in the location list above` },
+      { class: 'locaddress', intro: `The location address will be available online to help participants navigate between locations` },
+      { class: 'loclatlong', intro: `Location geo coordinates<p> Enter manually or use current location or a google maps link to define<p>Geo location is used both to make directions available to participants and for "geofencing" when crowdsourced scoring is enabled` },
+      { class: 'googlemaps', intro: `Enter a Google Maps address (website link) to automatically set a location's geo position` },
+      { class: 'geolocation', intro: `Set the geo position for a location to the current location of this computer/tablet` },
+   ]
+
+   classes.concat(...attributes).forEach(cobj => {
+      let element = tClass({ cls: cobj.class, parent_class: 'courts_tab' });
+      if (element) steps.push(introObj(element, cobj.intro, cobj.position));
+   });
+
+   let components = [];
+
+   if (attr_visible) components.push({ step: 'location_map', intro: `Map display of current location or currently defined court location<p>Click on the map to define the precise geoposition for a location` });
+   if (!attr_visible) components.push({ step: 'locations', intro: 'List of locations available for court scheduling' });
+   components.forEach(component => { if (tElement(component.step)) steps.push(componentObj(component.step, component.intro)); });
 
    guide.setOptions({ steps });
    guide.start();
@@ -304,6 +378,7 @@ function teamsTabTour() {
 
    let detail_classes = [
       { class: 'team_rankings', intro: '<b>Team Rankings</b><p>Toggle edit fields to determine player order within teams' },
+      { class: 'roster_link', intro: '<b>Roster Link</b><p>Define a Google Sheet URL (web link) to synchronize team players' },
       { class: 'share_team', intro: '<b>Share Team</b><p>Generate a key which will allow the team to be accessed from other instances of CourtHive/TMX' },
    ]
 
@@ -446,12 +521,13 @@ function playersTabTour() {
    components.forEach(component => { if (tElement(component.step)) steps.push(componentObj(component.step, component.intro)); });
 
    let class_objs = [
-      { class: 'print_sign_in', intro: 'Print Singles or Doubles Sign-In Sheets' },
-      { class: 'filter_m', intro: 'Toggle visibility of Male players.<p>Also determines which players are printed on Sign-In Sheets' },
-      { class: 'filter_w', intro: 'Toggle visibility of Female players.<p>Also determines which players are printed on Sign-In Sheets' },
       { class: 'ranking_order', intro: 'Toggle ability to modify player Rankings' },
       { class: 'refresh_registrations', intro: `Import players or synchronize player list with remote registration systems<p>Right click for 'Delete/Replace'` },
       { class: 'reg_link', intro: 'Link player list with a Google Sheet (which can then be synchronized)' },
+      { class: 'filter_m', intro: 'Toggle visibility of Male players.<p>Also determines which players are printed on Sign-In Sheets' },
+      { class: 'filter_w', intro: 'Toggle visibility of Female players.<p>Also determines which players are printed on Sign-In Sheets' },
+      { class: 'print_sign_in', intro: 'Print Singles or Doubles Sign-In Sheets' },
+      { class: 'publish_players', intro: 'Publish Player List online' },
    ]
 
    class_objs.forEach(cobj => {
@@ -629,8 +705,15 @@ function tournamentTabTour() {
       { intro: `<b>Tournaments Tab</b><p>Add basic tournament details which will appear on PDF headers and online tournament pages<p>Manage copies of the Tournament Record`, },
    ];
 
+   let activated = [];
+   if (tElement('notes_entry')) activated.push({ step: 'notes_entry', intro: '<b>Notes Editor</b><p>Formatted text which will appear online beneath the tournament header' });
+   if (tElement('social_media')) activated.push({ step: 'social_media', intro: '<b>Social Media Links</b><p>Enter web addresses for social media sites such as Facebook, Twitter and Instgram<p>One web address per line' });
+   if (tElement('stat_charts')) activated.push({ step: 'stat_charts', intro: '<b>Tournament Charts</b>Visualizations of data derived from tournament data' });
+
    let components = [
-      { step: 'edit_notes', intro: '<b>Notes Editor</b><p>Click to toggle the WYSIWYG Notes editor. <p>Notes will appear online when a tournament is published.' },
+      { step: 'edit_notes', intro: '<b>Notes Editor</b><p>Click to toggle the WYSIWYG Notes editor. <p>Notes will appear online when a tournament is published' },
+      { step: 'stats', intro: '<b>Tournament Statistics</b><p>Click to toggle view analysis of tournament players and matches' },
+      { step: 'social', intro: '<b>Social Media</b><p>Click to toggle entry field for defining social media links' },
       { step: 'push2cloud', intro: 'Send a copy of the tournament record to the CourtHive Cloud Server' },
       { step: 'localdownload', intro: 'Save a copy of the tournament record to your computer/tablet' },
       { step: 'pubTrnyInfo', intro: '<b>Publish</b><p>Send Tournament Information to Courthive.com/Live<p>Does not publish events or schedules!' },
@@ -642,13 +725,17 @@ function tournamentTabTour() {
 
    let elements = [
       { element: tabs, intro: '<b>Section Tabs</b><p>Select various aspects of the tournament to edit/view<p>Additional tabs become visible as information is added to the tournament<p>For instance, courts must be defined before scheduling is possible' },
+   ];
+
+   let attr_visible = tElement('tournament_attrs');
+   let details = !attr_visible ? [] : [
       { element: dates, intro: 'Set tournament start and end dates' },
       { element: orginfo, intro: 'Specify and Organization and Organizers' },
       { element: umpirebox, intro: 'Set the Location and Head Umpire' },
    ];
 
-   components.forEach(component => { if (tElement(component.step)) steps.push(componentObj(component.step, component.intro)); });
-   elements.forEach(obj => steps.push(introObj(obj.element, obj.intro)));
+   activated.concat(...components).forEach(component => { if (tElement(component.step)) steps.push(componentObj(component.step, component.intro)); });
+   elements.concat(...details).forEach(obj => steps.push(introObj(obj.element, obj.intro)));
 
    guide.setOptions({ steps });
    guide.start();
