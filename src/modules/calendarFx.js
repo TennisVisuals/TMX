@@ -12,6 +12,7 @@ import { importFx } from './importFx';
 import { rankCalc } from './rankCalc';
 import { searchBox } from './searchBox';
 import { displayGen } from './displayGen';
+import { tournamentFx } from './tournamentFx';
 import { tournamentDisplay } from './tournamentDisplay';
 
 export const calendarFx = function() {
@@ -29,7 +30,7 @@ export const calendarFx = function() {
       let category = env.calendar.category;
 
       let start = util.offsetDate(env.calendar.start);
-      let end = env.calendar.end ? util.offsetDate(env.calendar.end) : new Date(new Date(start).setMonth(new Date(start).getMonth()+1));
+      let end = env.calendar.end ? util.offsetDate(env.calendar.end) : new Date(new Date(start).setMonth(new Date(start).getMonth()+2));
 
       let calendar_container = displayGen.calendarContainer();
       tmxTour.calendarContainer(calendar_container);
@@ -156,10 +157,17 @@ export const calendarFx = function() {
 
                function options(fetch, tournament_data) {
                   var options = [];
-                  options.push({ label: lang.tr('tournaments.edit'), key: 'edit' });
-                  options.push({ label: lang.tr('delete'), key: 'delete' });
-                  if (fetch) options.push({ label: lang.tr('merge'), key: 'merge' });
-                  displayGen.svgModal({ x: mouse.x, y: mouse.y, options, callback: selectionMade });
+                  if (tournamentFx.sameOrg(tournament_data)) {
+                     options.push({ label: lang.tr('tournaments.edit'), key: 'edit' });
+                     options.push({ label: lang.tr('delete'), key: 'delete' });
+                     if (fetch) options.push({ label: lang.tr('merge'), key: 'merge' });
+                  }
+
+                  if (options.length) {
+                     displayGen.svgModal({ x: mouse.x, y: mouse.y, options, callback: selectionMade });
+                  } else {
+                     tournamentDisplay.displayTournament({ tuid });
+                  }
 
                   function selectionMade(choice, index) {
                      if (choice.key == 'edit') {
@@ -236,9 +244,7 @@ export const calendarFx = function() {
          if (field_order[next_field] == 'none') container.judge.element.focus();
       }
 
-      function setTournamentType(value) {
-         trny.type = value;
-      }
+      function setTournamentType(value) { trny.type = value; }
 
       if (env.tournaments && Object.keys(env.tournaments).reduce((p, c) => p || c)) {
          Array.from(container.form.element.querySelectorAll('.tournament_types')).forEach(elmnt => elmnt.style.display = 'flex');
@@ -249,8 +255,9 @@ export const calendarFx = function() {
 
       dd.attachDropDown({ id: container.tournament_type.id, options: tournament_type_options });
       container.tournament_type.ddlb = new dd.DropDown({ element: container.tournament_type.element, onChange: setTournamentType });
-      container.tournament_type.ddlb.selectionBackground('white');
+
       if (!trny.type) trny.type = 'standard';
+      container.tournament_type.ddlb.setValue(trny.type || '', 'white');
 
       function setCategory(value) {
          // setTimeout(function() { container.category.ddlb.selectionBackground(value ? 'white' : 'yellow'); }, 200);
