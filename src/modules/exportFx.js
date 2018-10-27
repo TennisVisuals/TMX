@@ -144,7 +144,10 @@ export const exportFx = function() {
          return (!parts || parts.indexOf('myutr') < 0 && parts.indexOf('players') < 0) ? '' : parts.reverse()[0];
       }
 
-      if (!winners) console.log('match:', match);
+      if (!winners) {
+         console.log('match:', match);
+         return;
+      }
 
       let schedule_date = match.schedule && match.schedule.day && new Date(match.schedule.day);
       let match_date = schedule_date && schedule_date <= match.tournament.end ? schedule_date : match.date > match.tournament.end ? match.tournament.end : match.date;
@@ -218,7 +221,9 @@ export const exportFx = function() {
       }
    }
 
-   exp.UTRmatchRecords = ({ matches, players }) => matches.map(m => exp.UTRmatchRecord(m, players));
+   exp.UTRmatchRecords = ({ matches, players }) => {
+      return matches.map(m => exp.UTRmatchRecord(m, players)).filter(r=>r);
+   };
 
    /************************* Database Table Export **************************/
    let tableJSON = (table) => db.findAll(table).then(arr => { exp.downloadJSON(`${table}.json`, arr) }); 
@@ -2409,6 +2414,14 @@ export const exportFx = function() {
             });
             img.src = url;
          });
+      }
+   }
+
+   exp.logoJSON = () => {
+      db.findAllSettings().then(exportLogo, util.logError);
+      function exportLogo(settings) {
+         let logo = settings.reduce((a, b) => b.key == 'orgLogo' ? b : a, undefined);
+         exp.downloadJSON('logo.json', logo);
       }
    }
 
