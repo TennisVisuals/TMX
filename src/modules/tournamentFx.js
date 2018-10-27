@@ -25,7 +25,7 @@ export const tournamentFx = function() {
       players.forEach(player => {
          if (puids.indexOf(player.puid) < 0 && ids.indexOf(player.id) < 0) {
             player.full_name = fx.fullName(player, false);
-            tournament.players.push(playerFx.playerCopy(player));
+            tournament.players.push(playerFx.playerCopy(player, ['birth']));
             added += 1;
          }
       });
@@ -252,9 +252,10 @@ export const tournamentFx = function() {
       let match = e.draw.dual_matches[dual_match.match.muid].matches.reduce((p, c) => c.match.muid == muid ? c : p, undefined);
       if (!match) return { success: false}
 
-      match.match.score = outcome.score
-      match.match.score_format = outcome.score_format;
+      match.match.score = outcome.score;
       match.match.winner_index = outcome.winner;
+      match.match.set_scores = outcome.set_scores;
+      match.match.score_format = outcome.score_format;
       match.match.winner = outcome.teams[outcome.winner];
       match.match.loser = outcome.teams[1 - outcome.winner];
       match.match.date = match.date || new Date().getTime();
@@ -324,6 +325,9 @@ export const tournamentFx = function() {
       let current_winner = outcome.winner != undefined ? outcome.teams[outcome.winner].map(m=>m.id) : undefined;
       let current_loser = outcome.winner != undefined ? outcome.teams[1 - outcome.winner].map(m=>m.id) : undefined;
 
+      var score_removed = previous_winner && !current_winner;
+      if (score_removed) result.deleted_muid = node.match.muid;
+
       if (compass) {
          // current draw should equal the draw within which the muid is found
          current_direction = Object.keys(e.draw).reduce((p, c) => p || (typeof e.draw[c] == 'object' && e.draw[c].matches && e.draw[c].matches[muid] && c), undefined);
@@ -355,7 +359,8 @@ export const tournamentFx = function() {
 
       if (active_in_linked && (winner_changed || (previous_winner && !current_winner))) {
          return { error: 'phrases.cannotchangewinner' };
-      } else if (previous_winner && !current_winner) {
+      // } else if (previous_winner && !current_winner) {
+      } else if (score_removed) {
          if (compass) {
             fx.removeDirectionalPlayer(tournament, e, target_draw, previous_loser, linked_info);
          } else {
@@ -399,6 +404,7 @@ export const tournamentFx = function() {
             score: outcome.score,
             complete: outcome.complete,
             position: outcome.position,
+            set_scores: outcome.set_scores,
             score_format: outcome.score_format,
          });
 
@@ -418,11 +424,11 @@ export const tournamentFx = function() {
       // modifyPositionScore removes winner/loser if match incomplete
       dfx.modifyPositionScore({ 
          node: current_draw, 
-         positions: outcome.positions,
          score: outcome.score, 
-         score_format: outcome.score_format,
          complete: outcome.complete, 
-         set_scores: outcome.set_scores
+         positions: outcome.positions,
+         set_scores: outcome.set_scores,
+         score_format: outcome.score_format,
       });
 
       let puids = outcome.teams.map(t=>t.map(p=>p.puid).join('|'));
@@ -439,9 +445,10 @@ export const tournamentFx = function() {
       result.muid = match.muid;
 
       match.score = outcome.score;
-      match.status = (outcome.score) ? '' : match.status;
       match.winner_index = outcome.winner;
+      match.set_scores = outcome.set_scores;
       match.score_format = outcome.score_format;
+      match.status = (outcome.score) ? '' : match.status;
 
       match.muid = match.muid || UUID.idGen();
       match.winner = outcome.teams[outcome.winner];
@@ -473,7 +480,7 @@ export const tournamentFx = function() {
          if (!target_draw.opponents) target_draw.opponents = [];
          if (!target_draw.unseeded_teams) target_draw.unseeded_teams = [];
 
-         let losers = match.loser.map(playerFx.playerCopy);
+         let losers = match.loser.map(plr => playerFx.playerCopy(plr));
          if (!existingOpponents(target_draw, losers)) {
             target_draw.opponents.push(losers);
             target_draw.unseeded_teams.push(losers);
@@ -518,10 +525,13 @@ export const tournamentFx = function() {
       var winner = match_event.match.winner && match_event.match.winner.filter(f=>f).length;
       var previous_winner = winner ? match_event.match.winner.map(m=>m.id) : undefined;
       var current_winner = outcome.winner != undefined ? outcome.teams[outcome.winner].map(m=>m.id) : undefined;
+      var score_removed = previous_winner && !current_winner;
       var qualifier_changed =
-         previous_winner && !current_winner ? true
+         score_removed ? true
          : !previous_winner ? undefined
          : util.intersection(previous_winner, current_winner).length == 0;
+
+      if (score_removed) result.deleted_muid = match_event.match && match_event.match.muid;
 
       var draw_previously_complete = dfx.drawInfo(e.draw).complete;
       var bracket = e.draw.brackets[match_event.match.bracket];
@@ -556,11 +566,12 @@ export const tournamentFx = function() {
       match.score = outcome.score;
       match.status = (outcome.score) ? '' : match.status;
       match.winner_index = outcome.winner;
+      match.set_scores = outcome.set_scores;
       match.score_format = outcome.score_format;
 
       match.muid = match.muid || UUID.idGen();
-      match.winner = [match.players[outcome.winner]];
-      match.loser = [match.players[1 - outcome.winner]];
+      match.winner = outcome.teams[outcome.winner];
+      match.loser = outcome.teams[1 - outcome.winner];
       match.date = match.date || new Date().getTime();
 
       match.teams = outcome.teams;
@@ -697,7 +708,8 @@ export const tournamentFx = function() {
       if (!idmap) return [];
 
       let offset = idm.offset;
-      let approved = e.approved ? e.approved.map(t=>fx.teamObj(e, t, idmap, offset)).sort(fx.combinedRankSort) : [];
+      // let approved = e.approved ? e.approved.map(t=>fx.teamObj(e, t, idmap, offset)).sort(fx.combinedRankSort) : [];
+      let approved = e.approved ? e.approved.map(t=>t && Array.isArray(t) && fx.teamObj(e, t, idmap, offset)).filter(f=>f).sort(fx.combinedRankSort) : [];
 
       let seed_limit = dfx.seedLimit(approved.length);
       let seeding = fx.rankedTeams(approved);
@@ -786,7 +798,7 @@ export const tournamentFx = function() {
       let approved_players = (tournament.players || [])
          .filter(p => e.approved.indexOf(p.id) >= 0)
          // make a copy of player objects to avoid changing originals
-         .map(playerFx.playerCopy);
+         .map(plr => playerFx.playerCopy(plr));
 
       let seed_limit = dfx.seedLimit(approved_players.length);
 
@@ -857,11 +869,8 @@ export const tournamentFx = function() {
          supertiebreak_to: parseInt(cfg_obj.supertiebreakto.ddlb.getValue()),
          final_set_supertiebreak: cfg_obj.finalset.ddlb.getValue() == 'N' ? false : true,
       }
-      if (format) {
-         evt.scoring_format[format] = sf;
-      } else {
-         evt.score_format = sf;
-      }
+      if (format) { evt.scoring_format[format] = sf; }
+      evt.score_format = sf;
       modifyUnscoredMatches(sf);
       let stb = sf.final_set_supertiebreak ? '/S' : '';
       evt.scoring = `${sf.max_sets}/${sf.games_for_set}/${sf.tiebreak_to}T${stb}`;
@@ -1502,6 +1511,12 @@ export const tournamentFx = function() {
    function teamHash(team) { return team.map(p=>p.id).join('|'); }
    function puidHash(team) { return team.map(p=>p.puid).sort().join('|'); }
    function moreThanHalf(value) { return Math.ceil(value/2) > value/2 ? Math.ceil(value/2) : Math.ceil(value/2) + 1; }
+
+   fx.sameOrg = sameOrg;
+   function sameOrg(tournament) {
+      let ouid = env.org && env.org.ouid;
+      return (!tournament.org || !tournament.org.ouid) || (tournament.org.ouid && tournament.org.ouid == ouid);
+   }
 
    fx.getDualEventScoreGoal = getDualEventScoreGoal;
    function getDualEventScoreGoal(evt) {
