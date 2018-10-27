@@ -1,11 +1,27 @@
+import { env } from './env'
 import { util } from './util';
 import { UUID } from './UUID';
 import { drawFx } from './drawFx';
 import { courtFx } from './courtFx';
+import { scoreBoard } from './scoreBoard';
 
 export const matchFx = function() {
    let fx = {}
    let dfx = drawFx();
+
+   fx.getScoringFormat = ({ e, match, format }) => {
+      let scoreboard = env.scoreboard.settings;
+      format = format || (match && match.format) || (e.format == 'D' ? 'doubles' : 'singles');
+      let score_format = (e.scoring_format && e.scoring_format[format]) || e.score_format || (match && match.score_format) || scoreboard[format];
+      if (score_format.final_set_supertiebreak == undefined) score_format.final_set_supertiebreak = format == 'doubles' ? true : false;
+      return score_format;
+   }
+
+   fx.getExistingScores = ({ match }) => {
+      if (!match.score) return undefined;
+      let es = scoreBoard.convertStringScore({ string_score: match.score, score_format: match.score_format || {}, winner_index: match.winner_index });
+      return es;
+   }
 
    // Returns NEW objects; modifications don't change originals
    // if 'source' is true, then source object is included...
@@ -97,6 +113,8 @@ export const matchFx = function() {
          if (loc) coords = { latitude: loc.latitude, longitude: loc.longitude }
       }
 
+      let score_format = match.match.score_format || {};
+
       let obj = {
          consolation: e.draw_type == 'C', 
          draw_positions: e.draw_size,
@@ -106,12 +124,15 @@ export const matchFx = function() {
          format: match.format == 'doubles' || e.format == 'D' ? 'doubles' : 'singles',
          gender: e.gender,
          muid: match.match.muid,
-         players,
          puids: players.filter(p=>p).map(p=>p.puid),
 
-         // TODO: should be => teams: team_players,
-         // see dynamicDraws => function recreateDrawFromMatches => round_matches.forEach
+
+         // TODO: These need object copy
+         players,
          teams: match.teams,
+         set_scores: match.match.set_scores,
+
+         // TODO: should be => teams: team_players,
          team_players,
 
          dependent: match.dependent,
@@ -127,6 +148,17 @@ export const matchFx = function() {
 
          // all score related details should be stored in an object...
          score: match.match.score,
+
+         score_format: {
+            final_set_supertiebreak: score_format.final_set_supertiebreak,
+            final_set_tiebreak: score_format.final_set_tiebreak,
+            games_for_set: score_format.games_for_set,
+            max_sets: score_format.max_sets,
+            sets_to_win: score_format.sets_to_win,
+            supertiebreak_to: score_format.supertiebreak_to,
+            tiebreak_to: score_format.tiebreak_to,
+            tiebreaks_at: score_format.tiebreaks_at,
+         },
          delegated_score: match.match.delegated_score,
 
          status: match.match.status,
@@ -151,7 +183,10 @@ export const matchFx = function() {
          dual_match: match.dual_match,
          sequence: match.sequence,
          umpire: match.match.umpire,
+
+         // TODO: can this be removed?
          winner: match.match.winner_index,
+
          winner_index: match.match.winner_index,
       }
 
