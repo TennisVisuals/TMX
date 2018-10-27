@@ -372,6 +372,8 @@ export const lang = function() {
          type: 'Type',
          standard: 'Standard',
          dualmatches: 'Dual Matches',
+         register: 'Register',
+         registration: 'Registration Link',
          team: 'Team Tournament',
          new: 'New Tournament',
          add: 'Add Tournament',
