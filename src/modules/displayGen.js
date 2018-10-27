@@ -1933,9 +1933,13 @@ export const displayGen = function() {
             </div>
          </div>
       `;
+
+      gen.clickaway = false;
+      gen.closeonclick = false;
       gen.showConfigModal(html, 'visible');
       let id_obj = displayFx.idObj(ids);
       if (allowed.gender) dd.attachDropDown({ id: ids.gender, options: getGenders() });
+
       return id_obj;
    }
 
@@ -2495,6 +2499,7 @@ export const displayGen = function() {
          name: displayFx.uuid(),
          notes: displayFx.uuid(),
          social: displayFx.uuid(),
+         register: displayFx.uuid(),
          stats: displayFx.uuid(),
          social_links: displayFx.uuid(),
          social_media: displayFx.uuid(),
@@ -2611,6 +2616,9 @@ export const displayGen = function() {
                <div class='options_left'>
                   <div id='${ids.penalty_report}' class='${gen.info}' label='${lang.tr("ptz")}' style='display: none'> <div class='penalty action_icon'></div> </div>
                   <div id='${ids.edit_notes}' class='${gen.info}' label='${lang.tr("notes")}' style='display: none'> <div class='tnotes action_icon'></div> </div>
+                  <div id='${ids.register}' class='${gen.info}' label='${lang.tr("tournaments.registration")}' style='display: none; margin-left: .5em;'>
+                     <div class='register action_icon'></div>
+                  </div>
                   <div id='${ids.stats}' class='${gen.info}' label='${lang.tr("stats")}' style='display: none; margin-left: .5em;'> <div class='stats action_icon'></div> </div>
                   <div id='${ids.social}' class='${gen.info}' label='${lang.tr("social")}' style='display: none; margin-left: .5em;'> <div class='social action_icon'></div> </div>
                </div>
