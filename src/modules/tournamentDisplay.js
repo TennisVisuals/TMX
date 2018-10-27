@@ -10,6 +10,7 @@ import { matchFx } from './matchFx';
 import { courtFx } from './courtFx';
 import { staging } from './staging';
 import { tmxTour } from './tmxTour';
+import { tmxStats } from './tmxStats';
 import { pointsFx } from './pointsFx';
 import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
@@ -605,6 +606,7 @@ export const tournamentDisplay = function() {
 
       function publishTournamentInfo(tournament) {
          tournament.org = env.org;
+         if (tournament.infoPublished) return unpublishTournamentInfo(tournament);
 
          function updateInfoPubState(result) {
             displayGen.pubStateTrnyInfo(container.pubStateTrnyInfo.element, tournament.infoPublished);
@@ -683,6 +685,7 @@ export const tournamentDisplay = function() {
             container.notes_entry.element.style.display = 'none';
             container.notes_container.element.style.display = 'none';
             container.social_media.element.style.display = 'none';
+            tmxStats.processMatches(tournament);
          }
          container.stat_charts.element.style.display = (visible ? 'none' : 'inline');
          container.tournament_attrs.element.style.display = (visible ? 'flex' : 'none');
@@ -710,6 +713,25 @@ export const tournamentDisplay = function() {
 
       container.social_links.element.value = social_links;
 
+      container.register.element.addEventListener('click', tournamentRegistration);
+      function tournamentRegistration() {
+         if (!tournament.registration) tournament.registration = {};
+         let existing_link = tournament.registration.link;
+         displayGen.enterLink(existing_link, lang.tr('tournaments.registration'), trnyRegLink);
+         function trnyRegLink(link) {
+            displayGen.closeModal();
+            if (!checkLink(link)) return invalidURL();
+            let changed = (tournament.registration.link || '') != (link || '');
+            tournament.registration.link = link;
+            tournament.registration.label = lang.tr('tournaments.register');
+            if (changed) saveTournament(tournament);
+         }
+         function checkLink(l) {
+            let parts = l.split('/');
+            let http =  l.indexOf('http://') == 0 || l.indexOf('https://') == 0;
+            return parts.length >= 4 && http;
+         }
+      }
       container.edit_notes.element.addEventListener('click', () => {
          let visible = container.notes_entry.element.style.display == 'inline';
          if (!visible) {
@@ -2121,6 +2143,7 @@ export const tournamentDisplay = function() {
          container.delegate.element.style.display = (bool || tournament.delegated) && delegation && same_org ? 'inline' : 'none';
          container.pub_link.element.style.display = bool && publications ? 'inline' : 'none';
          container.edit_notes.element.style.display = bool && same_org ? 'inline' : 'none';
+         container.register.element.style.display = bool && same_org ? 'inline' : 'none';
          container.social.element.style.display = bool && same_org ? 'inline' : 'none';
          container.stats.element.style.display = tournament.stats && bool && same_org ? 'inline' : 'none';
          container.push2cloud.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
@@ -2433,9 +2456,13 @@ export const tournamentDisplay = function() {
                saveTournament(tournament);
             }
          },
-         removeAll: function(e) {
+         removeAll: function(e, force) {
             if (!state.edit || e.active) return;
-            warnIfCreated(e).then(doIt, () => { return; });
+            if (force) {
+               doIt();
+            } else {
+               warnIfCreated(e).then(doIt, () => { return; });
+            }
             function doIt() {
                e.approved = [];
                e.draw_created = false;
@@ -4260,6 +4287,7 @@ export const tournamentDisplay = function() {
 
             let newLatLng = new L.LatLng(lat, lng);
             marker.setLatLng(newLatLng);
+            coms.emitTmx({ notice: `Setting Location: ${lat}/${lng}`, version: env.version }); 
          }
 
          function nextFieldFocus(field, increment=1, delay=50) {
@@ -4860,24 +4888,32 @@ export const tournamentDisplay = function() {
 
          let setFormat = (value) => { 
             tmxTour.clear();
-            // cleanup
-            delete e.teams;
-            modifyApproved.removeAll(e);
+            warnIfCreated(e).then(doIt, resetDDLB);
 
-            e.regenerate = 'setFormat';
-            e.format = value; 
+            function resetDDLB() {
+               details.format.ddlb.setValue(e.format || 'S', 'white');
+            }
 
-            let category = e.category || tournament.category;
-            let format = e.format == 'D' ? 'doubles' : 'singles';
-            e.score_format = tfx.getScoreboardSettings({ format, category });
-            e.scoring = scoreBoard.getScoring(e.score_format);
-            displayScoring(e.scoring);
+            function doIt() {
+               // cleanup
+               delete e.teams;
+               modifyApproved.removeAll(e, true);
 
-            eventName(e);
-            configDrawType(e);
-            enableEventTeams(e);
-            saveTournament(tournament);
-            outOfDate(e);
+               e.regenerate = 'setFormat';
+               e.format = value; 
+
+               let category = e.category || tournament.category;
+               let format = e.format == 'D' ? 'doubles' : 'singles';
+               e.score_format = tfx.getScoreboardSettings({ format, category });
+               e.scoring = scoreBoard.getScoring(e.score_format);
+               displayScoring(e.scoring);
+
+               eventName(e);
+               configDrawType(e);
+               enableEventTeams(e);
+               saveTournament(tournament);
+               outOfDate(e);
+            }
          }
 
          details.format.ddlb = new dd.DropDown({ element: details.format.element, onChange: setFormat });
@@ -4967,7 +5003,7 @@ export const tournamentDisplay = function() {
          configDrawType(e);
 
          let displayScoring = (scoring_format) => details.scoring.element.innerHTML = scoring_format;
-         let changeScoring = () => {
+         let setScoring = () => {
             if (state.edit) {
                document.body.style.overflow  = 'hidden';
                let cfg_obj = scoreBoard.scoreBoardConfig();
@@ -4977,8 +5013,11 @@ export const tournamentDisplay = function() {
                let stg = Object.assign({}, tfx.getScoreboardSettings({ category: ctgy, format: e.score_format }), e.score_format);
                scoreBoard.configureScoring({ sobj: cfg_obj, stg });
                sb_config.on('click', removeConfigScoring);
-               cfg_obj.cancel.element.addEventListener('click', removeConfigScoring)
-               cfg_obj.accept.element.addEventListener('click', () => tfx.modifyEventScoring({ cfg_obj, tournament, evt: e, callback: finish }))
+               cfg_obj.cancel.element.addEventListener('click', removeConfigScoring);
+               cfg_obj.accept.element.addEventListener('click', () => {
+                  let format = e.format == 'D' ? 'doubles' : 'singles';
+                  tfx.modifyEventScoring({ cfg_obj, tournament, evt: e, callback: finish, format })
+               });
 
                function finish() {
                   saveTournament(tournament);
@@ -4993,7 +5032,7 @@ export const tournamentDisplay = function() {
             }
          }
 
-         details.scoring.element.addEventListener('click', changeScoring);
+         details.scoring.element.addEventListener('click', setScoring);
          displayScoring(e.scoring || '3/6/7T');
 
          if (!state.edit || e.active) {
@@ -6654,13 +6693,7 @@ export const tournamentDisplay = function() {
             if (state.edit && match) {
                let e = tfx.findEventByID(tournament, match.event.euid);
 
-               let existing_scores = match.score ? 
-                  scoreBoard.convertStringScore({
-                     string_score: match.score,
-                     score_format: match.score_format || {},
-                     winner_index: match.source.winner_index
-                  }) : undefined;
-
+               let existing_scores = mfx.getExistingScores({match});
                let scoreSubmitted = (outcome) => {
                   displayGen.escapeFx = undefined;
                   if (outcome && outcome.delegate) return delegateMatch(match, outcome.teams, outcome.score_format);
@@ -6684,6 +6717,7 @@ export const tournamentDisplay = function() {
                      match.score = outcome.score;
                      if (outcome.score) match.status = '';
                      match.score_format = outcome.score_format;
+                     match.set_scores = outcome.set_scores;
                      updateScheduleBox(match);
 
                      // now update matches to show new matches resulting from completion
@@ -6703,23 +6737,16 @@ export const tournamentDisplay = function() {
                   if (match.teams.length != 2 || unQualified(match.teams)) {
                      console.log('not two teams');
                   } else {
-                     let muid = match.muid;
-                     let round_name = match.round_name || '';
-                     let score_format = match.score_format || e.score_format || {};
-                     if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
-
-
-                     let delegation = env.scoring.delegation;
                      scoreBoard.setMatchScore({
-                        muid,
                         container,
-                        delegation,
-                        round_name,
-                        score_format,
                         existing_scores,
+                        muid: match.muid,
                         teams: match.teams,
-                        callback: scoreSubmitted,
                         flags: env.assets.flags,
+                        callback: scoreSubmitted,
+                        round_name: match.round_name || '',
+                        delegation: env.scoring.delegation,
+                        score_format: mfx.getScoringFormat({ e, match }),
                      });
                   }
                }
@@ -7518,13 +7545,7 @@ export const tournamentDisplay = function() {
          util.addEventToClass('player_click', playerInMatchContext, container.matches.element, 'contextmenu');
 
          function enterMatchScore(e, match) {
-            let existing_scores = match && match.match && match.match.score ? 
-               scoreBoard.convertStringScore({
-                  string_score: match.match.score,
-                  score_format: match.match.score_format || {},
-                  winner_index: match.match.winner_index
-               }) : undefined;
-
+            let existing_scores = mfx.getExistingScores({match: match && match.match});
             let scoreSubmitted = (outcome) => {
                displayGen.escapeFx = undefined;
 
@@ -7547,23 +7568,16 @@ export const tournamentDisplay = function() {
             }
 
             if (match && match.teams) {
-               let muid = match.match.muid;
-               let round_name = match.round_name || '';
-
-               let score_format = match.score_format || e.score_format || {};
-               if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
-
-               let delegation = env.scoring.delegation;
                scoreBoard.setMatchScore({
-                  muid,
                   container,
-                  delegation,
-                  round_name,
-                  score_format,
                   existing_scores,
                   teams: match.teams,
-                  callback: scoreSubmitted,
+                  muid: match.match.muid,
                   flags: env.assets.flags,
+                  callback: scoreSubmitted,
+                  round_name: match.round_name || '',
+                  delegation: env.scoring.delegation,
+                  score_format: mfx.getScoringFormat({ e, match }),
                });
             }
          }
@@ -8053,30 +8067,17 @@ export const tournamentDisplay = function() {
             let teams = match.teams && [].concat(...match.teams.map(t=>[].concat(...t))).filter(f=>f);
             let all_players = teams && ((match.format == 'doubles' && teams.length == 4) || (match.format == 'singles' && teams.length == 2));
             if (state.edit && all_players) {
-
-               let scoreboard = env.scoreboard.settings;
-               let scoring_format = (e.scoring_format && e.scoring_format[match.format]) || scoreboard[match.format];
-               let score_format = match.score_format || scoring_format || {};
-               if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
-
-               let existing_scores = match.match.score ? 
-                  scoreBoard.convertStringScore({
-                     string_score: match.match.score,
-                     score_format: match.match.score_format || {},
-                     winner_index: match.match.winner_index
-                  }) : undefined;
-
-               let delegation = env.scoring.delegation;
+               let existing_scores = mfx.getExistingScores({match: match && match.match});
                scoreBoard.setMatchScore({
-                  delegation,
+                  container,
+                  existing_scores,
                   muid: match_muid,
                   teams: match.teams,
-                  existing_scores,
-                  container,
-                  score_format,
-                  round_name: match.round_name,
-                  callback: scoreSubmitted,
                   flags: env.assets.flags,
+                  callback: scoreSubmitted,
+                  round_name: match.round_name,
+                  delegation: env.scoring.delegation,
+                  score_format: mfx.getScoringFormat({ e: evt, match }),
                });
 
                function scoreSubmitted(outcome) {
@@ -8120,6 +8121,7 @@ export const tournamentDisplay = function() {
          if (result.linkchanges) approvedChanged(result.qlink);
 
          if (result.deleted_muid) {
+            console.log('delete match from db');
             db.deleteMatch(result.deleted_muid);
             updateAfterDelete(e);
          } else {
@@ -8354,13 +8356,7 @@ export const tournamentDisplay = function() {
             rr_draw.unHighlightCells();
             rr_draw.highlightCell(d);
 
-            let existing_scores = (d.match && d.match.score) ? 
-               scoreBoard.convertStringScore({
-                  string_score: d.match.score,
-                  score_format: d.match.score_format || {},
-                  winner_index: d.match.winner_index
-               }) : undefined;
-
+            let existing_scores = mfx.getExistingScores({match: d.match});
             let scoreSubmitted = (outcome) => {
                displayGen.escapeFx = undefined;
                rr_draw.unHighlightCells();
@@ -8380,23 +8376,17 @@ export const tournamentDisplay = function() {
 
             if (d.match && d.match.players) {
 
-               let teams = d.match.teams;
-               let muid = d.match.muid;
-               let evnt = displayed.draw_event;
-               let score_format = d.match.score_format || evnt.score_format || {};
-               if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
-
                let delegation = env.scoring.delegation;
                scoreBoard.setMatchScore({
-                  muid,
-                  teams,
+                  muid: d.match.muid,
+                  teams: d.match.teams,
                   container,
                   delegation,
-                  score_format,
-                  round_name: d.match.round_name || 'RR',
                   existing_scores,
-                  callback: scoreSubmitted,
                   flags: env.assets.flags,
+                  callback: scoreSubmitted,
+                  round_name: d.match.round_name || 'RR',
+                  score_format: mfx.getScoringFormat({ e: displayed.draw_event, match: d.match }),
                });
             } else {
                console.log('missing match data');
@@ -8493,7 +8483,6 @@ export const tournamentDisplay = function() {
          function captureContextPopUp(d) {
             if (state.edit) {
                let coords = getCoords(d, container.draws.element);
-
                if (d3.event.ctrlKey || d3.event.shiftKey) {
                   contextPopUp(d, coords);
                } else if (tfx.isTeam(tournament)) {
@@ -8514,17 +8503,7 @@ export const tournamentDisplay = function() {
             let draw = displayed.draw_event && displayed.draw_event.draw;
             if (!draw.scoring_active && dfx.drawInfo(draw).unassigned.length) { return; }
 
-            let existing_scores;
-            let team_match = dfx.teamMatch(d);
-            if (d.data.match && d.data.match.score) {
-               existing_scores = scoreBoard.convertStringScore({
-                  string_score: d.data.match.score,
-                  score_format: d.data.match.score_format || {},
-                  winner_index: d.data.match.winner_index,
-                  set_scores:   d.data.match.set_scores
-               });
-            }
-
+            let existing_scores = mfx.getExistingScores({match: d.data && d.data.match});
             let scoreSubmitted = (outcome) => {
                displayGen.escapeFx = undefined;
 
@@ -8534,29 +8513,23 @@ export const tournamentDisplay = function() {
                scoreTreeDraw({ tournament, e, muid: d.data.match.muid, existing_scores, outcome });
 
                tree_draw.unHighlightCells();
-               tree_draw.data(e.draw)();
+               tree_draw.data(displayed.draw_event.draw)();
                matchesTab();
             }
 
-            let round_name = (d.data.match && d.data.match.round_name) || '';
+            let team_match = dfx.teamMatch(d);
 
             if (team_match) {
-               let muid = d.data.match.muid;
-               let evnt = displayed.draw_event;
-               let score_format = (d.data.match && d.data.match.score_format) || evnt.score_format || {};
-               if (!score_format.final_set_supertiebreak) score_format.final_set_supertiebreak = e.format == 'D' ? true : false;
-
-               let delegation = env.scoring.delegation;
                let submission = {
-                  muid,
                   container,
-                  round_name,
-                  delegation,
-                  score_format,
                   existing_scores,
                   teams: team_match,
-                  callback: scoreSubmitted,
+                  muid: d.data.match.muid,
                   flags: env.assets.flags,
+                  callback: scoreSubmitted,
+                  delegation: env.scoring.delegation,
+                  round_name: (d.data.match && d.data.match.round_name) || '',
+                  score_format: mfx.getScoringFormat({ e, match: d.data.match }),
                };
                scoreBoard.setMatchScore(submission);
             }
@@ -9240,7 +9213,7 @@ export const tournamentDisplay = function() {
                alternates = eligible.map(p=>[p]);
             }
 
-            let competitors = [].concat(...draw.opponents.map(team=>team.map(p=>p.id)));
+            let competitors = !draw.opponents ? [] : [].concat(...draw.opponents.map(team=>team.map(p=>p.id)));
             let linkedQ = tfx.findEventByID(tournament, displayed.draw_event.links['Q']) || tfx.findEventByID(tournament, displayed.draw_event.links['R']);
             let linked_info = linkedQ && linkedQ.draw ? dfx.drawInfo(linkedQ.draw) : undefined;
 
@@ -9575,6 +9548,11 @@ export const tournamentDisplay = function() {
          function drawNotActiveContextClick(d, coords) {
             let current_draw = e.draw.compass ? e.draw[e.draw.compass] : e.draw;
             let position = d.data.dp;
+
+            if (tfx.isConsolationFeedIn(e)) {
+               console.log('no options for consolation feed-in');
+               return;
+            }
 
             // must be a unique selector in case there are other SVGs
             let selector = d3.select('#' + container.draws.id + ' svg').node();
@@ -10015,7 +9993,6 @@ export const tournamentDisplay = function() {
          }
 
          function updateStartDate() {
-            console.log('start:', start);
             tournament.start = util.timeUTC(start);
             startPicker.setStartRange(start);
             if (tournament.end < tournament.start) {
@@ -10065,9 +10042,7 @@ export const tournamentDisplay = function() {
             firstDay: env.calendar.first_day,
             onSelect: function() {
                let proposed_start = this.getDate();
-               console.log('proposed start:', proposed_start);
                let proposed_end = tournament.end;
-               // let cancel = () => this.setDate(util.formatDate(tournament.start));
                let cancel = () => this.setDate(new Date(tournament.start));
                unscheduleStrandedMatches({ proposed_start, proposed_end }).then(doIt, cancel);
                function doIt() {
@@ -10087,8 +10062,6 @@ export const tournamentDisplay = function() {
             onSelect: function() {
                let proposed_start = tournament.start;
                let proposed_end = this.getDate();
-               console.log('proposed end:', proposed_end);
-               // let cancel = () => this.setDate(util.formatDate(tournament.end));
                let cancel = () => this.setDate(new Date(tournament.end));
                unscheduleStrandedMatches({ proposed_start, proposed_end }).then(doIt, cancel);
                function doIt() {
@@ -10197,22 +10170,30 @@ export const tournamentDisplay = function() {
       }
 
       function editRegistrationLink() {
-         let existing_link = tournament.reg_link;
+         if (!tournament.registration) tournament.registration = {};
+
+         // handle legacy situation
+         if (tournament.reg_link) {
+            tournament.registration.registered = tournament.reg_link;
+            delete tournament.reg_link;
+         }
+
+         let existing_link = tournament.registration.registered;
          displayGen.enterLink(existing_link, lang.tr('phrases.entersheeturl'), processLink);
+
          function processLink(link) {
             displayGen.closeModal();
             if (!link) {
-               delete tournament.reg_link;
+               delete tournament.registration.registered;
                return;
             }
             let parts = link.split('/');
-            let reg_link = parts.reduce((p, c) => (!p || c.length > p.length) ? c : p, undefined);
-            let new_url = existing_link && reg_link != existing_link;
-
+            let registered = parts.reduce((p, c) => (!p || c.length > p.length) ? c : p, undefined);
+            let new_url = existing_link && registered != existing_link;
             if (new_url && (parts.indexOf('docs.google.com') < 0 || parts.indexOf('spreadsheets') < 0)) return invalidURL();
 
             if (!existing_link || new_url) {
-               tournament.reg_link = reg_link;
+               tournament.registration.registered = registered;
                updateRegisteredPlayers(true);
                saveTournament(tournament);
             }
@@ -10263,13 +10244,15 @@ export const tournamentDisplay = function() {
       function updateRegisteredPlayers(show_notice) {
          if (!state.edit) return;
          let id = show_notice ? displayGen.busy.message(`<p>${lang.tr("refresh.registered")}</p>`) : undefined;
-         let done = (registered) => {
+         let done = (registered_players) => {
             displayGen.busy.done(id, true);
-            if (registered && registered.length) addRegistered(registered);
+            if (registered_players && registered_players.length) addRegistered(registered_players);
          }
          let notConfigured = (err) => { displayGen.busy.done(id); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
-         if (tournament.reg_link) {
-            fetchFx.fetchGoogleSheet(tournament.reg_link).then(done, displayGen.invalidURLorNotShared);
+
+         let registered = (tournament.registration && tournament.registration.registered) || tournament.reg_link;
+         if (registered) {
+            fetchFx.fetchGoogleSheet(registered).then(done, displayGen.invalidURLorNotShared);
          } else {
             fetchFx.fetchRegisteredPlayers(tournament.tuid, tournament.category).then(done, notConfigured);
          }
