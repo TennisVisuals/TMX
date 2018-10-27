@@ -72,7 +72,7 @@ export const scoreBoard = function() {
 
       let floating = !sobj;
       settings.auto_score = auto_score;
-      let sf = Object.assign({}, settings, score_format, { auto_score });
+      let sf = Object.assign({}, settings, score_format);
 
       // scoped variables need to be defined before configuration
       var set_number;
@@ -409,7 +409,7 @@ export const scoreBoard = function() {
             let set = [{ supertiebreak: t1 }, { supertiebreak: t2 }];
             let which_set = set_scores.length;
 
-            if (which_set > 1 && set_scores[which_set - 1][0].supertiebreak != undefined) {
+            if (which_set && set_scores[which_set - 1][0].supertiebreak != undefined) {
                // if the last set was a supertiebreak, replace previous supertiebreak
                set_scores[which_set - 1] = set;
             } else {
@@ -494,7 +494,8 @@ export const scoreBoard = function() {
             } 
          }
 
-         set_scores[set_number] = [{ games: p1 }, { games: p2 }];
+         // set_scores[set_number] = [{ games: p1 }, { games: p2 }];
+         set_scores[set_number] = [{ games: util.parseInt(p1) || 0 }, { games: util.parseInt(p2) || 0 }];
 
          if (!scoreGoal(p1, p2) && !tbScore(p1, p2)) {
             set_scores = set_scores.slice(0, set_number + 1);
@@ -1134,13 +1135,6 @@ export const scoreBoard = function() {
          stg.games_for_set = parseInt(value);
          stg.tiebreaks_at = parseInt(value);
          let tbat_options = tiebreakAtOptions(value);
-         /*
-         let tbat_options = [
-            { key: lang.tr('none'), value: undefined },
-            { key: `${value-1}-${value-1}`, value: value - 1 },
-            { key: `${value}-${value}`, value: value },
-         ];
-         */
          sobj.tiebreaksat.ddlb.setOptions(tbat_options);
          sobj.tiebreaksat.ddlb.setValue(value, 'white');
          if (typeof changeFx == 'function') changeFx();
@@ -1152,8 +1146,8 @@ export const scoreBoard = function() {
       }
 
       function finalSet(value) {
-         stg.final_set_supertiebreak = value == 'S' ? true : false;
-         stg.final_set_tiebreak = value == 'N' ? true : false;
+         stg.final_set_supertiebreak = (value == 'S') ? true : false;
+         stg.final_set_tiebreak = (value == 'N') ? true : false;
          sobj.supertiebreakto.element.style.opacity = stg.final_set_supertiebreak ? 1 : 0;
          sobj.stb2.element.style.opacity = stg.final_set_supertiebreak ? 1 : 0;
          if (typeof changeFx == 'function') changeFx();
