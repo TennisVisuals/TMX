@@ -5,7 +5,7 @@ export const env = {
    first_time_user: false,
 
    // version is Major.minor.added.changed.fixed
-   version: '1.3.20.32.27',
+   version: '1.3.24.40.38',
    version_check: undefined,
    reset_new_versions: false,
 
@@ -129,7 +129,7 @@ export const env = {
       options: {
          bestof: [1, 3, 5],
          setsto: [4, 6, 8, 9],
-         tiebreaksto: [7, 12],
+         tiebreaksto: [5, 7, 12],
          supertiebreakto: [7, 10, 21]
       },
       settings: {
