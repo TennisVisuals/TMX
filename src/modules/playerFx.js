@@ -291,7 +291,7 @@ export const playerFx = function() {
       return dual;
    }
 
-   fx.playerCopy = (p) => {
+   fx.playerCopy = (p, include=[], exclude=[]) => {
       if (!p) return {};
       let player = {
          id: p.id,
@@ -315,6 +315,8 @@ export const playerFx = function() {
          category_ranking: p.category_ranking,
          modified_ranking: p.modified_ranking,
       }
+      Array.isArray(include) && include.forEach(attr => player[attr] = p[attr]);
+      Array.isArray(exclude) && exclude.forEach(attr => delete player[attr]);
       return player;
    }
 
@@ -529,7 +531,7 @@ export const playerFx = function() {
       });
 
       let defineAttr = (attr, evt, required, elem) => {
-         player[attr] = elem ? elem.value : evt? evt.target.value : undefined;
+         player[attr] = elem ? elem.value : evt ? evt.target.value : undefined;
          if (required) player_container[attr].element.style.background = player[attr] ? 'white' : 'yellow';
          if ((!evt || evt.which == 13 || evt.which == 9) && (!required || (required && player[attr]))) return nextFieldFocus(attr);
       }
@@ -603,8 +605,8 @@ export const playerFx = function() {
       category = category ? staging.legacyCategory(category) : 0;
       let ages = category && categories && categories[category] && categories[category].ages;
       let year = new Date().getFullYear();
-      let min_year = year - ((ages && parseInt(ages.from)) || 0);
-      let max_year = year - ((ages && parseInt(ages.to)) || 0);
+      let min_year = year - ((ages && parseInt(ages.from)) || 4);
+      let max_year = year - ((ages && parseInt(ages.to)) || 90);
       let daterange = { start: `${max_year}-01-01`, end: `${min_year}-12-31` };
       let require_ioc = env.players.require.ioc;
 
@@ -617,12 +619,13 @@ export const playerFx = function() {
       // try to make a reasonable start year
       let start_year = year - max_year < 17 ? max_year : min_year - 10;
       let start_date = player.birth ? new Date(player.birth) : new Date(start_year, 11, 31);
+      let set_default = player.birth ? true : false;
 
       let birthdayPicker = new Pikaday({
          field: player_container.birth.element,
          i18n: lang.obj('i18n'),
-         // defaultDate: start_date,
-         setDefaultDate: true,
+         defaultDate: start_date,
+         setDefaultDate: set_default,
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
          firstDay: env.calendar.first_day,
@@ -717,7 +720,10 @@ export const playerFx = function() {
          let datestring = elem.value;
          let valid_date = (!ages && !datestring) || util.validDate(datestring, daterange);
          elem.style.background = valid_date ? 'white' : 'yellow';
-         if (valid_date) return defineAttr('birth', evt, ages, elem);
+         if (valid_date) {
+            console.log('valid', elem);
+            return defineAttr('birth', evt, ages, elem);
+         }
       }
 
       player_container.last_name.element.addEventListener('keydown', (evt) => { if (evt.shiftKey && evt.which == 9) nextFieldFocus('email'); });
