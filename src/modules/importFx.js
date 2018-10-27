@@ -143,11 +143,14 @@ export const importFx = function() {
          if (!player.first_name || !player.last_name) return;
 
          player.email = findAttr(row, ['e-mail', 'email']);
-         player.phone = findAttr(row, ['phone']);
-         player.school = findAttr(row, ['School']);
-         player.profile = findAttr(row, ['Profile', 'UTR Profile', 'UTR Player Profile Link']);
+         player.phone = findAttr(row, ['phone', 'Phone Number', "Player's Phone Number"]);
+         player.city = findAttr(row, ['City']);
+         player.state = findAttr(row, ['State']);
+         player.school = findAttr(row, ['School', 'College']);
+         player.profile = findAttr(row, ['Profile', 'UTR Profile', 'UTR Player Profile Link', "Player's UTR Profile Link"]);
          player.location = findAttr(row, ['Location']);
-         player.rank = findAttr(row, ['Rank']);
+         player.rank = findAttr(row, ['Rank', 'Ranking']);
+         // player.modified_rating = findAttr(row, ['Rating']);
 
          let parenthetical = /\((.*)\)/;
          if (player.school && player.school.match(parenthetical)) {
@@ -156,14 +159,15 @@ export const importFx = function() {
 
          player.school_abbr = findAttr(row, ['School Abbreviation', 'School Abbr', 'School Code']);
 
-         let gender = findAttr(row, ['Gender', 'Sex']);
-         if (['Male', 'Man', 'M', 'Boy'].indexOf(gender) >= 0) player.sex = 'M';
-         if (['Female', 'W', 'Girl', 'Woman'].indexOf(gender) >= 0) player.sex = 'W';
+         let gender = findAttr(row, ['Gender', 'Sex', "Player's Gender"]);
+         if (['Male', 'Man', 'M', 'B', 'Boy'].indexOf(gender) >= 0) player.sex = 'M';
+         if (['Female', 'W', 'F', 'G', 'Girl', 'Woman'].indexOf(gender) >= 0) player.sex = 'W';
 
-         let country = findAttr(row, ['Country']);
+         let country = findAttr(row, ['Country', 'Nationality']);
          if (country) { player.ioc = iocs.indexOf(country.toLowerCase()) >= 0 ? country.toLowerCase() : code_by_country[compressName(country)]; }
+         let ioc = findAttr(row, ['IOC']);
 
-         let birth = findAttr(row, ['Birth', 'Birthdate', 'Birthday', 'Birth Date', 'Date of Birth']);
+         let birth = findAttr(row, ['Birth', 'Birthdate', 'Birthday', 'Birth Date', 'Date of Birth', "Player's Birthdate"]);
          if (birth) {
             let birthdate = new Date(birth);
             player.birth = [birthdate.getFullYear(), birthdate.getMonth() + 1, birthdate.getDate()].join('-');
