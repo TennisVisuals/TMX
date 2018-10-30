@@ -91,25 +91,11 @@ export const fetchFx = function() {
             let fetchFx = s.fx ? util.createFx(s.fx) : undefined;
             if (!fetchFx || typeof fetchFx != 'function') return;
 
-            let obj = displayGen.entryModal('tournaments.id', false, coords);
-            displayGen.escapeModal();
-            let entry_modal = d3.select(obj.entry_modal.element);
-            let removeEntryModal = () => {
-               entry_modal.remove();
-               document.body.style.overflow = null;
-               displayGen.escapeFx = undefined;
+            displayGen.enterLink(undefined, lang.tr('tournaments.id'), processID);
+            function processID(id) {
+               displayGen.closeModal();
+               if (id) fetchFx(id, fetchHTML).then(completeFetch, ()=>displayGen.popUpMessage(lang.tr('phrases.notfound')));
             }
-
-            obj.search_field.element.addEventListener("keyup", function(e) { 
-               if (e.which == 13) {
-                  let id = obj.search_field.element.value;
-                  if (id) fetchFx(id, fetchHTML).then(completeFetch, ()=>displayGen.popUpMessage(lang.tr('phrases.notfound')));
-                  removeEntryModal();
-               }
-            });
-
-            entry_modal.on('click', removeEntryModal);
-
          } else {
             console.log('no fx');
          }
@@ -547,6 +533,9 @@ export const fetchFx = function() {
                if (data && data.json && Array.isArray(data.json)) {
                   let player_rankings = Object.assign({}, ...data.json.map(r => { return { [r.id]: r }}));
                   let rankings = { category, players: player_rankings, date: new Date().getTime() };
+                  db.addCategoryRankings(rankings).then(() => resolve({ valid: true, rankings }), err => reject({ error: err }));
+               } else if (data && data.json && data.json.players && typeof data.json.players == 'object') {
+                  let rankings = { category, players: data.json.players, date: new Date().getTime() };
                   db.addCategoryRankings(rankings).then(() => resolve({ valid: true, rankings }), err => reject({ error: err }));
                } else {
                   return reject({ error: 'Error' });
