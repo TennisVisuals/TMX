@@ -2564,6 +2564,7 @@ export const displayGen = function() {
          localdownload: displayFx.uuid(),
          localdownload_state: displayFx.uuid(),
          export_points: displayFx.uuid(),
+         upload_matches: displayFx.uuid(),
          export_matches: displayFx.uuid(),
          authorize: displayFx.uuid(),
          cloudfetch: displayFx.uuid(),
@@ -2619,7 +2620,6 @@ export const displayGen = function() {
                   <div id='${ids.register}' class='${gen.info}' label='${lang.tr("tournaments.registration")}' style='display: none; margin-left: .5em;'>
                      <div class='register action_icon'></div>
                   </div>
-                  <div id='${ids.stats}' class='${gen.info}' label='${lang.tr("stats")}' style='display: none; margin-left: .5em;'> <div class='stats action_icon'></div> </div>
                   <div id='${ids.social}' class='${gen.info}' label='${lang.tr("social")}' style='display: none; margin-left: .5em;'> <div class='social action_icon'></div> </div>
                </div>
                <div class='options_center'>
@@ -2687,12 +2687,11 @@ export const displayGen = function() {
             <div id='${ids.social_media}' class='flexcenter' style='display: none; width: 100%;'>
                <textarea id='${ids.social_links}' class='social_links' wrap='soft' placeholder='Enter a list of all social media links'></textarea>
             </div>
-            <div id='${ids.stat_charts}' class='stat_charts' style='display: none'></div>
 
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
             <div class='tourlink icon_margin' context='tournament_tab'><div class='tiny_tour_icon'></div></div>
-            <div class='doclink' url='tmx_tournament_information'><div class='tiny_docs_icon' style='display: none'></div></div>
+            <div class='doclink' url='tmx_tournament_overview'><div class='tiny_docs_icon'></div></div>
          </div>
       `;
 
@@ -2891,13 +2890,20 @@ export const displayGen = function() {
 
       let matches_tab = `
          <div class='tab_section matches_tab'>
-            <div class='filters'>
-               <div class='${classes.filter_m}'><div class='filter_m action_icon filter_m_selected'></div></div>
-               <div class='${classes.filter_w}'><div class='filter_w action_icon filter_w_selected'></div></div>
-               <div class=''><div class='action_icon'></div></div>
-               <div id='${ids.export_matches}'><div class='action_icon'></div></div>
-               <div class=''><div class='action_icon'></div></div>
+            <div class='filter_row'>
+               <div class='options_left'>
+                  <div id='${ids.stats}' class='${gen.info}' label='${lang.tr("stats")}' style='display: none; margin-left: .5em;'> <div class='stats action_icon'></div> </div>
+               </div>
+               <div class='filters'>
+                  <div class='${classes.filter_m}'><div class='filter_m action_icon filter_m_selected'></div></div>
+                  <div class='${classes.filter_w}'><div class='filter_w action_icon filter_w_selected'></div></div>
+                  <div class=''><div class='action_icon'></div></div>
+                  <div id='${ids.upload_matches}'><div class='action_icon'></div></div>
+                  <div id='${ids.export_matches}'><div class='action_icon'></div></div>
+                  <div class=''><div class='action_icon'></div></div>
+               </div>
             </div>
+            <div id='${ids.stat_charts}' class='stat_charts' style='display: none'></div>
             <div id='${ids.matches}' class='tournament_match flexcol flexcenter'> </div>
          </div>
          <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
