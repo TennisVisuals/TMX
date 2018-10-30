@@ -221,6 +221,12 @@ export const exportFx = function() {
       }
    }
 
+   exp.downloadUTRmatches = (tournament, matches) => {
+      let match_records = exp.UTRmatchRecords({ matches, players: tournament.players });
+      let csv = exp.json2csv(match_records);
+      exp.downloadText(`UTR-${profile}-${tournament.tuid}-U${tournament.category}.csv`, csv);
+   }
+
    exp.UTRmatchRecords = ({ matches, players }) => {
       return matches.map(m => exp.UTRmatchRecord(m, players)).filter(r=>r);
    };
