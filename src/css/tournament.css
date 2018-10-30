@@ -1413,8 +1413,3 @@ button.ratings-submit:hover { background: #68FF33; }
    -webkit-align-content: flex-start;
    align-content: flex-start;
 }
-
-.stat_charts {
-   min-height: 10em;
-   width: 95%;
-}
