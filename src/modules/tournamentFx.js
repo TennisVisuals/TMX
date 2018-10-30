@@ -17,6 +17,11 @@ export const tournamentFx = function() {
 
    fx.settingsLoaded = () => { dfx.options(env.drawFx); }
 
+   fx.deletedMUIDs = (tournament, muids) => {
+      if (!tournament.deleted) tournament.deleted = { muids: [] };
+      tournament.deleted.muids = tournament.deleted.muids.concat(...muids);
+   }
+
    fx.addPlayers = (tournament, players) => {
       let added = 0;
       if (!tournament.players) tournament.players = [];
@@ -68,15 +73,17 @@ export const tournamentFx = function() {
    }
 
    fx.pruneMatch = (match) => {
-      delete match.date;
-      delete match.winner;
-      delete match.winner_index;
-      delete match.loser;
-      delete match.score;
-      delete match.set_scores;
-      delete match.complete;
-      delete match.result_order;
-      delete match.tournament;
+      if (match) {
+         delete match.date;
+         delete match.winner;
+         delete match.winner_index;
+         delete match.loser;
+         delete match.score;
+         delete match.set_scores;
+         delete match.complete;
+         delete match.result_order;
+         delete match.tournament;
+      }
 
       // delete match.teams;
       // delete match.round_name;
@@ -393,11 +400,13 @@ export const tournamentFx = function() {
             }
          }
       } else if (!outcome.score) {
-         var possible_to_remove = (!node.ancestor || !node.ancestor.team);
+         var possible_to_remove = (!node || !node.ancestor || !node.ancestor.team);
          if (!possible_to_remove) return { error: 'phrases.cannotchangewinner' };
-         result.deleted_muid = node.match.muid;
-         fx.pruneMatch(node.match);
-         delete node.dp;
+         if (node) {
+            result.deleted_muid = node.match.muid;
+            fx.pruneMatch(node.match);
+            delete node.dp;
+         }
       } else {
          let result = dfx.advanceToNode({
             node,
