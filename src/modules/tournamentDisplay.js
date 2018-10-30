@@ -211,14 +211,12 @@ export const tournamentDisplay = function() {
 
       function setUserAuth(result) { displayGen.authState(container.authorize.element, result.authorized || false); }
 
-      container.edit.element.style.display = sameOrg(tournament) && !tournament.delegated ? 'inline' : 'none';
-      if (tournament.delegated && sameOrg(tournament)) displayGen.delegated(container, true);
+      container.edit.element.style.display = tfx.sameOrg(tournament) && !tournament.delegated ? 'inline' : 'none';
+      if (tournament.delegated && tfx.sameOrg(tournament)) displayGen.delegated(container, true);
 
       // create and initialize draw objects
       let rr_draw = rrDraw();
       let tree_draw = treeDraw().dfxOptions(env.drawFx);
-
-      db.addDev({tree_draw});
 
       draws_context[display_context] = { roundrobin: rr_draw, tree: tree_draw };
 
@@ -680,15 +678,9 @@ export const tournamentDisplay = function() {
       container.notes.element.querySelector('.ql-editor').innerHTML = tournament.notes || '';
 
       container.stats.element.addEventListener('click', () => {
-         let visible = container.stat_charts.element.style.display == 'inline';
-         if (!visible) {
-            container.notes_entry.element.style.display = 'none';
-            container.notes_container.element.style.display = 'none';
-            container.social_media.element.style.display = 'none';
-            tmxStats.processMatches(tournament);
-         }
-         container.stat_charts.element.style.display = (visible ? 'none' : 'inline');
-         container.tournament_attrs.element.style.display = (visible ? 'flex' : 'none');
+         let visible = container.stat_charts.element.style.display != 'none';
+         container.stat_charts.element.style.display = (visible ? 'none' : 'flex');
+         if (!visible) tmxStats.processMatches(tournament, container);
       });
 
       container.social.element.addEventListener('click', () => {
@@ -836,17 +828,30 @@ export const tournamentDisplay = function() {
             choices.option2.element.addEventListener('click', () => {
                displayGen.closeModal();
                if (env.exports.utr) {
-                  downloadUTRmatches(tournament, matches);
+                  exportFx.downloadUTRmatches(tournament, matches);
                } else {
                   displayGen.popUpMessage('Not authorized to export UTR');
                }
             });
          }
+
+         /*
          function downloadUTRmatches(tournament, matches) {
             let match_records = exportFx.UTRmatchRecords({ matches, players: tournament.players });
             let csv = exportFx.json2csv(match_records);
             exportFx.downloadText(`UTR-${profile}-${tournament.tuid}-U${tournament.category}.csv`, csv);
          }
+         */
+      });
+
+      container.upload_matches.element.addEventListener('click', () => {
+         // also send record of all MUIDs which may need to be deleted because // their events were deleted
+         //
+         // tournament.deleted.muids
+         //
+         // only upload matches if authorized... and maybe it needs to be an administrator...
+         //
+         console.log('send matches to courthive cloud server');
       });
 
       container.publish_draw.element.addEventListener('contextmenu', unpublishDraw);
@@ -1316,9 +1321,11 @@ export const tournamentDisplay = function() {
             new_player.full_name = tfx.fullName(new_player, false);
 
             let rank_category = staging.legacyCategory(tournament.category);
-            fetchFx.fetchRankList(rank_category).then(addRanking, addPlayer);
+            console.log('rank category:', rank_category);
+            fetchFx.fetchRankList(rank_category).then(addRanking, (err) => { util.logError(err); addPlayer(); });
 
             function addRanking(rank_list) {
+               console.log('rank list:', rank_list);
                if (!rank_list || !rank_list.rankings || !rank_list.rankings.players) return addPlayer();
                let player_rankings = rank_list.rankings.players;
                if (player_rankings[new_player.id]) {
@@ -2056,13 +2063,14 @@ export const tournamentDisplay = function() {
 
       function setEditState() {
          let ouid = env.org && env.org.ouid;
-         let same_org = sameOrg(tournament);
+         let same_org = tfx.sameOrg(tournament);
 
          container.authorize.element.style.display = ouid && state.edit ? 'inline' : 'none';
          container.edit.element.style.display = state.edit ? 'none' : 'inline';
          container.finish.element.style.display = state.edit ? 'inline' : 'none';
          container.cloudfetch.element.style.display = state.edit && ouid && same_org ? 'inline' : 'none';
          container.export_points.element.firstChild.className = 'action_icon';
+         container.upload_matches.element.firstChild.className = 'action_icon';
          container.export_matches.element.firstChild.className = 'action_icon';
          checkAdminActions();
 
@@ -2128,27 +2136,32 @@ export const tournamentDisplay = function() {
             function enableDownloads() {
                container.export_points.element.firstChild.className = 'download action_icon';
                container.export_matches.element.firstChild.className = 'download action_icon';
+               if (env.uploads.matches) {
+                  container.upload_matches.element.firstChild.className = 'push2cloud action_icon';
+               }
             }
          }
       }
 
       function enableTournamentOptions() {
          let bool = state.edit;
-         let same_org = sameOrg(tournament);
+         let same_org = tfx.sameOrg(tournament);
          let ouid = env.org && env.org.ouid;
 
          [ 'start_date', 'end_date', 'organization', 'organizers', 'location', 'judge' ].forEach(field=>container[field].element.disabled = !bool);
          let publications = !tournament.events || !tournament.events.length ? false : tournament.events.reduce((p, c) => c.published || p, false);
          let delegation = publications && tournament.events && tournament.events.length && tournament.events.reduce((p, c) => p || c.draw_created || c.active, false);
          container.delegate.element.style.display = (bool || tournament.delegated) && delegation && same_org ? 'inline' : 'none';
-         container.pub_link.element.style.display = bool && publications ? 'inline' : 'none';
-         container.edit_notes.element.style.display = bool && same_org ? 'inline' : 'none';
-         container.register.element.style.display = bool && same_org ? 'inline' : 'none';
-         container.social.element.style.display = bool && same_org ? 'inline' : 'none';
-         container.stats.element.style.display = tournament.stats && bool && same_org ? 'inline' : 'none';
-         container.push2cloud.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
+
          container.pubTrnyInfo.element.style.display = bool && same_org && ouid ? 'inline' : 'none';
          container.localdownload.element.style.display = bool && same_org ? 'inline' : 'none';
+
+         // require ouid
+         container.edit_notes.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
+         container.register.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
+         container.social.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
+         container.pub_link.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
+         container.push2cloud.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
       }
 
       function addRegistered(registered_players) {
@@ -3550,6 +3563,10 @@ export const tournamentDisplay = function() {
 
             closeEventDetails();
 
+            let event_matches = mfx.eventMatches(e, tournament);
+            let deleted_muids = event_matches.map(m=>m && m.match && m.match.muid);
+            tfx.deletedMUIDs(tournament, deleted_muids);
+
             if (displayed.draw_event && displayed.draw_event.euid == e.euid) displayed.draw_event = null;
 
             // filter out matches from deleted event
@@ -3575,7 +3592,7 @@ export const tournamentDisplay = function() {
 
             if (!tournament.log) tournament.log = [];
             tournament.log.push({
-               deleted: { name: e.name, draw_type: e.draw_type, log: e.log },
+               deleted: { name: e.name, euid: e.euid, draw_type: e.draw_type, log: e.log },
                timestamp: new Date().getTime()
             });
 
@@ -7417,7 +7434,7 @@ export const tournamentDisplay = function() {
             var match_data = { matches: mz, points_table, points_date };
             var points = rankCalc.calcMatchesPoints(match_data);
 
-            if (sameOrg(tournament)) saveMatchesAndPoints({ tournament, matches: mz, points });
+            if (tfx.sameOrg(tournament)) saveMatchesAndPoints({ tournament, matches: mz, points });
             displayTournamentPoints(container, tournament, points, filters);
 
             function scrubPlayer(p) { return pfx.cleanPlayer(p); }
@@ -7519,15 +7536,18 @@ export const tournamentDisplay = function() {
       }
 
       function matchesTab() {
-         let t_matches = tMatches();
-         tabVisible(container, 'MT', t_matches);
+         let { total_matches, completed_matches, pending_matches, upcoming_matches } = mfx.tournamentEventMatches({ tournament, source: true });
+
+         tabVisible(container, 'MT', total_matches);
+         container.stats.element.style.display = completed_matches.length ? 'inline' : 'none';
 
          showSchedule();
-         if (!t_matches) return;
+         if (!total_matches) return;
+
+         let visible = container.stat_charts.element.style.display != 'none';
+         if (visible && completed_matches.length) tmxStats.processMatches(tournament, container);
 
          pointsTab(tournament, container, filters);
-
-         let { completed_matches, pending_matches, upcoming_matches } = mfx.tournamentEventMatches({ tournament });
 
          if (!completed_matches.length && dbmatches && dbmatches.length) {
             // TODO: is this relevent any longer?
@@ -7841,7 +7861,7 @@ export const tournamentDisplay = function() {
          let active = created && !visible ? true : displayed.draw_event ? displayed.draw_event.active : false;
          let svg = container.draws.element.querySelector('svg');
 
-         let pdf_function = sameOrg(tournament) && (visible || state.edit);
+         let pdf_function = tfx.sameOrg(tournament) && (visible || state.edit);
          document.querySelector('.' + classes.print_draw).style.display = pdf_function && svg ? 'inline' : 'none';
 
          // let draw_creation = env.publishing.publish_draw_creation;
@@ -10704,10 +10724,12 @@ export const tournamentDisplay = function() {
       return genders;
    }
 
+   /*
    function sameOrg(tournament) {
       let ouid = env.org && env.org.ouid;
       return (!tournament.org || !tournament.org.ouid) || (tournament.org.ouid && tournament.org.ouid == ouid);
    }
+   */
 
    function drawIsCreated(evt) {
       if (!evt || !evt.draw) return false;
@@ -10736,22 +10758,6 @@ export const tournamentDisplay = function() {
       let message = lang.tr(`phrases.${phrase}`);
       displayGen.popUpMessage(`<div>${message}</div>`);
    }
-
-/*
-   function invalidURLorNotShared(data) {
-      displayGen.busy.done(id, true);
-      let message = `
-         <div class='flexcol'>
-            <div>${lang.tr('phrases.invalidsheeturl')}</div>
-            <div>${lang.tr('or')}</div>
-            <div>Sheet needs to be shared so that "Anyone with the link can <b>view</b>"</div>
-            <div>${lang.tr('or')}</div>
-            <div>Sheet needs to be shared privately with CourtHive Server</div>
-         </div>
-      `;
-      displayGen.popUpMessage(message);
-   }
-   */
 
    return fx;
 }();
