@@ -100,6 +100,10 @@ export const importFx = function() {
       return isNaN(value) ? new Date(value).getTime() : new Date(+value).getTime();
    }
 
+   function syncCZEplayers(rows, callback) {
+      console.log('cze players:', rows);
+   }
+
    function importJotForm(rows, callback) {
       let players = processSheetPlayers(rows);
       if (callback && typeof callback == 'function') callback(players);
@@ -416,7 +420,7 @@ export const importFx = function() {
 
          function newTournament() {
             return new Promise((resolve, reject) => {
-               tournamentDisplay.createNewTournament({ tournament_data: load.loaded.tournament, title: lang.tr('tournaments.new'), callback: receiveNewTournament });
+               calendarFx.createNewTournament({ tournament_data: load.loaded.tournament, title: lang.tr('tournaments.new'), callback: receiveNewTournament });
 
                function receiveNewTournament(tournament) {
                   if (tournament) {
@@ -523,7 +527,8 @@ export const importFx = function() {
    function processPlayer({player, recursion = 0}) {
       return new Promise((resolve, reject) => {
          if (recursion > 1) return reject();
-         let attr = player.puid ? { field: "puid", value: player.puid } : { field: "hash", value: player.hash };
+         // let attr = player.puid ? { field: "puid", value: player.puid } : { field: "hash", value: player.hash };
+         let attr = player.id ? { field: "id", value: player.id } : { field: "hash", value: player.hash };
          db.findPlayersWhere(attr.field, attr.value).then(result => {
             if (!result.length) {
                // player does not exist, add!
@@ -931,6 +936,7 @@ export const importFx = function() {
          tournaments() { loadTournaments(json, callback); },
          tournamentsCSV() { importTournaments(json, callback); },
          jotFormCSV() { importJotForm(json, callback); },
+         czeSync() { loadPlayerList(json, callback); },
       };
 
       let data_type = identifyJSON(json);
@@ -942,10 +948,11 @@ export const importFx = function() {
    }
 
    function identifyJSON(json) {
-      let keys = Object.keys(Array.isArray(json) ? json[0] : json);
+      let keys = Object.keys(Array.isArray(json) ? json[0] : json).map(k=>k && k.toLowerCase());
       if (!keys.length) return;
 
-      if (['Submission Date', 'Submission ID'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'jotFormCSV';
+      if (['id', 'last_name', 'first_name', 'birth', 'club_name'].filter(k=>keys.indexOf(k) >= 0).length == 5) return 'czeSync';
+      if (['submission date', 'submission id'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'jotFormCSV';
       if (['id', 'category', 'ranking', 'points'].filter(k=>keys.indexOf(k) >= 0).length == 4) return 'ranklistCSV';
       if (['website', 'courts'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'clubs';
       if (['born', 'right_to_play'].filter(k=>keys.indexOf(k) >= 0).length == 2) return 'playersCSV';
