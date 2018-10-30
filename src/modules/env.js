@@ -5,7 +5,7 @@ export const env = {
    first_time_user: false,
 
    // version is Major.minor.added.changed.fixed
-   version: '1.3.24.40.38',
+   version: '1.4.1.1.0',
    version_check: undefined,
    reset_new_versions: false,
 
@@ -35,6 +35,9 @@ export const env = {
    },
    exports: {
       utr: false
+   },
+   uploads: {
+      matches: false,
    },
    locations: {
       geolocate: true,
