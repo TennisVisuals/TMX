@@ -114,8 +114,9 @@ export const calendarFx = function() {
 
          tournament.log = [];
          if (!tournament.tuid) tournament.tuid = UUID.new();
-         tournament.end = util.offsetTime(tournament.end);
-         tournament.start = util.offsetTime(tournament.start);
+
+         tournament.end = util.timeUTC(new Date(tournament.end));
+         tournament.start = util.timeUTC(new Date(tournament.start));
 
          function refresh() { generateCalendar({start, end, category}); }
          db.addTournament(tournament).then(refresh, console.log);
@@ -157,9 +158,9 @@ export const calendarFx = function() {
 
                function options(fetch, tournament_data) {
                   var options = [];
+                  options.push({ label: lang.tr('delete'), key: 'delete' });
                   if (tournamentFx.sameOrg(tournament_data)) {
                      options.push({ label: lang.tr('tournaments.edit'), key: 'edit' });
-                     options.push({ label: lang.tr('delete'), key: 'delete' });
                      if (fetch) options.push({ label: lang.tr('merge'), key: 'merge' });
                   }
 
@@ -179,9 +180,10 @@ export const calendarFx = function() {
                            displayGen.closeModal();
                            coms.requestAcknowledgement({ uuid: tuid, callback: unpublishAck });
                            unpublishTournament(tuid);
-                           // db.deleteTournament(tuid).then(done, util.logError);
                         }
-                        function unpublishAck() { db.deleteTournament(tuid).then(done, util.logError); }
+                        function unpublishAck() {
+                           db.deleteTournament(tuid).then(done, util.logError);
+                        }
                         function done() {
                            fx.displayCalendar();
                            searchBox.searchSelect('tournaments');
@@ -194,7 +196,6 @@ export const calendarFx = function() {
                   function unpublishTournament(tuid) {
                      let org = env.org;
                      let ouid = (org && org.ouid) || (tournament_data && tournament_data.org && tournament_data.org.ouid);
-                     if (!ouid) return;
 
                      let deleteTournamentEvents = { tuid, ouid, delete_tournament: true };
                      coms.emitTmx({ deleteTournamentEvents })
@@ -227,6 +228,7 @@ export const calendarFx = function() {
       let format_version = env.metadata && env.metadata.exchange_formats && env.metadata.exchange_formats.tournaments;
 
       var trny = Object.assign({}, tournament_data);
+
       if (!trny.org) trny.org = env.org;
       if (!trny.events) trny.events = [];
       if (!trny.metadata) trny.metadata = { format_version };
@@ -244,7 +246,14 @@ export const calendarFx = function() {
          if (field_order[next_field] == 'none') container.judge.element.focus();
       }
 
-      function setTournamentType(value) { trny.type = value; }
+      function setTournamentType(value) {
+         if (trny && trny.events && trny.events.length) {
+            container.tournament_type.ddlb.setValue(trny.type || '', 'white');
+            return displayGen.popUpMessage('Cannot change type after events have been created.');
+         } else {
+            trny.type = value;
+         }
+      }
 
       if (env.tournaments && Object.keys(env.tournaments).reduce((p, c) => p || c)) {
          Array.from(container.form.element.querySelectorAll('.tournament_types')).forEach(elmnt => elmnt.style.display = 'flex');
@@ -275,9 +284,6 @@ export const calendarFx = function() {
       function setRank(value) {
          if (value && tournament_data && tournament_data.events && tournament_data.events.length) {
             tournament_data.events.forEach(e=>{ if (!e.rank) e.rank = value; });
-         } else {
-            // tournament rank is no longer required so no need to notify with yellow
-            // setTimeout(function() { container.rank.ddlb.selectionBackground('yellow'); }, 200);
          }
          trny.rank = value;
       }
@@ -323,8 +329,7 @@ export const calendarFx = function() {
       let saveTrny = () => { 
          let valid_start = !trny.start ? false : typeof trny.start == 'string' ? util.validDate(trny.start) : true;
          let valid_end   = !trny.end   ? false : typeof trny.end   == 'string' ? util.validDate(trny.end) : true;
-         if (!valid_start || !valid_end || !trny.name || !validRange() || !trny.category) return;
-
+         if (!valid_start || !valid_end || !trny.name || !trny.category) return;
          if (typeof callback == 'function') callback(trny); 
          displayGen.closeModal();
       }
@@ -344,20 +349,6 @@ export const calendarFx = function() {
          if (evt.which == 9) nextFieldFocus(evt.shiftKey ? 'phone' : 'cancel');
       }
 
-      function validRange() {
-         if (!trny.start || !trny.end) return true;
-       
-         // let sdate = new Date(trny.start);
-         // let edate = new Date(trny.end);
-         let sdate = util.offsetDate(trny.start);
-         let edate = util.offsetDate(trny.end);
-         let days = Math.round((edate-sdate)/(1000*60*60*24));
-         let valid = (days >= 0 && days < 15);
-         container.start.element.style.background = valid ? 'white' : 'yellow';
-         container.end.element.style.background = valid ? 'white' : 'yellow';
-         return valid;
-      }
-
       let validateDate = (evt, attr, element) => {
          if (evt) element = evt.target;
          if (element) {
@@ -368,15 +359,13 @@ export const calendarFx = function() {
             } else {
                trny[attr] = undefined;
             }
-            element.style.background = valid_date && validRange() ? 'white' : 'yellow';
+            element.style.background = valid_date ? 'white' : 'yellow';
          }
 
          container.start.element.style.background = util.validDate(container.start.element.value) ? 'white' : 'yellow';
          container.end.element.style.background = util.validDate(container.end.element.value) ? 'white' : 'yellow';
       }
 
-      // let start = trny.start || util.timeUTC(new Date());
-      // let end = trny.end || null;
       let start = util.offsetDate(trny.start);
       let end = util.offsetDate(trny.end);
 
@@ -387,11 +376,7 @@ export const calendarFx = function() {
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
          onSelect: function() { 
-
-            // let this_date = this.getDate();
-            // start = new Date(util.timeUTC(this_date));
             start = this.getDate();
-
             updateStartDate();
             validateDate(undefined, 'start', container.start.element);
             if (end < start) {
@@ -401,8 +386,6 @@ export const calendarFx = function() {
          },
       });
       env.date_pickers.push(startPicker);
-      // startPicker.setStartRange(new Date(start));
-      // if (end) startPicker.setEndRange(new Date(end));
       startPicker.setStartRange(start);
       if (end) startPicker.setEndRange(end);
 
@@ -411,11 +394,7 @@ export const calendarFx = function() {
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
          onSelect: function() {
-
-            // let this_date = this.getDate();
-            // end = new Date(util.timeUTC(this_date));
             end = this.getDate();
-
             updateEndDate();
             updateCategoriesAndRankings();
             validateDate(undefined, 'end', container.end.element);
@@ -426,9 +405,6 @@ export const calendarFx = function() {
          },
       });
       env.date_pickers.push(endPicker);
-      // endPicker.setStartRange(new Date(start));
-      // endPicker.setMinDate(new Date(start));
-      // if (end) endPicker.setEndRange(new Date(end));
       endPicker.setStartRange(start);
       endPicker.setMinDate(start);
       if (end) endPicker.setEndRange(end);
@@ -456,19 +432,13 @@ export const calendarFx = function() {
       container.save.element.addEventListener('keyup', handleSaveKeyUp, false);
 
       function updateStartDate() {
-         trny.start = start;
-         // startPicker.setStartRange(new Date(start));
-         // endPicker.setStartRange(new Date(start));
-         // endPicker.setMinDate(new Date(start));
+         trny.start = util.timeUTC(start);
          startPicker.setStartRange(start);
          endPicker.setStartRange(start);
          endPicker.setMinDate(start);
       };
       function updateEndDate() {
-         trny.end = end;
-         // startPicker.setEndRange(new Date(end));
-         // startPicker.setMaxDate(new Date(end));
-         // endPicker.setEndRange(new Date(end));
+         trny.end = util.timeUTC(end);
          startPicker.setEndRange(end);
          startPicker.setMaxDate(end);
          endPicker.setEndRange(end);
@@ -487,4 +457,3 @@ export const calendarFx = function() {
 
    return fx;
 }();
-
