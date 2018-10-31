@@ -229,11 +229,7 @@ export const tournamentFx = function() {
 
    fx.safeScoreTreeDraw = ({ tournament, e, muid, existing_scores, outcome }) => {
       try { return fx.scoreTreeDraw({ tournament, e, muid, existing_scores, outcome }); }
-      catch (err) { 
-         console.log('error:', err);
-         fx.logEventError(e, err, 'tournamentFx.scoreTreeDraw');
-         return {};
-      }
+      catch (err) { fx.logEventError(e, err, 'tournamentFx.scoreTreeDraw'); }
    }
 
    fx.calcDualMatchesScore = (e, dual_match) => {
@@ -1502,12 +1498,7 @@ export const tournamentFx = function() {
    }
 
    fx.logEventError = (evt, err, context) => {
-      console.log(err);
-      let stack = err.stack.toString();
-      let error_message = err.toString();
-      let eventError = { stack, error_message, event: CircularJSON.stringify(evt) };
-
-      coms.emitTmx({ eventError });
+      coms.logError(err);
 
       if (!evt.error_log) evt.error_log = [];
       let timestamp = new Date().getTime();
