@@ -33,6 +33,7 @@ import { rrDraw, treeDraw, drawFx } from './drawFx';
 
 export const tournamentDisplay = function() {
    let fx = {};
+
    let ccTime = 0;         // contextClick time; used to prevent Safari event propagation to click
    let mfx = matchFx;
    let pfx = playerFx;
@@ -2686,7 +2687,7 @@ export const tournamentDisplay = function() {
             let parts = link.split('/');
             let roster_link = parts.reduce((p, c) => (!p || c.length > p.length) ? c : p, undefined);
             let new_url = existing_link && roster_link != existing_link;
-            if (new_url && (parts.indexOf('docs.google.com') < 0 || parts.indexOf('spreadsheets') < 0)) return invalidURL();
+            if (parts.indexOf('docs.google.com') < 0 || parts.indexOf('spreadsheets') < 0) return invalidURL();
 
             if (!existing_link || new_url) {
                displayed.team.roster_link = roster_link;
@@ -5462,6 +5463,8 @@ export const tournamentDisplay = function() {
          }
 
          let roundrobin = () => {
+            let seed_positions = env.draws.tree_draw.seeds.restrict_placement;
+
             let brackets = emptyBrackets(e.brackets || 1);
             let bracket_size = e.bracket_size;
 
@@ -5469,19 +5472,27 @@ export const tournamentDisplay = function() {
                brackets,
                bracket_size,
             };
+
             e.draw.opponents = approved_opponents;
-            e.draw.seeded_teams = dfx.seededTeams({ teams: e.draw.opponents });
-            e.draw.unseeded_teams = tfx.teamSort(e.draw.opponents.filter(f=>!f[0].seed));
 
-            e.draw.seed_placements = dfx.roundrobinSeedPlacements({ draw: e.draw, bracket_size });
-            dfx.placeSeedGroups({ draw: e.draw, count: e.brackets });
+            if (!seed_positions) {
+               e.draw.unseeded_teams = tfx.teamSort(e.draw.opponents);
+               e.draw.seed_placements = [];
+               dfx.rrByeDistribution({ draw: e.draw });
+            } else {
+               e.draw.seeded_teams = dfx.seededTeams({ teams: e.draw.opponents });
+               e.draw.unseeded_teams = tfx.teamSort(e.draw.opponents.filter(f=>!f[0].seed));
 
-            dfx.rrByeDistribution({ draw: e.draw });
-            
-            if (e.automated) {
-               dfx.placeSeedGroup({ draw: e.draw, group_index: e.brackets });
-               dfx.rrUnseededPlacements({ draw: e.draw });
-               drawCreated(e);
+               e.draw.seed_placements = dfx.roundrobinSeedPlacements({ draw: e.draw, bracket_size });
+               dfx.placeSeedGroups({ draw: e.draw, count: e.brackets });
+
+               dfx.rrByeDistribution({ draw: e.draw });
+               
+               if (e.automated) {
+                  dfx.placeSeedGroup({ draw: e.draw, group_index: e.brackets });
+                  dfx.rrUnseededPlacements({ draw: e.draw });
+                  drawCreated(e);
+               }
             }
          }
 
