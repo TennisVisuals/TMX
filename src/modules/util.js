@@ -4,6 +4,8 @@ import { cleanScore } from './cleanScore';
 export const util = function() {
    let util = {};
 
+   util.get = R.prop('tasks');
+
    util.clearHistory = () => { history.pushState('', document.title, window.location.pathname); }
 
    util.HHMMSS = (s, format) => {
