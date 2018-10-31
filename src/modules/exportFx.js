@@ -19,6 +19,12 @@ export const exportFx = function() {
    let dfx = drawFx();
    let mfx = matchFx;
 
+   // THIS IS A TEST CASE FOR BABEL UGLIFY
+   // may need to: npm install --save-dev @babel/plugin-transform-async-to-generator
+   // https://www.npmjs.com/package/@babel/plugin-transform-async-to-generator
+   // https://pxpx.co.uk/blog/article/compiling-es6-with-gulp-babel
+   // exp.settings = async () => { console.log(await db.findAllSettings()); }
+
    let o = {
       rows_per_page: 34,
       minimum_empty: 8,
