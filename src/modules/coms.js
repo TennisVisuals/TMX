@@ -34,6 +34,19 @@ export const coms = function() {
 
    mod.fx = funcs;
 
+   // takes a promise or async function
+   mod.catcyAsync = (fn) => (...args) => fn(...args).catch(err => mod.logError(err)); 
+   mod.catchSync = (fn) => (...args) => { try { return fn(...args) } catch(err) { mod.logError(err); } };
+
+   mod.logError = (err) => {
+      console.log(err);
+      let stack = err.stack.toString();
+      let error_message = err.toString();
+      let eventError = { stack, error_message, event: CircularJSON.stringify(evt) };
+
+      mod.emitTmx({ eventError });
+   }
+
    let queue = [];
    let connected = false;
 
@@ -55,7 +68,7 @@ export const coms = function() {
    mod.versionNotice = (version) => {
       db.findSetting('superUser').then(setting => {
          if (setting && setting.auth && util.string2boolean(setting.auth.versioning)) {
-            coms.emitTmx({ updateVersion: { version, client: 'tmx', notice: `Version ${version} available` } });
+            mod.emitTmx({ updateVersion: { version, client: 'tmx', notice: `Version ${version} available` } });
          }
       });
    }
@@ -146,8 +159,8 @@ export const coms = function() {
    }
 
    function tmxDelegation(msg) {
-      if (msg && msg.keyset != undefined && coms.delegated && typeof coms.delegated == 'function') coms.delegated(msg);
-      if (msg && msg.revoked != undefined && coms.revoked && typeof coms.revoked == 'function') coms.revoked(msg);
+      if (msg && msg.keyset != undefined && mod.delegated && typeof mod.delegated == 'function') mod.delegated(msg);
+      if (msg && msg.revoked != undefined && mod.revoked && typeof mod.revoked == 'function') mod.revoked(msg);
    }
 
    mod.sendKey = (key) => { mod.emitTmx({ key }); }
