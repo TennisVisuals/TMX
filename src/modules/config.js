@@ -23,6 +23,10 @@ import { tournamentDisplay } from './tournamentDisplay';
 
 export const config = function() {
 
+   window.onerror = function (msg, url, lineNo, columnNo, error) {
+     console.log('error:', message);
+     return false;
+   }
    // module container
    var fx = {};
 
@@ -678,7 +682,7 @@ export const config = function() {
    }
 
    function initDB() {
-      db.initDB().then(checkQueryString, dbUpgrade).then(envSettings).then(DBReady);
+      coms.catcyAsync(db.initDB)().then(checkQueryString, dbUpgrade).then(envSettings).then(DBReady);
       function dbUpgrade() { displayGen.showConfigModal('<h2>Database Upgraded</h2><div style="margin: 1em;">Please refresh your cache or load tmx+</div>'); }
 
       function DBReady() {
