@@ -2964,11 +2964,11 @@ export const displayGen = function() {
                   </div>
                </div>
                <div class='flexrow'>
-                  <div class='${classes.refresh_registrations}' label='${lang.tr("refresh.general")}'>
-                     <div class='action_icon refresh_registrations refresh_icon'></div>
-                  </div>
                   <div class='${classes.reg_link} ${gen.info}' label='${lang.tr("signin.reglink")}' style='display: none'>
                      <div class='action_icon reg_link link_inactive'></div>
+                  </div>
+                  <div class='${classes.refresh_registrations}' label='${lang.tr("refresh.general")}'>
+                     <div class='action_icon refresh_registrations refresh_icon'></div>
                   </div>
                </div>
                <div class='filters'>
