@@ -96,13 +96,14 @@ gulp.task('concat-lib', ['uglify-lib'], function() {
       'node_modules/qrious/dist/qrious.min.js',
       'node_modules/awesomplete/awesomplete.min.js',
       'node_modules/leaflet/dist/leaflet.js',
-      'node_modules/moment/min/moment.min.js',
+//       'node_modules/moment/min/moment.min.js',
       'node_modules/sanitize-html/dist/sanitize-html.min.js',
       'node_modules/intro.js/minified/intro.min.js',
 
       'src/external/quill.min.js',
       'src/external/d3.superformula.min.js',
       'src/external/bundle.min.js',
+      'src/external/ramda.min.js',
    ])
    .pipe(concat('lib_bundle.js'))
    .pipe(gulp.dest(target + '/lib'));
