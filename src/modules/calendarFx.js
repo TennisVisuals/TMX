@@ -54,6 +54,7 @@ export const calendarFx = function() {
          field: calendar_container.start.element,
          i18n: lang.obj('i18n'),
          defaultDate: start,
+         toString(date) { return util.formatDate(date); },
          setDefaultDate: true,
          firstDay: env.calendar.first_day,
          onSelect: function() {
@@ -69,6 +70,7 @@ export const calendarFx = function() {
          i18n: lang.obj('i18n'),
          minDate: start,
          defaultDate: end,
+         toString(date) { return util.formatDate(date); },
          setDefaultDate: true,
          firstDay: env.calendar.first_day,
          onSelect: function() {
@@ -373,6 +375,7 @@ export const calendarFx = function() {
          field: container.start.element,
          defaultDate: start,
          setDefaultDate: true,
+         toString(date) { return util.formatDate(date); },
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
          onSelect: function() { 
@@ -393,6 +396,7 @@ export const calendarFx = function() {
          field: container.end.element,
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
+         toString(date) { return util.formatDate(date); },
          onSelect: function() {
             end = this.getDate();
             updateEndDate();

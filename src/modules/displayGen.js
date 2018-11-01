@@ -5344,6 +5344,7 @@ export const displayGen = function() {
          setDefaultDate: true,
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
+         toString(date) { return util.formatDate(date); },
          onSelect: function() { 
             let this_date = this.getDate();
             date = new Date(util.timeUTC(this_date));
@@ -5385,6 +5386,7 @@ export const displayGen = function() {
          setDefaultDate: true,
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
+         toString(date) { return util.formatDate(date); },
          onSelect: function() { 
             let this_date = this.getDate();
             start = new Date(util.timeUTC(this_date));
@@ -5405,6 +5407,7 @@ export const displayGen = function() {
          firstDay: env.calendar.first_day,
          defaultDate: end,
          setDefaultDate: true,
+         toString(date) { return util.formatDate(date); },
          onSelect: function() {
             let this_date = this.getDate();
             end = new Date(util.timeUTC(this_date));

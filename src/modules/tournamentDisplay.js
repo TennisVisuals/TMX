@@ -9953,6 +9953,7 @@ export const tournamentDisplay = function() {
             defaultDate: points_date,
             setDefaultDate: true,
             firstDay: env.calendar.first_day,
+            toString(date) { return util.formatDate(date); },
             onSelect: function() {
                points_date = this.getDate();
                tournament.points_date = points_date.getTime();
@@ -10071,6 +10072,7 @@ export const tournamentDisplay = function() {
             setDefaultDate: true,
             i18n: lang.obj('i18n'),
             firstDay: env.calendar.first_day,
+            toString(date) { return util.formatDate(date); },
             onSelect: function() {
                let proposed_start = this.getDate();
                let proposed_end = tournament.end;
@@ -10090,6 +10092,7 @@ export const tournamentDisplay = function() {
             setDefaultDate: true,
             i18n: lang.obj('i18n'),
             firstDay: env.calendar.first_day,
+            toString(date) { return util.formatDate(date); },
             onSelect: function() {
                let proposed_start = tournament.start;
                let proposed_end = this.getDate();

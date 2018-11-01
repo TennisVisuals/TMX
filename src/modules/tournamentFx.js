@@ -1591,6 +1591,7 @@ export const tournamentFx = function() {
             defaultDate: start,
             setDefaultDate: true,
             firstDay: env.calendar.first_day,
+            toString(date) { return util.formatDate(date); },
             onSelect: function() {
                start = this.getDate();
                updateStartDate();
@@ -1605,6 +1606,7 @@ export const tournamentFx = function() {
             defaultDate: end,
             setDefaultDate: true,
             firstDay: env.calendar.first_day,
+            toString(date) { return util.formatDate(date); },
             onSelect: function() {
                end = this.getDate();
                updateEndDate();

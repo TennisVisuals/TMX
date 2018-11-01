@@ -131,6 +131,7 @@ export const playerFx = function() {
                         setDefaultDate: true,
                         i18n: lang.obj('i18n'),
                         firstDay: env.calendar.first_day,
+                        toString(date) { return util.formatDate(date); },
                         onSelect: function() { 
                            ranking_date = this.getDate();
                            displayPoints(player, club, points, ranking_date);
@@ -452,6 +453,7 @@ export const playerFx = function() {
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
          firstDay: env.calendar.first_day,
+         toString(date) { return util.formatDate(date); },
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
       env.date_pickers.push(birthdayPicker);
@@ -629,6 +631,7 @@ export const playerFx = function() {
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
          firstDay: env.calendar.first_day,
+         toString(date) { return util.formatDate(date); },
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
       env.date_pickers.push(birthdayPicker);
