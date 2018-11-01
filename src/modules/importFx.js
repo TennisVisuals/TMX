@@ -163,9 +163,10 @@ export const importFx = function() {
 
          player.school_abbr = findAttr(row, ['School Abbreviation', 'School Abbr', 'School Code']);
 
-         let gender = findAttr(row, ['Gender', 'Sex', "Player's Gender"]);
-         if (['Male', 'Man', 'M', 'B', 'Boy'].indexOf(gender) >= 0) player.sex = 'M';
-         if (['Female', 'W', 'F', 'G', 'Girl', 'Woman'].indexOf(gender) >= 0) player.sex = 'W';
+         let gender_value = findAttr(row, ['Gender', 'Sex', "Player's Gender"]);
+         let gender = (gender_value && gender_value.toLowerCase()) || '';
+         if (['male', 'man', 'm', 'b', 'boy'].indexOf(gender) >= 0) player.sex = 'M';
+         if (['female', 'w', 'f', 'g', 'girl', 'woman'].indexOf(gender) >= 0) player.sex = 'W';
 
          let country = findAttr(row, ['Country', 'Nationality']);
          if (country) { player.ioc = iocs.indexOf(country.toLowerCase()) >= 0 ? country.toLowerCase() : code_by_country[compressName(country)]; }
