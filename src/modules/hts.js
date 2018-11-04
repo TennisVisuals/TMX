@@ -1,5 +1,6 @@
 import { db } from './db'
 import { util } from './util'
+import { dateFx } from './dateFx'
 import { exportFx } from './exportFx';
 import { rankCalc } from './rankCalc';
 // import { tournamentParser } from './tournamentParser';
@@ -54,7 +55,7 @@ export const hts = function() {
 
                   return {
                      plasman, si_do: format, rang: point.rank, igracID: point.id, kategorija_turnira, kategorija_igraca,
-                     spol: point.gender, tip: tournament_type, datum_obracuna: util.formatDate(point.date, '/', 'DMY'),
+                     spol: point.gender, tip: tournament_type, datum_obracuna: dateFx.formatDate(point.date, '/', 'DMY'),
                      kalendarID: point.tuid.match(/\d+/g)[0], sezona: new Date(point.date).getFullYear(), UK: point.points,
                      POUK: tournament_type != 'MO' && format == 'S' ? point.points : 0,
                      PKUK: tournament_type != 'MO' && format == 'S' ? point.points : 0,

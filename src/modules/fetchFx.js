@@ -2,8 +2,9 @@ import { db } from './db';
 import { env } from './env'
 import { util } from './util';
 import { UUID } from './UUID';
-//import { config } from './config';
+import { dateFx } from './dateFx';
 import { lang } from './translator';
+import { stringFx } from './stringFx';
 import { importFx } from './importFx';
 import { calendarFx } from './calendarFx';
 import { displayGen } from './displayGen';
@@ -102,7 +103,6 @@ export const fetchFx = function() {
       });
 
       function completeFetch(fetched) {
-         // let ouid = config.env().org && config.env().org.ouid;
          let ouid = env.org && env.org.ouid;
          if (!fetched.ouid) fetched.ouid = ouid;
 
@@ -131,15 +131,15 @@ export const fetchFx = function() {
                   if (!player.id) {
                      return resolve();
                   } else {
-                     player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
+                     player.full_name = `${player.last_name.toUpperCase()}, ${stringFx.normalizeName(player.first_name, false)}`;
                      db.findPlayerById(player.id).then(searchResult, util.logError);
                   }
 
                   function searchResult(existing) {
                      if (existing) {
                         player = Object.assign(player, existing);
-                        player.first_name = util.normalizeName(player.first_name, false);
-                        player.last_name = util.normalizeName(player.last_name, false);
+                        player.first_name = stringFx.normalizeName(player.first_name, false);
+                        player.last_name = stringFx.normalizeName(player.last_name, false);
 
                         resolve(player);
                      } else {
@@ -153,8 +153,8 @@ export const fetchFx = function() {
                         delete new_player.category_ranking;
                         delete new_player.category_dbls;
 
-                        player.first_name = util.normalizeName(player.first_name, false);
-                        player.last_name = util.normalizeName(player.last_name, false);
+                        player.first_name = stringFx.normalizeName(player.first_name, false);
+                        player.last_name = stringFx.normalizeName(player.last_name, false);
 
                         db.addPlayer(new_player);
                         resolve(player);
@@ -271,7 +271,6 @@ export const fetchFx = function() {
 
          function fetchNew(trnys, fetchobj) {
             // for tournaments to be updated automatically they must have an .sid attribute equal to env.org.abbr
-            // let tids = trnys.filter(t=>t.sid && t.sid == config.env().org.abbr).map(t=>t.tuid.replace(t.sid, ''));
             let tids = trnys.filter(t=>t.sid && t.sid == env.org.abbr).map(t=>t.tuid.replace(t.sid, ''));
             let max_id = fetchobj.max_id != false ? ((!merge && Math.max(...tids, 0)) || 0) : '';
 
@@ -295,7 +294,6 @@ export const fetchFx = function() {
 
          function normalizeTournaments(trnys, fetchobj) {
             let parser = fetchobj.parser && fetchobj.parser.fx && util.createFx(fetchobj.parser.fx);
-            // let ouid = config.env().org && config.env().org.ouid;
             let ouid = env.org && env.org.ouid;
             if (Array.isArray(trnys)) {
                let tt = trnys.map(t => {
@@ -304,8 +302,8 @@ export const fetchFx = function() {
                      let pt = parser(t);
                      Object.assign(trny, pt);
                   }
-                  trny.start = util.validDate(trny.start) ? new Date(trny.start).getTime() : trny.start;
-                  trny.end = util.validDate(trny.end) ? new Date(trny.end).getTime() : (trny.start || trny.end);
+                  trny.start = dateFx.validDate(trny.start) ? new Date(trny.start).getTime() : trny.start;
+                  trny.end = dateFx.validDate(trny.end) ? new Date(trny.end).getTime() : (trny.start || trny.end);
                   if (!trny.ouid) trny.ouid = ouid;
 
                   // TODO: This needs to be a configured SID (Site ID?) and not env.org (HTS)
@@ -430,8 +428,8 @@ export const fetchFx = function() {
                player.ioc = player.ioc || (!player.ioc && !foreign ? 'CRO' : undefined);
                // player.represents_ioc = player.represents_ioc != 'N';
                player.residence_permit = player.residence_permit != 'N';
-               player.last_name = util.normalizeName(player.last_name, false).trim();
-               player.first_name = util.normalizeName(player.first_name, false).trim();
+               player.last_name = stringFx.normalizeName(player.last_name, false).trim();
+               player.first_name = stringFx.normalizeName(player.first_name, false).trim();
                player.puid = player.puid || `${player.foreign == 'Y' ? 'INO' : 'CRO'}-${player.cropin}`;
             });
 
@@ -518,7 +516,6 @@ export const fetchFx = function() {
 
          function fetchList(fetchobj) {
             // Legacy to avoid call when no list is available
-            // if (config.env().org.abbr == 'HTS' && category == '10') return reject();
             if (env.org.abbr == 'HTS' && category == '10') return reject();
             
             let request_object = {
@@ -595,7 +592,7 @@ export const fetchFx = function() {
             let id_obj = displayGen.dropZone();
             let callback = (players) => {
                if (players && !players.length) return displayGen.popUpMessage('Players not found: Check Headers/Tab Names.');
-               players.forEach(player => { player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; });
+               players.forEach(player => { player.full_name = `${player.last_name.toUpperCase()}, ${stringFx.normalizeName(player.first_name, false)}`; });
                resolve(players);
             }
             importFx.loadPlayersDragAndDrop(id_obj.dropzone.element, ()=>{}, callback);
@@ -647,7 +644,6 @@ export const fetchFx = function() {
 
          function scrape(scraper) {
             let parser = scraper.fx && util.createFx(scraper.fx);
-            // let ioc_codes = config.env().ioc_codes;
             let ioc_codes = env.ioc_codes;
             let ioc_map = Object.assign({}, ...ioc_codes.map(c=>({[c.name.toUpperCase()]: c.ioc})))
             ioc_map['USA'] = ioc_map['UNITED STATES'];
@@ -658,7 +654,7 @@ export const fetchFx = function() {
                displayGen.busy.done(id);
                let players = (parser && parser(doc)) || [];
                players.forEach(player => {
-                  player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
+                  player.full_name = `${player.last_name.toUpperCase()}, ${stringFx.normalizeName(player.first_name, false)}`;
                   if (!player.id) player.id = UUID.new();
                   if (!player.puid) player.puid = player.id;
                   if (!player.ioc && player.country) player.ioc = ioc_map[player.country.toUpperCase()];
@@ -689,7 +685,7 @@ export const fetchFx = function() {
                   players.forEach(player => {
                      player.first_name = player.first_name.trim();
                      player.last_name = player.last_name.trim();
-                     player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
+                     player.full_name = `${player.last_name.toUpperCase()}, ${stringFx.normalizeName(player.first_name, false)}`;
 
                      if (category) {
                         // player.rankings, if present, are used before player.rank

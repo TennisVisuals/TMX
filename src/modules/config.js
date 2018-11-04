@@ -1,14 +1,16 @@
-import { db } from './db'
-import { env } from './env'
+import { db } from './db';
+import { env } from './env';
 import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
 import { dd } from './dropdown';
+import { domFx } from './domFx';
 import { tmxTour } from './tmxTour';
 import { fetchFx } from './fetchFx';
 import { lang } from './translator';
 import { staging } from './staging';
-import { pointsFx } from './pointsFx';
+import { stringFx } from './stringFx';
+// import { pointsFx } from './pointsFx';
 import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
 import { rankCalc } from './rankCalc';
@@ -16,17 +18,18 @@ import { importFx } from './importFx';
 import { searchBox } from './searchBox';
 import { displayGen } from './displayGen';
 import { calendarFx } from './calendarFx';
-import { scheduleFx } from './scheduleFx';
 import { tournamentFx } from './tournamentFx';
 import { eventManager } from './eventManager';
 import { tournamentDisplay } from './tournamentDisplay';
 
 export const config = function() {
 
-   window.onerror = function (msg, url, lineNo, columnNo, error) {
-     console.log('error:', message);
+   // eslint-disable-next-line no-unused-vars
+   window.onerror = (msg, url, lineNo, columnNo, error) => {
+     console.log('error:', msg);
      return false;
-   }
+   };
+
    // module container
    var fx = {};
 
@@ -58,22 +61,22 @@ export const config = function() {
             coms.sendKey(queryString.actionKey);
             resolve();
          } else {
-            resolve();
+            reject();
          }
       });
    }
    // END queryString
 
    eventManager.holdAction = (target, coords) => {
-      let click_context = util.getParent(target, 'contextAction');
+      let click_context = domFx.getParent(target, 'contextAction');
       let action = click_context && click_context.getAttribute('contextaction');
       if (eventManager.holdActions[action]) eventManager.holdActions[action](target, coords);
-   }
+   };
 
    eventManager.register('tiny_docs_icon', 'tap', contextDocs);
 
    function contextDocs(target) {
-      let click_context = util.getParent(target, 'doclink');
+      let click_context = domFx.getParent(target, 'doclink');
       let url = click_context.getAttribute('url');
       if (url) window.open(`/docs/${env.ioc}/${url}.html`, '_blank');
    }
@@ -81,7 +84,7 @@ export const config = function() {
    eventManager.register('tiny_tour_icon', 'tap', contextTour);
 
    function contextTour(target) {
-      let click_context = util.getParent(target, 'tourlink');
+      let click_context = domFx.getParent(target, 'tourlink');
       let context = click_context.getAttribute('context');
       if (context) tmxTour.tournamentTours(context);
    }
@@ -89,14 +92,14 @@ export const config = function() {
    eventManager.register('hints_icon', 'tap', contextHints);
 
    function contextHints(target) {
-      let click_context = util.getParent(target, 'hintslink');
+      let click_context = domFx.getParent(target, 'hintslink');
       let context = click_context.getAttribute('context');
       if (context) tmxTour.tournamentHints(context);
    }
 
    function displayMessages() {
       displayGen.escapeModal();
-      displayGen.homeContextMessage(refreshApp, closeModal, env.messages, tournamentDisplay.displayTournament)
+      displayGen.homeContextMessage(refreshApp, closeModal, env.messages, tournamentDisplay.displayTournament);
       env.messages = [];
       displayGen.homeIconState();
    }
@@ -114,7 +117,7 @@ export const config = function() {
       let exists = env.messages.reduce((p, c) => msgHash(c) ==  message_hash ? true : p, false);
       if (!exists) env.messages.push(msg);
       displayGen.homeIconState(msg.state || 'messages');
-   }
+   };
 
    fx.authMessage = (msg) => {
       db.findTournament(msg.tuid).then(pushMessage, err => console.log(err));
@@ -142,15 +145,15 @@ export const config = function() {
             displayGen.homeIconState('notfound');
          }
       }
-   }
+   };
 
    var device = {
       isStandalone: 'standalone' in window.navigator && window.navigator.standalone,
       isIDevice: (/iphone|ipod|ipad/i).test(window.navigator.userAgent),
       isIpad: (/iPad/i).test(window.navigator.userAgent),
       isWindows: (/indows/i).test(window.navigator.userAgent),
-      isMobile: /Mobi/.test(navigator.userAgent),
-   }
+      isMobile: /Mobi/.test(navigator.userAgent)
+   };
 
    // not visible/accesible outside of this module
    var o = {
@@ -174,7 +177,7 @@ export const config = function() {
          data: false,
          draws: true,
          publishing: true,
-         schedule: true,
+         schedule: true
       },
       export_tabs: {
          players: false,
@@ -183,25 +186,25 @@ export const config = function() {
       },
       data_tabs: {
          sheets: true,
-         server: false,
+         server: false
       }
-   }
+   };
 
    function idiomLimit(opts) {
       var ioc_opts = opts.map(o=>`<div class='flag_opt' ioc='${o.value}' title='${o.title}'>${o.key}</div>`).join('');
       let html = `<div class='flag_wrap'>${ioc_opts}</div>`;
       displayGen.showProcessing(html);
       displayGen.escapeModal();
-      util.addEventToClass('flag_opt', selectIOC);
+      domFx.addEventToClass('flag_opt', selectIOC);
       function selectIOC(evt) {
-         let elem = util.findUpClass(evt.target, 'flag_opt');
+         let elem = domFx.findUpClass(evt.target, 'flag_opt');
          let ioc = elem.getAttribute('ioc');
          changeIdiom(ioc);
          displayGen.closeModal();
       }
    }
 
-   dd.attachDropDown({ id: 'idiomatic', });
+   dd.attachDropDown({ id: 'idiomatic' });
    fx.idiom_ddlb = new dd.DropDown({ element: document.getElementById('idiomatic'), onChange: changeIdiom, max: 15, maxFx: idiomLimit });
    fx.idiom_ddlb.selectionBackground('black');
 
@@ -227,10 +230,10 @@ export const config = function() {
          .map(value => {
             let ioc_value = value.length == 3 ? value : 'gbr';
             let img_src = `${env.assets.flags}${ioc_value.toUpperCase()}.png`;
-            return { key: `<div class=''><img src="${img_src}" class='idiom_flag'></div>`, value, title: ioc_idioms[value.toUpperCase()] }
+            return { key: `<div class=''><img src="${img_src}" class='idiom_flag'></div>`, value, title: ioc_idioms[value.toUpperCase()] };
          })
          .filter(f=>f.title);
-      fx.idiom_ddlb.setOptions(options)
+      fx.idiom_ddlb.setOptions(options);
       fx.idiom_ddlb.setValue(ioc, 'black');
    }
 
@@ -253,7 +256,7 @@ export const config = function() {
             resolve();
          }
 
-         db.findAllIdioms().then(prepareIdioms, util.logError);
+         db.findAllIdioms().then(prepareIdioms, err => { util.logError(err); reject(); });
 
          function prepareIdioms(idioms) {
             idioms.forEach(lang.define);
@@ -267,8 +270,7 @@ export const config = function() {
    function updateSettings(settings) {
       return new Promise((resolve, reject) => {
          if (!settings) resolve();
-         newSettings();
-         function newSettings() { Promise.all(settings.map(s=>db.addSetting(s))).then(resolve, reject) }
+         Promise.all(settings.map(s=>db.addSetting(s))).then(resolve, reject);
       });
    }
 
@@ -290,7 +292,7 @@ export const config = function() {
             publishing: v.publishing ? displayGen.publishingSettings() : undefined,
             schedule: v.schedule ? displayGen.scheduleSettings() : undefined,
             data: v.data ? displayGen.externalRequestSettings(external_request_settings) : undefined
-         }
+         };
 
          let tabdata = [];
          if (tabs.org && tabs.org.html) tabdata.push({ tab: lang.tr('settings.organization'), content: tabs.org.html });
@@ -321,7 +323,7 @@ export const config = function() {
          if (tabs.data && tabs.data.ddlb) {
             let external_file_options = [
                {key: `UTF-8`, value: 'url'},
-               {key: `CP1250`, value: 'win'},
+               {key: `CP1250`, value: 'win'}
             ];
             tabs.data.ddlb.forEach(ddlb => {
                let ddlbkey = `${ddlb.key}_ddlb`;
@@ -335,182 +337,181 @@ export const config = function() {
          if (container.save.element) container.save.element.addEventListener('click', saveSettings);
          if (container.cancel.element) container.cancel.element.addEventListener('click', revertSettings);
 
+         function fixedByeOrder() { env.drawFx.fixed_bye_order = container.fixed_bye_order.element.checked; }
+         function automatedByes() {
+            env.drawFx.auto_byes = container.auto_byes.element.checked;
+            container.fixed_bye_order.element.disabled = !env.drawFx.auto_byes;
+         }
+         function separateIOCs() {
+            if (container.separate_by_ioc.element.checked) {
+               container.separate_by_club.element.checked = false;
+               container.separate_by_school.element.checked = false;
+            }
+            setSeparateBy();
+         }
+         function separateClubs() {
+            if (container.separate_by_club.element.checked) {
+               container.separate_by_ioc.element.checked = false;
+               container.separate_by_school.element.checked = false;
+            }
+            setSeparateBy();
+         }
+         function compressedDrawFormats() { env.drawFx.compressed_draw_formats = container.compressed_draw_formats.element.checked; }
+         function llAllRounds() { env.drawFx.ll_all_rounds = container.ll_all_rounds.element.checked; }
+         function consolationAlts() { env.drawFx.consolation_alternates = container.consolationalts.element.checked; }
+         function qualConsolation() { env.drawFx.consolation_from_qualifying = container.qualconsolation.element.checked; }
+         function consolationSeeding() { env.drawFx.consolation_seeding = container.consolationseeds.element.checked; }
+         function restrictSeeds() { env.draws.tree_draw.seeds.restrict_placement = container.restrictseeds.element.checked; }
+         function separateSchools() {
+            if (container.separate_by_school.element.checked) {
+               container.separate_by_ioc.element.checked = false;
+               container.separate_by_club.element.checked = false;
+            }
+            setSeparateBy();
+         }
+         function setSeparateBy() {
+            env.drawFx.separation.ioc = container.separate_by_ioc.element.checked;
+            env.drawFx.separation.school = container.separate_by_school.element.checked;
+            env.drawFx.separation.club_code = container.separate_by_club.element.checked;
+         }
+         function displayFlags() { env.draws.tree_draw.flags.display = container.display_flags.element.checked; }
+         function afterMatches() {
+            env.draws.tree_draw.schedule.after = container.after_matches.element.checked;
+            if (env.draws.tree_draw.schedule.after) {
+               container.court_detail.element.checked = true;
+               env.draws.tree_draw.schedule.courts = true;
+            }
+         }
+
+         function matchCourts() {
+            env.draws.tree_draw.schedule.courts = container.court_detail.element.checked;
+            if (!env.draws.tree_draw.schedule.courts) {
+               env.draws.tree_draw.schedule.after = false;
+               container.after_matches.element.checked = false;
+            }
+         }
+         function displayMatchTime() { env.draws.tree_draw.schedule.times = container.match_time.element.checked; }
+         function displayMatchDates() { env.draws.tree_draw.schedule.dates = container.match_date.element.checked; }
+         function searchMode() {
+            env.searchbox.lastfirst = container.lastfirst.element.checked;
+            searchBox.populateSearch.players();
+         }
+         function supportDiacritics() {
+            env.searchbox.diacritics = container.diacritics.element.checked;
+            searchBox.populateSearch.players();
+         }
+         function requireConfirmation() {
+            env.publishing.require_confirmation = container.require_confirmation.element.checked;
+            if (env.publishing.require_confirmation) {
+               env.publishing.publish_on_score_entry = false;
+               container.publish_on_score_entry.element.checked = false;
+            }
+         }
+         function publishDrawCreation() { env.publishing.publish_draw_creation = container.publish_draw_creation.element.checked; }
+         function publishOnScoreEntry() {
+            env.publishing.publish_on_score_entry = container.publish_on_score_entry.element.checked;
+            if (env.publishing.publish_on_score_entry) {
+               env.publishing.require_confirmation = false;
+               container.require_confirmation.element.checked = false;
+            }
+         }
+         function savePDFs() { env.printing.save_pdfs = container.save_pdfs.element.checked ? 1 : 0; }
+         function firstDay() { env.calendar.first_day = container.first_day.element.checked ? 1 : 0; }
+         function showDocs() { env.documentation = container.documentation.element.checked ? 1 : 0; }
+         function scoresInDrawOrder() { env.schedule.scores_in_draw_order = container.scores_in_draw_order.element.checked ? true : false; }
+         function scheduleCompleted() { env.schedule.completed_matches_in_search = container.completed_matches_in_search.element.checked ? true : false; }
+
          if (v.draws) {
             container.fixed_bye_order.element.addEventListener('click', fixedByeOrder);
-            container.fixed_bye_order.element.checked = util.string2boolean(env.drawFx.fixed_bye_order);
-            function fixedByeOrder(evt) { env.drawFx.fixed_bye_order = container.fixed_bye_order.element.checked; }
+            container.fixed_bye_order.element.checked = stringFx.string2boolean(env.drawFx.fixed_bye_order);
 
             container.auto_byes.element.addEventListener('click', automatedByes);
-            container.auto_byes.element.checked = util.string2boolean(env.drawFx.auto_byes);
-            function automatedByes(evt) {
-               env.drawFx.auto_byes = container.auto_byes.element.checked;
-               container.fixed_bye_order.element.disabled = !env.drawFx.auto_byes;
-            }
+            container.auto_byes.element.checked = stringFx.string2boolean(env.drawFx.auto_byes);
             container.fixed_bye_order.element.disabled = !env.drawFx.auto_byes;
 
             container.compressed_draw_formats.element.addEventListener('click', compressedDrawFormats);
-            container.compressed_draw_formats.element.checked = util.string2boolean(env.drawFx.compressed_draw_formats);
-            function compressedDrawFormats(evt) { env.drawFx.compressed_draw_formats = container.compressed_draw_formats.element.checked; }
+            container.compressed_draw_formats.element.checked = stringFx.string2boolean(env.drawFx.compressed_draw_formats);
 
             container.ll_all_rounds.element.addEventListener('click', llAllRounds);
-            container.ll_all_rounds.element.checked = util.string2boolean(env.drawFx.ll_all_rounds);
-            function llAllRounds(evt) { env.drawFx.ll_all_rounds = container.ll_all_rounds.element.checked; }
+            container.ll_all_rounds.element.checked = stringFx.string2boolean(env.drawFx.ll_all_rounds);
 
             container.consolationalts.element.addEventListener('click', consolationAlts);
-            container.consolationalts.element.checked = util.string2boolean(env.drawFx.consolation_alternates);
-            function consolationAlts(evt) { env.drawFx.consolation_alternates = container.consolationalts.element.checked; }
+            container.consolationalts.element.checked = stringFx.string2boolean(env.drawFx.consolation_alternates);
 
             container.qualconsolation.element.addEventListener('click', qualConsolation);
-            container.qualconsolation.element.checked = util.string2boolean(env.drawFx.consolation_from_qualifying);
-            function qualConsolation(evt) { env.drawFx.consolation_from_qualifying = container.qualconsolation.element.checked; }
+            container.qualconsolation.element.checked = stringFx.string2boolean(env.drawFx.consolation_from_qualifying);
 
             container.consolationseeds.element.addEventListener('click', consolationSeeding);
-            container.consolationseeds.element.checked = util.string2boolean(env.drawFx.consolation_seeding);
-            function consolationSeeding(evt) { env.drawFx.consolation_seeding = container.consolationseeds.element.checked; }
+            container.consolationseeds.element.checked = stringFx.string2boolean(env.drawFx.consolation_seeding);
 
             container.restrictseeds.element.addEventListener('click', restrictSeeds);
-            container.restrictseeds.element.checked = util.string2boolean(env.draws.tree_draw.seeds.restrict_placement);
-            function restrictSeeds(evt) { env.draws.tree_draw.seeds.restrict_placement = container.restrictseeds.element.checked; }
+            container.restrictseeds.element.checked = stringFx.string2boolean(env.draws.tree_draw.seeds.restrict_placement);
 
             // Separate By
-
             container.separate_by_ioc.element.addEventListener('click', separateIOCs);
-            container.separate_by_ioc.element.checked = util.string2boolean(env.drawFx.separation.ioc);
-            function separateIOCs(evt) {
-               if (container.separate_by_ioc.element.checked) {
-                  container.separate_by_club.element.checked = false;
-                  container.separate_by_school.element.checked = false;
-               }
-               setSeparateBy();
-            }
+            container.separate_by_ioc.element.checked = stringFx.string2boolean(env.drawFx.separation.ioc);
 
             container.separate_by_club.element.addEventListener('click', separateClubs);
-            container.separate_by_club.element.checked = util.string2boolean(env.drawFx.separation.club_code);
-            function separateClubs(evt) {
-               if (container.separate_by_club.element.checked) {
-                  container.separate_by_ioc.element.checked = false;
-                  container.separate_by_school.element.checked = false;
-               }
-               setSeparateBy();
-            }
+            container.separate_by_club.element.checked = stringFx.string2boolean(env.drawFx.separation.club_code);
 
             container.separate_by_school.element.addEventListener('click', separateSchools);
-            container.separate_by_school.element.checked = util.string2boolean(env.drawFx.separation.school);
-            function separateSchools(evt) {
-               if (container.separate_by_school.element.checked) {
-                  container.separate_by_ioc.element.checked = false;
-                  container.separate_by_club.element.checked = false;
-               }
-               setSeparateBy();
-            }
-
-            function setSeparateBy() {
-               env.drawFx.separation.ioc = container.separate_by_ioc.element.checked;
-               env.drawFx.separation.school = container.separate_by_school.element.checked;
-               env.drawFx.separation.club_code = container.separate_by_club.element.checked;
-            }
+            container.separate_by_school.element.checked = stringFx.string2boolean(env.drawFx.separation.school);
 
             // END separate by
 
             container.display_flags.element.addEventListener('click', displayFlags);
-            container.display_flags.element.checked = util.string2boolean(env.draws.tree_draw.flags.display);
-            function displayFlags(evt) { env.draws.tree_draw.flags.display = container.display_flags.element.checked; }
+            container.display_flags.element.checked = stringFx.string2boolean(env.draws.tree_draw.flags.display);
 
             container.after_matches.element.addEventListener('click', afterMatches);
-            container.after_matches.element.checked = util.string2boolean(env.draws.tree_draw.schedule.after);
-            function afterMatches(evt) {
-               env.draws.tree_draw.schedule.after = container.after_matches.element.checked;
-               if (env.draws.tree_draw.schedule.after) {
-                  container.court_detail.element.checked = true;
-                  env.draws.tree_draw.schedule.courts = true;
-               }
-            }
-
+            container.after_matches.element.checked = stringFx.string2boolean(env.draws.tree_draw.schedule.after);
             container.court_detail.element.addEventListener('click', matchCourts);
-            container.court_detail.element.checked = util.string2boolean(env.draws.tree_draw.schedule.courts);
-            function matchCourts(evt) {
-               env.draws.tree_draw.schedule.courts = container.court_detail.element.checked;
-               if (!env.draws.tree_draw.schedule.courts) {
-                  env.draws.tree_draw.schedule.after = false;
-                  container.after_matches.element.checked = false;
-               }
-            }
+            container.court_detail.element.checked = stringFx.string2boolean(env.draws.tree_draw.schedule.courts);
 
             container.match_time.element.addEventListener('click', displayMatchTime);
-            container.match_time.element.checked = util.string2boolean(env.draws.tree_draw.schedule.times);
-            function displayMatchTime(evt) { env.draws.tree_draw.schedule.times = container.match_time.element.checked; }
+            container.match_time.element.checked = stringFx.string2boolean(env.draws.tree_draw.schedule.times);
 
             container.match_date.element.addEventListener('click', displayMatchDates);
-            container.match_date.element.checked = util.string2boolean(env.draws.tree_draw.schedule.dates);
-            function displayMatchDates(evt) { env.draws.tree_draw.schedule.dates = container.match_date.element.checked; }
+            container.match_date.element.checked = stringFx.string2boolean(env.draws.tree_draw.schedule.dates);
          }
 
          if (v.search) {
             container.lastfirst.element.addEventListener('click', searchMode);
-            container.lastfirst.element.checked = util.string2boolean(env.searchbox.lastfirst);
-            function searchMode(evt) {
-               env.searchbox.lastfirst = container.lastfirst.element.checked;
-               searchBox.populateSearch.players();
-            }
+            container.lastfirst.element.checked = stringFx.string2boolean(env.searchbox.lastfirst);
 
             container.diacritics.element.addEventListener('click', supportDiacritics);
-            container.diacritics.element.checked = util.string2boolean(env.searchbox.diacritics);
-            function supportDiacritics(evt) {
-               env.searchbox.diacritics = container.diacritics.element.checked;
-               searchBox.populateSearch.players();
-            }
+            container.diacritics.element.checked = stringFx.string2boolean(env.searchbox.diacritics);
          }
 
          if (v.publishing) {
             container.require_confirmation.element.addEventListener('click', requireConfirmation);
-            container.require_confirmation.element.checked = util.string2boolean(env.publishing.require_confirmation);
-            function requireConfirmation(evt) {
-               env.publishing.require_confirmation = container.require_confirmation.element.checked;
-               if (env.publishing.require_confirmation) {
-                  env.publishing.publish_on_score_entry = false;
-                  container.publish_on_score_entry.element.checked = false;
-               }
-            }
+            container.require_confirmation.element.checked = stringFx.string2boolean(env.publishing.require_confirmation);
 
             container.publish_on_score_entry.element.addEventListener('click', publishOnScoreEntry);
-            container.publish_on_score_entry.element.checked = util.string2boolean(env.publishing.publish_on_score_entry);
-            function publishOnScoreEntry(evt) {
-               env.publishing.publish_on_score_entry = container.publish_on_score_entry.element.checked;
-               if (env.publishing.publish_on_score_entry) {
-                  env.publishing.require_confirmation = false;
-                  container.require_confirmation.element.checked = false;
-               }
-            }
+            container.publish_on_score_entry.element.checked = stringFx.string2boolean(env.publishing.publish_on_score_entry);
 
             container.publish_draw_creation.element.addEventListener('click', publishDrawCreation);
-            container.publish_draw_creation.element.checked = util.string2boolean(env.publishing.publish_draw_creation);
-            function publishDrawCreation(evt) { env.publishing.publish_draw_creation = container.publish_draw_creation.element.checked; }
+            container.publish_draw_creation.element.checked = stringFx.string2boolean(env.publishing.publish_draw_creation);
          }
 
          if (v.printing) {
             container.save_pdfs.element.addEventListener('click', savePDFs);
             container.save_pdfs.element.checked = env.printing.save_pdfs;
-            function savePDFs(evt) { env.printing.save_pdfs = container.save_pdfs.element.checked ? 1 : 0; }
          }
 
          if (v.general) {
             container.first_day.element.addEventListener('click', firstDay);
             container.first_day.element.checked = env.calendar.first_day;
-            function firstDay(evt) { env.calendar.first_day = container.first_day.element.checked ? 1 : 0; }
 
             container.documentation.element.addEventListener('click', showDocs);
             container.documentation.element.checked = env.documentation;
-            function showDocs(evt) { env.documentation = container.documentation.element.checked ? 1 : 0; }
          }
 
          if (v.schedule) {
             container.scores_in_draw_order.element.addEventListener('click', scoresInDrawOrder);
             container.scores_in_draw_order.element.checked = env.schedule.scores_in_draw_order;
-            function scoresInDrawOrder(evt) { env.schedule.scores_in_draw_order = container.scores_in_draw_order.element.checked ? true : false; }
 
             container.completed_matches_in_search.element.addEventListener('click', scheduleCompleted);
             container.completed_matches_in_search.element.checked = env.schedule.completed_matches_in_search;
-            function scheduleCompleted(evt) { env.schedule.completed_matches_in_search = container.completed_matches_in_search.element.checked ? true : false; }
          }
 
          function revertSettings() {
@@ -527,8 +528,8 @@ export const config = function() {
                      key: item.key,
                      url: container[item.key].element.value,
                      type: item.dropdown.getValue(),
-                     category: 'externalRequest',
-                  }
+                     category: 'externalRequest'
+                  };
                   settings.push(setting);
                });
             }
@@ -554,12 +555,12 @@ export const config = function() {
 
    function getImage(settings_key, image_id) {
       let elem = document.getElementById(image_id);
-      let url = elem.querySelector('img').getAttribute('src')
+      let url = elem.querySelector('img').getAttribute('src');
       let setting = {
          key: settings_key,
          category: 'image',
          image: url
-      }
+      };
       return setting;
    }
 
@@ -569,16 +570,16 @@ export const config = function() {
       let container = displayGen.dateConfig();
 
       var ds = displayGen.dateSelector({
-         date: new Date(),
+         date,
          date_element: container.picked.element,
-         container: container.datepicker.element,
+         container: container.datepicker.element
       });
 
       displayGen.escapeModal();
       container.submit.element.addEventListener('click', callCalc);
       container.cancel.element.addEventListener('click', () => displayGen.closeModal());
 
-      function callCalc(container) {
+      function callCalc() {
          displayGen.closeModal();
          if (mode == 'rankings') {
             rankCalc.rankCalc(ds.getDate());
@@ -601,10 +602,10 @@ export const config = function() {
       searchBox.resetFx.push(playerFx.resetPlayerAction);
 
       searchBox.metaClick = {
-         tournaments() { calendarFx.displayCalendar(); },
          // players() { displayPlayers(); },
          // clubs() { displayClubs(); },
-      }
+         tournaments() { calendarFx.displayCalendar(); }
+      };
 
       searchBox.searchType = {};
       searchBox.searchType.players = function(puid) {
@@ -642,16 +643,16 @@ export const config = function() {
             let options = [lang.tr('search.firstlast'), lang.tr('search.lastfirst')];
             displayGen.svgModal({ x: ev.clientX, y: ev.clientY, options, callback: doSomething });
 
-            function doSomething(choice, index) {
-               if (index == 0) {
-                  env.searchbox.lastfirst = false;
-               } else if (index == 1) {
-                  env.searchbox.lastfirst = true;
-               }
-               searchBox.populateSearch.players({filtered: true});
-            }
          }
-      }
+         function doSomething(choice, index) {
+            if (index == 0) {
+               env.searchbox.lastfirst = false;
+            } else if (index == 1) {
+               env.searchbox.lastfirst = true;
+            }
+            searchBox.populateSearch.players({filtered: true});
+         }
+      };
 
       if (o.components.tournament_search) searchBox.populateSearch.tournaments = function() {
          db.findAllTournaments().then(arr => {
@@ -660,12 +661,11 @@ export const config = function() {
 
             // exclude tournaments which don't have a category, start, or rank
             arr = arr.filter(f=>f.category && f.start && f.rank);
-            let zeroPad = (number) => number.toString()[1] ? number : "0" + number;
             searchBox.typeAhead.list = !arr.length ? [] : arr.map(tournament => { 
                let category = tournament.category == 'S' ? 'S' : `U${tournament.category}`;
-               let start_date = util.formatDate(new Date(tournament.start));
-               let label = util.normalizeName(`${category} ${tournament.name} [${start_date}]`);
-               return { value: tournament.tuid, label, }
+               let start_date = dateFx.formatDate(new Date(tournament.start));
+               let label = stringFx.normalizeName(`${category} ${tournament.name} [${start_date}]`);
+               return { value: tournament.tuid, label };
             });
          });
       };
@@ -674,15 +674,13 @@ export const config = function() {
          db.findAllClubs().then(arr => {
             searchBox.searchCount(arr.length);
             searchBox.searchCategory('search_clubs_total');
-            searchBox.typeAhead.list = !arr.length ? [] : arr.map(club => { 
-               return { value: club.id, label: `${club.name} [${club.city}]` } 
-            });
+            searchBox.typeAhead.list = !arr.length ? [] : arr.map(club => ({ value: club.id, label: `${club.name} [${club.city}]` }));
          });
       };
-   }
+   };
 
    function initDB() {
-      coms.catcyAsync(db.initDB)().then(checkQueryString, dbUpgrade).then(envSettings).then(DBReady);
+      coms.catcyAsync(db.initDB)().then(checkQueryString, dbUpgrade).then(envSettings, util.logError).then(DBReady);
       function dbUpgrade() { displayGen.showConfigModal('<h2>Database Upgraded</h2><div style="margin: 1em;">Please refresh your cache or load tmx+</div>'); }
 
       function DBReady() {
@@ -733,7 +731,7 @@ export const config = function() {
 
    function envSettings() {
       return new Promise((resolve, reject) => {
-         db.findAllSettings().then(setEnv, resolve);
+         db.findAllSettings().then(setEnv, reject);
 
          function setEnv(settings) {
 
@@ -852,7 +850,7 @@ export const config = function() {
       });
    }
 
-   fx.geoposition = () => { return env.locations.geoposition; }
+   fx.geoposition = () => { return env.locations.geoposition; };
 
    function handleUnhandled() {
       window.onunhandledrejection = (event) => {
@@ -881,7 +879,7 @@ export const config = function() {
             }
          });
          navigator.storage.persist().then(persistent => {
-            env.storage = persistent ? true : 'user agent control'
+            env.storage = persistent ? true : 'user agent control';
             if (persistent !== true) {
                coms.emitTmx({ event: 'Persistence', notice: `Persistence: ${env.storage}`, version: env.version, persistent });
             }
@@ -912,9 +910,7 @@ export const config = function() {
 
    function enableNotifications() {
       // TODO: future, once server and service workers implemented...
-      Notification.requestPermission(granted => {
-         env.notifications = granted;
-      });
+      // Notification.requestPermission(granted => { env.notifications = granted; });
    }
 
    fx.init = () => {
@@ -935,7 +931,7 @@ export const config = function() {
       env.isMobile = device.isIDevice || device.isMobile;
       d3.json('./assets/ioc_codes.json', data => { env.ioc_codes = data; });
 
-      // enableNotifications();
+      enableNotifications();
 
       fx.search();
 
@@ -959,15 +955,15 @@ export const config = function() {
             displayGen.homeIcon('menu');
          } else {
             let menu = displayGen.mainMenu();
-            menu.version.element.addEventListener('click', displayVersion)
+            menu.version.element.addEventListener('click', displayVersion);
             menu.messages.element.addEventListener('click', evt => {
                evt.stopPropagation();
                displayMessages();
-            })
+            });
             menu.release.element.addEventListener('click', displayReleaseNotes);
             menu.support.element.addEventListener('click', displayGen.support);
             if (env.messages && env.messages.length) { menu.messages.element.style.display = 'inline'; }
-            menu.tour.element.addEventListener('click', evt => {
+            menu.tour.element.addEventListener('click', () => {
                displayGen.closeModal();
                tmxTour.splashTour();
             });
@@ -993,8 +989,8 @@ export const config = function() {
       let checkVisible = () => {
          document.getElementById('searchextra').style.display = window.innerWidth > 500 ? 'flex' : 'none'; 
          document.getElementById('idiomatic').style.display = window.innerWidth > 500 ? 'flex' : 'none'; 
-      }
-      let setOrientation = () => { env.orientation = (window.innerHeight > window.innerWidth) ? 'portrait' : 'landscape'; }
+      };
+      let setOrientation = () => { env.orientation = (window.innerHeight > window.innerWidth) ? 'portrait' : 'landscape'; };
       window.addEventListener("orientationchange", function() { setOrientation(); }, false);
       window.addEventListener("resize", function() { setOrientation(); checkVisible(); }, false);
       setOrientation();
@@ -1002,7 +998,7 @@ export const config = function() {
       if (env.locations.map_provider == 'google') fetchFx.loadGoogleMaps();
 
       env.version_check = new Date().getTime();
-   }
+   };
 
    function displayClub(cuid) {
       cuid = cuid || searchBox.active.club.cuid;
@@ -1024,9 +1020,7 @@ export const config = function() {
 
    // *********************************
 
-   function newPlayer() {
-      console.log('adding new player');
-   }
+   // function newPlayer() { console.log('adding new player'); }
 
    function newClub() {
       console.log('adding new club');
@@ -1041,17 +1035,19 @@ export const config = function() {
    }
 
    // placeholder function to test calendar color fill
+   /*
    function tournamentFill(calendar, tournaments) {
       let df = {};
       [].concat(...tournaments.map(y => { 
          if (y.start && y.end) return d3.timeDays(y.start, y.end);
       }).filter(f=>f))
-      .map(x => util.formatDate(x))
+      .map(x => dateFx.formatDate(x))
       .forEach(d => { if (!df[d]) df[d] = 0; df[d] += .0; });
 
       calendar.data(df);
       calendar.fillDays();
    }
+   */
 
    function updatePlayers() {
       if (!navigator.onLine) return;
@@ -1059,7 +1055,7 @@ export const config = function() {
       let id = displayGen.busy.message(`<p>${lang.tr('refresh.players')}...</p>`, updateSearch);
       let done = () => displayGen.busy.done(id);
       let addNew = (players) => importFx.processPlayers(players).then(done, done);
-      let notConfigured = (err) => { done(); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
+      let notConfigured = (err) => { done(); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); };
       fetchFx.fetchNewPlayers().then(addNew, notConfigured);
    }
 
@@ -1070,10 +1066,9 @@ export const config = function() {
       let done = () => {
          displayGen.busy.done(id);
          if (displayGen.content == 'calendar') calendarFx.displayCalendar();
-      }
+      };
       let addNew = (trnys) => util.performTask(db.addTournament, trnys, false).then(done, done);
       let mergeTournaments = (trnys) => util.performTask(mergeTournament, trnys, false).then(done, done);
-      let notConfigured = (err) => { done(); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
       let checkServer = (err) => {
          let message = `${(err && err.error) || ''}<p>Retrieve from CourtHive Server?`;
          displayGen.okCancelMessage(message, fetchServerTournaments, () => displayGen.closeModal());
@@ -1081,7 +1076,7 @@ export const config = function() {
             displayGen.closeModal();
             coms.emitTmx({ getOrgTournaments: { ouid: env.org.ouid, authorized: true }});
          }
-      }
+      };
 
       fetchFx.fetchNewTournaments(merge).then(processTournaments, checkServer);
 
@@ -1112,7 +1107,7 @@ export const config = function() {
       let id = displayGen.busy.message(`<p>${lang.tr('refresh.clubs')}...</p>`, searchBox.updateSearch);
       let done = () => displayGen.busy.done(id);
       let addNew = (clubs) => util.performTask(db.addClub, clubs, false).then(done, done);
-      let notConfigured = (err) => { done(); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); }
+      let notConfigured = (err) => { done(); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); };
       fetchFx.fetchNewClubs().then(addNew, notConfigured);
    }
 
@@ -1121,15 +1116,14 @@ export const config = function() {
          let message = `${lang.tr('tournaments.renewlist')}<p><i style='color: red;'>(${lang.tr('phrases.deletereplace')})</i>`;
          displayGen.okCancelMessage(message, renewList, () => displayGen.closeModal());
 
-         function renewList() {
-            db.db.players.toCollection().delete().then(updateAction, () => displayGen.closeModal());
-         }
-      }; 
+      } 
       if (searchBox.category == 'tournaments') {
          let message = `${lang.tr('tournaments.renewlist')}`;
          displayGen.okCancelMessage(message, mergeList, () => displayGen.closeModal());
-         function mergeList() { updateTournaments({ merge: true }); }
-      }; 
+      }
+
+      function mergeList() { updateTournaments({ merge: true }); }
+      function renewList() { db.db.players.toCollection().delete().then(updateAction, () => displayGen.closeModal()); }
    }
 
    function updateAction() { 
@@ -1159,7 +1153,6 @@ export const config = function() {
       if (env.first_time_user) {
          env.first_time_user = false;
          displayGen.okCancelMessage('Welcome!  Take the TMX Tour?', takeTour, () => displayGen.closeModal());
-         function takeTour() { displayGen.closeModal(); tmxTour.splashTour(); }
       }
 
       if (env.org && env.org.name) { container.org.element.innerHTML = env.org.name; }
@@ -1172,10 +1165,10 @@ export const config = function() {
          env.version_check = new Date().getTime();
       }
 
+      function takeTour() { displayGen.closeModal(); tmxTour.splashTour(); }
       function splashEvent(container, child, fx) {
          if (container[child].element) container[child].element.addEventListener('click', fx);
       }
-
       function showHome(fx) {
          displayGen.homeIcon('home');
          if (typeof fx == 'function') fx();
@@ -1198,7 +1191,7 @@ export const config = function() {
 
          // submit existing key
          if (actions.container.select.element) actions.container.select.element.addEventListener('click', submitKey);
-         function submitKey(value) {
+         function submitKey() {
             let selection = actions.container.keys.ddlb.getValue();
             if (!navigator.onLine && location.hostname != 'localhost') return displayGen.popUpMessage(lang.tr('phrases.noconnection')); 
             if (selection) coms.sendKey(selection);
@@ -1223,7 +1216,7 @@ export const config = function() {
          let tabs = {
             sheets: displayGen.sheetDataStorage(sheet_data_storage),
             server: displayGen.serverDataStorage()
-         }
+         };
 
          if (!Object.keys(tabs).length) return displayGen.popUpMessage('Data Storage options disabled'); 
 
@@ -1252,8 +1245,8 @@ export const config = function() {
                   let setting = {
                      key: item.key,
                      url: container[item.key].element.value,
-                     category: 'sheetDataStorage',
-                  }
+                     category: 'sheetDataStorage'
+                  };
                   settings.push(setting);
                });
             }
@@ -1281,7 +1274,7 @@ export const config = function() {
 
       var start = new Date();
       var end = new Date();
-      var dates = { pt_start: start, pt_end: end, py_start: start, py_end: end, mt_start: start, mt_end: end }
+      var dates = { pt_start: start, pt_end: end, py_start: start, py_end: end, mt_start: start, mt_end: end };
 
       if (container.py_start) displayGen.dateRange({
          start: dates.py_start,
@@ -1325,6 +1318,7 @@ export const config = function() {
       }
 
       function downloadPoints() {
+         /*
          db.findPointsRange(dates.pt_start.getTime(), dates.pt_end.getTime()).then(pts => {
             if (!pts || !pts.length) {
                displayGen.okCancelMessage(lang.tr('noresults'), () => displayGen.closeModal('processing'));
@@ -1346,6 +1340,7 @@ export const config = function() {
                exportFx.downloadArray('points.json', pts);
             }
          });
+         */
       }
 
       // TODO: data cleaning project...
@@ -1384,7 +1379,7 @@ export const config = function() {
    }
 
    function displayTeams() {
-      let actions = displayGen.teamActions(); 
+      // let actions = displayGen.teamActions(); 
       console.log('display teams');
    }
 
@@ -1433,7 +1428,7 @@ export const config = function() {
 
    // TODO: create clubs.js
    function displayClubs() {
-      let cc = (evt) => displayClub(util.getParent(evt.target, 'club_click').getAttribute('cuid'));
+      let cc = (evt) => displayClub(domFx.getParent(evt.target, 'club_click').getAttribute('cuid'));
 
       db.findAllClubs().then(clubList, console.log); 
 
@@ -1448,7 +1443,7 @@ export const config = function() {
       }
    }
 
-   fx.pushMessage = (msg) => { env.messages.push(msg); }
+   fx.pushMessage = (msg) => { env.messages.push(msg); };
 
    // TODO: theme.js
    fx.theme = (which='black') => {
@@ -1462,7 +1457,7 @@ export const config = function() {
          document.getElementById('searchcount').style.color = 'black';
          document.getElementById('homeicon').className = `icon15 homeicon_black`;
       }
-   }
+   };
 
    function displayReleaseNotes(evt) {
       evt.stopPropagation();

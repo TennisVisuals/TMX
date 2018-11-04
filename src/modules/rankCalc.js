@@ -1,16 +1,17 @@
 import { db } from './db'
 import { env } from './env'
 import { util } from './util';
-// import { config } from './config';
+import { domFx } from './domFx';
+import { dateFx } from './dateFx';
 import { staging } from './staging';
 import { lang } from './translator';
+import { stringFx } from './stringFx';
 import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
 import { displayGen } from './displayGen';
 
 export const rankCalc = function() {
 
-   // requires db{}, util{}, exp{}
    var rank = {};
 
    rank.point_issues = [];
@@ -30,7 +31,7 @@ export const rankCalc = function() {
       var year = selected_date.getFullYear();
 
       function dpp(evt) {
-         var elem = util.getParent(evt.target, 'player_rank');
+         var elem = domFx.getParent(evt.target, 'player_rank');
          var puid = elem.getAttribute('puid');
          playerFx.displayPlayerProfile({ puid }).then(()=>{}, ()=>{});
       }
@@ -44,10 +45,10 @@ export const rankCalc = function() {
          if (Object.keys(categories).length) {
             var container = displayGen.rankLists(categories, week, year);
 
-            util.addEventToClass('print', pdfList, container.container.element)
-            util.addEventToClass('category_csv', exportCategorySpreadsheet, container.container.element)
-            util.addEventToClass('spreadsheet', exportCategoriesSpreadsheet, container.container.element)
-            util.addEventToClass('icon_json', exportJSON, container.container.element)
+            domFx.addEventToClass('print', pdfList, container.container.element)
+            domFx.addEventToClass('category_csv', exportCategorySpreadsheet, container.container.element)
+            domFx.addEventToClass('spreadsheet', exportCategoriesSpreadsheet, container.container.element)
+            domFx.addEventToClass('icon_json', exportJSON, container.container.element)
 
             Array.from(container.container.element.querySelectorAll('.player_rank')).forEach(elem => elem.addEventListener('click', dpp));
 
@@ -83,7 +84,7 @@ export const rankCalc = function() {
       });
    }
 
-   function fullName(player) { return `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; }
+   function fullName(player) { return `${player.last_name.toUpperCase()}, ${stringFx.normalizeName(player.first_name, false)}`; }
    function calcPoints({ match, points_table, category, event_rank, round_name, calculated }) {
       category = staging.legacyCategory(category || (match.event && match.event.category), true);
       event_rank = event_rank || (match.event && match.event.rank);
@@ -147,7 +148,7 @@ export const rankCalc = function() {
          if (points_date) { match.date = points_date.getTime(); }
          let ranking_attributes = points_table.rankings[match.event.rank];
          if (!ranking_attributes) return;
-         let first_round_points = ranking_attributes.first_round_points && util.string2boolean(ranking_attributes.first_round_points[match.event.draw_type]);
+         let first_round_points = ranking_attributes.first_round_points && stringFx.string2boolean(ranking_attributes.first_round_points[match.event.draw_type]);
 
          let losing_rounds = {
             'F': 'SF',
@@ -202,7 +203,6 @@ export const rankCalc = function() {
             let name = fullName(player);
             let pp = player_points[match.format];
             if (match.score && match.score.trim() == 'W.O.') {
-               // let wow = config.env().points.walkover_wins;
                let wow = env.points.walkover_wins;
                if (Array.isArray(wow) && wow.indexOf(match.round_name) < 0) return;
 
@@ -539,7 +539,7 @@ export const rankCalc = function() {
       function singles(pts) { return pts.filter(f=>f.format == 'singles' && f.tournament_type != 'MO'); }
       function doubles(pts) { return pts.filter(f=>f.format != 'singles' && f.tournament_type != 'MO'); }
       function expireDate(date) { return date - (365 * 24 * 60 * 60 * 1000); }
-      function pDate(p) { return new Date(util.formatDate(p)).getTime(); }
+      function pDate(p) { return new Date(dateFx.formatDate(p)).getTime(); }
 
       ranking_date = pDate(ranking_date);
       let birth_year = player.birth ? new Date(player.birth).getFullYear() : undefined;
@@ -563,7 +563,6 @@ export const rankCalc = function() {
       let categories = util.uunique([].concat(...valid.map(v=>v.category), ...eligible_categories))
          .map(c=>staging.legacyCategory(c, true));
 
-      // let points_table = config.pointsTable({calc_date: ranking_date});
       let points_table = rank.pointsTable({calc_date: ranking_date});
 
       if (categories.length) {
@@ -877,8 +876,8 @@ export const rankCalc = function() {
    }
 
    rank.eligibleCategories = ({birthday, birth_year, calc_date, calc_year}) => {
-      if (birthday && util.validDate(birthday)) birth_year = new Date(birthday).getFullYear();
-      if (calc_date && util.validDate(calc_date)) calc_year = new Date(calc_date).getFullYear();
+      if (birthday && dateFx.validDate(birthday)) birth_year = new Date(birthday).getFullYear();
+      if (calc_date && dateFx.validDate(calc_date)) calc_year = new Date(calc_date).getFullYear();
       if (!birth_year || birth_year.toString().length != 4) return { categories: [] };
       if (!calc_year) calc_year = new Date().getFullYear();
       if (!calc_date) calc_date = new Date(calc_year, 1, 1);
@@ -901,7 +900,7 @@ export const rankCalc = function() {
          return {};
       } else {
          // necessary to normalize getTime() values
-         let calc_date_string = util.formatDate(calc_date);
+         let calc_date_string = dateFx.formatDate(calc_date);
 
          let calc_time = new Date(calc_date_string).getTime();
          let valid = org_tables.validity.reduce((p, c) => new Date(c.from).getTime() <= calc_time && new Date(c.to).getTime() >= calc_time ? c : p, undefined);

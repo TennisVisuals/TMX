@@ -2,10 +2,13 @@ import { db } from './db'
 import { env } from './env'
 import { util } from './util';
 import { dd } from './dropdown';
+import { domFx } from './domFx';
+import { dateFx } from './dateFx';
 import { staging } from './staging';
 import { matchFx } from './matchFx';
 import { lang } from './translator';
 import { rankCalc } from './rankCalc';
+import { stringFx } from './stringFx';
 import { exportFx } from './exportFx';
 import { searchBox } from './searchBox';
 import { displayGen } from './displayGen';
@@ -59,12 +62,12 @@ export const playerFx = function() {
             if (filter_values && filter_values.length) arr = arr.filter(el => filter_values.indexOf(el.puid) >= 0);
 
             let firstlast = arr.map(player => { 
-               let label = util.normalizeName([player.first_name, player.last_name].join(' '), noaccents);
+               let label = stringFx.normalizeName([player.first_name, player.last_name].join(' '), noaccents);
                if (player.birth) label += ` [${new Date(player.birth).getFullYear()}]`;
                return { value: player.puid, label, }
             });
             let lastfirst = arr.map(player => { 
-               let label = `${util.normalizeName(player.last_name, noaccents).toUpperCase()} ${util.normalizeName(player.first_name, noaccents)}`;
+               let label = `${stringFx.normalizeName(player.last_name, noaccents).toUpperCase()} ${stringFx.normalizeName(player.first_name, noaccents)}`;
                if (player.birth) label += ` [${new Date(player.birth).getFullYear()}]`;
                return { value: player.puid, label }
             });
@@ -131,7 +134,7 @@ export const playerFx = function() {
                         setDefaultDate: true,
                         i18n: lang.obj('i18n'),
                         firstDay: env.calendar.first_day,
-                        toString(date) { return util.formatDate(date); },
+                        toString(date) { return dateFx.formatDate(date); },
                         onSelect: function() { 
                            ranking_date = this.getDate();
                            displayPoints(player, club, points, ranking_date);
@@ -188,7 +191,7 @@ export const playerFx = function() {
 
             displayGen.tabbedPlayerRankings(tabdata, container);
 
-            let dt = (evt) => fx.displayTournament({tuid: util.getParent(evt.target, 'point_click').getAttribute('tuid')});
+            let dt = (evt) => fx.displayTournament({tuid: domFx.getParent(evt.target, 'point_click').getAttribute('tuid')});
             Array.from(container.rankings.element.querySelectorAll('.point_click')).forEach(elem => elem.addEventListener('click', dt));
 
          }
@@ -204,10 +207,10 @@ export const playerFx = function() {
             displayGen.tabbedPlayerMatches(puid, singles, doubles, container);
 
             // attach function to display player profile when clicked
-            util.addEventToClass('player_click', fx.playerClicked, container.matches.element);
+            domFx.addEventToClass('player_click', fx.playerClicked, container.matches.element);
 
             let tournamentClick = (evt) => fx.displayTournament({tuid: evt.target.getAttribute('tuid')});
-            util.addEventToClass('tournament_click', tournamentClick, container.matches.element);
+            domFx.addEventToClass('tournament_click', tournamentClick, container.matches.element);
 
             if (singles.length) {
                singles.forEach(match => matchFx.matchOutcome(match, puid));
@@ -227,7 +230,7 @@ export const playerFx = function() {
    }
 
    fx.playerClicked = (evt) => {
-      let elem = util.getParent(evt.target, 'player_click');
+      let elem = domFx.getParent(evt.target, 'player_click');
       let puid = elem.getAttribute('puid');
       let puid2 = elem.getAttribute('puid2');
       if (!puid2) {
@@ -453,7 +456,7 @@ export const playerFx = function() {
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
          firstDay: env.calendar.first_day,
-         toString(date) { return util.formatDate(date); },
+         toString(date) { return dateFx.formatDate(date); },
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
       env.date_pickers.push(birthdayPicker);
@@ -539,9 +542,9 @@ export const playerFx = function() {
       }
 
       let saveNewPlayer = () => { 
-         let valid_date = !ages || util.validDate(player.birth, daterange);
+         let valid_date = !ages || dateFx.validDate(player.birth, daterange);
          if (!valid_date || !player.first_name || !player.last_name || (require_ioc && !player.ioc)) return;
-         player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
+         player.full_name = `${player.last_name.toUpperCase()}, ${stringFx.normalizeName(player.first_name, false)}`;
          if (!player.club && player_container.club.element.value) player.club_name = player_container.club.element.value;
 
          if (typeof callback == 'function') callback(player); 
@@ -567,7 +570,7 @@ export const playerFx = function() {
 
       function validateBirth(elem, evt) {
          let datestring = elem.value;
-         let valid_date = util.validDate(datestring, daterange);
+         let valid_date = dateFx.validDate(datestring, daterange);
          elem.style.background = valid_date ? 'white' : 'yellow';
          if (valid_date) return defineAttr('birth', evt, true, elem);
       }
@@ -631,7 +634,7 @@ export const playerFx = function() {
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
          firstDay: env.calendar.first_day,
-         toString(date) { return util.formatDate(date); },
+         toString(date) { return dateFx.formatDate(date); },
          onSelect: function() { validateBirth(player_container.birth.element); },
       });
       env.date_pickers.push(birthdayPicker);
@@ -691,7 +694,7 @@ export const playerFx = function() {
 
       let saveEditedPlayer = () => { 
          if (!player.first_name || !player.last_name || (require_ioc && !player.ioc)) return;
-         player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`;
+         player.full_name = `${player.last_name.toUpperCase()}, ${stringFx.normalizeName(player.first_name, false)}`;
 
          let parenthetical = /\((.*)\)/;
          if (player.school && player.school.match(parenthetical)) {
@@ -721,7 +724,7 @@ export const playerFx = function() {
 
       function validateBirth(elem, evt) {
          let datestring = elem.value;
-         let valid_date = (!ages && !datestring) || util.validDate(datestring, daterange);
+         let valid_date = (!ages && !datestring) || dateFx.validDate(datestring, daterange);
          elem.style.background = valid_date ? 'white' : 'yellow';
          if (valid_date) {
             console.log('valid', elem);

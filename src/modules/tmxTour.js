@@ -1,4 +1,5 @@
 import { util } from './util';
+import { domFx } from './domFx';
 import { lang } from './translator';
 
 let guide = introJs();
@@ -626,7 +627,7 @@ function eventsTabTour() {
       { class: 'match_priority', intro: '<b>Match Priority</b><p>Click to edit match point value<p>Click multiple times to cycle through match gender options' },
    ];
 
-   function inSelectedTab(element) { return util.getParent(element, 'tab').classList.contains('selected'); }
+   function inSelectedTab(element) { return domFx.getParent(element, 'tab').classList.contains('selected'); }
    let subtabs = !teams ? [] : targetClasses('tournament', 'event_details', st).filter(s=>inSelectedTab(s.element));
 
    let event_opponents = teams ? event_teams : event_players;
@@ -691,13 +692,13 @@ function tournamentTabTour() {
    let componentObj = (obj, intro) => ({ element: containers.tournament[obj].element, disableInteraction: true, intro });
 
    let start_date = containers.tournament.start_date.element;
-   let dates = util.getParent(start_date, 'attribute_box');
+   let dates = domFx.getParent(start_date, 'attribute_box');
 
    let organization = containers.tournament.organization.element;
-   let orginfo = util.getParent(organization, 'attribute_box');
+   let orginfo = domFx.getParent(organization, 'attribute_box');
 
    let trny_location = containers.tournament.location.element;
-   let umpirebox = util.getParent(trny_location, 'attribute_box');
+   let umpirebox = domFx.getParent(trny_location, 'attribute_box');
 
    let tabs = document.querySelector('.tabs');
 

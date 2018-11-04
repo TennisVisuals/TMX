@@ -7,6 +7,7 @@ import { drawFx } from './drawFx';
 import { staging } from './staging';
 import { matchFx } from './matchFx';
 import { lang } from './translator';
+import { stringFx } from './stringFx';
 import { playerFx } from './playerFx';
 
 export const tournamentFx = function() {
@@ -30,7 +31,7 @@ export const tournamentFx = function() {
       players.forEach(player => {
          if (puids.indexOf(player.puid) < 0 && ids.indexOf(player.id) < 0) {
             player.full_name = fx.fullName(player, false);
-            tournament.players.push(playerFx.playerCopy(player, ['birth']));
+            tournament.players.push(playerFx.playerCopy(player, ['birth', 'registered_until', 'withdrawn', 'right_to_play_until', 'cropin']));
             added += 1;
          }
       });
@@ -682,8 +683,8 @@ export const tournamentFx = function() {
          approved.forEach(opponent => opponent.forEach(plyr => {
             // TODO:  should be unnecessary if players names normalized when added
             // to database or entered via tournament registration...
-            plyr.first_name = util.normalizeName(plyr.first_name, false);
-            plyr.last_name = util.normalizeName(plyr.last_name, false);
+            plyr.first_name = stringFx.normalizeName(plyr.first_name, false);
+            plyr.last_name = stringFx.normalizeName(plyr.last_name, false);
          }));
       }
 
@@ -841,7 +842,7 @@ export const tournamentFx = function() {
 
             p.rank = p.modified_ranking || p.category_ranking;
             p.last_name = p.last_name.toUpperCase();
-            p.first_name = util.normalizeName(p.first_name, false);
+            p.first_name = stringFx.normalizeName(p.first_name, false);
             return p;
          });
 
@@ -1226,10 +1227,10 @@ export const tournamentFx = function() {
 
    fx.playerSort = (players) => {
       return players.sort((a, b) => {
-         let sort_a = `${a.last_name && a.last_name.toUpperCase()}, ${util.normalizeName(a.first_name)}`;
-         let sort_b = `${b.last_name && b.last_name.toUpperCase()}, ${util.normalizeName(b.first_name)}`;
-         let a1 = util.replaceDiacritics(sort_a);
-         let b1 = util.replaceDiacritics(sort_b);
+         let sort_a = `${a.last_name && a.last_name.toUpperCase()}, ${stringFx.normalizeName(a.first_name)}`;
+         let sort_b = `${b.last_name && b.last_name.toUpperCase()}, ${stringFx.normalizeName(b.first_name)}`;
+         let a1 = strinfFx.replaceDiacritics(sort_a);
+         let b1 = strinfFx.replaceDiacritics(sort_b);
          let result = a1 < b1 ? -1 : a1 > b1 ? 1 : 0
          return result;
       });
@@ -1272,14 +1273,14 @@ export const tournamentFx = function() {
       return teams.sort((a, b) => {
          if (!a[0].full_name) a[0].full_name = fx.fullName(a[0]);
          if (!b[0].full_name) b[0].full_name = fx.fullName(b[0]);
-         let a1 = util.replaceDiacritics(a[0].full_name);
-         let b1 = util.replaceDiacritics(b[0].full_name);
+         let a1 = strinfFx.replaceDiacritics(a[0].full_name);
+         let b1 = strinfFx.replaceDiacritics(b[0].full_name);
          return a1 < b1 ? -1 : a1 > b1 ? 1 : 0
       });
    }
 
    fx.fullName = (o, noaccents=true) => {
-      if (o.last_name && o.first_name) return `${o.last_name.toUpperCase()}, ${util.normalizeName(o.first_name, noaccents)}`; 
+      if (o.last_name && o.first_name) return `${o.last_name.toUpperCase()}, ${stringFx.normalizeName(o.first_name, noaccents)}`; 
       return o.name || '';
    }
 
@@ -1591,7 +1592,7 @@ export const tournamentFx = function() {
             defaultDate: start,
             setDefaultDate: true,
             firstDay: env.calendar.first_day,
-            toString(date) { return util.formatDate(date); },
+            toString(date) { return dateFx.formatDate(date); },
             onSelect: function() {
                start = this.getDate();
                updateStartDate();
@@ -1606,7 +1607,7 @@ export const tournamentFx = function() {
             defaultDate: end,
             setDefaultDate: true,
             firstDay: env.calendar.first_day,
-            toString(date) { return util.formatDate(date); },
+            toString(date) { return dateFx.formatDate(date); },
             onSelect: function() {
                end = this.getDate();
                updateEndDate();

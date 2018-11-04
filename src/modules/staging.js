@@ -6,6 +6,7 @@ import { config } from './config';
 import { fetchFx } from './fetchFx';
 import { lang } from './translator';
 import { importFx } from './importFx';
+import { stringFx } from './stringFx';
 import { calendarFx } from './calendarFx';
 import { displayGen } from './displayGen';
 import { tournamentDisplay } from './tournamentDisplay';
@@ -198,9 +199,9 @@ export const staging = function() {
 
       let playerName = (player) => 
             ({ 
-               lname: util.normalizeName(player.last_name, false),
-               fname: util.normalizeName(player.first_name, false),
-               name: util.normalizeName(`${player.first_name} ${player.last_name}`, false),
+               lname: stringFx.normalizeName(player.last_name, false),
+               fname: stringFx.normalizeName(player.first_name, false),
+               name: stringFx.normalizeName(`${player.first_name} ${player.last_name}`, false),
                ioc: player.ioc,
             });
 

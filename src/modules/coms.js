@@ -1,7 +1,9 @@
 import { db } from './db'
 import { env } from './env'
-import { sharedFx } from './sharedFx';
+import { util } from './util'
 import { lang } from './translator';
+import { stringFx } from './stringFx';
+import { sharedFx } from './sharedFx';
 import { displayGen } from './displayGen';
 
 let funcs = {
@@ -67,7 +69,7 @@ export const coms = function() {
 
    mod.versionNotice = (version) => {
       db.findSetting('superUser').then(setting => {
-         if (setting && setting.auth && util.string2boolean(setting.auth.versioning)) {
+         if (setting && setting.auth && stringFx.string2boolean(setting.auth.versioning)) {
             mod.emitTmx({ updateVersion: { version, client: 'tmx', notice: `Version ${version} available` } });
          }
       });

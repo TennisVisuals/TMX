@@ -4,6 +4,8 @@ import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
 import { dd } from './dropdown';
+import { domFx } from './domFx';
+import { dateFx } from './dateFx';
 import { fetchFx } from './fetchFx';
 import { staging } from './staging';
 import { lang } from './translator';
@@ -29,22 +31,22 @@ export const calendarFx = function() {
    function displayCalendar() {
       let category = env.calendar.category;
 
-      let start = util.offsetDate(env.calendar.start);
-      let end = env.calendar.end ? util.offsetDate(env.calendar.end) : new Date(new Date(start).setMonth(new Date(start).getMonth()+2));
+      let start = dateFx.offsetDate(env.calendar.start);
+      let end = env.calendar.end ? dateFx.offsetDate(env.calendar.end) : new Date(new Date(start).setMonth(new Date(start).getMonth()+2));
 
       let calendar_container = displayGen.calendarContainer();
       tmxTour.calendarContainer(calendar_container);
 
       function updateStartDate() {
          // use timeUTC so that the date doesn't drift by repeated use of offsetDate
-         fx.setCalendar({start: new Date(util.timeUTC(start)) });
+         fx.setCalendar({start: new Date(dateFx.timeUTC(start)) });
          startPicker.setStartRange(start);
          endPicker.setStartRange(start);
          endPicker.setMinDate(start);
       };
       function updateEndDate() {
          // use timeUTC so that the date doesn't drift by repeated use of offsetDate
-         fx.setCalendar({end: new Date(util.timeUTC(end)) });
+         fx.setCalendar({end: new Date(dateFx.timeUTC(end)) });
          startPicker.setEndRange(end);
          startPicker.setMaxDate(end);
          endPicker.setEndRange(end);
@@ -54,7 +56,7 @@ export const calendarFx = function() {
          field: calendar_container.start.element,
          i18n: lang.obj('i18n'),
          defaultDate: start,
-         toString(date) { return util.formatDate(date); },
+         toString(date) { return dateFx.formatDate(date); },
          setDefaultDate: true,
          firstDay: env.calendar.first_day,
          onSelect: function() {
@@ -70,7 +72,7 @@ export const calendarFx = function() {
          i18n: lang.obj('i18n'),
          minDate: start,
          defaultDate: end,
-         toString(date) { return util.formatDate(date); },
+         toString(date) { return dateFx.formatDate(date); },
          setDefaultDate: true,
          firstDay: env.calendar.first_day,
          onSelect: function() {
@@ -117,8 +119,8 @@ export const calendarFx = function() {
          tournament.log = [];
          if (!tournament.tuid) tournament.tuid = UUID.new();
 
-         tournament.end = util.timeUTC(new Date(tournament.end));
-         tournament.start = util.timeUTC(new Date(tournament.start));
+         tournament.end = dateFx.timeUTC(new Date(tournament.end));
+         tournament.start = dateFx.timeUTC(new Date(tournament.start));
 
          function refresh() { generateCalendar({start, end, category}); }
          db.addTournament(tournament).then(refresh, console.log);
@@ -149,12 +151,12 @@ export const calendarFx = function() {
 
             function dt(evt) {
                if (evt.ctrlKey || evt.shiftKey) return tournamentContextOptions(evt);
-               let tuid = util.getParent(evt.target, 'calendar_click').getAttribute('tuid');
+               let tuid = domFx.getParent(evt.target, 'calendar_click').getAttribute('tuid');
                return tournamentDisplay.displayTournament({tuid});
             }
             function tournamentContextOptions(evt) {
                var mouse = { x: evt.clientX, y: evt.clientY }
-               var tuid = util.getParent(evt.target, 'calendar_click').getAttribute('tuid');
+               var tuid = domFx.getParent(evt.target, 'calendar_click').getAttribute('tuid');
                db.findTournament(tuid).then(checkOptions, util.logError);
                function checkOptions(tournament_data) { db.findSetting('fetchTournament').then(fetch => options(fetch, tournament_data)); }
 
@@ -329,8 +331,8 @@ export const calendarFx = function() {
       }
 
       let saveTrny = () => { 
-         let valid_start = !trny.start ? false : typeof trny.start == 'string' ? util.validDate(trny.start) : true;
-         let valid_end   = !trny.end   ? false : typeof trny.end   == 'string' ? util.validDate(trny.end) : true;
+         let valid_start = !trny.start ? false : typeof trny.start == 'string' ? dateFx.validDate(trny.start) : true;
+         let valid_end   = !trny.end   ? false : typeof trny.end   == 'string' ? dateFx.validDate(trny.end) : true;
          if (!valid_start || !valid_end || !trny.name || !trny.category) return;
          if (typeof callback == 'function') callback(trny); 
          displayGen.closeModal();
@@ -355,7 +357,7 @@ export const calendarFx = function() {
          if (evt) element = evt.target;
          if (element) {
             let datestring = element.value;
-            let valid_date = util.validDate(datestring);
+            let valid_date = dateFx.validDate(datestring);
             if (valid_date) {
                defineAttr(attr, evt, true, element);
             } else {
@@ -364,18 +366,18 @@ export const calendarFx = function() {
             element.style.background = valid_date ? 'white' : 'yellow';
          }
 
-         container.start.element.style.background = util.validDate(container.start.element.value) ? 'white' : 'yellow';
-         container.end.element.style.background = util.validDate(container.end.element.value) ? 'white' : 'yellow';
+         container.start.element.style.background = dateFx.validDate(container.start.element.value) ? 'white' : 'yellow';
+         container.end.element.style.background = dateFx.validDate(container.end.element.value) ? 'white' : 'yellow';
       }
 
-      let start = util.offsetDate(trny.start);
-      let end = util.offsetDate(trny.end);
+      let start = dateFx.offsetDate(trny.start);
+      let end = dateFx.offsetDate(trny.end);
 
       var startPicker = new Pikaday({
          field: container.start.element,
          defaultDate: start,
          setDefaultDate: true,
-         toString(date) { return util.formatDate(date); },
+         toString(date) { return dateFx.formatDate(date); },
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
          onSelect: function() { 
@@ -396,7 +398,7 @@ export const calendarFx = function() {
          field: container.end.element,
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
-         toString(date) { return util.formatDate(date); },
+         toString(date) { return dateFx.formatDate(date); },
          onSelect: function() {
             end = this.getDate();
             updateEndDate();
@@ -436,13 +438,13 @@ export const calendarFx = function() {
       container.save.element.addEventListener('keyup', handleSaveKeyUp, false);
 
       function updateStartDate() {
-         trny.start = util.timeUTC(start);
+         trny.start = dateFx.timeUTC(start);
          startPicker.setStartRange(start);
          endPicker.setStartRange(start);
          endPicker.setMinDate(start);
       };
       function updateEndDate() {
-         trny.end = util.timeUTC(end);
+         trny.end = dateFx.timeUTC(end);
          startPicker.setEndRange(end);
          startPicker.setMaxDate(end);
          endPicker.setEndRange(end);

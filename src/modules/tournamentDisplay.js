@@ -4,12 +4,15 @@ import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
 import { dd } from './dropdown';
+import { domFx } from './domFx';
+import { dateFx } from './dateFx';
 import { fetchFx } from './fetchFx';
 import { lang } from './translator';
 import { matchFx } from './matchFx';
 import { courtFx } from './courtFx';
 import { staging } from './staging';
 import { tmxTour } from './tmxTour';
+import { stringFx } from './stringFx';
 import { tmxStats } from './tmxStats';
 import { pointsFx } from './pointsFx';
 import { playerFx } from './playerFx';
@@ -246,26 +249,26 @@ export const tournamentDisplay = function() {
       editAction();
       tree_draw.selector(container.draws.element);
 
-      util.addEventToClass(classes.auto_draw, toggleAutoDraw);
-      util.addEventToClass(classes.gem_seeding, toggleGemSeeding);
-      util.addEventToClass(classes.ratings_filter, toggleRatingsFilter);
+      domFx.addEventToClass(classes.auto_draw, toggleAutoDraw);
+      domFx.addEventToClass(classes.gem_seeding, toggleGemSeeding);
+      domFx.addEventToClass(classes.ratings_filter, toggleRatingsFilter);
 
       attachFilterToggles(classes, updateFilters);
-      util.addEventToClass(classes.ranking_order, () => enableManualRankings());
-      util.addEventToClass(classes.reg_link, () => editRegistrationLink());
-      util.addEventToClass(classes.refresh_registrations, (evt) => {
+      domFx.addEventToClass(classes.ranking_order, () => enableManualRankings());
+      domFx.addEventToClass(classes.reg_link, () => editRegistrationLink());
+      domFx.addEventToClass(classes.refresh_registrations, (evt) => {
          if (evt.ctrlKey || evt.shiftKey) return replaceRegisteredPlayers(true);
          updateRegisteredPlayers(true);
       });
-      util.addEventToClass(classes.refresh_registrations, () => replaceRegisteredPlayers(true), undefined, 'contextmenu');
+      domFx.addEventToClass(classes.refresh_registrations, () => replaceRegisteredPlayers(true), undefined, 'contextmenu');
 
       // set up printing events
-      util.addEventToClass(classes.print_sign_in, playersTabPrinting);
-      util.addEventToClass(classes.print_draw, printDraw);
-      util.addEventToClass(classes.print_draw, () => console.log('context menu print'), document, 'contextmenu');
+      domFx.addEventToClass(classes.print_sign_in, playersTabPrinting);
+      domFx.addEventToClass(classes.print_draw, printDraw);
+      domFx.addEventToClass(classes.print_draw, () => console.log('context menu print'), document, 'contextmenu');
 
-      util.addEventToClass(classes.print_schedule, printSchedule);
-      util.addEventToClass(classes.schedule_matches, scheduleMatches);
+      domFx.addEventToClass(classes.print_schedule, printSchedule);
+      domFx.addEventToClass(classes.schedule_matches, scheduleMatches);
       function scheduleMatches() {
          let scheduling_height = '40em';
          let schedule_grid = container.container.element.querySelector('.schedule_sheet');
@@ -278,7 +281,7 @@ export const tournamentDisplay = function() {
             // scheduling was active when the button was clicked
             // find and remove awesomplete in schedule_scroll_container
             let search_field = container.schedule.element.querySelector('.awesomplete');
-            let search_box = search_field && util.getParent(search_field, 'schedule_box');
+            let search_box = search_field && domFx.getParent(search_field, 'schedule_box');
             if (search_box) search_box.innerHTML = scheduleFx.opponentSearch();
          }
 
@@ -287,7 +290,7 @@ export const tournamentDisplay = function() {
          schedule_matches.querySelector('div').classList.toggle('matches_header');
       }
 
-      util.addEventToClass(classes.schedule_details, scheduleDetails);
+      domFx.addEventToClass(classes.schedule_details, scheduleDetails);
       function scheduleDetails() {
          displayGen.escapeModal();
          var modal = displayGen.scheduleDetails();
@@ -330,17 +333,17 @@ export const tournamentDisplay = function() {
          }
       }
 
-      util.addEventToClass(classes.publish_schedule, (evt) => {
+      domFx.addEventToClass(classes.publish_schedule, (evt) => {
          if (evt.ctrlKey || evt.shiftKey) return unPublishSchedule();
          publishSchedule();
       });
-      util.addEventToClass(classes.publish_schedule, unPublishSchedule, undefined, 'contextmenu');
+      domFx.addEventToClass(classes.publish_schedule, unPublishSchedule, undefined, 'contextmenu');
       function unPublishSchedule() {
          if (!state.edit || !tournament.schedule || !tournament.schedule.published) return;
          displayGen.okCancelMessage(lang.tr('schedule.unpublish'), () => unPublishOOP(tournament), () => displayGen.closeModal());
       }
 
-      util.addEventToClass(classes.publish_players, publishPlayers);
+      domFx.addEventToClass(classes.publish_players, publishPlayers);
 
       function unPublishOOP(tournament) {
          let org = env.org;
@@ -931,7 +934,7 @@ export const tournamentDisplay = function() {
             let valid_reps = tournament.players
                .filter(p=>approved_ids.indexOf(p.id) >= 0)
                .map(p=>{
-                  let player = util.normalizeName(`${p.first_name} ${p.last_name}`);
+                  let player = stringFx.normalizeName(`${p.first_name} ${p.last_name}`);
                   return { value: player, label: player }
                });
             let rep1 = new Awesomplete(modal.player_rep1.element, { list: valid_reps });
@@ -1429,7 +1432,7 @@ export const tournamentDisplay = function() {
          let category_filter = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : tournament.category;
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
-         let calc_date = util.offsetDate(tournament_date);
+         let calc_date = dateFx.offsetDate(tournament_date);
 
          let points_table = rankCalc.pointsTable({calc_date});
          let categories = points_table && points_table.categories;
@@ -1806,7 +1809,7 @@ export const tournamentDisplay = function() {
          displayGen.escapeFx = undefined;
 
          // for editing insure tournament is not in modal
-         util.moveNode('content', container.container.id);
+         domFx.moveNode('content', container.container.id);
          displayGen.content = 'tournament';
          displayGen.closeModal();
 
@@ -1836,7 +1839,7 @@ export const tournamentDisplay = function() {
 
          // TODO: insure that env.org.abbr is appropriately set when externalRequest URLs are configured
          let tournament_date = tournament && tournament.start;
-         let calc_date = util.offsetDate(tournament_date);
+         let calc_date = dateFx.offsetDate(tournament_date);
          let categories = rankCalc.orgCategories({calc_date});
 
          // TODO: this shouldn't be done *every* time that edit state is activated
@@ -2091,8 +2094,8 @@ export const tournamentDisplay = function() {
             document.querySelector('.' + classes.reg_link).style.display = 'none';
          }
 
-         util.eachElementClass(container.team_details.element, 'team_attr_edit', (el) => el.disabled = !state.edit);
-         util.eachElementClass(container.team_details.element, 'manualorder', (el) => {
+         domFx.eachElementClass(container.team_details.element, 'team_attr_edit', (el) => el.disabled = !state.edit);
+         domFx.eachElementClass(container.team_details.element, 'manualorder', (el) => {
             el.disabled = true;
             el.style.background = 'white';
          });
@@ -2102,9 +2105,9 @@ export const tournamentDisplay = function() {
          }
 
          let view_icon = state.edit && env.documentation ? 'flex' : 'none';
-         util.eachElementClass(document, 'tiny_docs_icon', (el) => el.style.display=view_icon);
-         util.eachElementClass(document, 'tiny_tour_icon', (el) => el.style.display=view_icon);
-         util.eachElementClass(document, 'hints_icon', (el) => el.style.display=view_icon);
+         domFx.eachElementClass(document, 'tiny_docs_icon', (el) => el.style.display=view_icon);
+         domFx.eachElementClass(document, 'tiny_tour_icon', (el) => el.style.display=view_icon);
+         domFx.eachElementClass(document, 'hints_icon', (el) => el.style.display=view_icon);
 
          signInSheet();
          scheduleActions();
@@ -2129,8 +2132,8 @@ export const tournamentDisplay = function() {
          if (state.edit) {
             db.findSetting('superUser').then(setting => {
                if (setting && setting.auth) {
-                  if (util.string2boolean(setting.auth.tournaments)) { enableDownloads(); }
-                  if (util.string2boolean(setting.auth.authorize)) { state.admin = true; }
+                  if (stringFx.string2boolean(setting.auth.tournaments)) { enableDownloads(); }
+                  if (stringFx.string2boolean(setting.auth.authorize)) { state.admin = true; }
                }
             });
 
@@ -2670,9 +2673,9 @@ export const tournamentDisplay = function() {
          }
       }
 
-      util.addEventToClass(classes.team_rankings, () => enableTeamRankings());
-      util.addEventToClass(classes.roster_link, () => defineRosterLink());
-      util.addEventToClass(classes.refresh_roster, () => updateRosterPlayers());
+      domFx.addEventToClass(classes.team_rankings, () => enableTeamRankings());
+      domFx.addEventToClass(classes.roster_link, () => defineRosterLink());
+      domFx.addEventToClass(classes.refresh_roster, () => updateRosterPlayers());
 
       function defineRosterLink() {
          let existing_link = displayed.team && displayed.team.roster_link;
@@ -2714,7 +2717,7 @@ export const tournamentDisplay = function() {
       function addRosterPlayers(players) {
          if (players && !players.length) return displayGen.popUpMessage('Players not found: Check Headers/Tab Names.');
 
-         players.forEach(player => { player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; });
+         players.forEach(player => { player.full_name = `${player.last_name.toUpperCase()}, ${stringFx.normalizeName(player.first_name, false)}`; });
          tfx.addPlayers(tournament, players);
          
          if (!displayed.team.players) displayed.team.players = {};
@@ -2736,7 +2739,7 @@ export const tournamentDisplay = function() {
          let active = team_ranking_order.classList.contains('ranking_order_active');
          team_ranking_order.classList[!active ? 'remove' : 'add'](`ranking_order_inactive`);
          team_ranking_order.classList[!active ? 'add' : 'remove'](`ranking_order_active`);
-         util.eachElementClass(container.team_details.element, 'manualorder', (el) => {
+         domFx.eachElementClass(container.team_details.element, 'manualorder', (el) => {
             el.disabled = active;
             el.style.background = !active && el.tagName.toLowerCase() == 'input' ? 'lightyellow' : 'white';
             if (el.tagName.toLowerCase() == 'input') { el.classList[active ? 'remove' : 'add'](`bottomborder`); }
@@ -2763,7 +2766,7 @@ export const tournamentDisplay = function() {
 
          if (tournament.teams) {
             if (cleanup) {
-               util.eachElementClass(container.teams.element, 'teamid', (i) => i.classList.remove('highlight_listitem'));
+               domFx.eachElementClass(container.teams.element, 'teamid', (i) => i.classList.remove('highlight_listitem'));
                return closeTeamDetails();
             }
 
@@ -2800,12 +2803,12 @@ export const tournamentDisplay = function() {
             container.team_details.element.querySelector('.' + classes.team_rankings).classList[opacity ? 'add' : 'remove']('infoleft');
 
             function teamDetails(target) {
-               let clicked_team = util.getParent(target, 'teamid');
+               let clicked_team = domFx.getParent(target, 'teamid');
                let class_list = clicked_team.classList;
                if (class_list.contains('highlight_listitem')) {
                   closeTeamDetails();
                } else {
-                  util.eachElementClass(container.teams.element, 'teamid', (i) => i.classList.remove('highlight_listitem'));
+                  domFx.eachElementClass(container.teams.element, 'teamid', (i) => i.classList.remove('highlight_listitem'));
                   class_list.add('highlight_listitem');
                   let uuid = clicked_team.getAttribute('uuid');
                   let team = tfx.findTeamByID(tournament, uuid);
@@ -2883,7 +2886,7 @@ export const tournamentDisplay = function() {
 
          function eventDetails(evt) {
             tmxTour.clear();
-            let clicked_event = util.getParent(evt.target, 'event');
+            let clicked_event = domFx.getParent(evt.target, 'event');
             let class_list = clicked_event.classList;
             if (class_list.contains('highlight_listitem')) {
                closeEventDetails();
@@ -2897,17 +2900,17 @@ export const tournamentDisplay = function() {
             }
          }
          // attach action to display event_details when clicking each event
-         util.addEventToClass('event', eventDetails, container.events.element);
-         util.addEventToClass('event', customEventCategory, container.events.element, 'contextmenu');
-         util.addEventToClass('pubstate', eventPubState, container.events.element);
-         util.addEventToClass('published_header', unpublishAllEvents, document, 'contextmenu');
-         util.addEventToClass('published_header', (evt) => { if (evt.ctrlKey || evt.shiftKey) return unpublishAllEvents(); });
+         domFx.addEventToClass('event', eventDetails, container.events.element);
+         domFx.addEventToClass('event', customEventCategory, container.events.element, 'contextmenu');
+         domFx.addEventToClass('pubstate', eventPubState, container.events.element);
+         domFx.addEventToClass('published_header', unpublishAllEvents, document, 'contextmenu');
+         domFx.addEventToClass('published_header', (evt) => { if (evt.ctrlKey || evt.shiftKey) return unpublishAllEvents(); });
          if (regen_drawstab) drawsTab();
          enableTournamentOptions();
       }
 
       function customEventCategory(evt) {
-         let clicked_event = util.getParent(evt.target, 'event');
+         let clicked_event = domFx.getParent(evt.target, 'event');
          let euid = clicked_event.getAttribute('euid');
          let evnt = tfx.findEventByID(tournament, euid);
          if (state.edit) {
@@ -2945,7 +2948,7 @@ export const tournamentDisplay = function() {
       function eventPubState(evt, action) {
          if (!state.edit) return;
          evt.stopPropagation();
-         let clicked_event = util.getParent(evt.target, 'event');
+         let clicked_event = domFx.getParent(evt.target, 'event');
          let index = clicked_event.getAttribute('index');
          let event_data = tournament.events[index];
 
@@ -3040,7 +3043,7 @@ export const tournamentDisplay = function() {
             let callback = (players) => {
                displayGen.closeModal();
                if (players && !players.length) return displayGen.popUpMessage('Players not found: Check Headers/Tab Names.');
-               players.forEach(player => { player.full_name = `${player.last_name.toUpperCase()}, ${util.normalizeName(player.first_name, false)}`; });
+               players.forEach(player => { player.full_name = `${player.last_name.toUpperCase()}, ${stringFx.normalizeName(player.first_name, false)}`; });
                tfx.addPlayers(tournament, players);
                let puids = players.map(p=>p.puid);
                createNewTeam({ puids });
@@ -3193,7 +3196,7 @@ export const tournamentDisplay = function() {
 
       function getCategoryRatings(category) {
          let tournament_date = tournament && tournament.start;
-         let calc_date = util.offsetDate(tournament_date);
+         let calc_date = dateFx.offsetDate(tournament_date);
          let points_table = rankCalc.pointsTable({calc_date});
          let ctgs = points_table && points_table.categories;
          let ratings = ctgs && ctgs[category] && ctgs[category].ratings;
@@ -3246,7 +3249,7 @@ export const tournamentDisplay = function() {
 
          showRosterRefresh(team);
 
-         util.eachElementClass(container.team_details.element, 'team_attr_edit', (el) => el.disabled = !state.edit);
+         domFx.eachElementClass(container.team_details.element, 'team_attr_edit', (el) => el.disabled = !state.edit);
 
          let field_order = [ 'abbreviation', 'club', 'school', 'ioc', 'coach'];
          let nextFieldFocus = (field) => {
@@ -3367,10 +3370,10 @@ export const tournamentDisplay = function() {
             .sort((a, b) => (team.players[a.puid].order || 1000) - (team.players[b.puid].order || 1000));
          displayGen.displayTeamPlayers({ elem: team_details.players.element, players, team });
 
-         util.addEventToClass('manualorder', orderEntry, container.team_details.element, 'keyup');
-         util.addEventToClass('manualorder', catchTab, container.team_details.element, 'keydown');
-         util.addEventToClass('team_player', teamPlayerClick, container.team_details.element);
-         util.addEventToClass('team_player', teamPlayerContext, container.team_details.element, 'contextmenu');
+         domFx.addEventToClass('manualorder', orderEntry, container.team_details.element, 'keyup');
+         domFx.addEventToClass('manualorder', catchTab, container.team_details.element, 'keydown');
+         domFx.addEventToClass('team_player', teamPlayerClick, container.team_details.element);
+         domFx.addEventToClass('team_player', teamPlayerContext, container.team_details.element, 'contextmenu');
 
          container.team_details.element.style.display = 'flex';
          container.team_details.element.setAttribute('uuid', team.id);
@@ -3431,7 +3434,7 @@ export const tournamentDisplay = function() {
          if (state.edit) {
             var mouse = { x: evt.clientX, y: evt.clientY }
 
-            let puid = util.getParent(evt.target, 'team_player').getAttribute('puid');
+            let puid = domFx.getParent(evt.target, 'team_player').getAttribute('puid');
             let clicked_player = tournament.players.reduce((p, c) => { if (c.puid == puid) p = c; return p; }, undefined);
 
             var options = [];
@@ -4769,16 +4772,16 @@ export const tournamentDisplay = function() {
                if (!e.active) {
                   [].forEach.call(tmatches, addDragDropHandlers);
 
-                  util.addEventToClass('matchvalue', matchValue, container.detail_opponents.element, 'keyup');
-                  util.addEventToClass('matchvalue', catchTab, container.detail_opponents.element, 'keydown');
-                  util.addEventToClass('team_match', disableAllMatchValue, container.detail_opponents.element, 'focusout');
-                  util.addEventToClass('team_match', enableMatchValue, container.detail_opponents.element, 'click');
-                  util.addEventToClass('team_match', cycleGender, container.detail_opponents.element, 'contextmenu');
+                  domFx.addEventToClass('matchvalue', matchValue, container.detail_opponents.element, 'keyup');
+                  domFx.addEventToClass('matchvalue', catchTab, container.detail_opponents.element, 'keydown');
+                  domFx.addEventToClass('team_match', disableAllMatchValue, container.detail_opponents.element, 'focusout');
+                  domFx.addEventToClass('team_match', enableMatchValue, container.detail_opponents.element, 'click');
+                  domFx.addEventToClass('team_match', cycleGender, container.detail_opponents.element, 'contextmenu');
                }
             }
 
             function cycleGender(evt) {
-               let team_match = util.getParent(evt.target, 'team_match');
+               let team_match = domFx.getParent(evt.target, 'team_match');
                let matchgender = team_match && team_match.querySelector('.matchgender');
                let matchvalue = team_match && team_match.querySelector('.matchvalue');
                let matchname = team_match && team_match.querySelector('.matchname');
@@ -4804,7 +4807,7 @@ export const tournamentDisplay = function() {
 
             function enableMatchValue(evt) {
                if (state.edit) {
-                  let team_match = util.getParent(evt.target, 'team_match');
+                  let team_match = domFx.getParent(evt.target, 'team_match');
                   let matchvalue = team_match && team_match.querySelector('.matchvalue');
                   let index = matchvalue && matchvalue.getAttribute('index');
                   if (matchvalue) {
@@ -4874,9 +4877,9 @@ export const tournamentDisplay = function() {
          container.eligible.element.addEventListener('contextmenu', evt=>eligibleOptions(evt,e));
          container.eligible.element.addEventListener('click', (evt) => { if (evt.ctrlKey || evt.shiftKey) return eligibleOptions(evt, e); });
 
-         util.addEventToClass('addall', addAll, container.detail_opponents.element);
-         util.addEventToClass('removeall', removeAll, container.detail_opponents.element);
-         util.addEventToClass('promoteall', promoteAll, container.detail_opponents.element);
+         domFx.addEventToClass('addall', addAll, container.detail_opponents.element);
+         domFx.addEventToClass('removeall', removeAll, container.detail_opponents.element);
+         domFx.addEventToClass('promoteall', promoteAll, container.detail_opponents.element);
 
          let filterGender = (value) => {
             if (e.gender != value) { e.regenerate = 'filterGender'; }
@@ -5548,18 +5551,18 @@ export const tournamentDisplay = function() {
          });
 
 
-         util.addEventToClass('tt_click', changeGroup, container.event_details.element);
+         domFx.addEventToClass('tt_click', changeGroup, container.event_details.element);
 
          let addAll = () => modifyApproved.addAll(e);
          let removeAll = () => modifyApproved.removeAll(e);
 
-         util.addEventToClass('addall', addAll, container.detail_opponents.element);
-         util.addEventToClass('removeall', removeAll, container.detail_opponents.element);
+         domFx.addEventToClass('addall', addAll, container.detail_opponents.element);
+         domFx.addEventToClass('removeall', removeAll, container.detail_opponents.element);
 
          function changeGroup(evt) {
             if (!state.edit || e.active) return;
-            let grouping = util.getParent(evt.target, 'opponent_container').getAttribute('grouping');
-            let elem = util.getParent(evt.target, 'tt_click');
+            let grouping = domFx.getParent(evt.target, 'opponent_container').getAttribute('grouping');
+            let elem = domFx.getParent(evt.target, 'tt_click');
             let uuid = elem.getAttribute('uuid');
 
             warnIfCreated(e).then(doIt, () => { return; });
@@ -5664,8 +5667,8 @@ export const tournamentDisplay = function() {
 
          function changeGroup(evt) {
             if (!state.edit || e.active) return;
-            let grouping = util.getParent(evt.target, 'opponent_container').getAttribute('grouping');
-            let elem = util.getParent(evt.target, 'player_click');
+            let grouping = domFx.getParent(evt.target, 'opponent_container').getAttribute('grouping');
+            let elem = domFx.getParent(evt.target, 'player_click');
             let puid = elem.getAttribute('puid');
             let id = elem.getAttribute('uid');
 
@@ -5712,8 +5715,8 @@ export const tournamentDisplay = function() {
 
          function removeTeam(evt) {
             if (!state.edit || e.active) return;
-            let grouping = util.getParent(evt.target, 'opponent_container').getAttribute('grouping');
-            let elem = util.getParent(evt.target, 'team_click');
+            let grouping = domFx.getParent(evt.target, 'opponent_container').getAttribute('grouping');
+            let elem = domFx.getParent(evt.target, 'team_click');
             let team_id = elem.getAttribute('team_id');
             if (team_id) { destroyTeam(team_id, grouping); }
          }
@@ -5740,10 +5743,10 @@ export const tournamentDisplay = function() {
          }
 
          function teamClickMenu(evt) {
-            var grouping = util.getParent(evt.target, 'opponent_container').getAttribute('grouping');
+            var grouping = domFx.getParent(evt.target, 'opponent_container').getAttribute('grouping');
             if (!state.edit || e.active) return;
             if (evt.ctrlKey || evt.shiftKey || grouping == 'approved') return removeTeam(evt);
-            var elem = util.getParent(evt.target, 'team_click');
+            var elem = domFx.getParent(evt.target, 'team_click');
             var duplicates = elem.getAttribute('duplicates');
             if (!duplicates && grouping == 'approved') return;
 
@@ -5809,13 +5812,13 @@ export const tournamentDisplay = function() {
             }
          }
 
-         util.addEventToClass('player_click', playerOptions, container.event_details.element);
-         util.addEventToClass('team_click', teamClickMenu, container.event_details.element);
-         util.addEventToClass('team_click', removeTeam, container.event_details.element, 'contextmenu');
-         util.addEventToClass('player_click', changeGroup, container.event_details.element, 'contextmenu');
+         domFx.addEventToClass('player_click', playerOptions, container.event_details.element);
+         domFx.addEventToClass('team_click', teamClickMenu, container.event_details.element);
+         domFx.addEventToClass('team_click', removeTeam, container.event_details.element, 'contextmenu');
+         domFx.addEventToClass('player_click', changeGroup, container.event_details.element, 'contextmenu');
 
          function playerOptions(evt) {
-            var grouping = util.getParent(evt.target, 'opponent_container').getAttribute('grouping');
+            var grouping = domFx.getParent(evt.target, 'opponent_container').getAttribute('grouping');
             if (evt.ctrlKey || evt.shiftKey || grouping == 'approved' || e.format == 'D') return changeGroup(evt);
             if (!state.edit || e.active || e.format != 'S') return;
 
@@ -5828,7 +5831,7 @@ export const tournamentDisplay = function() {
                if (c.key == 'wc') {
                   warnIfCreated(e).then(doIt, () => { return; });
                   function doIt() {
-                     let elem = util.getParent(evt.target, 'player_click');
+                     let elem = domFx.getParent(evt.target, 'player_click');
                      let puid = elem.getAttribute('puid');
                      let id = elem.getAttribute('uid');
                      let plyr = tournament.players.reduce((p, c) => c.id == id ? c : p, undefined);
@@ -5893,11 +5896,11 @@ export const tournamentDisplay = function() {
             if (!p) return '';
             if (!p.last_name || !p.first_name) return p.qualifier ? lang.tr('qualifier') : '';
             let club = p.club_code ? ` (${p.club_code})` : '';
-            let full_name = `${util.normalizeName(p.first_name, remove_diacritics)} ${util.normalizeName(p.last_name, remove_diacritics).toUpperCase()}`; 
+            let full_name = `${stringFx.normalizeName(p.first_name, remove_diacritics)} ${stringFx.normalizeName(p.last_name, remove_diacritics).toUpperCase()}`; 
             return `${full_name}${club}`;
          } else {
             return team
-               .map(t => !match.players[t] ? lang.tr('opnt') : util.normalizeName(match.players[t].last_name, remove_diacritics).toUpperCase())
+               .map(t => !match.players[t] ? lang.tr('opnt') : stringFx.normalizeName(match.players[t].last_name, remove_diacritics).toUpperCase())
                .join('/');
          }
       }
@@ -5930,7 +5933,7 @@ export const tournamentDisplay = function() {
          publish_schedule.querySelector('div').className = publish_class_name;
       }
 
-      function validDay(match) { if (match && match.schedule && match.schedule.day && !util.validDate(match.schedule.day)) { delete match.schedule; } }
+      function validDay(match) { if (match && match.schedule && match.schedule.day && !dateFx.validDate(match.schedule.day)) { delete match.schedule; } }
 
       function displaySchedule(currently_selected_day) {
          var { completed_matches, pending_matches, upcoming_matches } = mfx.tournamentEventMatches({ tournament, source: true });
@@ -5940,7 +5943,7 @@ export const tournamentDisplay = function() {
 
          schedulePublishState();
 
-         let date_range = util.dateRange(tournament.start, tournament.end);
+         let date_range = dateFx.dateRange(tournament.start, tournament.end);
 
          if (currently_selected_day && date_range.indexOf(new Date(currently_selected_day)) < 0) currently_selected_day = undefined;
          let date_range_ms = date_range.map(d => d.getTime());
@@ -5951,18 +5954,18 @@ export const tournamentDisplay = function() {
          let muid_key = Object.assign({}, ...all_matches.map(m=>({ [m.muid]: m })));
          let day_matches = all_matches;
 
-         let ms = util.offsetTime(util.timeUTC(new Date()));
+         let ms = dateFx.offsetTime(dateFx.timeUTC(new Date()));
 
          let closest_schedule_ms = date_range_ms
             .reduce((p, c) => Math.abs(ms - c) <= Math.abs(ms - p) ? c : p, 0);
 
          let closest_match_day = all_matches
             .filter(m=>m.schedule && m.schedule.day)
-            .map((m, i) => ({ i, ms: util.offsetTime(new Date(m.schedule.day)) }))
+            .map((m, i) => ({ i, ms: dateFx.offsetTime(new Date(m.schedule.day)) }))
             .reduce((p, c) => !isNaN(c.ms) && Math.abs(ms - c.ms) <= Math.abs(ms - p.ms) ? c : p, { i: 0, ms: 0 });
 
          let closest_day = date_range_ms.indexOf(closest_match_day.ms) >= 0 ? closest_match_day.ms : closest_schedule_ms;
-         displayed.schedule_day = util.formatDate(util.timeUTC(new Date(currently_selected_day || closest_day)));
+         displayed.schedule_day = dateFx.formatDate(dateFx.timeUTC(new Date(currently_selected_day || closest_day)));
 
          // create a list of all matches which are unscheduled or can be moved
          let search_list = all_matches;
@@ -5971,7 +5974,7 @@ export const tournamentDisplay = function() {
          let courts = courtFx.courtData(tournament);
          let oop_rounds = util.range(1, env.schedule.max_matches_per_court + 1);
 
-         let date_options = date_range.map(d => ({ key: calendarFx.localizeDate(d), value: util.formatDate(util.timeUTC(d)) }));
+         let date_options = date_range.map(d => ({ key: calendarFx.localizeDate(d), value: dateFx.formatDate(dateFx.timeUTC(d)) }));
 
          dd.attachDropDown({ 
             id: container.schedule_day.id, 
@@ -6074,7 +6077,7 @@ export const tournamentDisplay = function() {
          container.round_filter.element.style.display = team_tournament ? 'none' : 'flex';
          container.dual_filter.element.style.display =  team_tournament ? 'flex' : 'none';
          container.order_filter.element.style.display =  team_tournament ? 'flex' : 'none';
-         util.getParent(container.location_filter.element, 'schedule_options').style.display = (tournament.locations.length > 1) ? 'flex' : 'none';
+         domFx.getParent(container.location_filter.element, 'schedule_options').style.display = (tournament.locations.length > 1) ? 'flex' : 'none';
 
          displayPending(false);
          dateChange(displayed.schedule_day);
@@ -6134,7 +6137,7 @@ export const tournamentDisplay = function() {
             let srtd_unscheduled = scheduleFx.sortedUnscheduled(tournament, unscheduled, false);
             displayGen.scheduleTeams({ unscheduled: srtd_unscheduled, element: container.unscheduled.element });
 
-            util.addEventToClass('dragUnscheduled', dragUnscheduled, container.unscheduled.element, 'dragstart');
+            domFx.addEventToClass('dragUnscheduled', dragUnscheduled, container.unscheduled.element, 'dragstart');
             if (update_round_names) updateRoundNames(euid_filtered);
 
             function playerIsBye(pz) { return !pz ? false : pz.reduce((p, c) => c.bye || p, undefined) }
@@ -6152,21 +6155,21 @@ export const tournamentDisplay = function() {
                schedule_day: displayed.schedule_day,
                options: env.schedule
             });
-            util.addEventToClass('findmatch', showSearch, container.schedule.element, 'click');
-            util.addEventToClass('opponentsearch', (e)=>e.stopPropagation(), container.schedule.element, 'click');
+            domFx.addEventToClass('findmatch', showSearch, container.schedule.element, 'click');
+            domFx.addEventToClass('opponentsearch', (e)=>e.stopPropagation(), container.schedule.element, 'click');
 
-            util.addEventToClass('dragdrop', dragStart, container.schedule.element, 'dragstart');
-            util.addEventToClass('dragdrop', drop, container.schedule.element, 'drop');
+            domFx.addEventToClass('dragdrop', dragStart, container.schedule.element, 'dragstart');
+            domFx.addEventToClass('dragdrop', drop, container.schedule.element, 'drop');
 
-            util.addEventToClass('oop_round', roundContext, container.schedule.element, 'contextmenu');
-            util.addEventToClass('oop_round', roundContext, container.schedule.element, 'click');
-            util.addEventToClass('schedule_box', gridContext, container.schedule.element, 'contextmenu');
-            util.addEventToClass('schedule_box', gridClick, container.schedule.element, 'click');
+            domFx.addEventToClass('oop_round', roundContext, container.schedule.element, 'contextmenu');
+            domFx.addEventToClass('oop_round', roundContext, container.schedule.element, 'click');
+            domFx.addEventToClass('schedule_box', gridContext, container.schedule.element, 'contextmenu');
+            domFx.addEventToClass('schedule_box', gridClick, container.schedule.element, 'click');
             scheduleActions();
             checkConflicts(day_matches);
          }
 
-         util.addEventToClass('dropremove', dropRemove, document, 'drop');
+         domFx.addEventToClass('dropremove', dropRemove, document, 'drop');
 
          function populateGridCell(target, muid, match) {
             // set muid attribute so that match can be found when clicked upon
@@ -6182,8 +6185,8 @@ export const tournamentDisplay = function() {
                target.setAttribute('muid', '');
                target.setAttribute('draggable', 'false');
                target.innerHTML = scheduleFx.emptyOOPround(true);
-               util.addEventToClass('findmatch', showSearch, target, 'click');
-               util.addEventToClass('opponentsearch', (e)=>e.stopPropagation(), target, 'click');
+               domFx.addEventToClass('findmatch', showSearch, target, 'click');
+               domFx.addEventToClass('opponentsearch', (e)=>e.stopPropagation(), target, 'click');
             }
          }
 
@@ -6206,8 +6209,8 @@ export const tournamentDisplay = function() {
             element.style.background = 'white';
 
             element.innerHTML = scheduleFx.emptyOOPround(true);
-            util.addEventToClass('findmatch', showSearch, element, 'click');
-            util.addEventToClass('opponentsearch', (e)=>e.stopPropagation(), element, 'click');
+            domFx.addEventToClass('findmatch', showSearch, element, 'click');
+            domFx.addEventToClass('opponentsearch', (e)=>e.stopPropagation(), element, 'click');
 
             match.status = '';
             match.source.schedule = '';
@@ -6266,7 +6269,7 @@ export const tournamentDisplay = function() {
             }
 
             function scheduleMatch(source_muid, interrupted) {
-               let target = util.getParent(evt.target, 'schedule_box');
+               let target = domFx.getParent(evt.target, 'schedule_box');
                let luid = target.getAttribute('luid');
                let index = target.getAttribute('index');
                let court = target.getAttribute('court');
@@ -6336,7 +6339,7 @@ export const tournamentDisplay = function() {
          }
 
          function dragUnscheduled(ev) {
-            let target = util.getParent(ev.target, 'dragUnscheduled');
+            let target = domFx.getParent(ev.target, 'dragUnscheduled');
             var id = target.id;
             ev.dataTransfer.setData("itemid", id);
             ev.dataTransfer.setData("itemtype", 'unscheduled');
@@ -6434,7 +6437,7 @@ export const tournamentDisplay = function() {
          }
 
          function identifyRound(ev) {
-            let target = util.getParent(ev.target, 'oop_round');
+            let target = domFx.getParent(ev.target, 'oop_round');
             let oop_round = parseInt(target.getAttribute('oop_round'));
             return { oop_round };
          }
@@ -6522,7 +6525,7 @@ export const tournamentDisplay = function() {
          }
 
          function identifyMatch({ evt, target }) {
-            if (!target) target = util.getParent(evt.target, 'schedule_box');
+            if (!target) target = domFx.getParent(evt.target, 'schedule_box');
             let muid = target.getAttribute('muid');
             return { match: muid_key[muid], muid, target };
          }
@@ -6622,7 +6625,7 @@ export const tournamentDisplay = function() {
                      ];
                      displayGen.svgModal({ x: evt.clientX, y: evt.clientY, options: statuses, callback: assessPenalty });
                   } else if (choice.key == 'remove') {
-                     if (!target) target = util.getParent(evt.target, 'schedule_box');
+                     if (!target) target = domFx.getParent(evt.target, 'schedule_box');
                      returnToUnscheduled(match, target);
                      return;
                   }
@@ -6834,7 +6837,7 @@ export const tournamentDisplay = function() {
          displayGen.locationList(container, locations, highlight_listitem);
 
          let locationDetails = (evt) => {
-            let clicked_location = util.getParent(evt.target, 'location');
+            let clicked_location = domFx.getParent(evt.target, 'location');
             let class_list = clicked_location.classList;
             if (class_list.contains('highlight_listitem')) {
                closeLocationDetails();
@@ -6848,7 +6851,7 @@ export const tournamentDisplay = function() {
             }
          }
          // attach action to display location_details when clicking each location
-         util.addEventToClass('location', locationDetails, container.locations.element);
+         domFx.addEventToClass('location', locationDetails, container.locations.element);
 
          scheduleTab();
       }
@@ -6974,7 +6977,7 @@ export const tournamentDisplay = function() {
          let category = staging.legacyCategory(tournament.category, true);
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
-         let calc_date = util.offsetDate(tournament_date);
+         let calc_date = dateFx.offsetDate(tournament_date);
          let categories = rankCalc.orgCategories({ calc_date }).map(r => ({ key: r, value: r }));
          let prior_value = container.category_filter.ddlb ? container.category_filter.ddlb.getValue() : undefined;
          if (categories.map(o=>o.value).indexOf(prior_value) < 0) prior_value = undefined;
@@ -7027,7 +7030,7 @@ export const tournamentDisplay = function() {
          function tournamentPlayerContext(evt) {
             // if modifying rankings, disable!
             if (state.manual_ranking || !state.edit) return;
-            let element = util.getParent(evt.target, 'player_click');
+            let element = domFx.getParent(evt.target, 'player_click');
             var mouse = { x: evt.clientX, y: evt.clientY }
             tournamentPlayerContextOptions(element, mouse);
          }
@@ -7107,7 +7110,7 @@ export const tournamentDisplay = function() {
                      }
                      function confirmIdentity(new_player_data) {
                         if (!new_player_data) return;
-                        new_player_data.birth = util.formatDate(new_player_data.birth);
+                        new_player_data.birth = dateFx.formatDate(new_player_data.birth);
                         new_player_data.full_name = tfx.fullName(new_player_data, false);
                         displayGen.changePlayerIdentity(clicked_player, new_player_data, changePlayerIdentity);
 
@@ -7161,7 +7164,7 @@ export const tournamentDisplay = function() {
             if (state.manual_ranking) return;
             if (evt.ctrlKey || evt.shiftKey) return tournamentPlayerContext(evt);
 
-            let element = util.getParent(evt.target, 'player_click');
+            let element = domFx.getParent(evt.target, 'player_click');
             let puid = element.getAttribute('puid');
             if (!puid) {
                console.log('missing puid:', element);
@@ -7245,7 +7248,7 @@ export const tournamentDisplay = function() {
 
             evt.target.value = cls && cls.indexOf('rating') >= 0 ? validRating(value) || '' : validRanking(value) || '';
 
-            let element = util.getParent(evt.target, 'player_click');
+            let element = domFx.getParent(evt.target, 'player_click');
             let puid = element.getAttribute('puid');
             let changed_player = playerByPUID(puid);
 
@@ -7348,28 +7351,28 @@ export const tournamentDisplay = function() {
             playersTab({doubles: !doubles});
          }
 
-         util.addEventToClass('manualrank', catchTab, container.players.element, 'keydown');
-         util.addEventToClass('manualrating', catchTab, container.players.element, 'keydown');
-         util.addEventToClass('subrank', catchTab, container.players.element, 'keydown');
+         domFx.addEventToClass('manualrank', catchTab, container.players.element, 'keydown');
+         domFx.addEventToClass('manualrating', catchTab, container.players.element, 'keydown');
+         domFx.addEventToClass('subrank', catchTab, container.players.element, 'keydown');
 
-         util.addEventToClass('tournamentPlayers', tournamentPlayers, container.players.element);
-         util.addEventToClass('tournamentPlayers', tournamentPlayers, container.players.element, 'contextmenu');
+         domFx.addEventToClass('tournamentPlayers', tournamentPlayers, container.players.element);
+         domFx.addEventToClass('tournamentPlayers', tournamentPlayers, container.players.element, 'contextmenu');
 
-         util.addEventToClass('player_click', signInState, container.players.element);
-         util.addEventToClass('player_click', tournamentPlayerContext, container.players.element, 'contextmenu');
-         util.addEventToClass('ranksub', stopPropagation, container.players.element);
-         util.addEventToClass('rankentry', stopPropagation, container.players.element);
-         util.addEventToClass('ratingentry', stopPropagation, container.players.element);
-         util.addEventToClass('manualrank', rankEntryKey, container.players.element, 'keyup');
-         util.addEventToClass('manualrating', ratingEntryKey, container.players.element, 'keyup');
-         util.addEventToClass('subrank', subRankKey, container.players.element, 'keyup');
+         domFx.addEventToClass('player_click', signInState, container.players.element);
+         domFx.addEventToClass('player_click', tournamentPlayerContext, container.players.element, 'contextmenu');
+         domFx.addEventToClass('ranksub', stopPropagation, container.players.element);
+         domFx.addEventToClass('rankentry', stopPropagation, container.players.element);
+         domFx.addEventToClass('ratingentry', stopPropagation, container.players.element);
+         domFx.addEventToClass('manualrank', rankEntryKey, container.players.element, 'keyup');
+         domFx.addEventToClass('manualrating', ratingEntryKey, container.players.element, 'keyup');
+         domFx.addEventToClass('subrank', subRankKey, container.players.element, 'keyup');
 
-         util.addEventToClass('rankbyrating', rankByRating, container.players.element);
-         util.addEventToClass('rankbyrating', rankByRating, container.players.element, 'contextmenu');
+         domFx.addEventToClass('rankbyrating', rankByRating, container.players.element);
+         domFx.addEventToClass('rankbyrating', rankByRating, container.players.element, 'contextmenu');
          eventManager.holdActions.rankByRating = rankByRating;
 
-         util.addEventToClass('playerRanking', playerRanking, container.players.element);
-         util.addEventToClass('playerRanking', playerRanking, container.players.element, 'contextmenu');
+         domFx.addEventToClass('playerRanking', playerRanking, container.players.element);
+         domFx.addEventToClass('playerRanking', playerRanking, container.players.element, 'contextmenu');
          eventManager.holdActions.playerRanking = playerRanking;
 
          checkDuplicateRankings({ display_order, subrank: !doubles });
@@ -7431,7 +7434,7 @@ export const tournamentDisplay = function() {
          if (tfx.isTeam(tournament)) return;
 
          var tournament_date = tournament && (tournament.points_date || tournament.end);
-         var points_date = util.offsetDate(tournament_date);
+         var points_date = dateFx.offsetDate(tournament_date);
          if (!mz || !mz.length) return;
 
          checkAllPlayerPUIDs(tournament.players).then(proceed, util.logError);
@@ -7572,8 +7575,8 @@ export const tournamentDisplay = function() {
          }
 
          // attach function to display player profile when clicked
-         util.addEventToClass('player_click', pfx.playerClicked, container.matches.element);
-         util.addEventToClass('player_click', playerInMatchContext, container.matches.element, 'contextmenu');
+         domFx.addEventToClass('player_click', pfx.playerClicked, container.matches.element);
+         domFx.addEventToClass('player_click', playerInMatchContext, container.matches.element, 'contextmenu');
 
          function enterMatchScore(e, match) {
             let existing_scores = mfx.getExistingScores({match: match && match.match});
@@ -7624,7 +7627,7 @@ export const tournamentDisplay = function() {
          }
          function playerInMatchContext(evt) {
             let puid = evt.target.getAttribute('puid');
-            let row = util.getParent(evt.target, 'matchrow');
+            let row = domFx.getParent(evt.target, 'matchrow');
             let muid = row.getAttribute('muid');
             let euid = row.getAttribute('euid');
             matchClick(evt, muid, euid, puid);
@@ -7645,10 +7648,10 @@ export const tournamentDisplay = function() {
             if (state.edit && match.match) matchesTabMenu(e, mouse, match, puid);
          }
 
-         util.addEventToClass('cell_singles', matchClick, container.matches.element);
-         util.addEventToClass('cell_doubles', matchClick, container.matches.element);
-         util.addEventToClass('cell_singles', scoreClick, container.matches.element, 'contextmenu');
-         util.addEventToClass('cell_doubles', scoreClick, container.matches.element, 'contextmenu');
+         domFx.addEventToClass('cell_singles', matchClick, container.matches.element);
+         domFx.addEventToClass('cell_doubles', matchClick, container.matches.element);
+         domFx.addEventToClass('cell_singles', scoreClick, container.matches.element, 'contextmenu');
+         domFx.addEventToClass('cell_doubles', scoreClick, container.matches.element, 'contextmenu');
 
          function matchesTabMenu(e, mouse, match, puid) {
             let complete = match && match.match && match.match.winner != undefined;
@@ -7991,12 +7994,12 @@ export const tournamentDisplay = function() {
          displayGen.orderedDualMatches({ element: elem, matches });
 
          // events for entering scores and selecting opponents
-         util.addEventToClass('dual_match', dualMatchClick);
-         util.addEventToClass('dual_match_team_name', dualMatchOpponent);
+         domFx.addEventToClass('dual_match', dualMatchClick);
+         domFx.addEventToClass('dual_match_team_name', dualMatchOpponent);
 
          // capture CHANGE event for all DDLB
-         util.addEventToClass('dual_select', (evt) => evt.stopPropagation());
-         util.addEventToClass('dual_select', opponentSelected, document, 'change');
+         domFx.addEventToClass('dual_select', (evt) => evt.stopPropagation());
+         domFx.addEventToClass('dual_select', opponentSelected, document, 'change');
 
          // clicking anywhere else on the page hides active DDLB
          container.dual.element.addEventListener('click', hideOpponentSelections);
@@ -8004,11 +8007,11 @@ export const tournamentDisplay = function() {
          function dualMatchOpponent(evt) {
             if (state.edit) {
                evt.stopPropagation();
-               let dm_elem = util.getParent(evt.target, 'dual_match');
+               let dm_elem = domFx.getParent(evt.target, 'dual_match');
                let match_muid = dm_elem.getAttribute('muid');
                let match = matches.reduce((p, c) => c.match.muid == match_muid ? c : p, undefined);
                if (match.match.score) return dualMatchClick(evt);
-               let team_name = util.getParent(evt.target, 'dual_match_team_name');
+               let team_name = domFx.getParent(evt.target, 'dual_match_team_name');
                let team_index = team_name.getAttribute('team');
                let inputs = Array.from(team_name.querySelectorAll('input'));
                hideOpponentSelections();
@@ -8045,11 +8048,11 @@ export const tournamentDisplay = function() {
 
          function opponentSelected(evt) {
             let elem = evt.target;
-            let dm_elem = util.getParent(elem, 'dual_match');
+            let dm_elem = domFx.getParent(elem, 'dual_match');
             let match_muid = dm_elem && dm_elem.getAttribute('muid');
             let match = matches.reduce((p, c) => c.match.muid == match_muid ? c : p, undefined);
 
-            let team_name = util.getParent(elem, 'dual_match_team_name');
+            let team_name = domFx.getParent(elem, 'dual_match_team_name');
             let team_index = team_name && team_name.getAttribute('team');
             let opponent = elem.getAttribute('opponent');
 
@@ -8092,7 +8095,7 @@ export const tournamentDisplay = function() {
          function dualMatchClick(evt) {
             hideOpponentSelections();
             evt.stopPropagation();
-            let dm_elem = util.getParent(evt.target, 'dual_match');
+            let dm_elem = domFx.getParent(evt.target, 'dual_match');
             let match_muid = dm_elem.getAttribute('muid');
             let match = matches.reduce((p, c) => c.match.muid == match_muid ? c : p, undefined);
             let teams = match.teams && [].concat(...match.teams.map(t=>[].concat(...t))).filter(f=>f);
@@ -8664,7 +8667,7 @@ export const tournamentDisplay = function() {
             let selection_flag = false;
             let list = unplaced_teams.map(team => { 
                let player = team[0];
-               let label = `${util.normalizeName([player.first_name, player.last_name].join(' '))}`;
+               let label = `${stringFx.normalizeName([player.first_name, player.last_name].join(' '))}`;
                return { value: player.puid, label, }
             });
             pobj.typeAhead = new Awesomplete(pobj.player_search.element, { list });
@@ -8767,7 +8770,7 @@ export const tournamentDisplay = function() {
             pobj.player_pick.element.addEventListener('click', () => { removeEntryField(); contextPopUp(d, coords); } , false);
 
             let selection_flag = false;
-            let opponentLabel = (opponent) => util.normalizeName(opponent.name || [opponent.first_name, opponent.last_name].join(' '));
+            let opponentLabel = (opponent) => stringFx.normalizeName(opponent.name || [opponent.first_name, opponent.last_name].join(' '));
             let list = unplaced_teams.map(team => { 
                let label = opponentLabel(team[0]);
                if (e.format == 'D') label += `/${opponentLabel(team[1])}`;
@@ -9946,14 +9949,14 @@ export const tournamentDisplay = function() {
          }
 
          let tournament_date = tournament && (tournament.points_date || tournament.end);
-         let points_date = util.offsetDate(tournament_date);
+         let points_date = dateFx.offsetDate(tournament_date);
          let pointsDatePicker = new Pikaday({
             field: container.points_valid.element,
             i18n: lang.obj('i18n'),
             defaultDate: points_date,
             setDefaultDate: true,
             firstDay: env.calendar.first_day,
-            toString(date) { return util.formatDate(date); },
+            toString(date) { return dateFx.formatDate(date); },
             onSelect: function() {
                points_date = this.getDate();
                tournament.points_date = points_date.getTime();
@@ -10012,12 +10015,12 @@ export const tournamentDisplay = function() {
             container[field].element.value = tournament[field] || '';
          });
 
-         let day_times = days.map(d=>util.offsetTime(d));
+         let day_times = days.map(d=>dateFx.offsetTime(d));
          let max_start = Math.min(...day_times);
          let min_end = Math.max(...day_times);
 
-         let start = util.offsetDate(tournament.start);
-         let end = util.offsetDate(tournament.end);
+         let start = dateFx.offsetDate(tournament.start);
+         let end = dateFx.offsetDate(tournament.end);
 
          if (start > new Date(max_start)) {
             tournament.start = max_start;
@@ -10025,18 +10028,18 @@ export const tournamentDisplay = function() {
          }
 
          function updateStartDate() {
-            tournament.start = util.timeUTC(start);
+            tournament.start = dateFx.timeUTC(start);
             startPicker.setStartRange(start);
             if (tournament.end < tournament.start) {
                tournament.end = tournament.start;
-               endPicker.setDate(util.offsetDate(tournament.end));
+               endPicker.setDate(dateFx.offsetDate(tournament.end));
             }
             endPicker.setStartRange(start);
             endPicker.setMinDate(start);
             saveTournament(tournament);
          }
          function updateEndDate() {
-            tournament.end = util.timeUTC(end);
+            tournament.end = dateFx.timeUTC(end);
             startPicker.setEndRange(end);
             startPicker.setMaxDate(end);
             endPicker.setEndRange(end);
@@ -10044,7 +10047,7 @@ export const tournamentDisplay = function() {
          }
          function unscheduleStrandedMatches({ proposed_start, proposed_end }) {
             return new Promise((resolve, reject) => {
-               let date_range = util.dateRange(proposed_start, proposed_end).map(d=>util.formatDate(d));
+               let date_range = dateFx.dateRange(proposed_start, proposed_end).map(d=>dateFx.formatDate(d));
                let { scheduled } = mfx.scheduledMatches(tournament);
                let stranded = scheduled.filter(s=>date_range.indexOf(s.schedule.day) < 0);
 
@@ -10072,7 +10075,7 @@ export const tournamentDisplay = function() {
             setDefaultDate: true,
             i18n: lang.obj('i18n'),
             firstDay: env.calendar.first_day,
-            toString(date) { return util.formatDate(date); },
+            toString(date) { return dateFx.formatDate(date); },
             onSelect: function() {
                let proposed_start = this.getDate();
                let proposed_end = tournament.end;
@@ -10092,7 +10095,7 @@ export const tournamentDisplay = function() {
             setDefaultDate: true,
             i18n: lang.obj('i18n'),
             firstDay: env.calendar.first_day,
-            toString(date) { return util.formatDate(date); },
+            toString(date) { return dateFx.formatDate(date); },
             onSelect: function() {
                let proposed_start = tournament.start;
                let proposed_end = this.getDate();
@@ -10349,7 +10352,7 @@ export const tournamentDisplay = function() {
    }
 
    function valueLabel(player) {
-      let label = util.normalizeName([player.first_name, player.last_name].join(' '));
+      let label = stringFx.normalizeName([player.first_name, player.last_name].join(' '));
       if (player.birth) label += ` [${new Date(player.birth).getFullYear()}]`;
       return { value: player.puid, label, }
    }
@@ -10400,7 +10403,7 @@ export const tournamentDisplay = function() {
 
       let tournament_date = tournament && (tournament.points_date || date || tournament.end);
       // let points_date = tournament_date ? new Date(tournament_date) : new Date();
-      let points_date = util.offsetDate(tournament_date);
+      let points_date = dateFx.offsetDate(tournament_date);
       let tuid = tournament.tuid;
 
       // legacy... if match doesn't include round_name, add it
@@ -10490,7 +10493,7 @@ export const tournamentDisplay = function() {
    function pointsTabVisible(container, tournament, visible=true) {
       let tournament_date = tournament && (tournament.points_date || tournament.end);
       // let calc_date = tournament_date ? new Date(tournament_date) : new Date();
-      let calc_date = util.offsetDate(tournament_date);
+      let calc_date = dateFx.offsetDate(tournament_date);
       let points_table = rankCalc.pointsTable({calc_date});
       let display = (visible && points_table && points_table.mappings) || false;
       tabVisible(container, 'PT', display);
@@ -10524,16 +10527,16 @@ export const tournamentDisplay = function() {
 
       if (pts) {
          displayGen.displayPlayerPoints(container, filtered_points);
-         let pp = (evt) => pfx.displayPlayerProfile({ puid: util.getParent(evt.target, 'point_row').getAttribute('puid') }).then(()=>{}, ()=>{});
-         util.addEventToClass('point_row', pp, container.points.element)
+         let pp = (evt) => pfx.displayPlayerProfile({ puid: domFx.getParent(evt.target, 'point_row').getAttribute('puid') }).then(()=>{}, ()=>{});
+         domFx.addEventToClass('point_row', pp, container.points.element)
       }
    }
 
    function attachFilterToggles(classes, filterFx = console.log) {
-      util.addEventToClass(classes.filter_m, () => filterFx('M'));
-      util.addEventToClass(classes.filter_w, () => filterFx('W'));
-      util.addEventToClass(classes.filter_s, () => filterFx('S'));
-      util.addEventToClass(classes.filter_d, () => filterFx('D'));
+      domFx.addEventToClass(classes.filter_m, () => filterFx('M'));
+      domFx.addEventToClass(classes.filter_w, () => filterFx('W'));
+      domFx.addEventToClass(classes.filter_s, () => filterFx('S'));
+      domFx.addEventToClass(classes.filter_d, () => filterFx('D'));
    }
 
    function toggleClass(cls, gender, node = document) {
@@ -10628,7 +10631,7 @@ export const tournamentDisplay = function() {
          }
 
          displayGen.markAssigned(e);
-         let row = util.getParent(elem, 'section_row');
+         let row = domFx.getParent(elem, 'section_row');
          e.select('.undo').on('click', () => { d3.event.stopPropagation(); undoAction(elem); });
          displayGen.moveToBottom(elem);
          clearActivePlayer();

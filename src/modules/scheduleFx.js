@@ -1,8 +1,11 @@
 import { env } from './env'
 import { util } from './util';
+import { domFx } from './domFx';
 import { drawFx } from './drawFx';
+import { dateFx } from './dateFx';
 import { lang } from './translator';
 import { matchFx } from './matchFx';
+import { stringFx } from './stringFx';
 import { displayFx } from './displayFx';
 import { calendarFx } from './calendarFx';
 import { tournamentFx } from './tournamentFx';
@@ -18,8 +21,8 @@ export const scheduleFx = function() {
    fx.generateSchedule = (tournament, date_filter) => {
       if (!tournament.schedule) tournament.schedule = {};
 
-      var date_range = util.dateRange(tournament.start, tournament.end);
-      let date_options = date_range.map(d => ({ key: calendarFx.localizeDate(d), value: util.formatDate(util.timeUTC(d)) }));
+      var date_range = dateFx.dateRange(tournament.start, tournament.end);
+      let date_options = date_range.map(d => ({ key: calendarFx.localizeDate(d), value: dateFx.formatDate(dateFx.timeUTC(d)) }));
 
       var scheduled = mfx.scheduledMatches(tournament).scheduled;
       if (!scheduled.length) return;
@@ -233,7 +236,7 @@ export const scheduleFx = function() {
 
    fx.scaleTeams = (container) => {
       let scheduled_teams = container.querySelectorAll('.scheduled_team');
-      Array.from(scheduled_teams).forEach(el => util.scaleFont(el));
+      Array.from(scheduled_teams).forEach(el => domFx.scaleFont(el));
    }
 
    fx.scheduleBox = ({ match={}, luid, index, court, oop_round, editable, options } = {}) => {
@@ -339,7 +342,7 @@ export const scheduleFx = function() {
       }
 
       function potentialBlock(p) {
-         let last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? lang.tr('qualifier') : lang.tr('unk');
+         let last_name = p.last_name ? stringFx.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? lang.tr('qualifier') : lang.tr('unk');
          return `<div puid='${p.puid}' class='player_click cell_player potential'>${last_name}</div>`;
       }
 

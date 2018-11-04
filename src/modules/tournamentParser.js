@@ -1,5 +1,6 @@
 import { util } from './util';
 import { staging } from './staging';
+import { cleanScore } from './cleanScore';
 
 export const tournamentParser = function() {
 
@@ -18,6 +19,13 @@ export const tournamentParser = function() {
    tp.config = {
       score:   /[\d\(]+[\d\.\(\)\[\]\\ \:\-\,\/O]+(Ret)?(ret)?(RET)?[\.]*$/,
       ended:   ['ret.', 'RET', 'DEF.', 'Def.', 'def.', 'BYE', 'w.o', 'w.o.', 'W.O', 'W.O.', 'wo.', 'WO', 'Abandoned'],
+   }
+
+   tp.normalizeScore = (score) => {
+      let clean_score = cleanScore.normalize(score);
+      if (clean_score) return clean_score.join(' ');
+      alert(`Score can't be normalized: ${score}`);
+      return score;
    }
 
    tp.profiles = {
@@ -358,7 +366,7 @@ export const tournamentParser = function() {
 
    tp.drawPosition = ({full_name, players, idx = 0}) => {
       // idx used in instances where there are multiple BYEs, such that they each have a unique draw_position
-      let tournament_player = players.filter(player => player.full_name && util.normalizeName(player.full_name) == util.normalizeName(full_name))[idx];
+      let tournament_player = players.filter(player => player.full_name && tp.normalizeName(player.full_name) == tp.normalizeName(full_name))[idx];
       if (!tournament_player) {
          // find player draw position by last name, first initial; for draws where first name omitted after first round
          tournament_player = players.filter(player => player.last_first_i && player.last_first_i == lastFirstI(full_name))[0];
@@ -405,7 +413,7 @@ export const tournamentParser = function() {
                if (!round_occurrences[last_draw_position]) round_occurrences[last_draw_position] = [];
                round_occurrences[last_draw_position].push(matches.length);
             }
-            matches.push({ winners, result: util.normalizeScore(cell_value) });
+            matches.push({ winners, result: tp.normalizeScore(cell_value) });
             winners = [];
          }
       });
@@ -606,7 +614,7 @@ export const tournamentParser = function() {
                let opponent_draw_position = rr_columns.indexOf(result_column) + 1;
                let direction = opponent_draw_position > player_draw_position ? 1 : -1;
                let opponent_index = findPlayerAtDrawPosition(players, player_index, opponent_draw_position, direction);
-               let result = util.normalizeScore(tp.value(sheet[reference]));
+               let result = tp.normalizeScore(tp.value(sheet[reference]));
                let match_winner = determineWinner(result);
                let loser = match_winner == 1 ? player_index : opponent_index;
                let winner = match_winner == 1 ? opponent_index : player_index;
@@ -663,7 +671,7 @@ export const tournamentParser = function() {
                      winner_names: [winner],
                      loser_names: [loser],
                      round: 'RRF',
-                     result: util.normalizeScore(result),
+                     result: tp.normalizeScore(result),
                      gender: gender,
                   }
                   matches.push(match);

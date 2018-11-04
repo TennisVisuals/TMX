@@ -2,11 +2,13 @@ import { db } from './db'
 import { env } from './env'
 import { UUID } from './UUID';
 import { util } from './util';
+import { dateFx } from './dateFx';
 import { matchFx } from './matchFx';
 import { staging } from './staging';
 import { lang } from './translator';
 import { playerFx } from './playerFx';
 import { importFx } from './importFx';
+import { stringFx } from './stringFx';
 import { rankCalc } from './rankCalc';
 import { scoreBoard } from './scoreBoard';
 import { displayGen } from './displayGen';
@@ -122,7 +124,7 @@ export const exportFx = function() {
 
 
    let zeroPad = (number) => number.toString()[1] ? number : "0" + number; 
-   let normalID = (id) => util.replaceDiacritics(id).toUpperCase();
+   let normalID = (id) => stringFx.replaceDiacritics(id).toUpperCase();
    let dateFormatUTR = (timestamp) => { 
       if (!timestamp) return '';
       let date = new Date(timestamp);
@@ -161,40 +163,40 @@ export const exportFx = function() {
       return {
          "Date": dateFormatUTR(match_date),
 
-         "Winner 1 Name": util.normalizeName(`${players[winners[0]].last_name}, ${players[winners[0]].first_name}`),
+         "Winner 1 Name": stringFx.normalizeName(`${players[winners[0]].last_name}, ${players[winners[0]].first_name}`),
          "Winner 1 Third Party ID": normalID(players[winners[0]].cropin || ''),
          "Winner 1 UTR ID": profileID(players[winners[0]].profile),
          "Winner 1 Gender": player_gender(players[winners[0]].sex),
          "Winner 1 DOB": dateFormatUTR(getPlayerBirth(players[winners[0]])),
-         "Winner 1 City": util.replaceDiacritics(players[winners[0]].city || ''),
+         "Winner 1 City": stringFx.replaceDiacritics(players[winners[0]].city || ''),
          "Winner 1 State": '',
          "Winner 1 Country": players[winners[0]].ioc || '',
          "Winner 1 College": '',
-         "Winner 2 Name": dbls ? util.normalizeName(`${players[winners[1]].last_name}, ${players[winners[1]].first_name}`) : '',
+         "Winner 2 Name": dbls ? stringFx.normalizeName(`${players[winners[1]].last_name}, ${players[winners[1]].first_name}`) : '',
          "Winner 2 Third Party ID": normalID(dbls ? (players[winners[1]].cropin || '') : ''),
          "Winner 2 UTR ID": profileID(players[winners[1]] && players[winners[1]].profile),
          "Winner 2 Gender": dbls ? player_gender(players[winners[1]].sex) : '',
          "Winner 2 DOB": dbls ? dateFormatUTR(getPlayerBirth(players[winners[1]])) : '',
-         "Winner 2 City": util.replaceDiacritics(dbls ? (players[winners[0]].city || '') : ''),
+         "Winner 2 City": stringFx.replaceDiacritics(dbls ? (players[winners[0]].city || '') : ''),
          "Winner 2 State": '',
          "Winner 2 Country": dbls ? (players[winners[1]].ioc || '') : '',
          "Winner 2 College": '',
 
-         "Loser 1 Name": util.normalizeName(`${players[losers[0]].last_name}, ${players[losers[0]].first_name}`),
+         "Loser 1 Name": stringFx.normalizeName(`${players[losers[0]].last_name}, ${players[losers[0]].first_name}`),
          "Loser 1 Third Party ID": normalID(players[losers[0]].cropin || ''),
          "Loser 1 UTR ID": profileID(players[losers[0]].profile),
          "Loser 1 Gender": player_gender(players[losers[0]].sex),
          "Loser 1 DOB": dateFormatUTR(getPlayerBirth(players[losers[0]])),
-         "Loser 1 City": util.replaceDiacritics(players[losers[0]].city || ''),
+         "Loser 1 City": stringFx.replaceDiacritics(players[losers[0]].city || ''),
          "Loser 1 State": '',
          "Loser 1 Country": players[losers[0]].ioc || '',
          "Loser 1 College": '',
-         "Loser 2 Name": dbls ? util.normalizeName(`${players[losers[1]].last_name}, ${players[losers[1]].first_name}`) : '',
+         "Loser 2 Name": dbls ? stringFx.normalizeName(`${players[losers[1]].last_name}, ${players[losers[1]].first_name}`) : '',
          "Loser 2 Third Party ID": normalID(dbls ? (players[losers[1]].cropin || '') : ''),
          "Loser 1 UTR ID": profileID(players[losers[1]] && players[losers[1]].profile),
          "Loser 2 Gender": dbls ? player_gender(players[losers[1]].sex) : '',
          "Loser 2 DOB": dbls ? dateFormatUTR(getPlayerBirth(players[losers[1]])) : '',
-         "Loser 2 City": util.replaceDiacritics(dbls ? (players[losers[0]].city || '') : ''),
+         "Loser 2 City": stringFx.replaceDiacritics(dbls ? (players[losers[0]].city || '') : ''),
          "Loser 2 State": '',
          "Loser 2 Country": dbls ? (players[losers[1]].ioc || '') : '',
          "Loser 2 College": '',
@@ -203,7 +205,7 @@ export const exportFx = function() {
          "Id Type": 'UTR',
          "Draw Name": match.tournament.draw || '',
          "Draw Gender": draw_gender,
-         "Draw Team Type": util.normalizeName(match.format) || '',
+         "Draw Team Type": stringFx.normalizeName(match.format) || '',
          "Draw Bracket Type": '',
          "Draw Bracket Value": category,
          "Draw Type": draw_type,
@@ -418,15 +420,15 @@ export const exportFx = function() {
          let p = match.players[team[0]];
          if (!p.puid) return potentialBlock(p);
          let club = p.club_code ? ` (${p.club_code})` : '';
-         let full_name = `${util.normalizeName(p.last_name, false).toUpperCase()}, ${util.normalizeName(p.first_name, false)}`; 
+         let full_name = `${stringFx.normalizeName(p.last_name, false).toUpperCase()}, ${stringFx.normalizeName(p.first_name, false)}`; 
          return `${full_name}${club}`;
       } else {
-         return team.map(p => util.normalizeName(match.players[p].last_name, false).toUpperCase()).join('/');
+         return team.map(p => stringFx.normalizeName(match.players[p].last_name, false).toUpperCase()).join('/');
       }
    }
 
    function potentialBlock(p) { 
-      return p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? lang.tr('qualifier') : lang.tr('unk');
+      return p.last_name ? stringFx.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? lang.tr('qualifier') : lang.tr('unk');
    }
 
    function scheduleCell(match, lines=false) {
@@ -999,7 +1001,7 @@ export const exportFx = function() {
                   { text: lang.tr('signin.judge'), style: 'tableHeader', alignment: 'right' },
                ],
                [ 
-                  { text: util.formatDate(new Date(tournament.start)), style: 'tableData' },
+                  { text: dateFx.formatDate(new Date(tournament.start)), style: 'tableData' },
                   { text: tournament.organization || '', style: 'tableData' },
                   { text: tournament.location || '', style: 'tableData' },
                   { text: tournament_id, style: 'tableData' },
@@ -1029,7 +1031,7 @@ export const exportFx = function() {
 
       let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
-      let daysdate = util.ymd2date(day);
+      let daysdate = dateFx.ymd2date(day);
       let weekday = localizeDate(daysdate, { weekday: 'long' });
       let numeric_date = localizeDate(daysdate, { year: 'numeric', month: 'numeric', day: 'numeric' });
       let start_date = localizeDate(new Date(tournament.start), { year: 'numeric', month: 'numeric', day: 'numeric' });
@@ -1211,7 +1213,7 @@ export const exportFx = function() {
       let evt = event || (tournament.events && tournament.events[selected_eent]);
       let player_representatives = evt && evt.player_representatives || []; 
       let event_organizers = tournament && tournament.organizers ? [tournament.organizers] : []; 
-      let created = event.draw_created && util.isDate(event.draw_created) ? new Date(event.draw_created) : new Date();
+      let created = event.draw_created && dateFx.isDate(event.draw_created) ? new Date(event.draw_created) : new Date();
       let timestamp = localizeDate(created, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       let page_header = drawSheetPageHeader(tournament, logo, 'draw_sheet', selected_event, event);
       let { s1, s2, c1, c2, smin, smax, omin, omax, a1, c3, lda } = getRankedPlayers(evt, info);
@@ -1219,7 +1221,7 @@ export const exportFx = function() {
       let date = new Date(tournament.start);
       let year = date.getFullYear();
       let month = date.getMonth();
-      let rank_list_date = util.formatDate(`${year}-${month+1}-01`);
+      let rank_list_date = dateFx.formatDate(`${year}-${month+1}-01`);
 
       let footer = {
          margin: [ 10, 0, 10, 0 ],
@@ -1529,7 +1531,7 @@ export const exportFx = function() {
       let evt = event || (tournament.events && tournament.events[selected_eent]);
       let player_representatives = evt && evt.player_representatives || []; 
       let event_organizers = tournament && tournament.organizers ? [tournament.organizers] : []; 
-      let created = event.draw_created && util.isDate(event.draw_created) ? new Date(event.draw_created) : new Date();
+      let created = event.draw_created && dateFx.isDate(event.draw_created) ? new Date(event.draw_created) : new Date();
       let timestamp = localizeDate(created, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       let page_header = drawSheetPageHeader(tournament, logo, 'draw_sheet', selected_event, event);
 
@@ -1644,7 +1646,7 @@ export const exportFx = function() {
    }
 
    function tournamentPlayerList({ tournament={}, players=[], attributes={}, logo, doc_name, save }) {
-      let date = util.formatDate(tournament.start);
+      let date = dateFx.formatDate(tournament.start);
       let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
       let ratings_type = attributes.ratings_type || 'utr';
@@ -1749,7 +1751,7 @@ export const exportFx = function() {
                ioc: row.ioc && row.ioc.toUpperCase(),
                year: row.birth && displayYear(row.birth),
                last_name: row.last_name && row.last_name.toUpperCase().trim(),
-               first_name: row.first_name && util.normalizeName(row.first_name, false),
+               first_name: row.first_name && stringFx.normalizeName(row.first_name, false),
             }
             return prototype.map(p => ({ text: valz[p.row.value] || ' ', style: p.row.style }));
          } else {
@@ -1823,7 +1825,7 @@ export const exportFx = function() {
    }
 
    function doublesSignInSheet({ tournament={}, teams=[], players=[], category, gender, event_name='', logo, doc_name, save }) {
-      let date = util.formatDate(tournament.start);
+      let date = dateFx.formatDate(tournament.start);
       let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
       var sponsor = tournament.sponsor ? ` - ${tournament.sponsor}` : '';
@@ -1936,12 +1938,12 @@ export const exportFx = function() {
             return [
                { text: i + 1, style: 'centeredColumn' },
                { text: row[0].last_name.toUpperCase().trim() },
-               { text: util.normalizeName(row[0].first_name, false) },
+               { text: stringFx.normalizeName(row[0].first_name, false) },
                { text: row[0].club_code || row[0].country || " ", style: row[0].club_code ? 'centeredColumn' : 'italicCenteredColumn' },
                // { text: row.rankings && row.rankings[category] ? row.rankings[category] : '', style: 'centeredColumn' },
                { text: row[0].category_ranking || '', style: 'centeredColumn' },
                { text: row[1].last_name.toUpperCase().trim() },
-               { text: util.normalizeName(row[1].first_name, false) },
+               { text: stringFx.normalizeName(row[1].first_name, false) },
                { text: row[1].club_code || row[1].country || " ", style: row[1].club_code ? 'centeredColumn' : 'italicCenteredColumn' },
                // { text: row.rankings && row.rankings[category] ? row.rankings[category] : '', style: 'centeredColumn' },
                { text: row[1].category_ranking || '', style: 'centeredColumn' },
@@ -2019,7 +2021,7 @@ export const exportFx = function() {
    }
 
    function signInSheet({ tournament={}, players, category, gender, event_name='', logo, doc_name='courthive', extra_pages=true, save }) {
-      let date = util.formatDate(tournament.start);
+      let date = dateFx.formatDate(tournament.start);
       let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
       var sponsor = tournament.sponsor ? ` - ${tournament.sponsor}` : '';
@@ -2132,7 +2134,7 @@ export const exportFx = function() {
             return [
                { text: i + 1, style: 'centeredColumn' },
                { text: row.last_name.toUpperCase().trim() },
-               { text: util.normalizeName(row.first_name, false) },
+               { text: stringFx.normalizeName(row.first_name, false) },
                { text: row.club_code || row.country || " ", style: row.club_code ? 'centeredColumn' : 'italicCenteredColumn' },
                // { text: row.rankings && row.rankings[category] ? row.rankings[category] : '', style: 'centeredColumn' },
                { text: row.category_ranking || '', style: 'centeredColumn' },

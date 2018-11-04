@@ -1,11 +1,14 @@
 import { env } from './env'
 import { util } from './util';
 import { dd } from './dropdown';
+import { domFx } from './domFx';
 import { drawFx } from './drawFx';
 import { jsTabs } from './jsTabs';
+import { dateFx } from './dateFx';
 import { lang } from './translator';
 import { staging } from './staging';
 import { fetchFx } from './fetchFx';
+import { stringFx } from './stringFx';
 import { rankCalc } from './rankCalc';
 import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
@@ -110,7 +113,7 @@ export const displayGen = function() {
       if (document.body.scrollIntoView) document.body.scrollIntoView();
    }
 
-   let fullName = (p) => `${p.last_name.toUpperCase()}, ${util.normalizeName(p.first_name, false)}`;
+   let fullName = (p) => `${p.last_name.toUpperCase()}, ${stringFx.normalizeName(p.first_name, false)}`;
 
    function matchSort(matches) {
       let rounds = ['RRF', 'RR3', 'RR2', 'RR1', 'RR', 'Q5', 'Q4', 'Q3', 'Q2', 'Q1', 'Q', 'R128', 'R64', 'R32', 'R24', 'R16', 'R12', 'QF', 'SF', 'F'];
@@ -263,9 +266,9 @@ export const displayGen = function() {
       window.document.body.insertBefore(cmodal, window.document.body.firstChild);
 
       setTimeout(function() { document.getElementById('processing').addEventListener('click', closeOnClick); }, 300);
-      setTimeout(function() { util.addEventToClass('closeeditmodal', () => gen.closeModal('edit')); }, 300);
-      setTimeout(function() { util.addEventToClass('closemodal', () => gen.closeModal()); }, 300); 
-      setTimeout(function() { util.addEventToClass('modal', clickAway); }, 300); 
+      setTimeout(function() { domFx.addEventToClass('closeeditmodal', () => gen.closeModal('edit')); }, 300);
+      setTimeout(function() { domFx.addEventToClass('closemodal', () => gen.closeModal()); }, 300); 
+      setTimeout(function() { domFx.addEventToClass('modal', clickAway); }, 300); 
    }
 
    function closeOnClick() { if (gen.closeonclick) { gen.closeModal(); delete gen.closeonclick; } }
@@ -508,8 +511,7 @@ export const displayGen = function() {
    }
 
    function displayDate(timestamp) {
-      // let date = new Date(timestamp);
-      let date = util.offsetDate(timestamp);
+      let date = dateFx.offsetDate(timestamp);
       return [util.zeroPad(date.getMonth() + 1), util.zeroPad(date.getDate())].join('&#8209;');
       // return [date.getFullYear(), util.zeroPad(date.getMonth() + 1), util.zeroPad(date.getDate())].join('-');
       // return [util.zeroPad(date.getDate()), util.zeroPad(date.getMonth() + 1), date.getFullYear()].join('&nbsp;');
@@ -530,7 +532,7 @@ export const displayGen = function() {
    gen.markAssigned = (e) => {
       e.classed('action_done', true);
       e.select('.action_type').classed('status_todo', false).classed('status_done', true).text(lang.tr('kwn'));
-      e.select('.action_player').text(util.normalizeName([searchBox.active.player.first_name, searchBox.active.player.last_name].join(' '), false));
+      e.select('.action_player').text(stringFx.normalizeName([searchBox.active.player.first_name, searchBox.active.player.last_name].join(' '), false));
       e.select('.action_year').text(new Date(searchBox.active.player.birth).getFullYear());
       let undo = ` <button type="button" class='btn undo'>${lang.tr('und')}</button> `;
       e.select('.action_action').html(undo);
@@ -614,7 +616,7 @@ export const displayGen = function() {
       let html = `
          <div class='action_edit section_row detail flexrow ${odd ? 'row_odd' : ''}' action_index='${index}'>
             <div class='action_type status_todo'>${type}</div>
-            <div class='action_name'>${util.normalizeName(player_name, false)}</div>
+            <div class='action_name'>${stringFx.normalizeName(player_name, false)}</div>
             <div class='action_club'>${data.club || ''}</div>
             <div class='action_club'>${data.ioc || (data.club ? 'CRO' : '')}</div>
             <div class='action_player'>&nbsp;</div>
@@ -628,7 +630,7 @@ export const displayGen = function() {
 
    gen.activePlayer = (p, club) => {
       let birthday;
-      let name = util.normalizeName(p.first_name + ' ' + p.last_name, false);
+      let name = stringFx.normalizeName(p.first_name + ' ' + p.last_name, false);
 
       if (p.birth) {
          birthday = displayYear(p.birth);
@@ -883,8 +885,8 @@ export const displayGen = function() {
          var player_ioc = p.ioc ? (p.ioc.trim().match(/\D+/g) || [])[0] : '';
          var ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
          var flag = player_ioc ? `<div class='flexcenter' style='margin-right: .3em'><img onerror="this.style.visibility='hidden'" width='16px' height='10px' src="${flag_root}${player_ioc.toUpperCase()}.png"></div>`.trim() : '';
-         var first_name = util.normalizeName(p.first_name, false);
-         var last_name = p.last_name ? util.normalizeName(p.last_name, false) : '';
+         var first_name = stringFx.normalizeName(p.first_name, false);
+         var last_name = p.last_name ? stringFx.normalizeName(p.last_name, false) : '';
          var full_name = `${first_name} ${last_name}`.trim();
          return `<div style='width: ${width}%;' class='flexjustifystart'>${flag}${full_name}</div>`;
       }
@@ -906,8 +908,8 @@ export const displayGen = function() {
          var assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
          var left = side == 'right' ? `${assoc} ` : `${penalty_icon}`;
          var right = side == 'left' ? ` ${assoc}` : `${penalty_icon}`;
-         var first_name = util.normalizeName(p.first_name, false);
-         var last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : '';
+         var first_name = stringFx.normalizeName(p.first_name, false);
+         var last_name = p.last_name ? stringFx.normalizeName(p.last_name, false).toUpperCase() : '';
          var seed = p.seed ? ` [${p.seed}]` : '';
          return `<div puid='${p.puid}' class='${side}_team ctxclk player_click cell_player'>${left}${first_name} ${last_name}${seed}${right}</div>`;
       }
@@ -919,7 +921,7 @@ export const displayGen = function() {
          var assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
          var left = side == 'right' ? `${assoc} ` : '';
          var right = side == 'left' ? ` ${assoc}` : '';
-         var last_name = p.last_name ? util.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? 'Qualifier' : '';
+         var last_name = p.last_name ? stringFx.normalizeName(p.last_name, false).toUpperCase() : p.qualifier ? 'Qualifier' : '';
          var seed = p.seed ? ` [${p.seed}]` : '';
          return `<div puid='${p.puid}' class='ctxclk player_click cell_player potential'>${left}${last_name}${seed}${right}</div>`;
       }
@@ -1723,8 +1725,8 @@ export const displayGen = function() {
          save: displayFx.uuid(),
       }
 
-      let start = !tournament.start ? '' : util.formatDate(tournament.start);
-      let end =   !tournament.end   ? '' : util.formatDate(tournament.end); 
+      let start = !tournament.start ? '' : dateFx.formatDate(tournament.start);
+      let end =   !tournament.end   ? '' : dateFx.formatDate(tournament.end); 
       let header = !title ? '' : `<h2>${title}</h2>`;
 
       let inout = lang.tr('inout').split(' ').join('&nbsp;');
@@ -1797,8 +1799,8 @@ export const displayGen = function() {
       let container = displayFx.idObj(ids);
 
       container.name.element.style.background = tournament.name ? 'white' : 'yellow';
-      container.start.element.style.background = util.validDate(tournament.start) ? 'white' : 'yellow';
-      container.end.element.style.background = util.validDate(tournament.end) ? 'white' : 'yellow';
+      container.start.element.style.background = dateFx.validDate(tournament.start) ? 'white' : 'yellow';
+      container.end.element.style.background = dateFx.validDate(tournament.end) ? 'white' : 'yellow';
 
       return { container };
    }
@@ -1947,7 +1949,7 @@ export const displayGen = function() {
       var medical = playerFx.medical(p);
       var registration = playerFx.registration(p);
 
-      var name = util.normalizeName([p.first_name, p.last_name].join(' '), false);
+      var name = stringFx.normalizeName([p.first_name, p.last_name].join(' '), false);
       var clubdata = !club.name ? '' :
          `<div class='flexrow pdata_container'><div class='pdata_label'>${lang.tr('clb')}:</div><div class='pdata_value'>${club.name}</div></div>`;
       var clubcode = !club.code ? '' :
@@ -2071,9 +2073,9 @@ export const displayGen = function() {
       gen.showConfigModal(html);
       let id_obj = displayFx.idObj(ids);
       id_obj.ok.element.addEventListener('click', () => gen.closeModal());
-      util.addEventToClass('player_penalty', removePenalty, id_obj.penalties.element);
+      domFx.addEventToClass('player_penalty', removePenalty, id_obj.penalties.element);
       function removePenalty(evt) {
-         let element = util.getParent(evt.target, 'player_penalty');
+         let element = domFx.getParent(evt.target, 'player_penalty');
          let penalty_index = element.getAttribute('penalty_index');
          let penalty = penalties[penalty_index];
          let player = tournament.players.reduce((p, c) => c.id == penalty.player.id ? c : p, {});
@@ -2119,9 +2121,9 @@ export const displayGen = function() {
       gen.showConfigModal(html);
       let id_obj = displayFx.idObj(ids);
       id_obj.ok.element.addEventListener('click', () => gen.closeModal());
-      util.addEventToClass('player_penalty', removePenalty, id_obj.penalties.element);
+      domFx.addEventToClass('player_penalty', removePenalty, id_obj.penalties.element);
       function removePenalty(evt) {
-         let element = util.getParent(evt.target, 'player_penalty');
+         let element = domFx.getParent(evt.target, 'player_penalty');
          let penalty_index = element.getAttribute('penalty_index');
          p.penalties.splice(penalty_index, 1);
          if (typeof saveFx == 'function') saveFx();
@@ -2339,10 +2341,10 @@ export const displayGen = function() {
          <h2>${lang.tr('edt')}</h2>
          <div class='pdata flexcol flexcenter'>
             <div class='pdata_row'>
-               <div class='pdata_label'>${lang.tr('fnm')}:</div><div class="data_value">${util.normalizeName(p.first_name, false)}</div>
+               <div class='pdata_label'>${lang.tr('fnm')}:</div><div class="data_value">${stringFx.normalizeName(p.first_name, false)}</div>
             </div>
             <div class='pdata_row'>
-               <div class='pdata_label'>${lang.tr('lnm')}:</div><div class="data_value">${util.normalizeName(p.last_name, false)}</div>
+               <div class='pdata_label'>${lang.tr('lnm')}:</div><div class="data_value">${stringFx.normalizeName(p.last_name, false)}</div>
             </div>
             <div class='pdata_row'>
                <div class='pdata_label'>${lang.tr('clb')}:</div><div class="data_value">${p.club || ''}</div>
@@ -4956,7 +4958,7 @@ export const displayGen = function() {
                <div>${clicked_player.last_name}</div>
                <div>${clicked_player.ioc || ''}</div>
                <div>${lang.tr('gdr')}: ${clicked_player.sex}</div>
-               <div>${util.formatDate(clicked_player.birth)}</div>
+               <div>${dateFx.formatDate(clicked_player.birth)}</div>
             </div>
             <div style='display: grid'>
                <div style='font-weight: bold; text-decoration: underline;'>${lang.tr('new')}</div>
@@ -5111,8 +5113,8 @@ export const displayGen = function() {
          if (evt.which == 13) returnValue();
       });
 
-      util.addEventToClass('hour', setHour);
-      util.addEventToClass('minute', setMinute);
+      domFx.addEventToClass('hour', setHour);
+      domFx.addEventToClass('minute', setMinute);
 
       if (time_string) {
          let time_parts = time_string.split(':');
@@ -5344,10 +5346,10 @@ export const displayGen = function() {
          setDefaultDate: true,
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
-         toString(date) { return util.formatDate(date); },
+         toString(date) { return dateFx.formatDate(date); },
          onSelect: function() { 
             let this_date = this.getDate();
-            date = new Date(util.timeUTC(this_date));
+            date = new Date(dateFx.timeUTC(this_date));
             this.setStartRange(new Date(date));
             if (dateFx && typeof dateFx == 'function') dateFx(date);
          },
@@ -5386,10 +5388,10 @@ export const displayGen = function() {
          setDefaultDate: true,
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
-         toString(date) { return util.formatDate(date); },
+         toString(date) { return dateFx.formatDate(date); },
          onSelect: function() { 
             let this_date = this.getDate();
-            start = new Date(util.timeUTC(this_date));
+            start = new Date(dateFx.timeUTC(this_date));
             updateStartDate();
             if (end < start) {
                endPicker.gotoYear(start.getFullYear());
@@ -5407,10 +5409,10 @@ export const displayGen = function() {
          firstDay: env.calendar.first_day,
          defaultDate: end,
          setDefaultDate: true,
-         toString(date) { return util.formatDate(date); },
+         toString(date) { return dateFx.formatDate(date); },
          onSelect: function() {
             let this_date = this.getDate();
-            end = new Date(util.timeUTC(this_date));
+            end = new Date(dateFx.timeUTC(this_date));
             updateEndDate();
             if (end < start) {
                startPicker.gotoYear(end.getFullYear());

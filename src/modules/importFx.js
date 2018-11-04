@@ -2,9 +2,11 @@ import { db } from './db'
 import { env } from './env'
 import { UUID } from './UUID';
 import { util } from './util'
+import { domFx } from './domFx'
 import { staging } from './staging'
 import { lang } from './translator';
 import { rankCalc } from './rankCalc';
+import { stringFx } from './stringFx';
 import { searchBox } from './searchBox';
 import { calendarFx } from './calendarFx';
 import { displayGen } from './displayGen';
@@ -77,13 +79,13 @@ export const importFx = function() {
          let datestring = filename.split('_')[1].match(/\d+/)[0];
          if (datestring.length == 8) {
             let date = [datestring.substring(0, 4), datestring.substring(4, 6), datestring.substring(6,8)].join('-');
-            if (date == util.formatDate(date)) meta.filedate = date;
+            if (date == dateFx.formatDate(date)) meta.filedate = date;
          }
       }
 
       if (parts.length == 5) {
          // using charCodeAt as safety since Diacritics has sometimes failed
-         let gender = util.replaceDiacritics(parts[3]).toUpperCase().charCodeAt(0);
+         let gender = stringFx.replaceDiacritics(parts[3]).toUpperCase().charCodeAt(0);
          if ([77].indexOf(gender) >= 0) meta.gender = 'M';
          if ([87, 90].indexOf(gender) >= 0) meta.gender = 'W';
 
@@ -233,8 +235,8 @@ export const importFx = function() {
 
             player.hash = util.nameHash(name);
             player.birth = determineDate(player.birth);
-            player.first_name = util.normalizeName(player.first_name, false);
-            player.last_name = util.normalizeName(player.last_name, false);
+            player.first_name = stringFx.normalizeName(player.first_name, false);
+            player.last_name = stringFx.normalizeName(player.last_name, false);
             player.foreign = player.foreign == 'true' || player.foreign == 'Y';
             player.represents_ioc = player.represents_ioc == 'true' || player.represents_ioc == 'Y';
             player.residence_permit = player.residence_permit == 'true' || player.residence_permit == 'Y';
@@ -341,7 +343,7 @@ export const importFx = function() {
                id: record.id,
                sid: record.sid || 'HTS',
                tuid: `${record.sid || 'HTS'}${record.id}`,
-               name: util.normalizeName(record.name, false),
+               name: stringFx.normalizeName(record.name, false),
                start: determineDate(record.start),
                end: determineDate(record.end),
                draws: record.draws || '',
@@ -570,7 +572,7 @@ export const importFx = function() {
          .selectAll('button.ignore')
          .on('click', (d, i, elem) => { 
             d3.event.stopPropagation(); 
-            let row = util.getParent(elem[i], 'section_row');
+            let row = domFx.getParent(elem[i], 'section_row');
             tournamentDisplay.ignorePlayer(row);
          });
 
@@ -1239,8 +1241,8 @@ export const importFx = function() {
                }
                all_players.push({ 
                   hash: player.hash,
-                  first_name: util.normalizeName(player.first_name, false),
-                  last_name: util.normalizeName(player.last_name, false),
+                  first_name: stringFx.normalizeName(player.first_name, false),
+                  last_name: stringFx.normalizeName(player.last_name, false),
                   club: player.club,
                   ioc: player.ioc,
                });

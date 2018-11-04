@@ -3,6 +3,7 @@ import { util } from './util';
 import { UUID } from './UUID';
 import { drawFx } from './drawFx';
 import { courtFx } from './courtFx';
+import { stringFx } from './stringFx';
 import { scoreBoard } from './scoreBoard';
 
 export const matchFx = function() {
@@ -410,8 +411,8 @@ export const matchFx = function() {
          })
          .filter(f=>f)
          .sort((a, b) => {
-            let a1 = util.replaceDiacritics(a.full_name);
-            let b1 = util.replaceDiacritics(b.full_name);
+            let a1 = stringFx.replaceDiacritics(a.full_name);
+            let b1 = stringFx.replaceDiacritics(b.full_name);
             return a1 < b1 ? -1 : a1 > b1 ? 1 : 0
          });
 

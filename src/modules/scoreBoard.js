@@ -2,6 +2,8 @@ import { env } from './env';
 import { util } from './util';
 import { UUID } from './UUID';
 import { dd } from './dropdown';
+import { domFx } from './domFx';
+import { dateFx } from './dateFx';
 import { lang } from './translator';
 import { displayFx } from './displayFx';
 import { eventManager } from './eventManager';
@@ -15,10 +17,10 @@ export const scoreBoard = function() {
    eventManager.register('setClick', 'tap', setClick) ;
 
    function setClick(elem) {
-      let set_number_element = util.getParent(elem, 'set_number');
+      let set_number_element = domFx.getParent(elem, 'set_number');
       if (!set_number_element) return;
       let set = set_number_element.getAttribute('setnum');
-      let muid = util.getParent(elem, 'muid').getAttribute('muid');
+      let muid = domFx.getParent(elem, 'muid').getAttribute('muid');
       if (setClicks[muid] && typeof setClicks[muid] == 'function') setClicks[muid](set);
    }
 
@@ -254,7 +256,7 @@ export const scoreBoard = function() {
          sobj.delegation_key.element.addEventListener('click', delegationKey , false);
 
          function displayDocs(evt) {
-            let click_context = util.getParent(evt.target, 'doclink');
+            let click_context = domFx.getParent(evt.target, 'doclink');
             let url = click_context.getAttribute('url');
             if (url) window.open(`/docs/${env.ioc}/${url}.html`, '_blank');
          }
@@ -1518,7 +1520,7 @@ function matchDuration(schedule) {
    if (!schedule.start || !schedule.end) return '';
 
    let seconds = timeSeconds(schedule.end) - timeSeconds(schedule.start);
-   return util.HHMMSS(seconds, { pad_hours: false, display_seconds: false });
+   return dateFx.HHMMSS(seconds, { pad_hours: false, display_seconds: false });
 }
 
 function timeSeconds(time) {
