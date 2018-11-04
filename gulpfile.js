@@ -7,6 +7,8 @@ const babel = require('rollup-plugin-babel');
 const commonJs = require('rollup-plugin-commonjs');
 const resolveNodeModules = require('rollup-plugin-node-resolve');
 
+var eslint = require('gulp-eslint');
+
 const uglify = require('gulp-uglify');
 const minify = require('gulp-minify');
 const htmlmin = require('gulp-htmlmin');
@@ -207,5 +209,12 @@ gulp.task('bundle-sw', [
 gulp.task('watch', ['bundle-sw'], () => {
   gulp.watch('src/**/*.js', [/* do some linting etc., */ 'copy-src']);
   gulp.watch('src/css/*.css', [/* do some linting etc., */ 'concat-css']);
+});
+
+gulp.task('eslint', () => {
+    return gulp.src(['./src/modules/util.js', './src/modules/domFx.js', './src/modules/stringFx.js', './src/modules/config.js'])
+    .pipe(eslint())
+    .pipe(eslint.format())
+    .pipe(eslint.failAfterError())
 });
 

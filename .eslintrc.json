@@ -1,0 +1,29 @@
+{
+    "parserOptions": {
+        "ecmaVersion": 6,
+        "sourceType": "module",
+        "ecmaFeatures": { "jsx": true }
+    },
+    "extends": "eslint:recommended",
+    "rules": {
+        "semi": 2,
+        "no-console": "off",
+        "comma-dangle": ["error", "never"],
+        "no-cond-assign": ["error", "always"]
+    },
+    "globals": {
+        "CircularJSON": false,
+        "setTimeout": false,
+        "navigator": false,
+        "location": false,
+        "document": false,
+        "console": false,
+        "history": false,
+        "Promise": false,
+        "window": false,
+        "Map": false,
+        "Set": false,
+        "d3": false,
+        "dev": true
+    }
+}
