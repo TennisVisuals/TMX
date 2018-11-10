@@ -4,18 +4,16 @@ export const jsTabs = function() {
 
    let jsTabs = {};
 
-   let tab_array;
-
    // TODO: future configuration options
    let o = {
-      scrollIntoView: false,
-   }
+      scrollIntoView: false
+   };
 
    let selectTab = ({ root, no, callback, baseclass }) => {
       //update the tab's link
       let ss = Array.from(root.querySelectorAll(`.${baseclass} .tabs > span.selected`));
       ss.forEach(s=>s.classList.remove("selected"));
-      let s = root.querySelector(`.${baseclass} .tabs > span:nth-of-type(${no - 1})`)
+      let s = root.querySelector(`.${baseclass} .tabs > span:nth-of-type(${no - 1})`);
       if (s) s.classList.add("selected");
 
       //update the tab (div)
@@ -29,7 +27,7 @@ export const jsTabs = function() {
       if (o.scrollIntoView && document.body.scrollIntoView) document.body.scrollIntoView();
 
       if (callback && typeof callback == 'function') callback(no - 2, reference);
-   }
+   };
 
    jsTabs.load = ({ el, callback, baseclass='jstabs', tab }) => {
       let root = el || document;
@@ -46,7 +44,7 @@ export const jsTabs = function() {
       displayTab(tab || 0);
 
       return displayTab;
-   } 
+   };
 
    // TODO: complete position code to enable tabs to be top or bottom
    jsTabs.generate = ({ tabs, shadow=true, baseclass='jstabs', position='top' }) => {
@@ -54,7 +52,7 @@ export const jsTabs = function() {
       tabs_html += tabs.map(o => {
          let id = o.id ? ` id="${o.id}"` : '';
          let display = o.display || 'inline';
-         return `<span${id} style="display: ${display}">${o.tab}</span>`
+         return `<span${id} style="display: ${display}">${o.tab}</span>`;
       }).join('');
       tabs_html += `</div></div>`;
       let content_html = tabs.map(o => {
@@ -63,7 +61,7 @@ export const jsTabs = function() {
       }).join('');
       content_html += `</div>`;
       return position == 'top' ? tabs_html + content_html : content_html + tabs_html;
-   }
+   };
 
    return jsTabs;
 }();

@@ -11,109 +11,109 @@ export const matchObject = function() {
 
    let formats = {
       games: {
-         'advantage': { description: 'Advantage Game', tiebreak: false, hasDecider: false, threshold: 4, minDiff: 2, },
-         'noAdvantage': { description: 'No Advantage Game', tiebreak: false, hasDecider: true, threshold: 4, minDiff: 1, },
-         'tiebreak7a': { description: 'Tiebreak to 7', tiebreak: true, hasDecider: false, threshold: 7, minDiff: 2,  },
-         'tiebreak10a': { description: 'Tiebreak to 10', tiebreak: true, hasDecider: false, threshold: 10, minDiff: 2, },
-         'tiebreak12a': { description: 'Tiebreak to 10', tiebreak: true, hasDecider: false, threshold: 12, minDiff: 2, },
-         'tiebreak9n': { description: 'Tiebreak to 9, Golden Point', tiebreak: true, hasDecider: true, threshold: 9, minDiff: 1, },
+         'advantage': { description: 'Advantage Game', tiebreak: false, hasDecider: false, threshold: 4, minDiff: 2 },
+         'noAdvantage': { description: 'No Advantage Game', tiebreak: false, hasDecider: true, threshold: 4, minDiff: 1 },
+         'tiebreak7a': { description: 'Tiebreak to 7', tiebreak: true, hasDecider: false, threshold: 7, minDiff: 2 },
+         'tiebreak10a': { description: 'Tiebreak to 10', tiebreak: true, hasDecider: false, threshold: 10, minDiff: 2 },
+         'tiebreak12a': { description: 'Tiebreak to 10', tiebreak: true, hasDecider: false, threshold: 12, minDiff: 2 },
+         'tiebreak9n': { description: 'Tiebreak to 9, Golden Point', tiebreak: true, hasDecider: true, threshold: 9, minDiff: 1 }
       },
       sets: {
          'AdSetsTo6tb7': { 
             description: 'Advantage, 6 games for set, Tiebreak to 7',
-            hasDecider: true, threshold: 6, minDiff: 2, children: 'advantage', decidingChild: 'tiebreak7a', 
+            hasDecider: true, threshold: 6, minDiff: 2, children: 'advantage', decidingChild: 'tiebreak7a'
          },
          'AdSetsTo6tb12': { 
             description: 'Advantage, 6 games for set, Tiebreak to 12',
-            hasDecider: true, threshold: 6, minDiff: 2, children: 'advantage', decidingChild: 'tiebreak12a', 
+            hasDecider: true, threshold: 6, minDiff: 2, children: 'advantage', decidingChild: 'tiebreak12a'
          },
          'AdSetsTo4tb7': { 
             description: 'Advantage, 4 games for set, Tiebreak to 7',
-            hasDecider: true, threshold: 4, minDiff: 2, children: 'advantage', decidingChild: 'tiebreak7a', 
+            hasDecider: true, threshold: 4, minDiff: 2, children: 'advantage', decidingChild: 'tiebreak7a'
          },
          'NoAdSetsTo6tb7': { 
             description: 'No-Ad, 6 games for set, Tiebreak to 7',
-            hasDecider: true, threshold: 6, minDiff: 2, children: 'noAdvantage', decidingChild: 'tiebreak7a', 
+            hasDecider: true, threshold: 6, minDiff: 2, children: 'noAdvantage', decidingChild: 'tiebreak7a'
          },
          'NoAdSetsTo4tb7': { 
             description: 'No-Ad, 4 games for set, Tiebreak to 7',
-            hasDecider: true, threshold: 4, minDiff: 0, children: 'noAdvantage', decidingChild: 'tiebreak7a', 
+            hasDecider: true, threshold: 4, minDiff: 0, children: 'noAdvantage', decidingChild: 'tiebreak7a'
          },
          'longSetTo6by2': { 
             description: 'Advantage, 6 games for set, win by 2 games',
-            hasDecider: false, threshold: 6, minDiff: 2, children: 'advantage', decidingChild: 'advantage', 
+            hasDecider: false, threshold: 6, minDiff: 2, children: 'advantage', decidingChild: 'advantage'
          },
          'supertiebreak': { 
             description: 'Supertiebreak',
-            hasDecider: true, threshold: 1, minDiff: 1, children: 'tiebreak10a',  decidingChild: 'tiebreak10a', 
+            hasDecider: true, threshold: 1, minDiff: 1, children: 'tiebreak10a',  decidingChild: 'tiebreak10a'
          },
          'pro10a12': { 
             description: '10 Game No Ad Pro Set; tiebreak to 12',
-            hasDecider: true, threshold: 10, minDiff: 2, children: 'noAdvantage', decidingChild: 'tiebreak12a',
+            hasDecider: true, threshold: 10, minDiff: 2, children: 'noAdvantage', decidingChild: 'tiebreak12a'
          },
          'pro8a7': { 
             description: '8 Game Pro Set; tiebreak to 7', 
             hasDecider: true, threshold: 8, minDiff: 2, children: 'advantage', decidingChild: 'tiebreak7a'
-         },
+         }
       },
       matches: {
          '3_4a_7': { 
             name: 'Short Set Standard Advantage',
             description: 'best of 3 sets, Advantage, 4 games for set, Tiebreak to 7', 
-            hasDecider: true, threshold: 2, minDiff: 0, children: 'AdSetsTo4tb7', decidingChild: 'AdSetsTo4tb7',
+            hasDecider: true, threshold: 2, minDiff: 0, children: 'AdSetsTo4tb7', decidingChild: 'AdSetsTo4tb7'
          },
          '3_6a_7': { 
             name: 'Standard Advantage',
             description: 'best of 3 sets, Advantage, 6 games for set, Tiebreak to 7', 
-            hasDecider: true, threshold: 2, minDiff: 0, children: 'AdSetsTo6tb7', decidingChild: 'AdSetsTo6tb7',
+            hasDecider: true, threshold: 2, minDiff: 0, children: 'AdSetsTo6tb7', decidingChild: 'AdSetsTo6tb7'
          },
          '3_6a_10': { 
             name: 'Standard Advantage, 3rd Set Supertiebreak',
             description: 'best of 3 sets, Advantage, 6 games for set, Tiebreak to 7, final set Supertiebreak', 
-            hasDecider: true, threshold: 2, minDiff: 0, children: 'AdSetsTo6tb7', decidingChild: 'supertiebreak',
+            hasDecider: true, threshold: 2, minDiff: 0, children: 'AdSetsTo6tb7', decidingChild: 'supertiebreak'
          },
          '3_6n_7': { 
             name: 'Standard No-Advantage',
             description: 'best of 3 sets, No Advantage, 6 games for set, Tiebreak to 7', 
-            hasDecider: true, threshold: 2, minDiff: 0, children: 'NoAdSetsTo6tb7', decidingChild: 'NoAdSetsTo6tb7',
+            hasDecider: true, threshold: 2, minDiff: 0, children: 'NoAdSetsTo6tb7', decidingChild: 'NoAdSetsTo6tb7'
          },
          '3_4n_10': { 
             name: 'Standard Under 10',
             description: 'best of 3 sets, No Advantage, 4 games for set, Tiebreak to 7, final set Supertiebreak', 
-            hasDecider: true, threshold: 2, minDiff: 0, children: 'NoAdSetsTo4tb7', decidingChild: 'supertiebreak',
+            hasDecider: true, threshold: 2, minDiff: 0, children: 'NoAdSetsTo4tb7', decidingChild: 'supertiebreak'
          },
          '1_4n_7': { 
             name: 'Under 10 Qualifying',
             description: '4 games for set, No Advantage, Tiebreak to 7 at 3-3', 
-            hasDecider: false, threshold: 1, minDiff: 0, children: 'NoAdSetsTo4tb7', decidingChild: 'NoAdSetsTo4tb7',
+            hasDecider: false, threshold: 1, minDiff: 0, children: 'NoAdSetsTo4tb7', decidingChild: 'NoAdSetsTo4tb7'
          },
          '3_6n_10': { 
             name: 'No-Ad, 3rd Set Supertiebreak',
             description: 'best of 3 sets, No-Ad, 6 games for set, Tiebreak to 7, final set Supertiebreak', 
-            hasDecider: true, threshold: 2, minDiff: 0, children: 'NoAdSetsTo6tb7', decidingChild: 'supertiebreak',
+            hasDecider: true, threshold: 2, minDiff: 0, children: 'NoAdSetsTo6tb7', decidingChild: 'supertiebreak'
          },
          '5_6a_7': { 
             name: 'US Open Men',
             description: 'best of 5 sets, Advantage, 6 games for set, Tiebreak to 7', 
-            hasDecider: true, threshold: 3, minDiff: 0, children: 'AdSetsTo6tb7', decidingChild: 'AdSetsTo6tb7',
+            hasDecider: true, threshold: 3, minDiff: 0, children: 'AdSetsTo6tb7', decidingChild: 'AdSetsTo6tb7'
          },
          '5_6a_7_long': { 
             name: 'Grand Slam Men - Final Advantage Set',
             description: 'best of 5 sets, Advantage, 6 games for set, Tiebreak to 7, final set by 2 games', 
-            hasDecider: true, threshold: 3, minDiff: 0, children: 'AdSetsTo6tb7', decidingChild: 'longSetTo6by2',
+            hasDecider: true, threshold: 3, minDiff: 0, children: 'AdSetsTo6tb7', decidingChild: 'longSetTo6by2'
          },
          '3_6a_7_long': { 
             name: 'Grand Slam Women - Final Advantage Set',
             description: 'best of 5 sets, Advantage, 6 games for set, Tiebreak to 7, final set by 2 games', 
-            hasDecider: true, threshold: 2, minDiff: 0, children: 'AdSetsTo6tb7', decidingChild: 'longSetTo6by2',
+            hasDecider: true, threshold: 2, minDiff: 0, children: 'AdSetsTo6tb7', decidingChild: 'longSetTo6by2'
          },
          '1_8a_7': { 
             name: '8 Game Pro Set',
             description: '1 set, Advantage, 8 games for set, Tiebreak to 7', 
-            hasDecider: true, threshold: 1, minDiff: 0, children: 'pro8a7', decidingChild: 'pro8a7',
-         },
-      },
-   }
+            hasDecider: true, threshold: 1, minDiff: 0, children: 'pro8a7', decidingChild: 'pro8a7'
+         }
+      }
+   };
 
    umo.formats = () => formats;
    umo.newFormat = ({type, code, description, tiebreak, hasDecider, threshold, minDiff, children, decidingChild} = {}) => {
@@ -122,7 +122,7 @@ export const matchObject = function() {
       if (hasType && hasCode) return false;
       formats[type][code] = { description, tiebreak, hasDecider, threshold, minDiff, children, decidingChild };
       return true;
-   }
+   };
 
    umo.stateObject = ({index, object, parent_object, child, format, common = umo.common()} = {}) => {
       let so = {};
@@ -176,7 +176,7 @@ export const matchObject = function() {
             if (common.metadata.serviceOrder().indexOf(value) < 0) return false;
             so.first_service = value;
             return so.set;
-         },
+         }
       };
 
       so.history = {};
@@ -186,16 +186,16 @@ export const matchObject = function() {
          let points = common.history.filter(episode => episode.action == 'addPoint').map(episode => episode.point); 
          if (set != undefined) points = points.filter(point => point.set == set);
          return points;
-      }
+      };
       so.history.score = () => { 
          if (object == 'Game') return so.history.points().map(point => point.score); 
          return [].concat(...so.children.map(child => child.history.score())); 
-      }
+      };
       so.history.games = () => (object == 'Set') ? so.local_history : [].concat(...so.children.map(child => child.history.games()));
       so.history.lastPoint = () => { 
          let point_history = so.history.points();
          return point_history[point_history.length - 1] || { score: '0-0' };
-      }
+      };
       so.history.common = () => common.history;
 
       so.score = () => {
@@ -204,7 +204,6 @@ export const matchObject = function() {
          counters.points = object == 'Game' ? (so.complete() ? [0, 0] : so.counter) : (so.lastChild() ? so.lastChild().score().counters.points : [0, 0]); 
          counters.games = object == 'Set' ? (so.complete() ? [0, 0] : so.counter) : (object == 'Match' ? (so.lastChild() ? so.lastChild().score().counters.games : [0, 0]) : undefined);
          counters.sets = object == 'Match' ? so.counter : undefined;
-         let current = {};
          let score = { counters };
          score.points = object == 'Game' ? (so.complete() ? '0-0' : so.scoreboard()) : (so.lastChild() ? so.lastChild().score().points : '0-0'); 
          score.games = object == 'Set' ? (so.complete() ? '0-0' : so.perspectiveScore().join('-')) : (so.lastChild() ? so.lastChild().score().games : '0-0');
@@ -234,11 +233,13 @@ export const matchObject = function() {
       so.perspectiveScore = (counter = so.counter, force) => {
          if (force != undefined) return force ? counter.slice().reverse() : counter;
          return so.reverseScore() ? counter.slice().reverse() : counter; 
-      }
+      };
+
       so.complete = () => {
          function beyondDoubleThreshold() { return so.counter[0] >= so.format.threshold() && so.counter[1] >= so.format.threshold(); }
          return (so.thresholdMet() && so.minDifferenceMet()) || (beyondDoubleThreshold() && so.scoreDifference() && so.format.hasDecider()) ? true : false;
-      }
+      };
+
       so.nextService = () => {
          if (so.complete()) return false;
          let last_child = so.lastChild();
@@ -265,14 +266,14 @@ export const matchObject = function() {
             return common.advanceService(last_first_service);
          }
          return last_child.nextService();
-      }
+      };
 
       so.currentChild = () => {
          if (so.complete()) return false;
          let last_child = so.lastChild();
          if (last_child && !last_child.complete()) return last_child;
          return so.newChild();
-      }
+      };
 
       so.newChild = () => {
          let last_child = so.lastChild();
@@ -297,7 +298,7 @@ export const matchObject = function() {
          let code = (deciding_child_required) ? so.format.decidingChild.settings().code : so.format.children.settings().code;
          let total_children = so.children.length;
 
-         let new_child = umo[so.child.object]({index: total_children, parent_object: so, type: code, common: common, });
+         let new_child = umo[so.child.object]({index: total_children, parent_object: so, type: code, common: common });
          new_child.set.firstService(next_first_service);
 
          if (!code) {
@@ -316,13 +317,13 @@ export const matchObject = function() {
             attributes.forEach(attribute => { 
                if (typeof source[attribute] == 'function') {
                   let value = source[attribute]();
-                  let existing_value = target[attribute]();
+                  target[attribute]();
                   target[attribute](value); 
-                  let new_value = target[attribute]();
+                  target[attribute]();
                }
             }); 
          }
-      }
+      };
 
       let addPoint = (value) => {
          if (so.complete()) return { result: false };
@@ -337,8 +338,8 @@ export const matchObject = function() {
             score: so.scoreboard(), 
             number: so.local_history.filter(episode => episode.winner != undefined).length,
             index: so.history.points().length,
-            [object.toLowerCase()]: index,
-         }
+            [object.toLowerCase()]: index
+         };
         
          let points_to_game = so.pointsToGame();
          let has_game_point = points_to_game ? points_to_game.indexOf(1) : undefined;
@@ -359,7 +360,7 @@ export const matchObject = function() {
 
          common.history.push(episode);
          return episode;
-      }
+      };
 
       so.addPoint = (value) => {
          if (Array.isArray(value)) return false;
@@ -388,7 +389,7 @@ export const matchObject = function() {
          if (!parent_object) common.addStatPoint(episode);
          if (!parent_object) common.events.addPoint().forEach(fx => fx(episode));
          return episode;
-      }
+      };
 
       so.addPoints = (values = []) => so.addMultiple({values});
 
@@ -397,13 +398,13 @@ export const matchObject = function() {
          if (episode.result) return episode;
          let last_point = so.history.lastPoint();
          let last_points = !last_point || last_point.score == '0-0' ? [0, 0] : last_point.points;
-         let total_points = last_points.reduce((a, b) => (a + b));
+         // let total_points = last_points.reduce((a, b) => (a + b));
          let attempt = so.change.pointScore(value);
          if (attempt.result) {
             so.undo();
             let new_points = attempt.pointChange.to;
-            let new_total = new_points.reduce((a, b) => (a + b));
-            let change = new_points.map((p, i) => { return { diff: p - last_points[i], i } }).filter(f=>f.diff);
+            // let new_total = new_points.reduce((a, b) => (a + b));
+            let change = new_points.map((p, i) => ({ diff: p - last_points[i], i })).filter(f=>f.diff);
             if (change.length == 1 && change[0].diff > 0) {
                let result;
                let player = change[0].i;
@@ -417,11 +418,12 @@ export const matchObject = function() {
             }
          }
          return { result: false };
-      }
+      };
 
       so.addScores = (values = []) => so.addMultiple({values, fx: so.addScore});
 
       so.addMultiple = ({ values = [], fx = so.addPoint }) => {
+         // eslint-disable-next-line no-useless-escape
          if (typeof values == 'string') values = values.match(/[01A-Za-z][\*\#\@]*/g);
          let added = [];
          let rejected = [];
@@ -437,7 +439,7 @@ export const matchObject = function() {
             }
          }
          return { result: added.length, added, rejected };
-      }
+      };
 
       so.decoratePoint = (point, attributes) => {
          let indices = common.history
@@ -446,7 +448,7 @@ export const matchObject = function() {
          if (!indices.length) return false;
          let episode = common.history[indices[0]];
          episode.point = Object.assign({}, episode.point, attributes);
-      }
+      };
 
       so.change = {};
       so.change.points = (values) => {
@@ -468,7 +470,8 @@ export const matchObject = function() {
             return episode;
          }
          return so.propagatePointChange(values, 'points');
-      }
+      };
+
       so.change.pointScore = (value) => {
          if (value == '0-0') return so.change.points([0, 0]);
          if (object == 'Game') {
@@ -487,17 +490,19 @@ export const matchObject = function() {
             return so.change.points(values);
          }
          return so.propagatePointChange(value, 'pointScore');
-      }
+      };
+
       so.propagatePointChange = (values, fx) => {
          let last_child = so.lastChild();
          if (!last_child) { 
             if (object == 'Match') { return so.newChild().newChild().change[fx](values); }
             if (object == 'Set') { return so.newChild().change[fx](values); }
-         };
+         }
          if (!parent_object && so.complete()) return { result: false };
          if (last_child.complete()) { return so.newChild().change[fx](values); }
          return last_child.change[fx](values);
-      }
+      };
+
       so.change.games = (values) => {
          if (!numbersArray(values) || values.length != 2) return false;
          if (object == 'Game') return { result: false };
@@ -510,11 +515,11 @@ export const matchObject = function() {
             return episode;
          }
          let last_child = so.lastChild();
-         if (!last_child && object == 'Match') { return so.newChild().change.games(values); };
+         if (!last_child && object == 'Match') { return so.newChild().change.games(values); }
          if (!parent_object && so.complete()) return { result: false };
          if (last_child.complete()) { return so.newChild().change.games(values); }
          return last_child.change.games(values);
-      }
+      };
 
       so.undo = (count = 1) => {
          if (isNaN(count)) return false;
@@ -523,11 +528,11 @@ export const matchObject = function() {
          let undo = () => {
             let action = common.history[common.history.length - 1].action;
             return undo_actions[action]();
-         }
-         let undone = [...Array(count).keys()].map(i => undo());
+         };
+         let undone = [...Array(count).keys()].map(()=>undo());
          common.events.undo().forEach(fx => fx(undone));
          return (count == 1) ? undone[0] : undone;
-      }
+      };
 
       let undo_actions = {};
       undo_actions.addPoint = () => {
@@ -577,12 +582,12 @@ export const matchObject = function() {
 
          if (!last_child.history.local().length && last_child.lastChild() == undefined) so.children.pop();
          return episode;
-      }
+      };
       return so;
-   }
+   };
 
    umo.Match = ({index, type, common = umo.common()} = {}) => {
-      let child = { object: 'Set', label: 'set', plural: 'sets' }
+      let child = { object: 'Set', label: 'set', plural: 'sets' };
       let format = umo.matchFormat({type, common});
       let match = umo.stateObject({index, object: 'Match', format, child, common});
 
@@ -590,7 +595,7 @@ export const matchObject = function() {
          if (!match.children.length) return '0-0';
          if (perspective == undefined) perspective = match.set.perspectiveScore() ? match.nextService() : undefined;
          return match.children.map(child => child.scoreboard(perspective)).join(', '); 
-      }
+      };
 
       return { 
          set: match.set, reset: match.reset, format: match.format, 
@@ -602,12 +607,12 @@ export const matchObject = function() {
          complete: match.complete, winner: match.winner, 
          score: match.score, scoreboard: match.scoreboard,
          [match.child.plural]: match.accessChildren, 
-         history: match.history, stats: common.stats,
-      }
-   }
+         history: match.history, stats: common.stats
+      };
+   };
 
    umo.Set = ({index, parent_object, type, common = umo.common()} = {}) => {
-      let child = { object: 'Game', label: 'game', plural: 'games' }
+      let child = { object: 'Game', label: 'game', plural: 'games' };
       let format = umo.setFormat({type, common});
       let set = umo.stateObject({index, parent_object, object: 'Set', format, child, common});
 
@@ -669,15 +674,15 @@ export const matchObject = function() {
          });
 
          return { points_to_set, games_to_set };
-      }
+      };
 
-      let formatScore = ([p0score, p1score], [t0score, t1score], tiebreak_to) => {
+      let formatScore = ([p0score, p1score], [t0score, t1score]/*, tiebreak_to*/) => {
          if (t0score || t1score) {
             if (t0score > t1score) p1score += `(${t1score})`;
             if (t1score > t0score) p0score += `(${t0score})`;
          }
-         return `${p0score}-${p1score}`
-      }
+         return `${p0score}-${p1score}`;
+      };
 
       set.scoreboard = (perspective) => {
          let last_game = set.lastChild();
@@ -691,7 +696,7 @@ export const matchObject = function() {
          if (tiebreak && set.complete() && set.children.length == 1) return tiebreak_score.join('-');
          let tiebreak_to = last_game.format.threshold();
          return formatScore(score, tiebreak_score, tiebreak_to);
-      }
+      };
 
       return { 
          set: set.set, reset: set.reset, format: set.format, 
@@ -704,12 +709,12 @@ export const matchObject = function() {
          score: set.score, scoreboard: set.scoreboard, 
          [set.child.plural]: set.accessChildren, children: set.accessChildren, lastChild: set.lastChild, newChild: set.newChild,
          history: set.history,
-         pointsNeeded: set.pointsNeeded, 
-      }
-   }
+         pointsNeeded: set.pointsNeeded
+      };
+   };
 
    umo.Game = ({index, parent_object, type, common = umo.common()} = {}) => {
-      let child = { object: 'Point', label: 'point', plural: 'points' }
+      let child = { object: 'Point', label: 'point', plural: 'points' };
       let format = umo.gameFormat({type, common});
       let game = umo.stateObject({index, object: 'Game', parent_object, format, child, common});
 
@@ -739,7 +744,7 @@ export const matchObject = function() {
             }
          });
          return points_to_game;
-      }
+      };
 
       game.scoreboard = (perspective) => {
          let scoreboard;
@@ -752,7 +757,7 @@ export const matchObject = function() {
              (game.singleThresholdMet() && game.minDifferenceMet()) ||
              (game.singleThresholdMet() && game.format.hasDecider() && min_diff == 1) ) {
             let progression = ['0', '15', '30', '40', 'G', 'G'];
-            scoreboard = score.map((points, player) => progression[points]).join('-');
+            scoreboard = score.map((points) => progression[points]).join('-');
          } else {
             scoreboard = score.map((points, player) => {
                let opponent_points = score[1 - player];
@@ -763,7 +768,7 @@ export const matchObject = function() {
             }).join('-');
          }
          return scoreboard.indexOf('G') >= 0 ? '0-0' : scoreboard;
-      } 
+      }; 
 
       return { 
          set: game.set, reset: game.reset, format: game.format, 
@@ -776,9 +781,9 @@ export const matchObject = function() {
          score: game.score, scoreboard: game.scoreboard,
          history: game.history,
          lastChild: game.lastChild,
-         pointsToGame: game.pointsToGame, 
+         pointsToGame: game.pointsToGame
       };
-   }
+   };
 
    // necessary to define it this way so that hoisting works!
    umo.defaultPointParser = defaultPointParser;
@@ -841,7 +846,7 @@ export const matchObject = function() {
          let last_score = score_object.points;
          let combinedTotal = (score) => score.reduce((a, b) => a + b); 
          if (format.tiebreak()) {
-            let values = value.split('-').map(m => parseInt(m));;
+            let values = value.split('-').map(m => parseInt(m));
             let last_values = last_score.split('-').map(m => parseInt(m));
             if (!numbersArray(values) || values.length != 2) return false;
             if (combinedTotal(last_values) + 1 != combinedTotal(values)) return false;
@@ -886,9 +891,9 @@ export const matchObject = function() {
       return { 
          description: mf.description, singles: mf.singles, doubles: mf.doubles, settings: mf.settings, 
          type: mf.type, types: mf.types, threshold: mf.threshold, hasDecider: mf.hasDecider, 
-         minDiff: mf.minDiff, children: mf.children, decidingChild: mf.decidingChild, 
-      }
-   }
+         minDiff: mf.minDiff, children: mf.children, decidingChild: mf.decidingChild
+      };
+   };
 
    umo.setFormat = ({type = 'AdSetsTo6tb7', common} = {}) => {
       let sf = umo.formatObject({plural: 'sets', common});
@@ -899,9 +904,9 @@ export const matchObject = function() {
       return { 
          description: sf.description, singles: sf.singles, doubles: sf.doubles, settings: sf.settings, 
          type: sf.type, types: sf.types, threshold: sf.threshold, hasDecider: sf.hasDecider, 
-         minDiff: sf.minDiff, children: sf.children, decidingChild: sf.decidingChild, 
-      }
-   }
+         minDiff: sf.minDiff, children: sf.children, decidingChild: sf.decidingChild
+      };
+   };
 
    umo.gameFormat = ({type = 'advantage', common} = {}) => {
       let gf = umo.formatObject({plural: 'games', common});
@@ -910,9 +915,9 @@ export const matchObject = function() {
       return { 
          description: gf.description, settings: gf.settings, singles: gf.singles, doubles: gf.doubles,
          type: gf.type, types: gf.types, threshold: gf.threshold, hasDecider: gf.hasDecider, 
-         minDiff: gf.minDiff, tiebreak: gf.tiebreak,
-      }
-   }
+         minDiff: gf.minDiff, tiebreak: gf.tiebreak
+      };
+   };
 
    umo.formatObject = ({plural, common = umo.common()} = {}) => {
       let fo = {
@@ -954,7 +959,7 @@ export const matchObject = function() {
                   name: fo.values.name, description: fo.values.description, 
                   code: fo.values.code, players: number_of_players,
                   threshold: fo.values.threshold, has_decider: fo.values.has_decider, 
-                  min_diff: fo.values.min_diff, tiebreak: fo.values.tiebreak,
+                  min_diff: fo.values.min_diff, tiebreak: fo.values.tiebreak
                };
                return settings;
             } else {
@@ -1007,10 +1012,10 @@ export const matchObject = function() {
             fo.values.description = fo.values.code = undefined;
             if ([true, false].indexOf(value) >= 0) fo.values.has_decider = value;
             return fo;
-         },
+         }
       };
       return fo;
-   }
+   };
 
    umo.common = () => {
       let number_of_players = 2;
@@ -1033,8 +1038,8 @@ export const matchObject = function() {
             metadata = { 
                players: [], teams: [], service_order: [0, 1], receive_order: [1, 0],
                tournament: {}, match: {}, timestamps: false, 
-               charter: undefined, 
-            }
+               charter: undefined
+            };
          },
          timestamps(value){
             if (!arguments.length) return metadata.timestamps;
@@ -1075,27 +1080,27 @@ export const matchObject = function() {
             if (metadata.players[index]) return metadata.players[index];
             return { name: `Player ${['One', 'Two', 'Three', 'Four'][index]}` };
          },
-         definePlayer({index, name, birth, puid, hand, seed, rank, age, entry, ioc, draw_position, } = {}) {
+         definePlayer({index, name, birth, puid, hand, seed, rank, age, entry, ioc, draw_position} = {}) {
             if (index == undefined) index = metadata.players.length;
             let player = metadata.players[index] || {};
             if ((!name && !player.name) || (isNaN(index) || index > 3)) return false;
-            let definition = { name, birth, puid, hand, seed, rank, age, entry, ioc,  draw_position, };
-            Object.keys(definition).forEach(key => { if (definition[key]) player[key] = definition[key] });
+            let definition = { name, birth, puid, hand, seed, rank, age, entry, ioc,  draw_position };
+            Object.keys(definition).forEach(key => { if (definition[key]) player[key] = definition[key]; });
             metadata.players[index] = player;
             return { index, player };
          },
          defineTournament({ name, tuid, start_date, tour, rank, surface, in_out, draw, draw_size, round, level } = {}) {
             let definition = {name, tuid, start_date, tour, rank, surface, in_out, draw, draw_size, round, level };
-            Object.keys(definition).forEach(key => { if (definition[key]) metadata.tournament[key] = definition[key] });
+            Object.keys(definition).forEach(key => { if (definition[key]) metadata.tournament[key] = definition[key]; });
             return metadata.tournament;
          },
          defineMatch({ muid, date, gender, year, court, start_time, end_time, duration, status, umpire, official_score } = {}) {
             let definition = {muid, date, gender, year, court, start_time, end_time, duration, status, umpire, official_score };
-            Object.keys(definition).forEach(key => { if (definition[key]) metadata.match[key] = definition[key] });
+            Object.keys(definition).forEach(key => { if (definition[key]) metadata.match[key] = definition[key]; });
             return metadata.match;
          },
-         showTiebreakOrder(first_service) { return calcTiebreakService(12, first_service); },
-      }
+         showTiebreakOrder(first_service) { return calcTiebreakService(12, first_service); }
+      };
 
       function changeOrder(order, submitted, counterpart) {
          let sameOrder = (a, b) => !a.filter((o, i) => o != b[i]).length;
@@ -1158,34 +1163,34 @@ export const matchObject = function() {
          if (!add_event) return addPoint_events;
          if (typeof add_event == 'function') {
             if(addPoint_events.indexOf(add_event) < 0) addPoint_events.push(add_event);
-         } else if (typeof add_event == 'array') {
-            add_event.foreach(e) (e => { if (typeof e == 'function') addPoint_events.push(c); });
+         } else if (Array.isArray(add_event)) {
+            add_event.foreach(e => { if (typeof e == 'function') addPoint_events.push(e); });
          }
-      }
+      };
 
       let undoEvent = (undo_event) => {
          if (!undo_event) return undo_events;
          if (typeof undo_event == 'function') {
             if(undo_events.indexOf(undo_event) < 0) undo_events.push(undo_event);
-         } else if (typeof undo_event == 'array') {
-            undo_event.foreach(e) (e => { if (typeof e == 'function') undo_events.push(c); });
+         } else if (Array.isArray(undo_event)) {
+            undo_event.foreach(e => { if (typeof e == 'function') undo_events.push(e); });
          }
-      }
+      };
 
       let resetEvent = (reset_event) => {
          if (!reset_event) return reset_events;
          if (typeof reset_event == 'function') {
             if(reset_events.indexOf(reset_event) < 0) reset_events.push(reset_event);
-         } else if (typeof reset_event == 'array') {
-            reset_event.foreach(e) (e => { if (typeof e == 'function') reset_events.push(c); });
+         } else if (Array.isArray(reset_event)) {
+            reset_event.foreach(e => { if (typeof e == 'function') reset_events.push(e); });
          }
-      }
+      };
 
       let clearEvents = () => {
          addPoint_events = [];
          undo_events = [];
          reset_events = [];
-      }
+      };
 
       let pub = {
          metadata: accessors,
@@ -1231,7 +1236,7 @@ export const matchObject = function() {
                   episodes.forEach(episode => pub.addStatPoint(episode));
                }
                return stat_points; 
-            },
+            }
          },
          addStatPoint(episode) {
             if (!pub.live_stats) return;
@@ -1294,8 +1299,8 @@ export const matchObject = function() {
             });
             let points = pub.history.filter(episode => episode.action == 'addPoint');
             last_episode = points.length ? points[points.length - 1] : undefined;
-         },
-      }
+         }
+      };
       accessors.reset();
       return pub;
 
@@ -1305,26 +1310,25 @@ export const matchObject = function() {
          // prefix of '-' indicates that value for opposing team should be used
          // '*' indicates that value is optional
          let calculated_stats = {
-            'Aces': { numerators: ['aces'], calc: 'number', },
-            'Double Faults': { numerators: ['doubleFaults'], calc: 'number',  },
-            'First Serve %': { numerators: ['serves1stIn'], denominators: ['pointsServed'], calc: 'percentage', },
-            'Unforced Errors': { numerators: ['unforcedErrors'], calc: 'number', },
-            'Forced Errors': { numerators: ['forcedErrors'], calc: 'number', },
-            'Winners': { numerators: ['winners'], calc: 'number', },
-            'Total Points Won': { numerators: ['pointsWon'], calc: 'number', },
-            'Max Pts/Row': { numerators: ['pointsWon'], calc: 'maxConsecutive', attribute: 'index', },
-            'Max Games/Row': { numerators: ['gamesWon'], calc: 'maxConsecutive', attribute: 'game', },
-            'Total Points Won': { numerators: ['pointsWon'], calc: 'number', },
-            'Points Won 1st': { numerators: ['serves1stWon'], denominators: ['serves1stIn'], calc: 'percentage', },
-            'Points Won 2nd': { numerators: ['serves2ndWon'], denominators: ['serves2ndIn'], calc: 'percentage', },
-            'Points Won Receiving': { numerators: ['received1stWon', 'received2ndWon'], denominators: ['-pointsServed'], calc: 'percentage', },
-            'Breakpoints Saved': { numerators: ['breakpointsSaved'], denominators: ['breakpointsFaced'], calc: 'percentage', },
-            'Breakpoints Converted': { numerators: ['-breakpointsSaved'], denominators: ['-breakpointsFaced'], calc: 'difference', },
+            'Aces': { numerators: ['aces'], calc: 'number' },
+            'Double Faults': { numerators: ['doubleFaults'], calc: 'number' },
+            'First Serve %': { numerators: ['serves1stIn'], denominators: ['pointsServed'], calc: 'percentage' },
+            'Unforced Errors': { numerators: ['unforcedErrors'], calc: 'number' },
+            'Forced Errors': { numerators: ['forcedErrors'], calc: 'number' },
+            'Winners': { numerators: ['winners'], calc: 'number' },
+            'Max Pts/Row': { numerators: ['pointsWon'], calc: 'maxConsecutive', attribute: 'index' },
+            'Max Games/Row': { numerators: ['gamesWon'], calc: 'maxConsecutive', attribute: 'game' },
+            'Total Points Won': { numerators: ['pointsWon'], calc: 'number' },
+            'Points Won 1st': { numerators: ['serves1stWon'], denominators: ['serves1stIn'], calc: 'percentage' },
+            'Points Won 2nd': { numerators: ['serves2ndWon'], denominators: ['serves2ndIn'], calc: 'percentage' },
+            'Points Won Receiving': { numerators: ['received1stWon', 'received2ndWon'], denominators: ['-pointsServed'], calc: 'percentage' },
+            'Breakpoints Saved': { numerators: ['breakpointsSaved'], denominators: ['breakpointsFaced'], calc: 'percentage' },
+            'Breakpoints Converted': { numerators: ['-breakpointsSaved'], denominators: ['-breakpointsFaced'], calc: 'difference' },
             'Aggressive Margin': { 
                calc: 'aggressiveMargin', 
                numerators: ['*doubleFaults', '*unforcedErrors'], 
-               denominators: ['*aces', '*winners', '-*forcedErrors'], 
-            },
+               denominators: ['*aces', '*winners', '-*forcedErrors']
+            }
          };
 
          let reduceComponents = (components, teams, team) => {
@@ -1335,18 +1339,18 @@ export const matchObject = function() {
                return component_team && component_team[counter] ? component_team[counter].length : 0;
             });
             return [].concat(0, 0, ...values).reduce((a, b) => a + b);
-         }
+         };
 
          let numeratorDenominator = (stat_obj, teams, team) => {
             let numerator = reduceComponents(stat_obj.numerators, teams, team);
             let denominator = reduceComponents(stat_obj.denominators, teams, team);
             return { numerator, denominator };
-         }
+         };
 
          let displayPct = (numerator, denominator) => {
             let pct = Math.round((numerator / denominator) * 100);
             return { value: pct, display: `${pct}% (${numerator}/${denominator})` };
-         }
+         };
 
          let stat_calcs = {
             number(stat_obj, teams, team) {
@@ -1394,7 +1398,7 @@ export const matchObject = function() {
                let total_points = [].concat(0, 0, ...point_counts).reduce((a, b) => a + b);
                return Object.assign(displayPct(diff, total_points), { numerators: stat_obj.numerators });
             }
-         }
+         };
 
          let teams_counters = [].concat(...Object.keys(stats.teams).map(team => Object.keys(stats.teams[team])));
          let available_stats = Object.keys(calculated_stats).map(stat => {
@@ -1426,7 +1430,7 @@ export const matchObject = function() {
             if (episode) stat_points.teams[team][stat].push(episode);
          }
       }
-   }
+   };
 
    function numbersArray(values) {
       if (!Array.isArray(values)) return false;
@@ -1434,7 +1438,6 @@ export const matchObject = function() {
       return true;
    }
 
-   if (typeof define === "function" && define.amd) define(umo); else if (typeof module === "object" && module.exports) module.exports = umo;
-
    return umo;
+
 }();

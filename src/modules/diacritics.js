@@ -277,9 +277,10 @@ export const Diacritics = function() {
         }
 
         function replace(string) {
-            return string.replace(/[^\u0000-\u007E]/g, function (a) {
-                return diacriticsMap[a] || a;
-            });
+           // eslint-disable-next-line no-control-regex
+           return string.replace(/[^\u0000-\u007E]/g, function (a) {
+               return diacriticsMap[a] || a;
+           });
         }
 
         function isLatin(string) {
@@ -291,7 +292,6 @@ export const Diacritics = function() {
             isLatin: isLatin
         };
 
-   if (typeof define === "function" && define.amd) define(fx); else if (typeof module === "object" && module.exports) module.exports = fx;
    return fx;
  
 }();

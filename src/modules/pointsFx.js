@@ -1,15 +1,12 @@
-import { db } from './db'
-import { env } from './env'
-import { util } from './util'
-import { rankCalc } from './rankCalc'
+import { db } from './db';
+import { env } from './env';
+import { util } from './util';
+import { rankCalc } from './rankCalc';
 import { exportFx } from './exportFx';
 
 export const pointsFx = function() {
 
    let fx = {};
-
-   // var exp = {};
-   // let fx = { settingsLoaded: (env) => { if (typeof env.points.export_format == 'object') exp = env.points.export_format; } };
 
    fx.downloadFormattedPoints = ({ org_abbr, points=[], tuid, group_size, calc_date=new Date() }) => {
       return new Promise((resolve, reject) => {
@@ -29,7 +26,7 @@ export const pointsFx = function() {
          if (merge_players) {
             db.findAllPlayers().then(attempt, reject);
          } else {
-            attempt()
+            attempt();
          }
 
          function attempt(players) {
@@ -43,7 +40,7 @@ export const pointsFx = function() {
                let eligible_categories = rankCalc.eligibleCategories({ birth_year: born, calc_date });
                if (eligible_categories) player.base_category = eligible_categories.base_category;
             });
-            let players_by_puid = Object.assign({}, ...players.map(p => { return { [p.puid]: p } }));
+            let players_by_puid = Object.assign({}, ...players.map(p => { return { [p.puid]: p }; }));
             let formatted_points = points.map(point => {
                let formatted_point = {};
                if (exp.point_attributes) Object.assign(formatted_point, ...pointAttributes(point, players_by_puid[point.puid]));
@@ -61,7 +58,7 @@ export const pointsFx = function() {
             }
          }
       });
-   }
+   };
 
    function exportFormattedPoints({ org_abbr, formatted_points, tuid, group_size=500 }) {
       let cursor = 0;

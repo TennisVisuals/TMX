@@ -1,5 +1,6 @@
 import { util } from './util';
 import { staging } from './staging';
+import { stringFx } from './stringFx';
 import { cleanScore } from './cleanScore';
 
 export const tournamentParser = function() {
@@ -12,50 +13,51 @@ export const tournamentParser = function() {
    var draw_byes = {
       '12': [1, 4, 9, 12],
       '24': [1, 6, 7, 12, 13, 18, 19, 24],
-      '48': [1, 6, 7, 12, 13, 18, 19, 24, 25, 30, 31, 36, 37, 42, 43, 48],
-   }
+      '48': [1, 6, 7, 12, 13, 18, 19, 24, 25, 30, 31, 36, 37, 42, 43, 48]
+   };
    var main_draw_rounds = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128'];
 
    tp.config = {
+      // eslint-disable-next-line no-useless-escape
       score:   /[\d\(]+[\d\.\(\)\[\]\\ \:\-\,\/O]+(Ret)?(ret)?(RET)?[\.]*$/,
-      ended:   ['ret.', 'RET', 'DEF.', 'Def.', 'def.', 'BYE', 'w.o', 'w.o.', 'W.O', 'W.O.', 'wo.', 'WO', 'Abandoned'],
-   }
+      ended:   ['ret.', 'RET', 'DEF.', 'Def.', 'def.', 'BYE', 'w.o', 'w.o.', 'W.O', 'W.O.', 'wo.', 'WO', 'Abandoned']
+   };
 
    tp.normalizeScore = (score) => {
       let clean_score = cleanScore.normalize(score);
       if (clean_score) return clean_score.join(' ');
       alert(`Score can't be normalized: ${score}`);
       return score;
-   }
+   };
 
    tp.profiles = {
       'TP': {
          identification: {
             includes: ['WS', 'WD', 'MS', 'MD'],
-            sub_includes: ['BS', 'BD', 'GS', 'GD'],
+            sub_includes: ['BS', 'BD', 'GS', 'GD']
          },
          columns: {
             position: 'A',
             rank:     'C',
             players:  'E',
             country:  'D',
-            rounds:   'F',
+            rounds:   'F'
          },
-         rows: { header:   4, },
-         gaps: { draw:     { term: 'Round 1', gap: 0 }, },
+         rows: { header: 4 },
+         gaps: { draw:     { term: 'Round 1', gap: 0 } },
          header_columns: [
             { attr: 'id',        header: 'Member ID' },
             { attr: 'entry',     header: 'St.' },
             { attr: 'club',      header: 'Club' },
             { attr: 'country',   header: 'Cnty' },
             { attr: 'rank',      header: 'Rank' },
-            { attr: 'players',   header: 'Round 1' },
+            { attr: 'players',   header: 'Round 1' }
          ],
          player_rows: { player_names: true },
          extraneous: {},
-         routines: {},
-      },
-   }
+         routines: {}
+      }
+   };
 
    tp.dateProcess = {};
 
@@ -82,7 +84,8 @@ export const tournamentParser = function() {
          number--;
       }
       return middles;
-   }
+   };
+
    let getValue = (sheet, reference) => tp.value(sheet[reference]);
    let numberValue = (sheet, reference) => !isNaN(parseInt(getValue(sheet, reference))) ? parseInt(getValue(sheet, reference)) : '';
    let letterValue = (letter) => parseInt(letter, 36) - 9;
@@ -95,7 +98,8 @@ export const tournamentParser = function() {
    let cellsContaining = ({sheet, term}) => {
       let references = Object.keys(sheet);
       return references.filter(ref => (sheet[ref].v + '').toLowerCase().indexOf(term.toLowerCase()) >= 0);
-   }
+   };
+
    let findGaps = ({sheet, term}) => {
       let gaps = [];
       let gap_start = 0;
@@ -104,7 +108,7 @@ export const tournamentParser = function() {
       let nextGap = (index) => { 
          while (instances[index + 1] == instances[index] + 1 && index < instances.length) { index += 1; }
          return index;
-      }
+      };
       let gap_end = nextGap(0);
       while (gap_end < instances.length) {
          if (gap_start) gaps.push([instances[gap_start], instances[gap_end]]);
@@ -114,7 +118,8 @@ export const tournamentParser = function() {
       // only accept gaps which are considered to be "main page body"
       gaps = gaps.filter(f => f[1] - f[0] > 3);
       return gaps;
-   }
+   };
+
    let extraneousData = (sheet, ref) => {
       let value = sheet[ref].v;
       if (!isNaN(value) && value < 16) return true;
@@ -123,7 +128,8 @@ export const tournamentParser = function() {
          let cell_value = tp.value(sheet[ref]) + '';
          return extraneous.starts_with.map(s => cell_value.toLowerCase().indexOf(s) == 0).reduce((a, b) => (a || b));
       }
-   }
+   };
+
    let scoreOrPlayer = ({cell_value, players}) => {
       // TODO: more robust way of handling 'nije igrano' or 'not recorded' situations
       if (cell_value == 'not recorded') return true;
@@ -137,7 +143,8 @@ export const tournamentParser = function() {
 
       if (tp.verbose) console.log('Not Score or Player:', cell_value);
       return false;
-   }
+   };
+
    let lastFirstI = (name) => {
       if (name.indexOf(',') >= 0) {
          let components = name.toLowerCase().split(',').map(m=>m.trim());
@@ -147,7 +154,7 @@ export const tournamentParser = function() {
       let components = name.toLowerCase().split('[')[0].split(' ').filter(f=>f);
       let lfi = components.length ? `${components[0][0]}, ${components.reverse()[0]}` : '';
       return lfi;
-   }
+   };
    
    tp.headerColumns = ({sheet}) => {
       let profile = tp.profiles[tp.profile];
@@ -160,7 +167,7 @@ export const tournamentParser = function() {
          });
       }
       return columns;
-   }
+   };
 
    /* exportable functions */
    tp.value = (cell) => {
@@ -170,7 +177,8 @@ export const tournamentParser = function() {
       val = val.indexOf(',,') >= 0 ? val.replace(',,', ',') : val;
       val = val.indexOf(',') >= 0 ? val.split(',').map(v => v.trim()).join(', ') : val;
       return val;
-   }
+   };
+
    tp.playerRows = ({sheet}) => {
       let profile = tp.profiles[tp.profile];
       if (!profile) return { rows: [], preround_rows: [] };
@@ -192,6 +200,7 @@ export const tournamentParser = function() {
       // check whether this is Round Robin
       if (columns.rr_result) {
          rr_result = Object.keys(sheet)
+            // eslint-disable-next-line no-useless-escape
             .filter(f => f[0] == columns.rr_result && /\d/.test(f[1]) && /^\d+[\.]*$/.test(tp.value(sheet[f])))
             .map(ref=>getRow(ref));
          rankings = rankings.filter(f => rr_result.indexOf(f) >= 0);
@@ -243,7 +252,8 @@ export const tournamentParser = function() {
       finals = finals && finals.length ? finals : undefined;
 
       return { rows: draw_rows, range, finals, preround_rows };
-   }
+   };
+
    tp.roundColumns = ({sheet}) => {
       let profile = tp.profiles[tp.profile];
       if (!profile) return [];
@@ -253,7 +263,8 @@ export const tournamentParser = function() {
          .filter(key => key.length == 2 && key.slice(1) == header_row && letterValue(key[0]) >= letterValue(rounds_column))
          .map(m=>m[0]).filter((item, i, s) => s.lastIndexOf(item) == i).sort();
       return columns;
-   }
+   };
+
    tp.roundData = ({sheet, player_data, round_robin}) => {
       let rr_columns;
       let players = player_data.players;
@@ -261,12 +272,12 @@ export const tournamentParser = function() {
       let range = player_data.range;
       let cell_references = Object.keys(sheet)
          .filter(ref => inDrawColumns(ref, round_columns) && inDrawRows(ref, range))
-         .filter(ref => !extraneousData(sheet, ref))
+         .filter(ref => !extraneousData(sheet, ref));
          // .filter(ref => ['I29', 'I30'].indexOf(ref) < 0)
 
       let filtered_columns = round_columns.map(column => { 
          let column_references = cell_references.filter(ref => ref[0] == column).filter(ref => scoreOrPlayer({ cell_value: tp.value(sheet[ref]), players }));
-         return { column, column_references, }
+         return { column, column_references };
       }).filter(f=>f.column_references.length);
 
       // work around for round robins with blank 'BYE' columns
@@ -276,12 +287,12 @@ export const tournamentParser = function() {
          let column_range = round_columns.slice(start, end);
          rr_columns = column_range.map(column => { 
             let column_references = cell_references.filter(ref => ref[0] == column).filter(ref => scoreOrPlayer({ cell_value: tp.value(sheet[ref]), players }));
-            return { column, column_references, }
+            return { column, column_references };
          });
       }
 
       return round_robin ? rr_columns : filtered_columns;
-   }
+   };
 
    tp.drawPlayers = ({sheet}) => {
       let extract_seed = /\[(\d+)(\/\d+)?\]/;
@@ -353,7 +364,7 @@ export const tournamentParser = function() {
          player.last_first_i = lastFirstI(full_name);
          player.last_name = full_name.split(',')[0].trim().toLowerCase();
          player.first_name = full_name.split(',').reverse()[0].trim().toLowerCase();
-         player.hash = util.nameHash(player.first_name + player.last_name);
+         player.hash = stringFx.nameHash(player.first_name + player.last_name);
          if (columns.id) player.id = getValue(sheet, `${columns.id}${row}`);
          if (columns.club) player.club = getValue(sheet, `${columns.club}${row}`);
          if (columns.rank) player.rank = numberValue(sheet, `${columns.rank}${row}`);
@@ -362,7 +373,7 @@ export const tournamentParser = function() {
          if (columns.rr_result) player.rr_result = numberValue(sheet, `${columns.rr_result}${row}`);
          return player;
       }
-   }
+   };
 
    tp.drawPosition = ({full_name, players, idx = 0}) => {
       // idx used in instances where there are multiple BYEs, such that they each have a unique draw_position
@@ -372,7 +383,7 @@ export const tournamentParser = function() {
          tournament_player = players.filter(player => player.last_first_i && player.last_first_i == lastFirstI(full_name))[0];
       }
       return tournament_player ? tournament_player.draw_position : undefined;
-   }
+   };
 
    let columnMatches = (sheet, round, players) => {
       let names = [];
@@ -381,7 +392,7 @@ export const tournamentParser = function() {
       let last_draw_position;
       let round_occurrences = [];
       let last_row_number = getRow(round.column_references[0]) - 1;
-      round.column_references.forEach((reference, index) => {
+      round.column_references.forEach(reference => {
          // if row number not sequential => new match
          let this_row_number = getRow(reference);
          if (this_row_number != last_row_number + 1 && winners.length) {
@@ -390,7 +401,7 @@ export const tournamentParser = function() {
                if (!round_occurrences[last_draw_position]) round_occurrences[last_draw_position] = [];
                round_occurrences[last_draw_position].push(matches.length);
             }
-            matches.push({ winners, });
+            matches.push({ winners });
             winners = [];
          }
          last_row_number = this_row_number;
@@ -419,9 +430,9 @@ export const tournamentParser = function() {
       });
       // still winners => last column match had a bye
       if (winners.length) matches.push({ bye: winners });
-      round_occurrences = round_occurrences.map((indices, draw_position) => { return { draw_position, indices }}).filter(f=>f);
+      round_occurrences = round_occurrences.map((indices, draw_position) => ({ draw_position, indices })).filter(f=>f);
       return { round_occurrences, matches };
-   }
+   };
 
    let addByes = (rounds, players) => {
       let profile = tp.profiles[tp.profile];
@@ -440,7 +451,7 @@ export const tournamentParser = function() {
          draw_byes[players.length] = [];
       }
       return rounds;
-   }
+   };
 
    let add1stRound = (rounds, players) => {
       // 1st round players are players without byes or wins 
@@ -451,14 +462,14 @@ export const tournamentParser = function() {
          .filter(player => notWinner(player.draw_position) && notBye(player.draw_position))
          .map(m=>m.draw_position)
          .filter((item, i, s) => s.lastIndexOf(item) == i)
-         .map(m => { return { players: [m] }});
+         .map(m => ({ players: [m] }) );
       rounds.push(first_round_losers);
       return rounds;
-   }
+   };
 
    let findEmbeddedRounds = (rounds) => {
       let embedded_rounds = [];
-      rounds.forEach((round, index) => {
+      rounds.forEach((round) => {
          let embedded = round.round_occurrences.filter(f=>f.indices.length > 1).length;
          if (embedded) {
             let other_rounds = [];
@@ -477,7 +488,7 @@ export const tournamentParser = function() {
          }
       });
       return embedded_rounds;
-   }
+   };
 
    let constructPreroundMatches = (rounds, preround, players, gender) => {
       let round_winners = [];
@@ -507,7 +518,7 @@ export const tournamentParser = function() {
          if (gender) match.gender = gender;
       });
       return preround.matches;
-   }
+   };
 
    let constructMatches = (rounds, players) => {
       // less broken way of working around situation where final match not played
@@ -544,27 +555,28 @@ export const tournamentParser = function() {
          }
       });
       return rounds;
-   }
+   };
 
    let findPlayerAtDrawPosition = (players, start, goal, direction) => {
       let index = start + direction;
       while (players[index] && players[index].draw_position != goal && index < players.length && index >= 0) { index += direction; }
       if (!players[index]) return undefined;
       return index;
-   }
+   };
 
    let determineWinner = (score) => {
       let tally = [0, 0];
       let set_scores = score.split(' ');
       set_scores.forEach(set_score => {
+         // eslint-disable-next-line no-useless-escape
          let scores = (/\d+[\(\)\-\/]*/.test(set_score)) ? set_score.split('-').map(s => /\d+/.exec(s)[0]) : undefined;
-         if (scores) tally[parseInt(scores[0]) > parseInt(scores[1]) ? 0 : 1] += 1
+         if (scores) tally[parseInt(scores[0]) > parseInt(scores[1]) ? 0 : 1] += 1;
       });
 
       if (tally[0] > tally[1]) return 0;
       if (tally[1] > tally[0]) return 1;
       return undefined;
-   }
+   };
 
    let reverseScore = (score, split=' ') => {
       return score.split(split).map(set_score => {
@@ -574,7 +586,7 @@ export const tournamentParser = function() {
          if (tiebreak) scores += `${tiebreak[0]}`;
          return scores;
       }).join(split);
-   }
+   };
 
    tp.tournamentDraw = ({sheet_name, sheet, player_data}) => {
       let gender = '';
@@ -632,7 +644,7 @@ export const tournamentParser = function() {
                      loser_draw_position,
                      gender: gender,
                      round,
-                     result,
+                     result
                   };
 
                   // don't add the same match twice
@@ -672,8 +684,8 @@ export const tournamentParser = function() {
                      loser_names: [loser],
                      round: 'RRF',
                      result: tp.normalizeScore(result),
-                     gender: gender,
-                  }
+                     gender: gender
+                  };
                   matches.push(match);
                }
             }
@@ -712,7 +724,7 @@ export const tournamentParser = function() {
          } else {
             rounds = add1stRound(rounds, players);
          }
-         rounds = rounds.filter(round => round.filter(f=> { return f.winners ? f.winners.length : true }).length);
+         rounds = rounds.filter(round => round.filter(f => f.winners ? f.winners.length : true).length);
          rounds = constructMatches(rounds, players);
 
          // merge all rounds into list of matches
@@ -739,15 +751,15 @@ export const tournamentParser = function() {
             let players3rd = player_data.playoff3rd.map(player => { 
                return { 
                   full_name: player.full_name, 
-                  draw_position: tp.drawPosition( { full_name: player.full_name, players }),
-               }
+                  draw_position: tp.drawPosition( { full_name: player.full_name, players })
+               };
             }).filter(f=>f.draw_position);
             // winner is the value that has a draw position
             let winners = result.map(cell_value => {
                return {
                   full_name: cell_value,
-                  draw_position: tp.drawPosition({ full_name: cell_value, players }),
-               }
+                  draw_position: tp.drawPosition({ full_name: cell_value, players })
+               };
             }).filter(f=>f.draw_position);
             // winners are identified by their draw positions
             let winners_dp = winners.map(w => w.draw_position);
@@ -755,7 +767,7 @@ export const tournamentParser = function() {
 
             // score is the value that matches regex for scores
             let score = result.filter(cell_value => {
-               let s = cell_value.match(tp.config.score)
+               let s = cell_value.match(tp.config.score);
                if (s && s[0] == cell_value) return true;
 
                let ended = tp.config.ended.map(ending => cell_value.toLowerCase().indexOf(ending.toLowerCase()) >= 0).reduce((a, b) => a || b);
@@ -769,8 +781,8 @@ export const tournamentParser = function() {
                   loser_names: losers.map(l => l.full_name),
                   result: score[0],
                   round: 'PO3',
-                  gender: gender,
-               }
+                  gender: gender
+               };
                matches.push(match);
             }
          }
@@ -784,7 +796,7 @@ export const tournamentParser = function() {
       }
 
       return draw;
-   }
+   };
 
    tp.drawResults = (workbook, tuid) => {
       let rows = [];
@@ -792,7 +804,6 @@ export const tournamentParser = function() {
       let categories = [];
       tp.setWorkbookProfile({workbook});
 
-      let draw_type;
       let parsing_errors;
       let tournament_rank;
       let tournament_category;
@@ -806,7 +817,7 @@ export const tournamentParser = function() {
          tournament_category = staging.legacyCategory(tournament_category);
       }
 
-      let processSheet = ({ sheet_names, sheet_name }) => {
+      let processSheet = ({ /*sheet_names, */sheet_name }) => {
          let draw_format;
          let sheet = workbook.Sheets[sheet_name];
          let player_data = tp.drawPlayers({sheet});
@@ -815,7 +826,7 @@ export const tournamentParser = function() {
          let playerData = (name) => players.filter(player => player.full_name == name)[0];
          let preroundPlayerData = (name) => player_data.preround.players.filter(player => player.full_name == name)[0];
          let draw_positions = players.map(m=>m.draw_position).filter((item, i, s) => s.lastIndexOf(item) == i).length;
-         let round_robin = players.length ? players.map(p=>p.rr_result != undefined).reduce((a, b) => a || b) : false;
+         // let round_robin = players.length ? players.map(p=>p.rr_result != undefined).reduce((a, b) => a || b) : false;
 
          let consolation = sheet_name.indexOf('UT') >= 0;
 
@@ -838,10 +849,10 @@ export const tournamentParser = function() {
                console.log('Match Format Error');
             }
             let players = [];
-            match.winner_names.forEach(winner => { if (winner) players.push(playerData(winner) || preroundPlayerData(winner)) });
-            match.loser_names.forEach(loser => { if (loser) players.push(playerData(loser) || preroundPlayerData(loser)) });
+            match.winner_names.forEach(winner => { if (winner) players.push(playerData(winner) || preroundPlayerData(winner)); });
+            match.loser_names.forEach(loser => { if (loser) players.push(playerData(loser) || preroundPlayerData(loser)); });
 
-            let puids = players.map(player => util.nameHash(player.first_name + player.last_name));
+            let puids = players.map(player => stringFx.nameHash(player.first_name + player.last_name));
 
             let row = {};
             let tournament = {};
@@ -883,18 +894,18 @@ export const tournamentParser = function() {
                score: match.result,
                gender: match.gender,
                teams: format == 'singles' ? [[0], [1]]: [[0, 1], [2, 3]],
-               winner: 0,
+               winner: 0
             });
             let muid = [tuid, ...row.players.map(player => player.last_name + (player.club || player.ioc || '') + player.draw_position), row.round].join('');
             row.muid = muid.split(' ').join('');
             if (players.length) rows.push(row);
-         }
+         };
 
          draw.matches.forEach(match => processMatch(match));
          if (draw.preround) draw.preround.forEach(match => processMatch(match));
 
          ranks[draw_format] = draw.rank || tournament_rank;
-      }
+      };
 
       let sheet_names = workbook.SheetNames.filter(sheet_name => {
          /*
@@ -913,7 +924,7 @@ export const tournamentParser = function() {
 
       if (parsing_errors) alert('Parsing Error: Check Points');
       return { ranks, rows, categories };
-   }
+   };
 
    tp.setWorkbookProfile = ({workbook}) => {
       let sheet_names = workbook.SheetNames;
@@ -925,7 +936,7 @@ export const tournamentParser = function() {
             if (identification.sub_includes && subInclude(sheet_names, identification.sub_includes)) tp.profile = profile;
          });
       // if (!tp.profile) tp.profile = 'HTS';
-   }
+   };
 
    // if (typeof define === "function" && define.amd) define(tournamentParser); else if (typeof module === "object" && module.exports) module.exports = tournamentParser;
    return tp;

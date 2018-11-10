@@ -16,6 +16,7 @@ const rename = require('gulp-rename');
 const header = require('gulp-header');
 const concat = require('gulp-concat-util');
 const compress = require('gulp-minify-css');
+const clean = require('gulp-clean');
 const exec = require('child_process').exec;
 const wbBuild = require('workbox-build');
 
@@ -98,7 +99,6 @@ gulp.task('concat-lib', ['uglify-lib'], function() {
       'node_modules/qrious/dist/qrious.min.js',
       'node_modules/awesomplete/awesomplete.min.js',
       'node_modules/leaflet/dist/leaflet.js',
-//       'node_modules/moment/min/moment.min.js',
       'node_modules/sanitize-html/dist/sanitize-html.min.js',
       'node_modules/intro.js/minified/intro.min.js',
 
@@ -153,7 +153,7 @@ gulp.task('copy-assets', function() {
       .pipe(gulp.dest(target + '/assets'));
 });
 
-gulp.task('compress-css', function() {
+gulp.task('compress-css', ['clean-minimized'], function() {
 	return gulp.src(['src/css/*.css'])
 		.pipe(compress())
 		.pipe(rename({ suffix: '.min' }))
@@ -177,6 +177,11 @@ gulp.task('concat-src', ['rollup', 'compress-html'], function() {
 	return gulp.src(list)
       .pipe(concat('source.js'))
 		.pipe(gulp.dest('./dist'));
+});
+
+gulp.task('clean-minimized', function () {
+    return gulp.src('minimized', {read: false})
+        .pipe(clean());
 });
 
 gulp.task('bundle-sw', [
@@ -207,14 +212,14 @@ gulp.task('bundle-sw', [
 )
 
 gulp.task('watch', ['bundle-sw'], () => {
-  gulp.watch('src/**/*.js', [/* do some linting etc., */ 'copy-src']);
+  gulp.watch('src/**/*.js', ['lint', 'copy-src']);
   gulp.watch('src/css/*.css', [/* do some linting etc., */ 'concat-css']);
 });
 
-gulp.task('eslint', () => {
-    return gulp.src(['./src/modules/util.js', './src/modules/domFx.js', './src/modules/stringFx.js', './src/modules/config.js'])
-    .pipe(eslint())
-    .pipe(eslint.format())
-    .pipe(eslint.failAfterError())
+gulp.task('lint', () => {
+   return gulp.src(['./src/modules/*.js'])
+      .pipe(eslint())
+      .pipe(eslint.format())
+      .pipe(eslint.failAfterError())
 });
 

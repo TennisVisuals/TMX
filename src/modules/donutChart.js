@@ -1,6 +1,7 @@
 export function donutChart() {
     var width,
         height,
+        radius,
         margin = {top: 10, right: 10, bottom: 10, left: 10},
         colour = d3.scaleOrdinal(d3.schemeCategory20c), // colour scheme
         variable, // value in data that will dictate proportions on chart
@@ -56,7 +57,7 @@ export function donutChart() {
 
             // ===========================================================================================
             // add and colour the donut slices
-            var path = svg.select('.slices')
+            svg.select('.slices')
                 .datum(data).selectAll('path')
                 .data(pie)
               .enter().append('path')
@@ -66,7 +67,7 @@ export function donutChart() {
 
             // ===========================================================================================
             // add text labels
-            var label = svg.select('.labelName').selectAll('text')
+            svg.select('.labelName').selectAll('text')
                 .data(pie)
               .enter().append('text')
                 .attr('dy', '.35em')
@@ -94,7 +95,7 @@ export function donutChart() {
 
             // ===========================================================================================
             // add lines connecting labels to slice. A polyline creates straight lines connecting several points
-            var polyline = svg.select('.lines')
+            svg.select('.lines')
                 .selectAll('polyline')
                 .data(pie)
               .enter().append('polyline')
@@ -104,7 +105,7 @@ export function donutChart() {
                    // see label transform function for explanations of these three lines.
                    var pos = outerArc.centroid(d);
                    pos[0] = radius * 0.95 * (midAngle(d) < Math.PI ? 1 : -1);
-                   return [arc.centroid(d), outerArc.centroid(d), pos]
+                   return [arc.centroid(d), outerArc.centroid(d), pos];
                 });
             // ===========================================================================================
 

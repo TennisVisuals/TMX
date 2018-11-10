@@ -1,5 +1,5 @@
-import { db } from './db'
-import { env } from './env'
+import { db } from './db';
+import { env } from './env';
 import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
@@ -25,7 +25,7 @@ export const calendarFx = function() {
    fx.localizeDate = (date, date_localization) => {
       let default_localization = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
       return date.toLocaleDateString(lang.tr('datelocalization'), date_localization || default_localization);
-   }
+   };
    
    fx.displayCalendar = displayCalendar;
    function displayCalendar() {
@@ -43,27 +43,27 @@ export const calendarFx = function() {
          startPicker.setStartRange(start);
          endPicker.setStartRange(start);
          endPicker.setMinDate(start);
-      };
+      }
       function updateEndDate() {
          // use timeUTC so that the date doesn't drift by repeated use of offsetDate
          fx.setCalendar({end: new Date(dateFx.timeUTC(end)) });
          startPicker.setEndRange(end);
          startPicker.setMaxDate(end);
          endPicker.setEndRange(end);
-      };
+      }
 
       var startPicker = new Pikaday({
          field: calendar_container.start.element,
          i18n: lang.obj('i18n'),
          defaultDate: start,
-         toString(date) { return dateFx.formatDate(date); },
+         toString(date) { return dateFx.formatDate(dateFx.timeUTC(date)); },
          setDefaultDate: true,
          firstDay: env.calendar.first_day,
          onSelect: function() {
             start = this.getDate();
             updateStartDate();
             generateCalendar({ start, end, category });
-         },
+         }
       });
       env.date_pickers.push(startPicker);
 
@@ -72,14 +72,14 @@ export const calendarFx = function() {
          i18n: lang.obj('i18n'),
          minDate: start,
          defaultDate: end,
-         toString(date) { return dateFx.formatDate(date); },
+         toString(date) { return dateFx.formatDate(dateFx.timeUTC(date)); },
          setDefaultDate: true,
          firstDay: env.calendar.first_day,
          onSelect: function() {
             end = this.getDate();
             updateEndDate();
             generateCalendar({ start, end, category });
-         },
+         }
       });
       env.date_pickers.push(endPicker);
 
@@ -90,16 +90,16 @@ export const calendarFx = function() {
          category = value;
          fx.setCalendar({category});
          generateCalendar({ start, end, category });
-      }
+      };
       calendar_container.category.ddlb = new dd.DropDown({ element: calendar_container.category.element, onChange: genCal });
       calendar_container.category.ddlb.selectionBackground('white');
       category = staging.legacyCategory(category, true);
 
-      calendar_container.add.element.addEventListener('click', (evt) => {
+      calendar_container.add.element.addEventListener('click', () => {
          let t_menu = displayGen.newTournamentMenu();
          t_menu.create.element.addEventListener('click', () => {
             displayGen.closeModal();
-            createNewTournament({ title: lang.tr('tournaments.new'), callback: modifyTournament })
+            createNewTournament({ title: lang.tr('tournaments.new'), callback: modifyTournament });
          });
          t_menu.fetchbyid.element.addEventListener('click', () => {
             displayGen.closeModal();
@@ -155,7 +155,7 @@ export const calendarFx = function() {
                return tournamentDisplay.displayTournament({tuid});
             }
             function tournamentContextOptions(evt) {
-               var mouse = { x: evt.clientX, y: evt.clientY }
+               var mouse = { x: evt.clientX, y: evt.clientY };
                var tuid = domFx.getParent(evt.target, 'calendar_click').getAttribute('tuid');
                db.findTournament(tuid).then(checkOptions, util.logError);
                function checkOptions(tournament_data) { db.findSetting('fetchTournament').then(fetch => options(fetch, tournament_data)); }
@@ -174,24 +174,24 @@ export const calendarFx = function() {
                      tournamentDisplay.displayTournament({ tuid });
                   }
 
-                  function selectionMade(choice, index) {
+                  function selectionMade(choice) {
                      if (choice.key == 'edit') {
-                        return createNewTournament({ tournament_data, title: lang.tr('actions.edit_tournament'), callback: modifyTournament })
+                        return createNewTournament({ tournament_data, title: lang.tr('actions.edit_tournament'), callback: modifyTournament });
                      } else if (choice.key == 'delete') {
-                        var caption = `<p>${lang.tr('actions.delete_tournament')}:</p> <p>${tournament_data.name}</p>`;
-                        displayGen.okCancelMessage(caption, deleteTournament, () => displayGen.closeModal());
-                        function deleteTournament() {
+                        let unpublishAck = () => db.deleteTournament(tuid).then(done, util.logError);
+                        let done = () => {
+                           fx.displayCalendar();
+                           searchBox.searchSelect('tournaments');
+                        };
+                        let deleteTournament = () => {
                            displayGen.closeModal();
                            coms.requestAcknowledgement({ uuid: tuid, callback: unpublishAck });
                            unpublishTournament(tuid);
-                        }
-                        function unpublishAck() {
-                           db.deleteTournament(tuid).then(done, util.logError);
-                        }
-                        function done() {
-                           fx.displayCalendar();
-                           searchBox.searchSelect('tournaments');
-                        }
+                        };
+
+                        var caption = `<p>${lang.tr('actions.delete_tournament')}:</p> <p>${tournament_data.name}</p>`;
+                        displayGen.okCancelMessage(caption, deleteTournament, () => displayGen.closeModal());
+
                      } else if (choice.key == 'merge') {
                         fetchFx.fetchTournament(tuid, mouse, modifyTournament);
                      }
@@ -202,7 +202,7 @@ export const calendarFx = function() {
                      let ouid = (org && org.ouid) || (tournament_data && tournament_data.org && tournament_data.org.ouid);
 
                      let deleteTournamentEvents = { tuid, ouid, delete_tournament: true };
-                     coms.emitTmx({ deleteTournamentEvents })
+                     coms.emitTmx({ deleteTournamentEvents });
                      if (tournament_data.events) {
                         tournament_data.events.forEach(evt => {
                            evt.published = false;
@@ -295,9 +295,9 @@ export const calendarFx = function() {
       container.rank.ddlb.selectionBackground('white');
       if (tournament_data && tournament_data.rank) container.rank.ddlb.setValue(tournament_data.rank, 'white');
 
-      var inout_options = [{key: '-', value: ''}, {key: lang.tr('indoors'), value: 'i'}, {key: lang.tr('outdoors'), value: 'o'}]
+      var inout_options = [{key: '-', value: ''}, {key: lang.tr('indoors'), value: 'i'}, {key: lang.tr('outdoors'), value: 'o'}];
       dd.attachDropDown({ id: container.inout.id, options: inout_options });
-      container.inout.ddlb = new dd.DropDown({ element: container.inout.element, onChange: (value) => { trny.inout = value } });
+      container.inout.ddlb = new dd.DropDown({ element: container.inout.element, onChange: (value) => { trny.inout = value; } });
       container.inout.ddlb.setValue(tournament_data && tournament_data.inout || '', 'white');
 
       var surface_options = [
@@ -305,10 +305,10 @@ export const calendarFx = function() {
          { key: lang.tr('surfaces.clay'), value: 'C'},
          { key: lang.tr('surfaces.hard'), value: 'H'},
          { key: lang.tr('surfaces.grass'), value: 'G'},
-         { key: lang.tr('surfaces.carpet'), value: 'R'},
+         { key: lang.tr('surfaces.carpet'), value: 'R'}
       ];
       dd.attachDropDown({ id: container.surface.id, label: `${lang.tr('events.surface')}:`, options: surface_options, floatleft: true });
-      container.surface.ddlb = new dd.DropDown({ element: container.surface.element, onChange: (value) => { trny.surface = value } });
+      container.surface.ddlb = new dd.DropDown({ element: container.surface.element, onChange: (value) => { trny.surface = value; } });
       container.surface.ddlb.setValue(tournament_data && tournament_data.surface || '', 'white');
 
       let defineAttr = (attr, evt, required, element) => {
@@ -328,7 +328,7 @@ export const calendarFx = function() {
          if ((!evt || evt.which == 13 || evt.which == 9) && (!required || (required && valid))) {
             nextFieldFocus(attr);
          }
-      }
+      };
 
       let saveTrny = () => { 
          let valid_start = !trny.start ? false : typeof trny.start == 'string' ? dateFx.validDate(trny.start) : true;
@@ -336,22 +336,22 @@ export const calendarFx = function() {
          if (!valid_start || !valid_end || !trny.name || !trny.category) return;
          if (typeof callback == 'function') callback(trny); 
          displayGen.closeModal();
-      }
+      };
 
       let handleSaveKeyDown = (evt) => {
          evt.preventDefault();
          if (evt.which == 9) nextFieldFocus(evt.shiftKey ? 'email' : 'save'); 
-      }
+      };
 
       let handleSaveKeyUp = (evt) => {
          util.catchTab(evt); 
          if (evt.which == 13) saveTrny();
-      }
+      };
 
       let handleCancelKeyEvent = (evt) => {
-         evt.preventDefault()
+         evt.preventDefault();
          if (evt.which == 9) nextFieldFocus(evt.shiftKey ? 'phone' : 'cancel');
-      }
+      };
 
       let validateDate = (evt, attr, element) => {
          if (evt) element = evt.target;
@@ -368,7 +368,7 @@ export const calendarFx = function() {
 
          container.start.element.style.background = dateFx.validDate(container.start.element.value) ? 'white' : 'yellow';
          container.end.element.style.background = dateFx.validDate(container.end.element.value) ? 'white' : 'yellow';
-      }
+      };
 
       let start = dateFx.offsetDate(trny.start);
       let end = dateFx.offsetDate(trny.end);
@@ -377,7 +377,7 @@ export const calendarFx = function() {
          field: container.start.element,
          defaultDate: start,
          setDefaultDate: true,
-         toString(date) { return dateFx.formatDate(date); },
+         toString(date) { return dateFx.formatDate(dateFx.timeUTC(date)); },
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
          onSelect: function() { 
@@ -388,7 +388,7 @@ export const calendarFx = function() {
                endPicker.gotoYear(start.getFullYear());
                endPicker.gotoMonth(start.getMonth());
             }
-         },
+         }
       });
       env.date_pickers.push(startPicker);
       startPicker.setStartRange(start);
@@ -398,7 +398,7 @@ export const calendarFx = function() {
          field: container.end.element,
          i18n: lang.obj('i18n'),
          firstDay: env.calendar.first_day,
-         toString(date) { return dateFx.formatDate(date); },
+         toString(date) { return dateFx.formatDate(dateFx.timeUTC(date)); },
          onSelect: function() {
             end = this.getDate();
             updateEndDate();
@@ -408,7 +408,7 @@ export const calendarFx = function() {
                startPicker.gotoYear(end.getFullYear());
                startPicker.gotoMonth(end.getMonth());
             }
-         },
+         }
       });
       env.date_pickers.push(endPicker);
       endPicker.setStartRange(start);
@@ -442,13 +442,13 @@ export const calendarFx = function() {
          startPicker.setStartRange(start);
          endPicker.setStartRange(start);
          endPicker.setMinDate(start);
-      };
+      }
       function updateEndDate() {
          trny.end = dateFx.timeUTC(end);
          startPicker.setEndRange(end);
          startPicker.setMaxDate(end);
          endPicker.setEndRange(end);
-      };
+      }
       function updateCategoriesAndRankings() {
          console.log('categories and rankings may change when tournament dates change');
       }

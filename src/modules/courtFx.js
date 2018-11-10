@@ -21,9 +21,9 @@ export const courtFx = function() {
          }
       });
       return courts;
-   }
+   };
 
-   fx.ctuuid = (schedule) => { return schedule ? `${schedule.luid}|${schedule.index}` : ''; }
+   fx.ctuuid = (schedule) => { return schedule ? `${schedule.luid}|${schedule.index}` : ''; };
 
    return fx;
 

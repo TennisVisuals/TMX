@@ -8,21 +8,21 @@ export const contextMenu = function() {
       margin: 0.1,
       rescale: false,
       font: {
-         size: 16,
+         size: 16
       },
       colors: {
          default: 'white',
          hover: 'lightgray',
-         text: 'steelblue',
+         text: 'steelblue'
       },
       thresholds: {
-         items_per_column: 6,
-      },
-   }
+         items_per_column: 6
+      }
+   };
 
    let events = {
       'item': { 'mouseover': null, 'mouseout': null, 'click': null },
-      'cleanup': null,
+      'cleanup': null
    };
 
    let items = [];
@@ -49,8 +49,8 @@ export const contextMenu = function() {
       let rows_per_column = Math.floor(calc_height / o.height);
       if (attempt_two_columns && rows_per_column > items.length / columns) rows_per_column = Math.ceil(items.length / columns);
       let possible_players = (columns + 1) * rows_per_column;
-      let total_possible_columns = Math.floor(root_width / o.width);
-      let total_possible_players = total_possible_columns * rows_per_column;
+      // let total_possible_columns = Math.floor(root_width / o.width);
+      // let total_possible_players = total_possible_columns * rows_per_column;
 
       if (possible_players < items.length) {
          let necessary_columns = Math.round(items.length / rows_per_column);
@@ -67,19 +67,19 @@ export const contextMenu = function() {
       let cmenu = root
          .append('g').attr('class', 'context-menu')
          .selectAll('cmenu')
-        .data(items)
+        .data(items);
         
       cmenu.enter()
          .append('g').attr('class', 'menu-entry')
          .style('cursor', 'pointer')
          .on('mouseover', function() {
-            d3.select(this).select('rect').style('fill', o.colors.hover)
+            d3.select(this).select('rect').style('fill', o.colors.hover);
          })
          .on('mouseout', function() {
             d3.select(this).select('rect')
                .style('fill', o.colors.default)
                .style('stroke', 'white')
-               .style('stroke-width', '1px')
+               .style('stroke-width', '1px');
          })
          .on('click', events.item.click);
 
@@ -97,7 +97,7 @@ export const contextMenu = function() {
          .attr('height', o.height)
          .style('fill', o.colors.default)
          .style('stroke', 'white')
-         .style('stroke-width', '1px')
+         .style('stroke-width', '1px');
        
       root.selectAll('.menu-entry')
          .append('text')
@@ -107,44 +107,41 @@ export const contextMenu = function() {
          .attr('dy', o.height - o.margin / 2)
          .attr('dx', o.margin)
          .style('fill', o.colors.text) 
-         .style('font-size', o.font.size)
+         .style('font-size', o.font.size);
 
       d3.select('body').on('click', () => {
-         root.select('.context-menu').remove()
+         root.select('.context-menu').remove();
          if (events.cleanup && typeof events.cleanup == 'function') events.cleanup();
       });
 
    }
    
-   menu.items = function(e) {
-      if (!arguments.length) return items;
-      items = arguments;
-      // for (i in arguments) items.push(arguments[i]);
+   menu.items = (values=[]) => {
+      if (!values.length) return items;
+      items = values;
       o.rescale = true;
       return menu;
-   }
+   };
 
-   menu.selector = function (value) {
-      if (!arguments.length) { return o.selector; }
+   menu.selector = (value) => {
+      if (!value) { return o.selector; }
       o.selector = value;
       return menu;
    };
 
-   menu.options = function(values) {
-      if (!arguments.length) return o;
+   menu.options = (values) => {
+      if (!values || typeof values !== 'object') return o;
       keyWalk(values, o);
       return menu;
-   }
+   };
 
-   menu.events = function(functions) {
-      if (!arguments.length) return events;
+   menu.events = (functions) => {
+      if (!functions || typeof functions !== 'object') return events;
       keyWalk(functions, events);
       return menu;
-   }
+   };
 
-   menu.cleanUp = function() {
-      d3.selectAll('.context-menu').remove()
-   }
+   menu.cleanUp =() => d3.selectAll('.context-menu').remove();
 
    function keyWalk(valuesObject, optionsObject) {
       if (!valuesObject || !optionsObject) return;
@@ -177,9 +174,9 @@ export const contextMenu = function() {
          .style('font-size', o.font.size)
          .attr('x', -1000)
          .attr('y', -1000)
-         .attr('class',function(d) {
+         .attr('class',function() {
            z.push(d3.select(this).node().getBoundingClientRect());
-           return 'cmenu'
+           return 'cmenu';
          });
 
       o.width = d3.max(z.map(function(x){ return x.width; }));
@@ -193,4 +190,4 @@ export const contextMenu = function() {
    }
 
    return menu;
-}
+};

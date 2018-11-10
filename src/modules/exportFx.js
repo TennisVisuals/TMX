@@ -1,5 +1,5 @@
-import { db } from './db'
-import { env } from './env'
+import { db } from './db';
+import { env } from './env';
 import { UUID } from './UUID';
 import { util } from './util';
 import { dateFx } from './dateFx';
@@ -12,9 +12,10 @@ import { stringFx } from './stringFx';
 import { rankCalc } from './rankCalc';
 import { scoreBoard } from './scoreBoard';
 import { displayGen } from './displayGen';
-import { cleanScore } from './cleanScore';
 import { tournamentFx } from './tournamentFx';
 import { rrDraw, treeDraw, drawFx } from './drawFx';
+
+//import { cleanScore } from './cleanScore';
 
 export const exportFx = function() {
    let exp = {};
@@ -29,13 +30,28 @@ export const exportFx = function() {
 
    let o = {
       rows_per_page: 34,
-      minimum_empty: 8,
-   }
+      minimum_empty: 8
+   };
+
+   let noPadding = {
+      paddingLeft: () => 0,
+      paddingRight: () => 0,
+      paddingTop: () => 0,
+      paddingBottom: () => 0
+   };
+
+   let noPaddingOrBorder = {
+      defaultBorder: false,
+      paddingLeft: () => 0,
+      paddingRight: () => 0,
+      paddingTop: () => 0,
+      paddingBottom: () => 0
+   };
 
    exp.options = (values) => {
       if (!values) return o;
       util.keyWalk(values, o);
-   }
+   };
 
    function displayYear(timestamp) {
       let date = new Date(timestamp);
@@ -55,17 +71,17 @@ export const exportFx = function() {
    exp.downloadJSON = (filename, json) => {
       let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(json));
       download(filename, dataStr);
-   }
+   };
 
    exp.downloadCircularJSON = (filename, json) => {
       let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(CircularJSON.stringify(json));
       download(filename, dataStr);
-   }
+   };
 
    exp.downloadText = (filename, text) => {
       let dataStr = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
       download(filename, dataStr);
-   }
+   };
 
    exp.downloadURI = (uri, name) => {
      let link = document.createElement("a");
@@ -75,7 +91,7 @@ export const exportFx = function() {
      let elem = document.body.appendChild(link);
      elem.click();
      elem.remove();
-   }
+   };
 
    exp.SVGasURI = (selector, images=[], min_height) => {
       return new Promise((resolve, reject) => {
@@ -83,7 +99,7 @@ export const exportFx = function() {
          let svg_string = exp.getSVGString(svgnode);
          exp.svgString2DataURL({ svg_string, images, min_height }).then(resolve, reject);
       });
-   }
+   };
 
    exp.saveSVGasPNG = ({ selector, filename = 'svg.png', images }) => {
       let svgnode = selector.tagName.toLowerCase() == 'svg' ? selector : selector.querySelector('svg');
@@ -91,7 +107,7 @@ export const exportFx = function() {
       let save = (image) => exp.downloadURI(image, filename);
 
       exp.svgString2DataURL({ svg_string, images }).then(save);
-   }
+   };
 
    exp.saveBlob = (blob, fileName) => {
        var url = window.URL.createObjectURL(blob);
@@ -111,17 +127,15 @@ export const exportFx = function() {
        setTimeout(function() {
            window.URL.revokeObjectURL(url);
        }, 1000);
-   }
+   };
 
    exp.json2csv = json2csv;
    function json2csv(records, separator = ',') {
-      let delimiter = (item, key) => `"${item}"`;
-
       if (!records.length) return false;
       let keys = Object.keys(records[0]);
-      return keys.join(separator) + '\n' + records.map(record => keys.map(key => delimiter(record[key], key)).join(separator)).join('\n');
+      let delimiter = (item) => `"${item}"`;
+      return keys.join(separator) + '\n' + records.map(record => keys.map(key => delimiter(record[key])).join(separator)).join('\n');
    }
-
 
    let zeroPad = (number) => number.toString()[1] ? number : "0" + number; 
    let normalID = (id) => stringFx.replaceDiacritics(id).toUpperCase();
@@ -129,7 +143,7 @@ export const exportFx = function() {
       if (!timestamp) return '';
       let date = new Date(timestamp);
       return [zeroPad(date.getMonth() + 1), zeroPad(date.getDate()), date.getFullYear()].join('/');
-   }
+   };
 
    exp.UTRmatchRecord = (match, tournament_players) => {
       let getPlayerBirth = (player) => tournament_players.reduce((p, c) => p || (c.id == player.id ? c.birth : false), false) || '';
@@ -150,7 +164,7 @@ export const exportFx = function() {
       let profileID = (profile_url) => {
          let parts = profile_url && typeof profile_url == 'string' && profile_url.split('/');
          return (!parts || parts.indexOf('myutr') < 0 && parts.indexOf('players') < 0) ? '' : parts.reverse()[0];
-      }
+      };
 
       if (!winners) {
          console.log('match:', match);
@@ -193,7 +207,7 @@ export const exportFx = function() {
          "Loser 1 College": '',
          "Loser 2 Name": dbls ? stringFx.normalizeName(`${players[losers[1]].last_name}, ${players[losers[1]].first_name}`) : '',
          "Loser 2 Third Party ID": normalID(dbls ? (players[losers[1]].cropin || '') : ''),
-         "Loser 1 UTR ID": profileID(players[losers[1]] && players[losers[1]].profile),
+         "Loser 2 UTR ID": profileID(players[losers[1]] && players[losers[1]].profile),
          "Loser 2 Gender": dbls ? player_gender(players[losers[1]].sex) : '',
          "Loser 2 DOB": dbls ? dateFormatUTR(getPlayerBirth(players[losers[1]])) : '',
          "Loser 2 City": stringFx.replaceDiacritics(dbls ? (players[losers[0]].city || '') : ''),
@@ -226,21 +240,22 @@ export const exportFx = function() {
          "Tournament Sanction Body": sanctioning,
          "Match ID": match.muid,
          "Tournament Event Grade": ''
-      }
-   }
+      };
+   };
 
    exp.downloadUTRmatches = (tournament, matches) => {
+      let profile = env.org.abbr || lang.tr('unk');
       let match_records = exp.UTRmatchRecords({ matches, players: tournament.players });
       let csv = exp.json2csv(match_records);
       exp.downloadText(`UTR-${profile}-${tournament.tuid}-U${tournament.category}.csv`, csv);
-   }
+   };
 
    exp.UTRmatchRecords = ({ matches, players }) => {
       return matches.map(m => exp.UTRmatchRecord(m, players)).filter(r=>r);
    };
 
    /************************* Database Table Export **************************/
-   let tableJSON = (table) => db.findAll(table).then(arr => { exp.downloadJSON(`${table}.json`, arr) }); 
+   let tableJSON = (table) => db.findAll(table).then(arr => { exp.downloadJSON(`${table}.json`, arr); }); 
 
    exp.settingsJSON = () => tableJSON('settings');
    exp.clubsJSON = () => tableJSON('clubs');
@@ -249,25 +264,25 @@ export const exportFx = function() {
       db.findAll('tournaments').then(arr => {
          if (clean) {
             arr.forEach(a => { delete a.events; delete a.players; delete a.registered; delete a.matches; });
-            exp.downloadJSON(`tournaments.json`, arr)
+            exp.downloadJSON(`tournaments.json`, arr);
          } else {
-            exp.downloadCircularJSON(`tournaments.json`, arr)
+            exp.downloadCircularJSON(`tournaments.json`, arr);
          }
-      })
-   }
+      });
+   };
 
    exp.downloadTournamentsWithEvents = () => {
       db.findAll('tournaments').then(arr => {
          arr.filter(a=>a.events && a.events.length)
             .forEach(tournament => exp.downloadCircularJSON(`tournament-${tournament.tuid}.json`, tournament));
-      })
-   }
+      });
+   };
 
    exp.downloadPlayers = (cursor = 0, group_size = 200) => {
       db.findAllPlayers().then(players => {
          exp.downloadJSON('players.json', players.slice(cursor, cursor + group_size));
       });
-   }
+   };
 
    exp.downloadRankings = (rankings) => {
       if (!rankings) {
@@ -275,29 +290,30 @@ export const exportFx = function() {
       } else {
          db.findAllClubs().then(processCategories, util.logError);
 
-         function processCategories(clubs) {
-            var clubsobj = Object.assign({}, ...clubs.map(c=>({[c.id]: c})));
-            var cats = rankings.categories;
-            Object.keys(cats).forEach(category => {
-               let players = [].concat(...convert(cats[category].M, 'M'), ...convert(cats[category].W, 'W'));
-               let ranking = {
-                  category,
-                  date: rankCalc.getDateByWeek(rankings.week, rankings.year).getTime(),
-                  players: Object.assign({}, ...players)
-               }
-               download(ranking);
-            });;
-            function convert(list, gender) {
-               return list.map((m, i) => {
-                  m.ranking = i + 1;
-                  m.sex = gender;
-                  m.club_code = clubsobj[m.club] && clubsobj[m.club].code;
-                  m.club_name = clubsobj[m.club] && clubsobj[m.club].name;
-                  m.points = m.points && m.points.total || m.points;
-                  // add club code and club name
-                  return { [m.id]: m }
-               })
-            }
+      }
+
+      function processCategories(clubs) {
+         var clubsobj = Object.assign({}, ...clubs.map(c=>({[c.id]: c})));
+         var cats = rankings.categories;
+         Object.keys(cats).forEach(category => {
+            let players = [].concat(...convert(cats[category].M, 'M'), ...convert(cats[category].W, 'W'));
+            let ranking = {
+               category,
+               date: rankCalc.getDateByWeek(rankings.week, rankings.year).getTime(),
+               players: Object.assign({}, ...players)
+            };
+            download(ranking);
+         });
+         function convert(list, gender) {
+            return list.map((m, i) => {
+               m.ranking = i + 1;
+               m.sex = gender;
+               m.club_code = clubsobj[m.club] && clubsobj[m.club].code;
+               m.club_name = clubsobj[m.club] && clubsobj[m.club].name;
+               m.points = m.points && m.points.total || m.points;
+               // add club code and club name
+               return { [m.id]: m };
+            });
          }
       }
 
@@ -305,7 +321,7 @@ export const exportFx = function() {
          let data = Object.keys(ranking.players).map(k=>ranking.players[k]);
          exp.downloadJSON(`rankings_${ranking.category}`, data);
       }
-   }
+   };
 
    exp.downloadMatches = (category, group_size=600) => {
       db.findAllMatches().then(matches => {
@@ -318,7 +334,7 @@ export const exportFx = function() {
             cursor += group_size;
          }
       });
-   }
+   };
 
    function removeExtraneous(matches) {
       matches.forEach(match => {
@@ -339,7 +355,7 @@ export const exportFx = function() {
             cursor += group_size;
          }
       });
-   }
+   };
 
    exp.downloadArray = (filename, array, group_size=700) => {
       let cursor = 0;
@@ -347,7 +363,7 @@ export const exportFx = function() {
          exp.downloadJSON(filename, array.slice(cursor, cursor + group_size));
          cursor += group_size;
       }
-   }
+   };
 
    exp.downloadRankLists = (ranklists) => ranklists.forEach(exp.rankListCSV);
 
@@ -355,11 +371,11 @@ export const exportFx = function() {
       ranklist.list.forEach(player => player.points = player.points.total);
       let csv = json2csv(ranklist.list);
       exp.downloadText(`${ranklist.year}-Week${ranklist.week}-${ranklist.category}-${ranklist.gender}.csv`, csv);
-   }
+   };
 
    exp.openPDF = (docDefinition) => {
       pdfMake.createPdf(docDefinition).open();
-   }
+   };
 
    exp.savePDF = (docDefinition, filename = 'default.pdf') => {
       const pdfDocGenerator = pdfMake.createPdf(docDefinition);
@@ -367,7 +383,7 @@ export const exportFx = function() {
          let blob = b64toBlob(data, "application/pdf");
          exp.saveBlob(blob, filename);
       });
-   }
+   };
 
    exp.printSchedulePDF = ({ tournament, day, courts, matches, save }) => {
       getLogo().then(logo => {
@@ -384,34 +400,29 @@ export const exportFx = function() {
             schedulePDF({ tournament, day, courts, matches, logo, save });
          }
       });
-   }
+   };
 
    function xRow(body, widths) {
       let row = {
          id: 'noBreak',
          table: {
             widths,
-            body: [body],
+            body: [body]
          },
-         layout: {
-            paddingLeft: function(i, node) { return 0; },
-            paddingRight: function(i, node) { return 0; },
-            paddingTop: function(i, node) { return 0; },
-            paddingBottom: function(i, node) { return 0; },
-         }
+         layout: noPadding
       }; 
       return row;
    }
 
    function tableRow(i, cells) {
-      let body = [{ stack: [scheduleCell({ oop: i })], width: 30 }].concat(...cells.map((c, i) => scheduleCell(c)));
-      let widths = [30].concat(...cells.map(c=>'*'));
+      let body = [{ stack: [scheduleCell({ oop: i })], width: 30 }].concat(...cells.map(c => scheduleCell(c)));
+      let widths = [30].concat(...cells.map(()=>'*'));
       return xRow(body, widths);
    }
 
    function scheduleHeaderRow(court_names) {
       let body = [{ text: ' ', width: 30 }].concat(...court_names.map(headerCell));
-      let widths = [30].concat(...court_names.map(c=>'*'));
+      let widths = [30].concat(...court_names.map(()=>'*'));
       return xRow(body, widths);
    }
 
@@ -459,10 +470,9 @@ export const exportFx = function() {
          italics2: playerItalics(1),
          spacer: match.spacer || '',
          scoreline: `${score || ''}`,
-         spacer: match.spacer || '',
          colorscore: match.winner_index != undefined ? 'green' : 'black',
          boldscore: match.winner_index != undefined ? true : false
-      }
+      };
       if (match.event && match.event.custom_category) display.round = `${match.event.custom_category} ${match.round_name || ''}`;
 
       var x = ' ';
@@ -470,23 +480,23 @@ export const exportFx = function() {
          table: {
             widths: ['*'],
             body: [
-               [ { text: display.time_detail || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
-               [ { text: display.round || x, style: 'centeredItalic', margin: [0, 0, 0, 0] }, ],
-               [ { text: display.oop || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
-               [ { text: display.first_team || x, style: 'teamName', margin: [0, 0, 0, 0], bold: display.bold1, color: display.color1, italics: display.italics1 }, ],
-               [ { text: display.vs || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
-               [ { text: display.second_team || x, style: 'teamName', margin: [0, 0, 0, 0], bold: display.bold2, color: display.color2, italics: display.italics2 }, ],
-               [ { text: display.spacer || x, style: 'centeredText', margin: [0, 0, 0, 0] }, ],
-               [ { text: display.scoreline || x, style: 'centeredText', margin: [0, 0, 0, 0], bold: display.boldscore, color: display.colorscore }, ],
+               [ { text: display.time_detail || x, style: 'centeredText', margin: [0, 0, 0, 0] } ],
+               [ { text: display.round || x, style: 'centeredItalic', margin: [0, 0, 0, 0] } ],
+               [ { text: display.oop || x, style: 'centeredText', margin: [0, 0, 0, 0] } ],
+               [ { text: display.first_team || x, style: 'teamName', margin: [0, 0, 0, 0], bold: display.bold1, color: display.color1, italics: display.italics1 } ],
+               [ { text: display.vs || x, style: 'centeredText', margin: [0, 0, 0, 0] } ],
+               [ { text: display.second_team || x, style: 'teamName', margin: [0, 0, 0, 0], bold: display.bold2, color: display.color2, italics: display.italics2 } ],
+               [ { text: display.spacer || x, style: 'centeredText', margin: [0, 0, 0, 0] } ],
+               [ { text: display.scoreline || x, style: 'centeredText', margin: [0, 0, 0, 0], bold: display.boldscore, color: display.colorscore } ]
             ]
          },
          layout: {
-            paddingLeft: function(i, node) { return 0; },
-            paddingRight: function(i, node) { return 0; },
-            paddingTop: function(i, node) { return 0; },
-            paddingBottom: function(i, node) { return 0; },
+            paddingLeft: () => 0,
+            paddingRight: () => 0,
+            paddingTop: () => 0,
+            paddingBottom: () => 0,
             hLineWidth: function (i, node) { return (lines && (i === 0 || i === node.table.body.length)) ? 1 : 0; },
-            vLineWidth: function (i, node) { return (lines && (i === 0 || i === node.table.widths.length)) ? 1 : 0; },
+            vLineWidth: function (i, node) { return (lines && (i === 0 || i === node.table.widths.length)) ? 1 : 0; }
          }
       }; 
       return cell;
@@ -513,15 +523,9 @@ export const exportFx = function() {
       let cell = {
          table: {
             widths: ['*'],
-            body: [ [ { text: court_name || ' ', style: 'centeredTableHeader', margin: [0, 0, 0, 0] }, ], ]
+            body: [ [ { text: court_name || ' ', style: 'centeredTableHeader', margin: [0, 0, 0, 0] } ] ]
          },
-         layout: {
-            defaultBorder: false,
-            paddingLeft: function(i, node) { return 0; },
-            paddingRight: function(i, node) { return 0; },
-            paddingTop: function(i, node) { return 0; },
-            paddingBottom: function(i, node) { return 0; },
-         }
+         layout: noPaddingOrBorder
       }; 
       return cell;
    }
@@ -538,7 +542,7 @@ export const exportFx = function() {
       let max_round = Math.max(minimum_rows, ...rounds);
       let row_matches = util.range(1, max_round + 1).map(oop_round => matches.filter(m=>m.schedule.oop_round == oop_round));
 
-      let column_headers = [...Array(Math.max(minimum_columns, courts.length))].map(m=>'');
+      let column_headers = [...Array(Math.max(minimum_columns, courts.length))].map(()=>'');
       courts.forEach((court, i) => column_headers[i] = court.name);
 
       let rows = row_matches
@@ -550,15 +554,9 @@ export const exportFx = function() {
          table: {
             widths: ['*'],
             headerRows: 1,
-            body,
+            body
          },
-         layout: {
-            defaultBorder: false,
-            paddingLeft: function(i, node) { return 0; },
-            paddingRight: function(i, node) { return 0; },
-            paddingTop: function(i, node) { return 0; },
-            paddingBottom: function(i, node) { return 0; },
-         }
+         layout: noPaddingOrBorder
       }; 
 
       let content = [ schedule_rows ];
@@ -588,20 +586,20 @@ export const exportFx = function() {
          styles: {
             docTitle: {
                fontSize: 12,
-               bold: true,
+               bold: true
             },
             subtitle: {
                fontSize: 10,
                italics: true,
-               bold: true,
+               bold: true
             },
             docName: {
                alignment: 'center',
                fontSize: 10,
-               bold: true,
+               bold: true
             },
             tableHeader: {
-               fontSize: 9,
+               fontSize: 9
             },
             tableData: {
                fontSize: 9,
@@ -616,37 +614,37 @@ export const exportFx = function() {
             teamName: {
                alignment: 'center',
                fontSize: team_font_size,
-               bold: true,
+               bold: true
             },
             centeredText: {
                alignment: 'center',
                fontSize: 10,
-               bold: false,
+               bold: false
             },
             centeredItalic: {
                alignment: 'center',
                fontSize: 9,
                bold: false,
-               italics: true,
+               italics: true
             },
             centeredTableHeader: {
                alignment: 'center',
                fontSize: 9,
-               bold: true,
+               bold: true
             },
             signatureBox: {
-               border: true,
+               border: true
             },
             centeredColumn: {
                alignment: 'center',
-               border: true,
+               border: true
             },
             italicCenteredColumn: {
                alignment: 'center',
                border: true,
                bold: true,
-               italics: true,
-            },
+               italics: true
+            }
          }
       };
 
@@ -659,9 +657,7 @@ export const exportFx = function() {
 
    exp.printDrawPDF = ({ tournament, data, dual_match, dual_teams, dual_matches, options, selected_event, event, save }) => {
       if (event && event.draw && event.draw.compass) {
-         getLogo().then(logo => showPDF(logo));
-
-         function showPDF(logo) {
+         let showPDF = (logo) => {
             var width = 3000;
             let directions = ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'];
             let draws = directions.map(direction => event.draw[direction]).filter(f=>f);
@@ -671,10 +667,11 @@ export const exportFx = function() {
                return treeDrawURI({ info, data, options, width, title });
             })).then(srcs => genDrawSheet(srcs, logo), cleanUp);
 
-         }
+         };
+         getLogo().then(logo => showPDF(logo));
       } else if (dual_match) {
-         let data = { dual_match, dual_teams, dual_matches }
-         return exp.dualMatchesPDF({ tournament, data, options, selected_event, event, save });
+         let data = { dual_match, dual_teams, dual_matches };
+         return exp.dualMatchesPDF({ tournament, data, selected_event, event, save });
       } else {
          let info = drawFx().drawInfo(data);
          if (info.draw_type == 'tree') {
@@ -682,14 +679,13 @@ export const exportFx = function() {
             if (opponent_count <= 64) {
                return exp.treeDrawPDF({ tournament, data, options, selected_event, info, event, save });
             } else {
-               getLogo().then(logo => showPDF(logo));
-
-               function showPDF(logo) {
+               let showPDF = (logo) => {
                   var width = 3000;
                   Promise.all([0, 1].map(child => {
                      return treeDrawURI({ info, data, options, width, child });
                   })).then(srcs => genDrawSheet(srcs, logo), cleanUp);
-               }
+               };
+               getLogo().then(logo => showPDF(logo));
             }
          }
          if (info.draw_type == 'roundrobin') return exp.rrDrawPDF({ tournament, data, options, selected_event, info, event, save });
@@ -700,9 +696,9 @@ export const exportFx = function() {
          drawSheet({ tournament, images, logo, selected_event, event, save });
          cleanUp();
       }
-   }
+   };
 
-   function renderTreeDraw({ info, data, options, height, width, title, child }) {
+   function renderTreeDraw({ info, data, options, width, title, child }) {
       cleanUp();
 
       let render_id = `td${UUID.new()}`;
@@ -737,7 +733,7 @@ export const exportFx = function() {
       let opponent_count = info.draw_positions.length * (info.doubles ? 2 : 1);
 
       // accomodate title for compass draws
-      if (title) { draw.options({ text: {title}, margins: { top: 160 }, }); }
+      if (title) { draw.options({ text: {title}, margins: { top: 160 } }); }
 
       // minPlayerHeight and maxPlayerHeight must be set the same to force
       // fixed size when generating PDFs... for situations where Draw Structure
@@ -837,18 +833,18 @@ export const exportFx = function() {
 
    function treeDrawURI({ info, data, options, height, width, title, child }) {
       return new Promise((resolve, reject) => {
-         let element = renderTreeDraw({ info, data, options, height, width, title, child });
+         let element = renderTreeDraw({ info, data, options, width, title, child });
          exp.SVGasURI(element, [], height).then(resolve, reject);
       });
    }
 
-   exp.dualMatchesPDF = ({ tournament, data, options, selected_event, event, images=[], save }) => {
+   exp.dualMatchesPDF = ({ tournament, data, selected_event, event, images=[], save }) => {
       getLogo().then(logo => showPDF(logo, images));
 
       function showPDF(logo, images) {
           dualSheet({ tournament, data, images, logo, selected_event, event, save });
       }
-   }
+   };
 
    exp.treeDrawPDF = ({ tournament, data, options, images=[], selected_event, info, event, child, save }) => {
       var width = 3000;
@@ -872,10 +868,10 @@ export const exportFx = function() {
          function showPDF(logo, images) {
             exp.SVGasURI(element, images, height)
                .then(src => drawSheet({ tournament, images: [{src, pct: 100}], logo, selected_event, event, info, save }), reject)
-               .then(cleanUp, cleanUp);;
+               .then(cleanUp, cleanUp);
          }
       });
-   }
+   };
 
    function getQRuri({ abbr, qr_dim, x_offset=0, y_offset=0 }) {
          var xx = new QRious({
@@ -939,7 +935,7 @@ export const exportFx = function() {
                .then(cleanUp, cleanUp);
          }
       });
-   }
+   };
 
    function drawSheetPageHeader(tournament, logo, type, selected_event, event) {
       var evt = event || (tournament.events && tournament.events[selected_event]) || { name: lang.tr('unk') };
@@ -966,31 +962,25 @@ export const exportFx = function() {
                         body: [
                            [
                               { text: tournament_name || ' ', colSpan: 5, style: 'docTitle', margin: [0, 0, 0, 0] },
-                              {}, {}, {}, {},
+                              {}, {}, {}, {}
                            ],
                            [
                               { text: event_name, colSpan: 2, style: 'subtitle', margin: [0, 0, 0, 0] },
                               {},
                               { text: event_type, colSpan: 2, alignment: 'center', style: 'docName', margin: [0, 0, 0, 5] },
-                              {}, {},
-                           ],
+                              {}, {}
+                           ]
                         ]
                      },
                      colSpan: 5, 
-                     layout: {
-                        defaultBorder: false,
-                        paddingLeft: function(i, node) { return 0; },
-                        paddingRight: function(i, node) { return 0; },
-                        paddingTop: function(i, node) { return 0; },
-                        paddingBottom: function(i, node) { return 0; },
-                     }
+                     layout: noPaddingOrBorder
                   }, 
                   {}, {}, {}, {}, 
                   {
                      width: 90,
                      image: logo || '',
-                     alignment: 'center',
-                  },
+                     alignment: 'center'
+                  }
                ],
                [
                   { text: lang.tr('signin.tournament_date'), style: 'tableHeader', margin: [0, 0, 5, 0] },
@@ -998,7 +988,7 @@ export const exportFx = function() {
                   { text: lang.tr('signin.place'), style: 'tableHeader', margin: [0, 0, 5, 0] },
                   { text: lang.tr('signin.id'), style: 'tableHeader', margin: [0, 0, 5, 0] },
                   { text: lang.tr('signin.rank'), style: 'tableHeader', margin: [0, 0, 5, 0] },
-                  { text: lang.tr('signin.judge'), style: 'tableHeader', alignment: 'right' },
+                  { text: lang.tr('signin.judge'), style: 'tableHeader', alignment: 'right' }
                ],
                [ 
                   { text: dateFx.formatDate(new Date(tournament.start)), style: 'tableData' },
@@ -1006,19 +996,13 @@ export const exportFx = function() {
                   { text: tournament.location || '', style: 'tableData' },
                   { text: tournament_id, style: 'tableData' },
                   { text: tournament.rank || '', style: 'tableData' },
-                  { text: tournament.judge || '', style: 'tableData', alignment: 'right' },
+                  { text: tournament.judge || '', style: 'tableData', alignment: 'right' }
                ],
-               [ {text: ' ', fontSize: 1, colSpan: 6, border: [false, false, false, true]}, {}, {}, {}, {}, {}],
+               [ {text: ' ', fontSize: 1, colSpan: 6, border: [false, false, false, true]}, {}, {}, {}, {}, {}]
             ]
          },
-         layout: {
-            defaultBorder: false,
-            paddingLeft: function(i, node) { return 0; },
-            paddingRight: function(i, node) { return 0; },
-            paddingTop: function(i, node) { return 0; },
-            paddingBottom: function(i, node) { return 0; },
-         }
-      }
+         layout: noPaddingOrBorder
+      };
 
       return draw_sheet;
    }
@@ -1057,39 +1041,33 @@ export const exportFx = function() {
                         body: [
                            [
                               { text: tournament_name || ' ', colSpan: 5, style: 'docTitle', margin: [0, 0, 0, 0] },
-                              {}, {}, {}, {},
+                              {}, {}, {}, {}
                            ],
                            [
                               { text: lang.tr('signin.tournament_date'), style: 'tableHeader', margin: [0, 0, 5, 0] },
                               { text: lang.tr('schedule.orderofplay'), colSpan: 2, style: 'docName', margin: [0, 0, 0, 0] },
                               {},
-                              { stack: [{ text: weekday }, { text: numeric_date }], rowSpan: 2, style: 'docName', margin: [0, 0, 0, 0], border: [true, true, true, true], },
-                              {},
+                              { stack: [{ text: weekday }, { text: numeric_date }], rowSpan: 2, style: 'docName', margin: [0, 0, 0, 0], border: [true, true, true, true] },
+                              {}
                            ],
                            [
                               { text: start_date, style: 'tableData' },
                               {},
                               {},
                               {},
-                              {},
-                           ],
+                              {}
+                           ]
                         ]
                      },
                      colSpan: 5, 
-                     layout: {
-                        defaultBorder: false,
-                        paddingLeft: function(i, node) { return 0; },
-                        paddingRight: function(i, node) { return 0; },
-                        paddingTop: function(i, node) { return 0; },
-                        paddingBottom: function(i, node) { return 0; },
-                     }
+                     layout: noPaddingOrBorder
                   }, 
                   {}, {}, {}, {}, 
                   {
                      width: 90,
                      image: logo || '',
-                     alignment: 'center',
-                  },
+                     alignment: 'center'
+                  }
                ],
                [
                   { text: lang.tr('signin.id'), style: 'tableHeader', margin: [0, 0, 5, 0] },
@@ -1097,7 +1075,7 @@ export const exportFx = function() {
                   {}, 
                   {}, 
                   {},
-                  { text: lang.tr('signin.judge'), style: 'tableHeader', alignment: 'right', },
+                  { text: lang.tr('signin.judge'), style: 'tableHeader', alignment: 'right' }
                ],
                [ 
                   { text: tournament_id, style: 'tableData' },
@@ -1105,19 +1083,13 @@ export const exportFx = function() {
                   { colSpan: 3, text: header_notice, style: 'headerNotice' },
                   {},
                   {},
-                  { text: tournament.judge || '', style: 'tableDatat', alignment: 'right', },
-               ],
+                  { text: tournament.judge || '', style: 'tableDatat', alignment: 'right' }
+               ]
             ]
          },
-         layout: {
-            defaultBorder: false,
-            paddingLeft: function(i, node) { return 0; },
-            paddingRight: function(i, node) { return 0; },
-            paddingTop: function(i, node) { return 0; },
-            paddingBottom: function(i, node) { return 0; },
-         },
-         margins: [10, 0, 10, 0],
-      }
+         layout: noPaddingOrBorder,
+         margins: [10, 0, 10, 0]
+      };
 
       return schedule;
    }
@@ -1140,19 +1112,19 @@ export const exportFx = function() {
                [
                   { text: lang.tr('phrases.oop_system') },
                   { text: lang.tr('phrases.schedulepublished') },
-                  { text: lang.tr('phrases.judgesignature') },
+                  { text: lang.tr('phrases.judgesignature') }
                ],
                [
-                  { text: umpirenotes || ' ', fontSize: 9, },
-                  [ { text: timestamp }, { text: ' ' }, ],
-                  { text: ' ' },
-               ],
+                  { text: umpirenotes || ' ', fontSize: 9 },
+                  [ { text: timestamp }, { text: ' ' } ],
+                  { text: ' ' }
+               ]
             ]
 			},
          layout: {
-            defaultBorder: true,
+            defaultBorder: true
          }
-		}
+		};
       return footer;
    }
 
@@ -1195,13 +1167,13 @@ export const exportFx = function() {
          let s2 = seeded.slice(8, 16);
          let c1 = s1.map((p, i) => ({ text: i+1 }));
          let c2 = s2.map((p, i) => ({ text: i+9 }));
-         return { s1, s2, c1, c2, smin, smax, omin, omax, a1, c3, lda }
+         return { s1, s2, c1, c2, smin, smax, omin, omax, a1, c3, lda };
       } else {
          let s1 = seeded_players.map(p=>rankingObject(p[rp(p)[0]])).slice(0, 8);
          let s2 = seeded_players.map(p=>rankingObject(p[rp(p)[1]])).slice(0, 8);
          let c1 = s1.map((p, i) => ({ text: i+1 }));
          let c2 = [];
-         return { s1, s2, c1, c2, smin, smax, omin, omax, a1, c3, lda }
+         return { s1, s2, c1, c2, smin, smax, omin, omax, a1, c3, lda };
       }
 
       function rp(players) { return (players[0].category_ranking < players[1].category_ranking) ? [0, 1] : [1, 0]; }
@@ -1210,7 +1182,7 @@ export const exportFx = function() {
    }
 
    function drawSheet({ tournament={}, images, logo, selected_event, event, info, save }) {
-      let evt = event || (tournament.events && tournament.events[selected_eent]);
+      let evt = event || (tournament.events && tournament.events[selected_event]);
       let player_representatives = evt && evt.player_representatives || []; 
       let event_organizers = tournament && tournament.organizers ? [tournament.organizers] : []; 
       let created = event.draw_created && dateFx.isDate(event.draw_created) ? new Date(event.draw_created) : new Date();
@@ -1235,16 +1207,16 @@ export const exportFx = function() {
                   {
                      columns: [
                         { width: 10, text: '# ', bold: true },
-                        { width: '*', text: lang.tr('phrases.rankedplayers'), bold: true },
-                     ],
+                        { width: '*', text: lang.tr('phrases.rankedplayers'), bold: true }
+                     ]
                   }, 
                   {
                      columns: [
                         { width: 10, text: '# ', bold: true },
-                        { width: '*', text: lang.tr('draws.substitutes'), bold: true },
-                     ],
+                        { width: '*', text: lang.tr('draws.substitutes'), bold: true }
+                     ]
                   }, 
-                  { text: [ lang.tr('phrases.timestamp'), timestamp ], bold: true },
+                  { text: [ lang.tr('phrases.timestamp'), timestamp ], bold: true }
                ],
 					[
 						{
@@ -1267,55 +1239,55 @@ export const exportFx = function() {
                               { width: 35, stack: [ { text: `${lang.tr('draws.first')}:` }, { text: `${lang.tr('draws.last')}:` } ] },
                               { width: 15, stack: [ { text: omin }, { text: omax } ] }
                            ]
-                        },
+                        }
 							]
 						},
 						{
                      fontSize: 6,
                      columns: [
-                        { width: 12, stack: c1, },
-                        { width: '*', stack: s1, },
-                        { width: 12, stack: c2, },
-                        { width: '*', stack: s2, },
+                        { width: 12, stack: c1 },
+                        { width: '*', stack: s1 },
+                        { width: 12, stack: c2 },
+                        { width: '*', stack: s2 }
                      ]
 						},
                   {
                      stack: [
                         {
                            columns: [
-                              { width: 12, stack: c3, },
-                              { width: '*', stack: a1, },
+                              { width: 12, stack: c3 },
+                              { width: '*', stack: a1 }
                            ]
                         },
                         { text: ' ' },
                         { text: lang.tr('draws.organizers'), bold: true, fontSize: 8 },
-                        { text: event_organizers[0] || ' ', },
-                        { text: event_organizers[1] || ' ', },
+                        { text: event_organizers[0] || ' ' },
+                        { text: event_organizers[1] || ' ' }
                      ]
                   },
                   {
                      stack: [
                         { text: lang.tr('draws.lastdirectaccept'), bold: true, fontSize: 8 },
                         lda,
-                        { text: ' ', },
+                        { text: ' ' },
                         { text: lang.tr('draws.playerreps'), bold: true, fontSize: 8 },
-                        { text: player_representatives[0] || ' ', },
-                        { text: player_representatives[1] || ' ', },
-                        { text: ' ', },
+                        { text: player_representatives[0] || ' ' },
+                        { text: player_representatives[1] || ' ' },
+                        { text: ' ' },
                         { text: lang.tr('phrases.judgesignature'), bold: true, fontSize: 8 },
-                        { text: ' ', },
-                        { text: ' ', },
-                     ],
+                        { text: ' ' },
+                        { text: ' ' }
+                     ]
                   }
-					],
+					]
 				]
 			},
          layout: {
-            defaultBorder: true,
+            defaultBorder: true
          }
-		}
+		};
 
-      let body_images = images.map(image => ({ image: image.src, width: (image.pct ? image.pct / 100 : 1) * 560, }));
+      let body_images = images.map(image => ({ image: image.src, width: (image.pct ? image.pct / 100 : 1) * 560 }));
       let content = [page_header, ' '].concat(body_images);
 
       var docDefinition = {
@@ -1330,42 +1302,42 @@ export const exportFx = function() {
          styles: {
             docTitle: {
                fontSize: 11,
-               bold: true,
+               bold: true
             },
             subtitle: {
                fontSize: 10,
                italics: true,
-               bold: true,
+               bold: true
             },
             docName: {
                fontSize: 10,
-               bold: true,
+               bold: true
             },
             tableHeader: {
-               fontSize: 9,
+               fontSize: 9
             },
             tableData: {
                fontSize: 9,
-               bold: true,
+               bold: true
             },
             centeredTableHeader: {
                alignment: 'center',
                fontSize: 9,
-               bold: true,
+               bold: true
             },
             signatureBox: {
-               border: true,
+               border: true
             },
             centeredColumn: {
                alignment: 'center',
-               border: true,
+               border: true
             },
             italicCenteredColumn: {
                alignment: 'center',
                border: true,
                bold: true,
-               italics: true,
-            },
+               italics: true
+            }
          }
       };
 
@@ -1396,7 +1368,7 @@ export const exportFx = function() {
       let scores = sets.map((set, i) => set.map(o => opponentScore(o, i)));
 
       function getScore(o) { return o.games != undefined ? o.games : o.supertiebreak || ''; }
-      function getTiebreak(o) { return o.tiebreak != undefined ? o.tiebreak : o.spacer ? '&nbsp;' : ''; }
+      // function getTiebreak(o) { return o.tiebreak != undefined ? o.tiebreak : o.spacer ? '&nbsp;' : ''; }
       function opponentScore(opponent, i) {
          let border = [false, true, (i == 4) ? true : false, true];
          return { text: getScore(opponent), style: 'gameScore', border }; 
@@ -1424,12 +1396,13 @@ export const exportFx = function() {
                matchHeader(match),
                matchRoundName(match),
                teamScoreLine(match, scores, 0),
-               teamScoreLine(match, scores, 1),
+               teamScoreLine(match, scores, 1)
 				]
 			},
 			layout: {
-				paddingLeft: function(i, node) { return 1; },
-				paddingRight: function(i, node) { return 1; },
+				paddingLeft: () => 1,
+				paddingRight: () => 1
+
 				// paddingTop: function(i, node) { return 1; },
 				// paddingBottom: function(i, node) { return 2; },
 				// hLineWidth: function (i, node) { return (i === 0 || i === node.table.body.length) ? 2 : 1; },
@@ -1443,7 +1416,7 @@ export const exportFx = function() {
       return scorebox;
 
       function matchHeader(match) {
-         let order = !match || !match.order ? '1' : match.order;
+         // let order = !match || !match.order ? '1' : match.order;
          let format = (match && match.format && match.format[0].toUpperCase() + match.format.slice(1)) || 'Singles';
          let identifier = `#${match.sequence || 1} ${format}`;
          return [{text: identifier, fillColor: '#eeeeee', style: 'matchHeader', colSpan: 7, alignment: 'center'}, {}, {}, {}, {}, {}, {}];
@@ -1471,68 +1444,67 @@ export const exportFx = function() {
          let opponent2_name = opponent2 || `${lang.tr('opnt')} ${index + 1}`;
 
          let team_score = scores.map(s=>s[index]);
-         let line = [ { text: opponent1_name, border:[true, true, false, true] }, { text: opponent2_name, border:[false, true, false, true] }, ...team_score ]
+         let line = [ { text: opponent1_name, border:[true, true, false, true] }, { text: opponent2_name, border:[false, true, false, true] }, ...team_score ];
          return line;
       }
    }
 
    function dualMatchesTeams(dual_teams) {
-
       let team1 = dual_teams[0].full_name || '';
       let team2 = dual_teams[1].full_name || '';
 
       let t = {
 			table: {
-			   widths: [30, '*', 25, '*', 30],
+            widths: [30, '*', 25, '*', 30],
             body: [ 
                [ '', { text: team1, style: 'centeredColumn' }, 'vs.', { text: team2, style: 'centeredColumn' }, '' ]
             ]
 			},
 			layout: {
-				paddingLeft: function(i, node) { return 0; },
-				paddingRight: function(i, node) { return 0; },
-				paddingTop: function(i, node) { return 20; },
-				paddingBottom: function(i, node) { return 1; },
-				hLineWidth: function (i, node) { return 0 },
-				vLineWidth: function (i, node) { return 0 },
-				hLineColor: function (i, node) { return 0 },
-				vLineColor: function (i, node) { return 0 },
+				paddingLeft: () => 0,
+				paddingRight: () => 0,
+				paddingTop: () => 20,
+				paddingBottom: () => 1,
+				hLineWidth: () => 0,
+				vLineWidth: () => 0,
+				hLineColor: () => 0,
+				vLineColor: () => 0
 			}
-		}
+		};
       return t;
    }
 
    function dualMatchesTable(scoreboxes) {
       let groups = util.chunkArray(scoreboxes, 2);
+      let scoreRow = (group) => [group[0] || '', '', group[1] || ''];
       let body = groups.map(scoreRow);
 
       let t = {
-			table: {
-			   widths: [270, 30, 270],
+         table: {
+            widths: [270, 30, 270],
             body
-			},
-			layout: {
-				paddingLeft: function(i, node) { return 0; },
-				paddingRight: function(i, node) { return 0; },
-				paddingTop: function(i, node) { return 20; },
-				paddingBottom: function(i, node) { return 1; },
-				hLineWidth: function (i, node) { return 0 },
-				vLineWidth: function (i, node) { return 0 },
-				hLineColor: function (i, node) { return 0 },
-				vLineColor: function (i, node) { return 0 },
-			}
-		}
-      return t;
+         },
+         layout: {
+            paddingLeft: () => 0,
+            paddingRight: () => 0,
+            paddingTop: () => 20,
+            paddingBottom: () => 1,
+            hLineWidth: () => 0,
+            vLineWidth: () => 0,
+            hLineColor: () => 0,
+            vLineColor: () => 0
+         }
+      };
 
-      function scoreRow(group) { return [group[0] || '', '', group[1] || ''] };
+      return t;
    }
 
    function dualSheet({ tournament={}, data, logo, selected_event, event, save }) {
-      let evt = event || (tournament.events && tournament.events[selected_eent]);
-      let player_representatives = evt && evt.player_representatives || []; 
-      let event_organizers = tournament && tournament.organizers ? [tournament.organizers] : []; 
-      let created = event.draw_created && dateFx.isDate(event.draw_created) ? new Date(event.draw_created) : new Date();
-      let timestamp = localizeDate(created, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      let evt = event || (tournament.events && tournament.events[selected_event]);
+      // let player_representatives = evt && evt.player_representatives || []; 
+      // let event_organizers = tournament && tournament.organizers ? [tournament.organizers] : []; 
+      // let created = event.draw_created && dateFx.isDate(event.draw_created) ? new Date(event.draw_created) : new Date();
+      // let timestamp = localizeDate(created, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       let page_header = drawSheetPageHeader(tournament, logo, 'draw_sheet', selected_event, event);
 
       let matches = mfx.dualMatchMatches(evt, data.dual_match.match.muid);
@@ -1541,9 +1513,9 @@ export const exportFx = function() {
       let scoreboxes = matches.map(dualMatchBox);
       let dual_matches = dualMatchesTable(scoreboxes);
 
-      let date = new Date(tournament.start);
-      let year = date.getFullYear();
-      let month = date.getMonth();
+      //let date = new Date(tournament.start);
+      // let year = date.getFullYear();
+      // let month = date.getMonth();
 
       let content = [page_header, team_header, dual_matches];
 
@@ -1557,7 +1529,7 @@ export const exportFx = function() {
          styles: {
             scoreBox: {
                margin: [0, 0, 0, 0],
-               fontSize: 10,
+               fontSize: 10
             },
             matchHeader: {
                bold: true,
@@ -1573,11 +1545,11 @@ export const exportFx = function() {
             gameScore: {
                alignment: 'center',
                fontSize: 9,
-               bold: true,
+               bold: true
             },
             centeredColumn: {
-               alignment: 'center',
-            },
+               alignment: 'center'
+            }
          }
       };
 
@@ -1596,31 +1568,25 @@ export const exportFx = function() {
    }
 
    exp.playerList = ({ tournament, players, attributes, doc_name='courthive', save }) => {
-      return new Promise((resolve, reject) => {
-         getLogo().then(showPDF);
-         function showPDF(logo) {
-            tournamentPlayerList({ tournament, players, attributes, logo, doc_name, save });
-         }
-      });
-   }
+      getLogo().then(showPDF);
+      function showPDF(logo) {
+         tournamentPlayerList({ tournament, players, attributes, logo, doc_name, save });
+      }
+   };
 
-   exp.doublesSignInPDF = ({ tournament, teams, category, gender, event_name, doc_name='courthive', save }) => {
-      return new Promise((resolve, reject) => {
-         getLogo().then(showPDF);
-         function showPDF(logo) {
-            doublesSignInSheet({ tournament, teams, category, gender, event_name, logo, doc_name, save });
-         }
-      });
-   }
+   exp.doublesSignInPDF = ({ tournament, teams, event_name, doc_name='courthive', save }) => {
+      getLogo().then(showPDF);
+      function showPDF(logo) {
+         doublesSignInSheet({ tournament, teams, event_name, logo, doc_name, save });
+      }
+   };
 
-   exp.orderedPlayersPDF = ({ tournament, players, category, gender, event_name, doc_name='courthive', extra_pages, save }) => {
-      return new Promise((resolve, reject) => {
-         getLogo().then(showPDF);
-         function showPDF(logo) {
-            signInSheet({ tournament, players, category, gender, event_name, logo, doc_name, extra_pages, save });
-         }
-      });
-   }
+   exp.orderedPlayersPDF = ({ tournament, players, gender, event_name, doc_name='courthive', extra_pages, save }) => {
+      getLogo().then(showPDF);
+      function showPDF(logo) {
+         signInSheet({ tournament, players, gender, event_name, logo, doc_name, extra_pages, save });
+      }
+   };
 
    exp.getLogo = getLogo;
    function getLogo() {
@@ -1646,9 +1612,6 @@ export const exportFx = function() {
    }
 
    function tournamentPlayerList({ tournament={}, players=[], attributes={}, logo, doc_name, save }) {
-      let date = dateFx.formatDate(tournament.start);
-      let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
-
       let ratings_type = attributes.ratings_type || 'utr';
       let sponsor = tournament.sponsor ? ` - ${tournament.sponsor}` : '';
       let tournament_name = `${tournament.name}${sponsor}`;
@@ -1667,9 +1630,9 @@ export const exportFx = function() {
       datascan.gender = players.reduce((p, c) => c.sex || p, undefined) ? true : false;
 
       let prototype = [ 
-         { header: { text: '#', style: 'centeredTableHeader' }, row: { value: 'counter', style: 'centeredColumn' }, },
-         { header: { text: lang.tr('lnm'), style: 'tableHeader' }, row: { value: 'last_name' }, },
-         { header: { text: lang.tr('fnm'), style: 'tableHeader' }, row: { value: 'first_name' }, },
+         { header: { text: '#', style: 'centeredTableHeader' }, row: { value: 'counter', style: 'centeredColumn' } },
+         { header: { text: lang.tr('lnm'), style: 'tableHeader' }, row: { value: 'last_name' } },
+         { header: { text: lang.tr('fnm'), style: 'tableHeader' }, row: { value: 'first_name' } }
       ];
 
       let d = datascan;
@@ -1701,30 +1664,24 @@ export const exportFx = function() {
                            widths: ['*'],
                            body: [
                               [{ text: tournament_name || ' ', style: 'docTitle' }],
-                              [{ text: " ", style: 'subtitle' }],
+                              [{ text: " ", style: 'subtitle' }]
                            ]
                         },
                         colSpan: 5, 
-                        layout: 'noBorders',
+                        layout: 'noBorders'
                      }, 
                      {}, {}, {}, {}, 
                      {
                         width: 100,
                         image: logo || '',
-                        alignment: 'center',
-                     },
+                        alignment: 'center'
+                     }
                   ],
-                  [ {text: doc_name || lang.tr('signin.doc_name'), colSpan: 6, style: 'docName', alignment: 'center'}, ],
-                  [ {text: lang.tr('signin.doc_subname'), colSpan: 6, style: 'docName', alignment: 'center'}, ],
+                  [ {text: doc_name || lang.tr('signin.doc_name'), colSpan: 6, style: 'docName', alignment: 'center'} ],
+                  [ {text: lang.tr('signin.doc_subname'), colSpan: 6, style: 'docName', alignment: 'center'} ]
                ]
             },
-            layout: {
-               defaultBorder: false,
-               paddingLeft: function(i, node) { return 0; },
-               paddingRight: function(i, node) { return 0; },
-               paddingTop: function(i, node) { return 0; },
-               paddingBottom: function(i, node) { return 0; },
-            }
+            layout: noPaddingOrBorder
          }
       ];
 
@@ -1751,8 +1708,8 @@ export const exportFx = function() {
                ioc: row.ioc && row.ioc.toUpperCase(),
                year: row.birth && displayYear(row.birth),
                last_name: row.last_name && row.last_name.toUpperCase().trim(),
-               first_name: row.first_name && stringFx.normalizeName(row.first_name, false),
-            }
+               first_name: row.first_name && stringFx.normalizeName(row.first_name, false)
+            };
             return prototype.map(p => ({ text: valz[p.row.value] || ' ', style: p.row.style }));
          } else {
             return dummy;
@@ -1765,54 +1722,54 @@ export const exportFx = function() {
          table: {
             headerRows: 3,
             widths: new Array(column_count - 1).fill('auto').concat('*'),
-            body: player_rows,
+            body: player_rows
          },
-         layout: 'noBorders',
-      }
+         layout: 'noBorders'
+      };
 
       var docDefinition = {
          pageSize: 'A4',
          pageOrientation: 'portrait',
 
          content: [
-            table_rows,
+            table_rows
          ],
 
          styles: {
             docTitle: {
                fontSize: 16,
-               bold: true,
+               bold: true
             },
             subtitle: {
                fontSize: 12,
-               italics: true,
+               italics: true
             },
             docName: {
                fontSize: 14,
-               bold: true,
+               bold: true
             },
             tableHeader: {
                fontSize: 11,
-               bold: true,
+               bold: true
             },
             centeredTableHeader: {
                alignment: 'center',
                fontSize: 11,
-               bold: true,
+               bold: true
             },
             signatureBox: {
-               border: true,
+               border: true
             },
             centeredColumn: {
                alignment: 'center',
-               border: true,
+               border: true
             },
             italicCenteredColumn: {
                alignment: 'center',
                border: true,
                bold: true,
-               italics: true,
-            },
+               italics: true
+            }
          }
       };
 
@@ -1824,7 +1781,7 @@ export const exportFx = function() {
       }
    }
 
-   function doublesSignInSheet({ tournament={}, teams=[], players=[], category, gender, event_name='', logo, doc_name, save }) {
+   function doublesSignInSheet({ tournament={}, teams=[], event_name='', logo, doc_name, save }) {
       let date = dateFx.formatDate(tournament.start);
       let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
@@ -1845,29 +1802,28 @@ export const exportFx = function() {
                            widths: ['*'],
                            body: [
                               [{ text: tournament_name || ' ', style: 'docTitle' }],
-                              [{ text: event_name, style: 'subtitle' }],
+                              [{ text: event_name, style: 'subtitle' }]
                            ]
                         },
                         colSpan: 5, 
-                        layout: 'noBorders',
+                        layout: 'noBorders'
                      }, 
                      {}, {}, {}, {}, 
                      {
                         width: 100,
                         image: logo || '',
-                        alignment: 'center',
-                     },
+                        alignment: 'center'
+                     }
                   ],
-                  [ {text: doc_name || lang.tr('signin.doc_name'), colSpan: 6, style: 'docName', alignment: 'center'}, ],
-                  [ {text: lang.tr('signin.doc_subname'), colSpan: 6, style: 'docName', alignment: 'center'}, ],
-
+                  [ {text: doc_name || lang.tr('signin.doc_name'), colSpan: 6, style: 'docName', alignment: 'center'} ],
+                  [ {text: lang.tr('signin.doc_subname'), colSpan: 6, style: 'docName', alignment: 'center'} ],
                   [
                      { text: lang.tr('signin.tournament_date'), style: 'tableHeader' },
                      { text: lang.tr('signin.organization'), style: 'tableHeader' },
                      { text: lang.tr('signin.place'), style: 'tableHeader' },
                      { text: '', style: 'tableHeader' },
                      { text: '', style: 'tableHeader' },
-                     { text: lang.tr('signin.judge'), style: 'tableHeader' },
+                     { text: lang.tr('signin.judge'), style: 'tableHeader' }
                   ],
                   [ 
                      date, 
@@ -1875,7 +1831,7 @@ export const exportFx = function() {
                      tournament.location || '',
                      '', 
                      '', 
-                     { text: tournament.judge || ' ', margin: [0, 0, 0, 5] },
+                     { text: tournament.judge || ' ', margin: [0, 0, 0, 5] }
                   ],
                   [
                      { text: lang.tr('signin.id'), style: 'tableHeader', margin: [0, 0, 5, 0] },
@@ -1883,7 +1839,7 @@ export const exportFx = function() {
                      { text: '', style: 'tableHeader' },
                      { text: '', style: 'tableHeader' },
                      {colSpan: 2, rowSpan: 2, text: ' ', border: [true, true, true, true] }, 
-                     { text: '', style: 'tableHeader' },
+                     { text: '', style: 'tableHeader' }
                   ],
                   [ 
                      tournament_id, 
@@ -1892,17 +1848,11 @@ export const exportFx = function() {
                      '',
                      '',
                      ''
-                  ],
+                  ]
                ]
             },
-            layout: {
-               defaultBorder: false,
-               paddingLeft: function(i, node) { return 0; },
-               paddingRight: function(i, node) { return 0; },
-               paddingTop: function(i, node) { return 0; },
-               paddingBottom: function(i, node) { return 0; },
-            }
-         }, {}, {}, {}, {}, {}, {}, {}, {},
+            layout: noPaddingOrBorder
+         }, {}, {}, {}, {}, {}, {}, {}, {}
       ];
 
       let dummy = [
@@ -1914,7 +1864,7 @@ export const exportFx = function() {
          { border: [false, false, false, false], text: ' ' },
          { border: [false, false, false, false], text: ' ' },
          { border: [false, false, false, false], text: ' ' },
-         { border: [false, false, false, false], text: ' ' },
+         { border: [false, false, false, false], text: ' ' }
       ];
 
       let header_row = [ 
@@ -1926,7 +1876,7 @@ export const exportFx = function() {
          { text: lang.tr('lnm'), style: 'tableHeader' }, 
          { text: lang.tr('fnm'), style: 'tableHeader' }, 
          { text: lang.tr('clb'), style: 'centeredTableHeader' }, 
-         { text: lang.tr('prnk'), style: 'centeredTableHeader' }, 
+         { text: lang.tr('prnk'), style: 'centeredTableHeader' }
       ];
 
       let empty = (x) => Array.from({length: x}, () => undefined);
@@ -1940,13 +1890,11 @@ export const exportFx = function() {
                { text: row[0].last_name.toUpperCase().trim() },
                { text: stringFx.normalizeName(row[0].first_name, false) },
                { text: row[0].club_code || row[0].country || " ", style: row[0].club_code ? 'centeredColumn' : 'italicCenteredColumn' },
-               // { text: row.rankings && row.rankings[category] ? row.rankings[category] : '', style: 'centeredColumn' },
                { text: row[0].category_ranking || '', style: 'centeredColumn' },
                { text: row[1].last_name.toUpperCase().trim() },
                { text: stringFx.normalizeName(row[1].first_name, false) },
                { text: row[1].club_code || row[1].country || " ", style: row[1].club_code ? 'centeredColumn' : 'italicCenteredColumn' },
-               // { text: row.rankings && row.rankings[category] ? row.rankings[category] : '', style: 'centeredColumn' },
-               { text: row[1].category_ranking || '', style: 'centeredColumn' },
+               { text: row[1].category_ranking || '', style: 'centeredColumn' }
             ];
          } else {
             return [ 
@@ -1962,53 +1910,53 @@ export const exportFx = function() {
          table: {
             headerRows: 3,
             widths: [ 'auto', '*', '*', 'auto', 'auto', '*', '*', 'auto', 'auto' ],
-            body: player_rows,
-         },
-      }
+            body: player_rows
+         }
+      };
 
       var docDefinition = {
          pageSize: 'A4',
          pageOrientation: 'portrait',
 
          content: [
-            table_rows,
+            table_rows
          ],
 
          styles: {
             docTitle: {
                fontSize: 16,
-               bold: true,
+               bold: true
             },
             subtitle: {
                fontSize: 12,
-               italics: true,
+               italics: true
             },
             docName: {
                fontSize: 14,
-               bold: true,
+               bold: true
             },
             tableHeader: {
                fontSize: 11,
-               bold: true,
+               bold: true
             },
             centeredTableHeader: {
                alignment: 'center',
                fontSize: 11,
-               bold: true,
+               bold: true
             },
             signatureBox: {
-               border: true,
+               border: true
             },
             centeredColumn: {
                alignment: 'center',
-               border: true,
+               border: true
             },
             italicCenteredColumn: {
                alignment: 'center',
                border: true,
                bold: true,
-               italics: true,
-            },
+               italics: true
+            }
          }
       };
 
@@ -2020,7 +1968,7 @@ export const exportFx = function() {
       }
    }
 
-   function signInSheet({ tournament={}, players, category, gender, event_name='', logo, doc_name='courthive', extra_pages=true, save }) {
+   function signInSheet({ tournament={}, players, gender, event_name='', logo, doc_name='courthive', extra_pages=true, save }) {
       let date = dateFx.formatDate(tournament.start);
       let tournament_id = tournament.display_id || (tournament.tuid.length < 15 ? tournament.tuid : '');
 
@@ -2041,21 +1989,21 @@ export const exportFx = function() {
                            widths: ['*'],
                            body: [
                               [{ text: tournament_name || ' ', style: 'docTitle' }],
-                              [{ text: event_name, style: 'subtitle' }],
+                              [{ text: event_name, style: 'subtitle' }]
                            ]
                         },
                         colSpan: 5, 
-                        layout: 'noBorders',
+                        layout: 'noBorders'
                      }, 
                      {}, {}, {}, {}, 
                      {
                         width: 100,
                         image: logo || '',
-                        alignment: 'center',
-                     },
+                        alignment: 'center'
+                     }
                   ],
-                  [ {text: doc_name || lang.tr('signin.doc_name'), colSpan: 6, style: 'docName', alignment: 'center'}, ],
-                  [ {text: lang.tr('signin.doc_subname'), colSpan: 6, style: 'docName', alignment: 'center'}, ],
+                  [ {text: doc_name || lang.tr('signin.doc_name'), colSpan: 6, style: 'docName', alignment: 'center'} ],
+                  [ {text: lang.tr('signin.doc_subname'), colSpan: 6, style: 'docName', alignment: 'center'} ],
 
                   [
                      { text: lang.tr('signin.tournament_date'), style: 'tableHeader' },
@@ -2063,7 +2011,7 @@ export const exportFx = function() {
                      { text: lang.tr('signin.place'), style: 'tableHeader' },
                      { text: '', style: 'tableHeader' },
                      { text: '', style: 'tableHeader' },
-                     { text: lang.tr('signin.judge'), style: 'tableHeader' },
+                     { text: lang.tr('signin.judge'), style: 'tableHeader' }
                   ],
                   [ 
                      date, 
@@ -2071,7 +2019,7 @@ export const exportFx = function() {
                      tournament.location || '',
                      '', 
                      '', 
-                     { text: tournament.judge || ' ', margin: [0, 0, 0, 5] },
+                     { text: tournament.judge || ' ', margin: [0, 0, 0, 5] }
                   ],
                   [
                      { text: lang.tr('signin.id'), style: 'tableHeader', margin: [0, 0, 5, 0] },
@@ -2079,7 +2027,7 @@ export const exportFx = function() {
                      { text: '', style: 'tableHeader' },
                      { text: '', style: 'tableHeader' },
                      {colSpan: 2, rowSpan: 2, text: ' ', border: [true, true, true, true] }, 
-                     { text: '', style: 'tableHeader' },
+                     { text: '', style: 'tableHeader' }
                   ],
                   [ 
                      tournament_id, 
@@ -2088,17 +2036,11 @@ export const exportFx = function() {
                      '',
                      '',
                      ''
-                  ],
+                  ]
                ]
             },
-            layout: {
-               defaultBorder: false,
-               paddingLeft: function(i, node) { return 0; },
-               paddingRight: function(i, node) { return 0; },
-               paddingTop: function(i, node) { return 0; },
-               paddingBottom: function(i, node) { return 0; },
-            }
-         }, {}, {}, {}, {}, {}, {}, {},
+            layout: noPaddingOrBorder
+         }, {}, {}, {}, {}, {}, {}, {}
       ];
 
       let dummy = [
@@ -2109,7 +2051,7 @@ export const exportFx = function() {
          { border: [false, false, false, false], text: ' ' },
          { border: [false, false, false, false], text: ' ' },
          { border: [false, false, false, false], text: ' ' },
-         { border: [false, false, false, false], text: ' ' },
+         { border: [false, false, false, false], text: ' ' }
       ];
 
       let header_row = [ 
@@ -2120,7 +2062,7 @@ export const exportFx = function() {
          { text: lang.tr('prnk'), style: 'centeredTableHeader' }, 
          { text: lang.tr('stt'), style: 'centeredTableHeader' }, 
          { text: lang.tr('ord'), style: 'centeredTableHeader' }, 
-         { text: lang.tr('signin.signature'), style: 'tableHeader' }, 
+         { text: lang.tr('signin.signature'), style: 'tableHeader' }
       ];
 
       let gendered_players = gender ? players.filter(f=>f.sex == gender) : players;
@@ -2136,11 +2078,10 @@ export const exportFx = function() {
                { text: row.last_name.toUpperCase().trim() },
                { text: stringFx.normalizeName(row.first_name, false) },
                { text: row.club_code || row.country || " ", style: row.club_code ? 'centeredColumn' : 'italicCenteredColumn' },
-               // { text: row.rankings && row.rankings[category] ? row.rankings[category] : '', style: 'centeredColumn' },
                { text: row.category_ranking || '', style: 'centeredColumn' },
                { text: " ", style: 'centeredColumn' },
                { text: " ", style: 'centeredColumn' },
-               { text: " " },
+               { text: " " }
             ];
          } else {
             return [ { text: i + 1, style: 'centeredColumn' }, " ", " ", " ", " ", " ", " ", " "];
@@ -2153,53 +2094,53 @@ export const exportFx = function() {
          table: {
             headerRows: 3,
             widths: [ 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 35, '*' ],
-            body: player_rows,
-         },
-      }
+            body: player_rows
+         }
+      };
 
       var docDefinition = {
          pageSize: 'A4',
          pageOrientation: 'portrait',
 
          content: [
-            table_rows,
+            table_rows
          ],
 
          styles: {
             docTitle: {
                fontSize: 16,
-               bold: true,
+               bold: true
             },
             subtitle: {
                fontSize: 12,
-               italics: true,
+               italics: true
             },
             docName: {
                fontSize: 14,
-               bold: true,
+               bold: true
             },
             tableHeader: {
                fontSize: 11,
-               bold: true,
+               bold: true
             },
             centeredTableHeader: {
                alignment: 'center',
                fontSize: 11,
-               bold: true,
+               bold: true
             },
             signatureBox: {
-               border: true,
+               border: true
             },
             centeredColumn: {
                alignment: 'center',
-               border: true,
+               border: true
             },
             italicCenteredColumn: {
                alignment: 'center',
                border: true,
                bold: true,
-               italics: true,
-            },
+               italics: true
+            }
          }
       };
 
@@ -2227,7 +2168,7 @@ export const exportFx = function() {
      }
      
      return new Blob(byteArrays, {type: contentType});
-   }
+   };
 
    exp.getSVGString = getSVGString;
    function getSVGString( svgNode ) {
@@ -2243,31 +2184,31 @@ export const exportFx = function() {
       return svgString;
 
       function getCSSStyles( parentElement ) {
-         var selectorTextArr = [];
+         let selectorTextArr = [];
 
          // Add Parent element Id and Classes to the list
          selectorTextArr.push( '#'+parentElement.id );
-         for (var c = 0; c < parentElement.classList.length; c++)
+         for (let c = 0; c < parentElement.classList.length; c++)
                if ( !contains('.'+parentElement.classList[c], selectorTextArr) )
                   selectorTextArr.push( '.'+parentElement.classList[c] );
 
          // Add Children element Ids and Classes to the list
-         var nodes = parentElement.getElementsByTagName("*");
-         for (var i = 0; i < nodes.length; i++) {
-            var id = nodes[i].id;
+         let nodes = parentElement.getElementsByTagName("*");
+         for (let i = 0; i < nodes.length; i++) {
+            let id = nodes[i].id;
             if ( !contains('#'+id, selectorTextArr) )
                selectorTextArr.push( '#'+id );
 
-            var classes = nodes[i].classList;
-            for (var c = 0; c < classes.length; c++)
+            let classes = nodes[i].classList;
+            for (let c = 0; c < classes.length; c++)
                if ( !contains('.'+classes[c], selectorTextArr) )
                   selectorTextArr.push( '.'+classes[c] );
          }
 
          // Extract CSS Rules
-         var extractedCSSText = "";
-         for (var i = 0; i < document.styleSheets.length; i++) {
-            var s = document.styleSheets[i];
+         let extractedCSSText = "";
+         for (let i = 0; i < document.styleSheets.length; i++) {
+            let s = document.styleSheets[i];
             
             try {
                 if(!s.cssRules) continue;
@@ -2276,8 +2217,8 @@ export const exportFx = function() {
                   continue;
                }
 
-            var cssRules = s.cssRules;
-            for (var r = 0; r < cssRules.length; r++) {
+            let cssRules = s.cssRules;
+            for (let r = 0; r < cssRules.length; r++) {
                if ( contains( cssRules[r].selectorText, selectorTextArr ) )
                   extractedCSSText += cssRules[r].cssText;
             }
@@ -2303,7 +2244,7 @@ export const exportFx = function() {
 
    exp.getDataUri = getDataUri;
    function getDataUri(url) {
-      return new Promise( (resolve, reject) => {
+      return new Promise(resolve => {
           var image = new Image();
 
           image.onload = function () {
@@ -2362,29 +2303,31 @@ export const exportFx = function() {
       console.log('send players to server');
       displayGen.popUpMessage('Send Players to server. Not yet implemented');
       exp.downloadPlayers();
-   }
+   };
 
    exp.sendClubs2Server = () => {
       console.log('send clubs to server');
       displayGen.popUpMessage('Send Clubs to server. Not yet implemented');
-   }
+   };
 
    /*************************** Spreadheet Export ****************************/
    exp.saveWorkbook = (filename = 'export.xlsx') => {
       let wbout = XLSX.write(importFx.loaded.workbook, {bookType:'xlsx', bookSST:true, type: 'binary'});
       let blob = new Blob([s2ab(wbout)],{type:"application/octet-stream"});
       exp.saveBlob(blob, filename);
-   }
+   };
 
    function s2ab(s) {
       if(typeof ArrayBuffer !== 'undefined') {
-         var buf = new ArrayBuffer(s.length);
-         var view = new Uint8Array(buf);
-         for (var i=0; i!=s.length; ++i) view[i] = s.charCodeAt(i) & 0xFF;
-         return buf;
+         let buf = new ArrayBuffer(s.length);
+
+         let view = new Uint8Array(buf);
+         for (let i=0; i!=s.length; ++i) view[i] = s.charCodeAt(i) & 0xFF;
+
+         return view;
       } else {
-         var buf = new Array(s.length);
-         for (var i=0; i!=s.length; ++i) buf[i] = s.charCodeAt(i) & 0xFF;
+         let buf = new Array(s.length);
+         for (let i=0; i!=s.length; ++i) buf[i] = s.charCodeAt(i) & 0xFF;
          return buf;
       }
    }
@@ -2395,10 +2338,12 @@ export const exportFx = function() {
       renderImage(evt.target.files[0]);
 
       function renderImage(file) {
+         /*
          let size = file.size;
          if (size > 50000) {
 
          }
+         */
          let reader = new FileReader();
          reader.onload = function(event) {
             let url = event.target.result;
@@ -2406,12 +2351,12 @@ export const exportFx = function() {
                displayGen.popUpMessage('Must be an image file!');
                return;
             }
-            imageDimensions(url).then(dimensions => analyzeImage(url, dimensions, size), console.log);
-        }
+            imageDimensions(url).then(dimensions => analyzeImage(url, dimensions), console.log);
+        };
         reader.readAsDataURL(file);
       }
 
-      function analyzeImage(url, dimensions, size) {
+      function analyzeImage(url, dimensions) {
          let wh_ratio = dimensions.width / dimensions.height;
          if (wh_ratio < 2.8 || wh_ratio > 3.5) {
             displayGen.popUpMessage(`<div>Ratio: ${wh_ratio}</div><div>Width / Height Ratio must be between 3 and 3.5</div>`);
@@ -2421,15 +2366,13 @@ export const exportFx = function() {
       }
 
       function imageDimensions(url){   
-         return new Promise((resolve, reject) => {
+         return new Promise(resolve => {
             let img = new Image();
-            img.addEventListener("load", function() {
-               resolve({ width: this.naturalWidth, height: this.naturalHeight });
-            });
+            img.addEventListener("load", () => resolve({ width: this.naturalWidth, height: this.naturalHeight }) );
             img.src = url;
          });
       }
-   }
+   };
 
    exp.logoJSON = () => {
       db.findAllSettings().then(exportLogo, util.logError);
@@ -2437,7 +2380,7 @@ export const exportFx = function() {
          let logo = settings.reduce((a, b) => b.key == 'orgLogo' ? b : a, undefined);
          exp.downloadJSON('logo.json', logo);
       }
-   }
+   };
 
    return exp;
  

@@ -1,10 +1,11 @@
-import { db } from './db'
-import { env } from './env'
+import { db } from './db';
+import { env } from './env';
 import { UUID } from './UUID';
-import { util } from './util'
-import { domFx } from './domFx'
-import { staging } from './staging'
+import { util } from './util';
+import { domFx } from './domFx';
+import { staging } from './staging';
 import { lang } from './translator';
+import { fetchFx } from './fetchFx';
 import { rankCalc } from './rankCalc';
 import { stringFx } from './stringFx';
 import { searchBox } from './searchBox';
@@ -14,12 +15,8 @@ import { tournamentParser } from './tournamentParser';
 import { tournamentDisplay } from './tournamentDisplay';
 
 export const importFx = function() {
-   // ****************************** external files ******************************
-   // hts{} required for loading workbooks
-   // d3{} required for parsing CSV files
 
    let load = {
-      // fx: { env: () => { console.log('environment request'); return {}; }, },
       loaded: {},
       reset() {
          load.loaded = {
@@ -29,21 +26,21 @@ export const importFx = function() {
             players: [],
             completed: [],
             outstanding: [],
-            decisions: {},
-         }
+            decisions: {}
+         };
       }
    };
 
    let reload = () => window.location.replace(window.location.pathname);
 
    load.reset();
-   let displayMessage = (msg) => { console.log(msg); }
+   let displayMessage = (msg) => console.log(msg);
 
    let cache = { ignored: [] };
    load.loadCache = () => {
       cache.aliases = {};
       db.findAllClubs().then(arr => cache.club_codes = arr.map(club => club.code));
-   }
+   };
 
    let validExtension = (filename) => {
       if (filename.length < 0) return;
@@ -51,8 +48,9 @@ export const importFx = function() {
       let validExt = ["csv", "xls", "xlsm", "xlsx", "json"];
       let index = validExt.indexOf(ext);
       if (index >= 0) return validExt[index];
-   }
+   };
 
+   /*
    function parseCSV(file_content) {
       let rows = [];
       d3.csvParse(file_content, function(row) { 
@@ -62,13 +60,14 @@ export const importFx = function() {
       });
       return rows;
    }
+   */
 
    load.parseFileName = (filename) => {
       let parts = filename.split('_');
 
       let meta = {
          filename,
-         filetype: validExtension(filename),
+         filetype: validExtension(filename)
       };
 
       let parse_category = parts[0].match(/\d+/) || (parts[0] == 'RS' ? [20] : undefined);
@@ -95,16 +94,14 @@ export const importFx = function() {
       }
       */
       return meta;
-   }
+   };
 
    function determineDate(value) {
       if (!value) return undefined;
       return isNaN(value) ? new Date(value).getTime() : new Date(+value).getTime();
    }
 
-   function syncCZEplayers(rows, callback) {
-      console.log('cze players:', rows);
-   }
+   // function syncCZEplayers(rows) { console.log('cze players:', rows); }
 
    function importJotForm(rows, callback) {
       let players = processSheetPlayers(rows);
@@ -123,7 +120,7 @@ export const importFx = function() {
       let player_birth = (['birth', 'birthdate', 'birthday', 'birth date', 'date of birth'].filter(k=>keys.indexOf(k) >= 0).length);
 
       if (player_name || player_gender || player_profile || player_birth) return 'players';
-   }
+   };
 
    load.processSheetPlayers = processSheetPlayers;
    function processSheetPlayers(rows) {
@@ -149,10 +146,18 @@ export const importFx = function() {
          if (!player.first_name || !player.last_name) return;
 
          player.email = findAttr(row, ['e-mail', 'email']);
-         player.phone = findAttr(row, ['phone', 'Phone Number', "Player's Phone Number"]);
+
+         let phone = findAttr(row, ['phone', 'Phone Number', "Player's Phone Number", 'Handphone Number']);
+         let contains_phone = attrContains(row, ['phone', 'Phone Number', "Player's Phone Number", 'Handphone Number']);
+         player.phone = phone || contains_phone;
+
          player.city = findAttr(row, ['City']);
          player.state = findAttr(row, ['State']);
-         player.school = findAttr(row, ['School', 'College']);
+
+         let school = findAttr(row, ['School', 'College']);
+         let contains_school = attrContains(row, ['School', 'College']);
+         player.school = school || contains_school;
+
          player.profile = findAttr(row, ['Profile', 'UTR Profile', 'UTR Player Profile Link', "Player's UTR Profile Link"]);
          player.location = findAttr(row, ['Location']);
          player.rank = findAttr(row, ['Rank', 'Ranking']);
@@ -170,9 +175,11 @@ export const importFx = function() {
          if (['male', 'man', 'm', 'b', 'boy'].indexOf(gender) >= 0) player.sex = 'M';
          if (['female', 'w', 'f', 'g', 'girl', 'woman'].indexOf(gender) >= 0) player.sex = 'W';
 
+         let ioc = findAttr(row, ['IOC']);
+         if (ioc) player.ioc = ioc;
+
          let country = findAttr(row, ['Country', 'Nationality']);
          if (country) { player.ioc = iocs.indexOf(country.toLowerCase()) >= 0 ? country.toLowerCase() : code_by_country[compressName(country)]; }
-         let ioc = findAttr(row, ['IOC']);
 
          let birth = findAttr(row, ['Birth', 'Birthdate', 'Birthday', 'Birth Date', 'Date of Birth', "Player's Birthdate"]);
          if (birth) {
@@ -206,11 +213,11 @@ export const importFx = function() {
             { attr: 'rating_utr_doubles', header: 'Verified DoublesUtr' }, 
             { attr: 'rating_utr_doubles', header: 'DoublesRating', sheet_name: 'Matched Players' }, 
             { attr: 'rating_utr_doubles_status', header: 'Verified DoublesUtr Status' }, 
-            { attr: 'rating_utr_doubles_status', header: 'RatingStatusDoubles' }, 
+            { attr: 'rating_utr_doubles_status', header: 'RatingStatusDoubles' }
          ];
          let attributes = Object.assign({}, ...headers.map(obj => {
             let value = findAttr(row, [obj.header]);
-            if (value) return { [obj.attr]: value }
+            if (value) return { [obj.attr]: value };
          }).filter(f=>f));
          return attributes;
       }
@@ -219,6 +226,14 @@ export const importFx = function() {
       function findAttr(row, attrs = []) {
          let attributes = attrs.concat(...attrs.map(attr => attr.toLowerCase().split(' ').join('')));
          return attributes.reduce((p, c) => row[c] || p, undefined);
+      }
+
+      function attrContains(row, attrs = []) {
+         let attributes = attrs.concat(...attrs.map(attr => attr.toLowerCase().split(' ').join('')));
+         let possible = Object.keys(row)
+            .filter(header => attributes.reduce((p, c) => header.indexOf(c) >= 0 ? c : p, undefined))
+            .map(p=>row[p]);
+         return possible && possible.length ? possible[0] : undefined;
       }
 
       return players;
@@ -233,7 +248,7 @@ export const importFx = function() {
          if (name) {
             player.puid = player.puid || UUID.new();
 
-            player.hash = util.nameHash(name);
+            player.hash = stringFx.nameHash(name);
             player.birth = determineDate(player.birth);
             player.first_name = stringFx.normalizeName(player.first_name, false);
             player.last_name = stringFx.normalizeName(player.last_name, false);
@@ -246,12 +261,12 @@ export const importFx = function() {
          }
       });
 
-      load.processPlayers(player_list).then(done, importFailure);;
+      load.processPlayers(player_list).then(done, importFailure);
 
       function done() {
          setTimeout(function() { displayGen.busy.done(id); }, 3000);
       }
-   }
+   };
 
    function importFailure(what) {
       alert('Import Failed');
@@ -302,22 +317,21 @@ export const importFx = function() {
    }
 
    function importRankings(rows) {
-      return new Promise((resolve, reject) => {
+      return new Promise(resolve => {
          let id = displayGen.busy.message('<p>Loading Rankings...</p>');
-         let rank_lists = {};
          if (!Array.isArray(rows)) return displayGen.busy.done(id);
 
          let categories = util.unique(rows.map(r=>staging.legacyCategory(r.category)));
 
          let category_rankings = categories.map(category => {
             let records = rows.filter(f=>f.category == category);
-            let player_rankings = Object.assign({}, ...records.map(r => { return { [r.id]: r }}));
+            let player_rankings = Object.assign({}, ...records.map(r => ({ [r.id]: r }) ));
             return { category, players: player_rankings, date: new Date().getTime() };
          });
 
          util.performTask(db.addCategoryRankings, category_rankings, false).then(done, done);
 
-         function done(foo) { 
+         function done() { 
             displayGen.busy.done(id); 
             return resolve();
          }
@@ -328,7 +342,7 @@ export const importFx = function() {
       let callbacks = () => {
          if (callback && typeof callback == 'function') callback();
          searchBox.searchSelect('tournaments');
-      }
+      };
       let id = displayGen.busy.message(`<p>${lang.tr('phrases.trnyz')}</p>`, callbacks);
       let tournaments = [];
       if (!Array.isArray(rows)) rows = [rows];
@@ -348,8 +362,7 @@ export const importFx = function() {
                end: determineDate(record.end),
                draws: record.draws || '',
                rank: record.rank,
-               category: staging.legacyCategory(record.category),
-
+               category: staging.legacyCategory(record.category)
             };
             console.log(tournament.category);
             if (record.id && tournament.name) tournaments.push(tournament);
@@ -357,11 +370,11 @@ export const importFx = function() {
       });
       util.performTask(db.addTournament, tournaments, false).then(done, done);
 
-      function done(foo) { setTimeout(function() { displayGen.busy.done(id); }, 2000); }
+      function done() { setTimeout(function() { displayGen.busy.done(id); }, 2000); }
    }
 
    load.addNewTournaments = (trnys) => {
-      let callback = () => searchBox.searchSelect('tournaments');
+      // let callback = () => searchBox.searchSelect('tournaments');
       let id = displayGen.busy.message(`<p>${lang.tr('trnyz')}</p>`);
       console.log(id);
       util.performTask(db.addTournament, trnys, false).then(done, () => displayGen.busy.done(id));
@@ -370,7 +383,7 @@ export const importFx = function() {
          console.log('done:', foo);
          displayGen.busy.done(id);
       }
-   }
+   };
 
    load.findTournament = () => {
       return new Promise((resolve, reject) => {
@@ -384,7 +397,7 @@ export const importFx = function() {
             entry_modal.remove();
             document.body.style.overflow = null;
             displayGen.escapeFx = undefined;
-         }
+         };
 
          obj.search_field.element.addEventListener("keyup", function(e) { 
             if (e.which == 13) {
@@ -394,14 +407,15 @@ export const importFx = function() {
                   db.findTournament(id).then(checkTournament, reject).then(resolve, reject);
                } else {
                   removeEntryModal();
-                  calendarFx.createNewTournament({ tournament_data: load.loaded.tournament, title: lang.tr('tournaments.new'), callback: receiveNewTournament })
-                  function receiveNewTournament(tournament) {
-                     if (tournament) {
-                        setTournament(tournament).then(resolve, reject);
-                     } else {
-                        return reject();
-                     }
-                  }
+                  calendarFx.createNewTournament({ tournament_data: load.loaded.tournament, title: lang.tr('tournaments.new'), callback: receiveNewTournament });
+               }
+            }
+
+            function receiveNewTournament(tournament) {
+               if (tournament) {
+                  setTournament(tournament).then(resolve, reject);
+               } else {
+                  return reject();
                }
             }
          });
@@ -495,7 +509,7 @@ export const importFx = function() {
             });
          }
       });
-   }
+   };
 
    // TODO: processPlayers(), processPlayer() should be part of another module...
    
@@ -505,13 +519,13 @@ export const importFx = function() {
       return new Promise((resolve, reject) => {
          if (!players.length) { return resolve(); }
 
-         // make a copy of the data first!
-         let data = players.map(player => { return { player }});
+         // make a copy of the data first
+         // TODO: ??????
+         let data = players.map(player => ({ player }) );
 
          util.performTask(processPlayer, data)
             .then(results => {
                let added = results.filter(f => f == 'added').length;
-               let unique = results.filter(f => f == 'unique').length;
 
                let actions_required = results.filter(f => typeof f == 'object')
                   .map(a => (a.status == 'completed') ? { status: a.status, original: a.player, player: a.result[0] } : a);
@@ -523,7 +537,7 @@ export const importFx = function() {
                } else {
                   return resolve(added);
                }
-            })
+            });
       });
    }
 
@@ -540,7 +554,7 @@ export const importFx = function() {
                } else {
                   let a_player = antiAlias({player});
                   processPlayer({player: a_player, recursion: recursion + 1})
-                     .then(resolve, () => resolve({ status: 'unknown', player: player, })); 
+                     .then(resolve, () => resolve({ status: 'unknown', player: player })); 
                }
             } else if (result.length == 1) { 
                // player exists and is unique
@@ -580,14 +594,151 @@ export const importFx = function() {
          .selectAll('.action_edit')
          .on('click', (d, i, elem) => { 
             d3.event.stopPropagation(); 
-            tournamentDisplay.identifyPlayer(elem[i]); 
+            identifyPlayer(elem[i]); 
          });
 
       searchBox.focus();
    }
 
+   // used when importing tournaments from spreadsheets... (?)
+   function identifyPlayer(elem) {
+      let e = d3.select(elem);
+      let index = e.attr('action_index');
+      let action = load.loaded.outstanding[index];
+      let original = { original: action.player };
+      let player = action.player;
+
+      if (searchBox.active.player && searchBox.active.player.puid) {
+         let player = { player: searchBox.active.player };
+
+         if (action.status == 'unknown') {
+            load.loaded.decisions[index] = Object.assign({}, { action: 'aliased' }, original, player, { status: 'completed' });
+         } else if (action.status == 'duplicate') {
+            load.loaded.decisions[index] = Object.assign({}, { action: 'identified' }, original, player, { status: 'completed' });
+         }
+
+         displayGen.markAssigned(e);
+         // let row = domFx.getParent(elem, 'section_row');
+         e.select('.undo').on('click', () => { d3.event.stopPropagation(); undoAction(elem); });
+         displayGen.moveToBottom(elem);
+         clearActivePlayer();
+         submitEdits();
+
+         return;
+      }
+
+      let container = displayGen.identifyPlayer(player);
+      container.save.element.addEventListener('click', () => { displayGen.closeModal('edit'); });
+      container.cancel.element.addEventListener('click', () => { displayGen.closeModal('edit'); });
+   }
+
+   function ignorePlayer(row) {
+      let e = d3.select(row);
+      let index = e.attr('action_index');
+      let action = load.loaded.outstanding[index];
+      let original = { original: action.player };
+
+      load.loaded.decisions[index] = Object.assign({}, action, { action: 'ignored' }, original, { status: 'completed' });
+
+      displayGen.undoButton(e);
+      e.select('.undo').on('click', () => { d3.event.stopPropagation(); undoAction(row); });
+      displayGen.moveToBottom(row);
+
+      submitEdits();
+   }
+
+   function undoAction(row) {
+      let e = d3.select(row);
+      let index = e.attr('action_index');
+      let action = load.loaded.outstanding[index];
+      // let type = (action.status == 'unknown') ? lang.tr('unk') : lang.tr('dup');
+
+      displayGen.ignoreButton(e, action);
+      // displayGen.ignoreButton(e);
+      e.select('.ignore').on('click', () => { d3.event.stopPropagation(); ignorePlayer(row); });
+
+      delete load.loaded.decisions[index];
+      clearActivePlayer();
+      displayGen.moveToTop(row);
+   }
+
+   function clearActivePlayer() {
+      searchBox.active = {};
+      displayGen.clearActivePlayer();
+      searchBox.focus();
+   }
+
+   function submitEdits() {
+      searchBox.focus();
+      if (load.loaded.outstanding.length != Object.keys(load.loaded.decisions).length) return false;
+      searchBox.active = {};
+      displayGen.submitEdits();
+
+      Array.from(displayGen.identify_container.action_message.element.querySelectorAll('button.accept'))
+         .forEach(elem => elem.addEventListener('click', acceptEdits));
+
+      function acceptEdits() {
+         if (load.loaded.outstanding.length != Object.keys(load.loaded.decisions).length) return false;
+
+         let actions = Object.keys(load.loaded.decisions).map(k => {
+            let decision = load.loaded.decisions[k];
+            if (decision.action == 'aliased') {
+               load.addAlias({ alias: decision.original.hash, hash: decision.player.hash });
+            }
+            if (decision.action == 'ignored' && decision.player.ioc) {
+               load.addIgnore({ hash: decision.original.hash, ioc: decision.player.ioc });
+            }
+            return decision;
+         });
+
+         load.loaded.outstanding = [];
+         actions = actions.concat(...load.loaded.completed);
+
+         let players = load.updatePlayers(actions);
+         if (!players) processLoadedTournament();
+      }
+   }
+
+   function processLoadedTournament() {
+      if (!load.loaded.tournament) return fetchFx.fileNotRecognized();
+
+      if (load.loaded.outstanding && load.loaded.outstanding.length) {
+         console.log('Cannot Process Tournament with Outstanding Actions');
+         return;
+      }
+
+      if (load.loaded.meta && load.loaded.meta.filecategory && load.loaded.meta.filecategory != load.loaded.meta.category) load.loaded.meta.category = '';
+
+      let trny = {
+         sid: load.loaded.tournament.sid,
+         tuid: load.loaded.meta.tuid,
+         start: load.loaded.start,
+         end: load.loaded.meta.date || load.loaded.date,
+         name: load.loaded.meta.name,
+         category: load.loaded.tournament.category
+      };
+
+      if (load.loaded.accepted) {
+         trny.accepted = {};
+         if (load.loaded.accepted.M) trny.accepted.M = load.loaded.accepted.M;
+         if (load.loaded.accepted.W) trny.accepted.W = load.loaded.accepted.W;
+      }
+
+      if (load.loaded.results) {
+         let ranks = load.loaded.results.ranks;
+         trny.rank_opts = {
+            category: load.loaded.meta.category,
+            sgl_rank: ranks.singles != undefined ? ranks.singles : load.loaded.meta.rank,
+            dbl_rank: ranks.doubles != undefined ? ranks.doubles : load.loaded.meta.rank
+         };
+      }
+
+      let {tournament, container} = tournamentDisplay.createTournamentContainer({ tournament: trny, dbmatches: load.loaded.matches });
+      tournamentDisplay.calcPlayerPoints({ date: tournament.end, tournament, matches: load.loaded.matches, container });
+   }
+
    // TODO: implement this!
-   function validIOC(code) { return true; }
+   function validIOC() { return true; }
    function validClubCode(code) { return cache.club_codes && cache.club_codes.indexOf(code) >= 0; }
 
    load.updatePlayers = updatePlayers;
@@ -657,14 +808,14 @@ export const importFx = function() {
          // then use hash_map to replace hashes with real puids 
          match.puids = match.puids.map(puid => {
             if (!hash_map[puid]) console.log('missing puid for match:', match);
-            return hash_map[puid].puid || puid
+            return hash_map[puid].puid || puid;
          });
          // then replace player details with hash_map details 
          match.players.forEach(player => Object.assign(player, hash_map[player.hash]));
       });
    }
 
-   function antiAlias({player, match, pt}) {
+   function antiAlias({player, match}) {
       if (player) {
          player.hash = cache.aliases[player.hash] || player.hash;
          return player;
@@ -680,11 +831,11 @@ export const importFx = function() {
 
    load.loadTournamentDragAndDrop = (dropzone, initFx, callback) => {
       load.loadDragAndDrop({ dropzone, initFx, callback, processFx: loadTournamentRecord });
-   }
+   };
 
    load.loadPlayersDragAndDrop = (dropzone, initFx, callback) => {
       load.loadDragAndDrop({ dropzone, initFx, callback, processFx: loadPlayerFile });
-   }
+   };
 
    load.loadDragAndDrop = ({ dropzone, initFx, callback, processFx }) => {
       let isAdvancedUpload = function() {
@@ -693,13 +844,15 @@ export const importFx = function() {
       }();
 
       let input = dropzone.querySelector('input[type="file"]');
-      let label = dropzone.querySelector('label');
+      // let label = dropzone.querySelector('label');
       let droppedFiles = false;
+      /*
       let showFiles = (files) => {
          label.textContent = (files.length > 1)
             ? ( input.getAttribute( 'data-multiple-caption' ) || '' ).replace( '{count}', files.length ) 
             : files[ 0 ].name;
       };
+      */
 
       input.addEventListener('change', e => processFile(e.target.files));
 
@@ -737,7 +890,7 @@ export const importFx = function() {
             console.log('no processing function');
          }
       };
-   }
+   };
 
    function loadTournamentRecord(file, callback) {
       load.loaded.meta = load.parseFileName(file.name);
@@ -812,15 +965,15 @@ export const importFx = function() {
    }
 
    load.importTournamentRecord = () => {
-      return new Promise((resolve, reject) => {
+      return new Promise(resolve => {
          let id_obj = displayGen.dropZone();
          let callback = () => {
             searchBox.searchSelect('tournaments');
             resolve();
-         }
-         importFx.loadTournamentDragAndDrop(id_obj.dropzone.element, ()=>{}, callback);
+         };
+         load.loadTournamentDragAndDrop(id_obj.dropzone.element, ()=>{}, callback);
       });
-   }
+   };
 
    load.initDragAndDrop = (initFx, callback) => {
       let isAdvancedUpload = function() {
@@ -831,13 +984,15 @@ export const importFx = function() {
       let forms = document.querySelectorAll('.dropzone');
       Array.from(forms).forEach(form => {
          let input = form.querySelector('input[type="file"]');
-         let label = form.querySelector('label');
+         // let label = form.querySelector('label');
          let droppedFiles = false;
+         /*
          let showFiles = (files) => {
             label.textContent = (files.length > 1)
                ? ( input.getAttribute( 'data-multiple-caption' ) || '' ).replace( '{count}', files.length ) 
                : files[ 0 ].name;
          };
+         */
 
          input.addEventListener('change', e => processFile(e.target.files));
 
@@ -872,7 +1027,7 @@ export const importFx = function() {
             loadFile(file, callback);
          };
       });
-   }
+   };
 
    function loadFile(file, callback) {
       load.loaded.meta = load.parseFileName(file.name);
@@ -939,7 +1094,7 @@ export const importFx = function() {
          tournaments() { loadTournaments(json, callback); },
          tournamentsCSV() { importTournaments(json, callback); },
          jotFormCSV() { importJotForm(json, callback); },
-         czeSync() { loadPlayerList(json, callback); },
+         czeSync() { loadPlayerList(json, callback); }
       };
 
       let data_type = identifyJSON(json);
@@ -977,7 +1132,7 @@ export const importFx = function() {
       if (displayGen.busy && what) displayGen.busy.message(`<p>Loading ${what}...</p>`);
       util.performTask(fx, Array.isArray(arr) ? arr : [arr], false).then(finish, finish);
 
-      function finish(results) { 
+      function finish() { 
          displayGen.busy.done();
          if (callback && typeof callback == 'function') callback();
       }
@@ -985,21 +1140,21 @@ export const importFx = function() {
 
    load.addAlias = ({alias, hash}) => {
       cache.aliases[alias] = hash;
-   }
+   };
 
    load.addIgnore = ({hash, ioc}) => {
       let stored = `${hash}-IOC-${ioc}`;
       cache.ignored.push(stored);
-   }
+   };
 
    function addDraw(draw) { console.log(draw); }
 
-   function loadDraws(arr) { loadTask(addDraw, arr, 'Draws'); };
+   function loadDraws(arr) { loadTask(addDraw, arr, 'Draws'); }
    function loadSettings(arr) {
       loadTask(db.addSetting, arr, 'Settings', reload);
    }
-   function loadTournaments(arr, callback) { loadTask(db.addTournament, arr, 'Tournaments', callback); };
-   function loadPointEvents(arr) { loadTask(db.addPointEvent, arr.filter(e => e.points && e.puid), 'Points'); };
+   function loadTournaments(arr, callback) { loadTask(db.addTournament, arr, 'Tournaments', callback); }
+   function loadPointEvents(arr) { loadTask(db.addPointEvent, arr.filter(e => e.points && e.puid), 'Points'); }
 
    function loadPlayerList(arr) { 
       let callback = () => searchBox.searchSelect('players');
@@ -1032,7 +1187,7 @@ export const importFx = function() {
 
       if (workbook_type == 'tournament') {
          processWorkbook(workbook);
-         let process = () => load.processPlayers().then(tournamentDisplay.processLoadedTournament, identifyPlayers);
+         let process = () => load.processPlayers().then(processLoadedTournament, identifyPlayers);
          load.findTournament().then(process, util.logError);
       }
 
@@ -1044,9 +1199,9 @@ export const importFx = function() {
          let rankings = extractRankings(workbook);
          let clubs = extractClubs(workbook);
 
-         let addPlayers = () => new Promise((resolve, reject) => util.performTask(db.addPlayer, players, false).then(resolve, resolve));
-         let addTournaments = () => new Promise((resolve, reject) => util.performTask(db.addTournament, tournaments, false).then(resolve, resolve));
-         let addClubs = () => new Promise((resolve, reject) => util.performTask(db.addClub, clubs, false).then(resolve, resolve));
+         let addPlayers = () => new Promise(resolve => util.performTask(db.addPlayer, players, false).then(resolve, resolve));
+         let addTournaments = () => new Promise(resolve => util.performTask(db.addTournament, tournaments, false).then(resolve, resolve));
+         let addClubs = () => new Promise(resolve => util.performTask(db.addClub, clubs, false).then(resolve, resolve));
          let addRankings = () => importRankings(rankings);
 
          if (typeof callback == 'function') {
@@ -1054,13 +1209,14 @@ export const importFx = function() {
             return callback(players);
          }
 
-         addPlayers().then(addTournaments).then(addRankings).then(addClubs).then(notify);
+         addPlayers().then(addTournaments).then(addRankings).then(addClubs).then(() => notify(id));
         
-         function notify() {
-            displayGen.busy.done(id);
-            let message = 'Players Imported';
-            displayGen.okCancelMessage(message, reload, () => displayGen.closeModal());
-         }
+      }
+
+      function notify(id) {
+         displayGen.busy.done(id);
+         let message = 'Players Imported';
+         displayGen.okCancelMessage(message, reload, () => displayGen.closeModal());
       }
    }
 
@@ -1099,7 +1255,7 @@ export const importFx = function() {
          { attr: 'phone', header: 'Phone' }, 
          { attr: 'school', header: 'School' }, 
          { attr: 'school', header: 'College' }, 
-         { attr: 'profile', header: 'Profile' }, 
+         { attr: 'profile', header: 'Profile' }
       ].filter(s=>!s.sheet_name || s.sheet_name == sheet_name);
       let players = extractWorkbookRows(workbook.Sheets[sheet_name], headers);
       players.forEach(player => {
@@ -1140,7 +1296,7 @@ export const importFx = function() {
                   } else if (format) {
                      player.ratings[type][format].value = player[key];
                   } else {
-                     player.ratings[type].value = player[key]
+                     player.ratings[type].value = player[key];
                   }
                }
             }
@@ -1159,7 +1315,7 @@ export const importFx = function() {
          { attr: 'end', header: 'End Date' }, 
          { attr: 'draws', header: 'Draws' }, 
          { attr: 'rank', header: 'Rank' }, 
-         { attr: 'category', header: 'Category' }, 
+         { attr: 'category', header: 'Category' }
       ]; 
       let tournaments = extractWorkbookRows(workbook.Sheets.Tournaments, headers);
 
@@ -1181,7 +1337,7 @@ export const importFx = function() {
          { attr: 'club_code', header: 'Club Code' }, 
          { attr: 'club_name', header: 'Club Name' }, 
          { attr: 'sex', header: 'Gender' }, 
-         { attr: 'dbls', header: 'Dbls' }, 
+         { attr: 'dbls', header: 'Dbls' }
       ]; 
       let rankings = extractWorkbookRows(workbook.Sheets.Rankings, headers);
       rankings.forEach(ranking => { ranking.category == staging.legacyCategory(ranking.category); });
@@ -1192,7 +1348,7 @@ export const importFx = function() {
       if (workbook.SheetNames.indexOf('Clubs') < 0) return [];
       let headers = [ 
          { attr: 'id', header: 'Club ID' }, 
-         { attr: 'name', header: 'Name' }, 
+         { attr: 'name', header: 'Name' }
       ]; 
       let clubs = extractWorkbookRows(workbook.Sheets.Clubs, headers);
       return clubs;
@@ -1203,7 +1359,7 @@ export const importFx = function() {
          let val = cell ? cell.w : '';
          val = (typeof val == 'string') ? val.trim() : val;
          return val;
-      }
+      };
       let getCol = (reference) => reference ? reference[0] : undefined;
       let getRow = (reference) => reference && /\d+/.test(reference) ? parseInt(/\d+/.exec(reference)[0]) : undefined;
       let findValueRefs = (search_text, sheet) => Object.keys(sheet).filter(ref => cellValue(sheet[ref]) == search_text);
@@ -1236,6 +1392,7 @@ export const importFx = function() {
             if (phash.indexOf(player.hash) < 0) {
                phash.push(player.hash);
                if (player.club && player.club.indexOf('INO') >= 0) {
+                  // eslint-disable-next-line no-useless-escape
                   player.ioc = player.club.replace('INO', '').replace(/[-,\/]+/g, '').trim();
                   player.club = '';
                }
@@ -1244,7 +1401,7 @@ export const importFx = function() {
                   first_name: stringFx.normalizeName(player.first_name, false),
                   last_name: stringFx.normalizeName(player.last_name, false),
                   club: player.club,
-                  ioc: player.ioc,
+                  ioc: player.ioc
                });
             }
          });
@@ -1273,7 +1430,7 @@ export const importFx = function() {
          */
             load.loaded.tournament = {
                name: workbook.Sheets[workbook.SheetNames[0]].A1.v,
-               category: load.loaded.results.categories[0],
+               category: load.loaded.results.categories[0]
             };
          // }
       }

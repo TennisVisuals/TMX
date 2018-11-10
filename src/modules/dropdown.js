@@ -58,7 +58,7 @@ export const dd = function() {
             fx.closeAllDropDowns(obj.class);
 
             // active ddlb if option not found or dd_state found before option
-            if (dd_state && (!option_depth || dd_state_depth < option_depth)) dd_state.classList[actv ? 'remove' : 'add']("active")
+            if (dd_state && (!option_depth || dd_state_depth < option_depth)) dd_state.classList[actv ? 'remove' : 'add']("active");
 
             // prevent the click from propagating to the document
             e.stopPropagation();
@@ -67,8 +67,8 @@ export const dd = function() {
    }
 
    function addOptClicks(obj) {
-      Array.from(obj.opts).forEach((opt, i) => {
-         opt.addEventListener("click", e => {
+      Array.from(obj.opts).forEach(opt => {
+         opt.addEventListener("click", () => {
             obj.list.classList.remove("active");
             let key = opt.querySelector("span:first-of-type");
             let value = key.getAttribute("value");
@@ -98,8 +98,8 @@ export const dd = function() {
        getValue() { return this.val; },
        setId(id) { this.id = id; },
        getId() { return this.id; },
-       lock() { this.locked = true },
-       unlock() { this.locked = false },
+       lock() { this.locked = true; },
+       unlock() { this.locked = false; },
        setOptions(options, style='') {
           if (!Array.isArray(options) || !options.length || !this.list) return;
           let list = this.list.querySelector('ul');
@@ -114,7 +114,7 @@ export const dd = function() {
        getOptions() { 
           return Array.from(this.opts).map(o => {
              let e = o.querySelector('span:first-of-type');
-             return { key: e.innerHTML, value: e.getAttribute('value') }
+             return { key: e.innerHTML, value: e.getAttribute('value') };
           }); 
        },
        setValue(value, background, color, border) { 
@@ -156,15 +156,15 @@ export const dd = function() {
        borderColor(color) {
           if (color) this.bordercolor = color;
           if (this.bordercolor && this.options && this.options.style) this.options.style.border = `1px solid ${this.bordercolor}`;
-       },
-   }
+       }
+   };
 
    let dropDownHTML = (label, options = [], selected, border=true, style, floatleft) => {
       let selected_option = selected != undefined && options[selected] ? options[selected].key : '';
       let options_style = border ? "style='border: 1px solid #000;'" : "";
       let options_html = options.map(option => optionHTML(option, style)).join('');
       let html = `
-         <div class='label'>${label}</div>
+         <div class='dd-label'>${label}</div>
          <div class='options' ${options_style}>
             <ul>
                <li class='dd_state'>
@@ -178,7 +178,7 @@ export const dd = function() {
             </ul>
          </div>`;
       return html;
-   }
+   };
 
    fx.attachDropDown = ({ element, id, label = '', options, selected = 0, css_class, border, style, floatleft, display='flex' }) => {
       if (!id && !element) return;
@@ -187,12 +187,12 @@ export const dd = function() {
       element.style.display = display;
       element.classList.add(css_class || "dd");
       element.innerHTML = dropDownHTML(label, options, selected, border, style, floatleft);
-   }
+   };
 
-   fx.closeAllDropDowns = (css_class) => {
+   fx.closeAllDropDowns = () => {
       let elems = document.querySelectorAll('li.dd_state.active');
-      Array.from(elems).forEach(elem => { elem.classList.remove('active'); })
-   }
+      Array.from(elems).forEach(elem => { elem.classList.remove('active'); });
+   };
 
    document.addEventListener("click", () => fx.closeAllDropDowns());
 

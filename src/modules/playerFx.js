@@ -1,5 +1,5 @@
-import { db } from './db'
-import { env } from './env'
+import { db } from './db';
+import { env } from './env';
 import { util } from './util';
 import { dd } from './dropdown';
 import { domFx } from './domFx';
@@ -21,7 +21,7 @@ export const playerFx = function() {
       action: undefined,
       override: undefined,
       displayFx: undefined,
-      displayTournament: () => console.log('display tournament'),
+      displayTournament: () => console.log('display tournament')
    };
 
    fx.resetPlayerAction = () => {
@@ -29,7 +29,7 @@ export const playerFx = function() {
       fx.notInDB = undefined;
       fx.override = undefined;
       fx.displayFx = undefined;
-   }
+   };
 
    function catchTab(evt) { if (evt.which == 9) { evt.preventDefault(); } }
 
@@ -44,7 +44,7 @@ export const playerFx = function() {
          searchBox.active.player = player;
          db.findClub(player.club + '').then(club => { setActivePlayer(player, club || {}); });
       });
-   }
+   };
 
    fx.clearEntry = (teams = []) => teams.forEach(team => team.forEach(player => player.entry = undefined));
 
@@ -64,12 +64,12 @@ export const playerFx = function() {
             let firstlast = arr.map(player => { 
                let label = stringFx.normalizeName([player.first_name, player.last_name].join(' '), noaccents);
                if (player.birth) label += ` [${new Date(player.birth).getFullYear()}]`;
-               return { value: player.puid, label, }
+               return { value: player.puid, label };
             });
             let lastfirst = arr.map(player => { 
                let label = `${stringFx.normalizeName(player.last_name, noaccents).toUpperCase()} ${stringFx.normalizeName(player.first_name, noaccents)}`;
                if (player.birth) label += ` [${new Date(player.birth).getFullYear()}]`;
-               return { value: player.puid, label }
+               return { value: player.puid, label };
             });
 
             if (env.searchbox.lastfirst) {
@@ -77,9 +77,9 @@ export const playerFx = function() {
             } else {
                resolve(firstlast);
             }
-         });
+         }, reject);
       });
-   }
+   };
 
    fx.eligibleForCategory = ({ calc_date, category, player }) => {
       if (!calc_date) return false;
@@ -103,7 +103,7 @@ export const playerFx = function() {
          return true;
       }
       return false;
-   }
+   };
 
    fx.displayPlayerProfile = displayPlayerProfile;
    function displayPlayerProfile({ puid, ranking_date=new Date(), fallback }) {
@@ -134,11 +134,11 @@ export const playerFx = function() {
                         setDefaultDate: true,
                         i18n: lang.obj('i18n'),
                         firstDay: env.calendar.first_day,
-                        toString(date) { return dateFx.formatDate(date); },
+                        toString(date) { return dateFx.formatDate(dateFx.timeUTC(date)); },
                         onSelect: function() { 
                            ranking_date = this.getDate();
                            displayPoints(player, club, points, ranking_date);
-                        },
+                        }
                      });
                      env.date_pickers.push(rankingDate);
 
@@ -178,8 +178,8 @@ export const playerFx = function() {
             });
 
             let expire_date = expireDate(Date.now());
-            let expired = points.filter(p=>new Date(p.date).getTime() <= expire_date)
-            let valid = points.filter(p=>new Date(p.date).getTime() > expire_date)
+            let expired = points.filter(p=>new Date(p.date).getTime() <= expire_date);
+            let valid = points.filter(p=>new Date(p.date).getTime() > expire_date);
             let lifoDate = (pts) => pts.sort((a, b) => (b.date || 0) - a.date);
             let orderPoints = (pts) => [].concat(...lifoDate(singles(pts)), ...lifoDate(doubles(pts)));
 
@@ -193,7 +193,6 @@ export const playerFx = function() {
 
             let dt = (evt) => fx.displayTournament({tuid: domFx.getParent(evt.target, 'point_click').getAttribute('tuid')});
             Array.from(container.rankings.element.querySelectorAll('.point_click')).forEach(elem => elem.addEventListener('click', dt));
-
          }
 
          function displayMatches(matches) {
@@ -219,10 +218,10 @@ export const playerFx = function() {
                   let data = {
                      key: '',
                      year: '',
-                     values: final_rounds,
-                  }
+                     values: final_rounds
+                  };
                   let season_events = { 'item': { 'click': d => fx.displayTournament({tuid: d.tournament.tuid}) }};
-                  let playerSeason = displayGen.playerSeason(container, data, season_events);
+                  displayGen.playerSeason(container, data, season_events);
                }
             }
          }
@@ -241,11 +240,10 @@ export const playerFx = function() {
          // then displayGen.showDoublesMatches() to display all matches that team has played...
          console.log('doubles match');
       }
-   }
+   };
 
-   // TEMPORARY
+   /*
    function showMatch(elem, what = 'match') {
-
       let e = d3.select(elem);
       let muid = e.attr('muid');
       let tuid = e.attr('tuid');
@@ -256,6 +254,7 @@ export const playerFx = function() {
       `;
       displayGen.showEdit(html);
    }
+   */
 
    // TODO: NOT USED??
    fx.scheduledMatchDetails = scheduledMatchDetails;
@@ -275,7 +274,7 @@ export const playerFx = function() {
    }
 
    // cleanPlayer removes all calculated Points and calculated Rankings
-   fx.cleanPlayer = (player) => Object.assign({}, ...Object.keys(player).filter(key => ['points', 'rankings'].indexOf(key) < 0).map(key => { return { [key]: player[key] }}));
+   fx.cleanPlayer = (player) => Object.assign({}, ...Object.keys(player).filter(key => ['points', 'rankings'].indexOf(key) < 0).map(key => ({ [key]: player[key] }) ));
 
    fx.dualCopy = (d) => {
       if (!d) return {};
@@ -290,10 +289,10 @@ export const playerFx = function() {
          school: d.school,
          school_abbr: d.school_abbr,
          ioc: d.ioc,
-         id: d.id,
+         id: d.id
       };
       return dual;
-   }
+   };
 
    fx.playerCopy = (p, include=[], exclude=[]) => {
       if (!p) return {};
@@ -317,23 +316,24 @@ export const playerFx = function() {
          draw_position: p.draw_position,
          category_dbls: p.category_dbls,
          category_ranking: p.category_ranking,
-         modified_ranking: p.modified_ranking,
-      }
+         modified_ranking: p.modified_ranking
+      };
       Array.isArray(include) && include.forEach(attr => player[attr] = p[attr]);
       Array.isArray(exclude) && exclude.forEach(attr => delete player[attr]);
       return player;
-   }
+   };
 
    fx.replacePlayer = (match, old_player, new_player) => {
       match.puids = match.puids.map(puid => (puid != old_player.puid) ? puid : new_player.puid);
       match.players = match.players.map(player => (player.puid != old_player.puid) ? player : fx.cleanPlayer(new_player));
       return match;
-   }
+   };
 
    fx.playerProfileLadderPNG = (filename = 'ladder.png') => exportFx.saveSVGasPNG({ selector: '.itemCalendar', filename });
 
    // TODO: not used?
-   // perhaps an example to extract ladder adn export as pdf?
+   // perhaps an example to extract ladder and export as pdf?
+   /*
    fx.playerProfilePDF = () => {
       let svg = d3.select('.itemCalendar');
       if (!svg.node()) return;
@@ -352,16 +352,16 @@ export const playerFx = function() {
                {
                   image,
                   width: 700,
-                  alignment: 'center',
-               },
-            ],
-
+                  alignment: 'center'
+               }
+            ]
          };
 
          let filename = `playerProfile.pdf`;
          exportFx.savePDF(docDefinition, filename);
       }
-   }
+   };
+   */
 
    function finalRounds(matches) {
       let chart_matches = normalizeRounds(matches.filter(m=>!m.consolation));
@@ -379,8 +379,8 @@ export const playerFx = function() {
             round,
             rung,
             surface: match.event && match.event.surface || "unknown",
-            tournament: match.tournament,
-         }
+            tournament: match.tournament
+         };
          if (!tournaments[tuid] || rung > tournaments[tuid].rung) tournaments[tuid] = value;
       });
 
@@ -388,7 +388,7 @@ export const playerFx = function() {
    }
 
    function normalizeRounds(matches) {
-      let map = { 'R12': 'R16', 'R24': 'R32', 'R48': 'R64', 'R96': 'R128' }
+      let map = { 'R12': 'R16', 'R24': 'R32', 'R48': 'R64', 'R96': 'R128' };
       return matches.map(match => {
          match.round = map[match.round] || match.round;
          return match;
@@ -396,12 +396,11 @@ export const playerFx = function() {
    }
 
    function processTimeSeries(obj, type='points') {
-      let i = 0;
       let data = [];
       let columns = ['date'];
       Object.keys(obj).forEach(year => { 
          Object.keys(obj[year]).forEach(week => {
-            let datum = { date: rankCalc.getDateByWeek(week, year), };
+            let datum = { date: rankCalc.getDateByWeek(week, year) };
             Object.keys(obj[year][week]).forEach(key => { if (columns.indexOf(key) < 0) columns.push(key); });
             if (type == 'points') {
                Object.keys(obj[year][week]).forEach(key => datum[key] = obj[year][week][key].total);
@@ -420,15 +419,15 @@ export const playerFx = function() {
       var validity_date = tournament && tournament.start ? new Date(tournament.start) : new Date();
       var medical_until = player && player.right_to_play_until ? new Date(player.right_to_play_until) : validity_date;
       return medical_until >= validity_date;
-   }
+   };
 
    fx.createNewPlayer = createNewPlayer;
    function createNewPlayer({player_data={}, category, callback, date=new Date()} = {}) {
       let player = {
          first_name: player_data.first_name,
          last_name: player_data.last_name,
-         sex: player_data.sex || 'M',
-      }
+         sex: player_data.sex || 'M'
+      };
 
       let points_table = rankCalc.pointsTable({calc_date: date});
       let categories = points_table && points_table.categories;
@@ -456,8 +455,8 @@ export const playerFx = function() {
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
          firstDay: env.calendar.first_day,
-         toString(date) { return dateFx.formatDate(date); },
-         onSelect: function() { validateBirth(player_container.birth.element); },
+         toString(date) { return dateFx.formatDate(dateFx.timeUTC(date)); },
+         onSelect: function() { validateBirth(player_container.birth.element); }
       });
       env.date_pickers.push(birthdayPicker);
       let field_order = [ 'last_name', 'first_name', 'birth', 'ioc', 'club', 'phone', 'email', 'cancel', 'save' ];
@@ -467,7 +466,7 @@ export const playerFx = function() {
          let next_field = field_order.indexOf(field) + 1;
          if (next_field == field_order.length) next_field = 0;
          player_container[field_order[next_field]].element.focus(); 
-      }
+      };
       let setGender = (value) => player.sex = value;
       player_container.gender.ddlb = new dd.DropDown({ element: player_container.gender.element, onChange: setGender });
       player_container.gender.ddlb.selectionBackground('white');
@@ -485,7 +484,7 @@ export const playerFx = function() {
          player_container.ioc.element.value = c.text.label;
          player_container.ioc.element.style.background = (!require_ioc || player.ioc) ? 'white' : 'yellow';
          player_container.ioc.typeAhead.suggestions = [];
-      }
+      };
       player_container.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
       player_container.ioc.element.addEventListener('keydown', catchTab , false);
       player_container.ioc.element.addEventListener('keyup', catchTab , false);
@@ -516,7 +515,7 @@ export const playerFx = function() {
             player.club_code = c.text.value.code; 
             player_container.club.element.value = c.text.label;
             player_container.ioc.typeAhead.suggestions = [];
-         }
+         };
          player_container.club.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
          player_container.club.element.addEventListener('keydown', catchTab , false);
          player_container.club.element.addEventListener('keyup', catchTab , false);
@@ -539,7 +538,7 @@ export const playerFx = function() {
          player[attr] = elem ? elem.value : evt ? evt.target.value : undefined;
          if (required) player_container[attr].element.style.background = player[attr] ? 'white' : 'yellow';
          if ((!evt || evt.which == 13 || evt.which == 9) && (!required || (required && player[attr]))) return nextFieldFocus(attr);
-      }
+      };
 
       let saveNewPlayer = () => { 
          let valid_date = !ages || dateFx.validDate(player.birth, daterange);
@@ -549,22 +548,22 @@ export const playerFx = function() {
 
          if (typeof callback == 'function') callback(player); 
          displayGen.closeModal();
-      }
+      };
 
       let handleSaveKeyDown = (evt) => {
          evt.preventDefault();
          if (evt.which == 9) nextFieldFocus(evt.shiftKey ? 'email' : 'save'); 
-      }
+      };
 
       let handleSaveKeyUp = (evt) => {
          catchTab(evt); 
          if (evt.which == 13) saveNewPlayer();
-      }
+      };
 
       let handleCancelKeyEvent = (evt) => {
-         evt.preventDefault()
+         evt.preventDefault();
          if (evt.which == 9) nextFieldFocus(evt.shiftKey ? 'phone' : 'cancel');
-      }
+      };
 
       function birthKeyUp(evt) { validateBirth(evt.target, evt); }
 
@@ -603,7 +602,7 @@ export const playerFx = function() {
          birth: player_data.birth,
          ioc: player_data.ioc,
          sex: player_data.sex || 'M'
-      }
+      };
 
       let points_table = rankCalc.pointsTable({calc_date: date});
       let categories = points_table && points_table.categories;
@@ -634,8 +633,8 @@ export const playerFx = function() {
          minDate: new Date(max_year, 0, 1),
          maxDate: new Date(min_year, 11, 31),
          firstDay: env.calendar.first_day,
-         toString(date) { return dateFx.formatDate(date); },
-         onSelect: function() { validateBirth(player_container.birth.element); },
+         toString(date) { return dateFx.formatDate(dateFx.timeUTC(date)); },
+         onSelect: function() { validateBirth(player_container.birth.element); }
       });
       env.date_pickers.push(birthdayPicker);
       let field_order = [ 'last_name', 'first_name', 'ioc', 'school' ];
@@ -652,7 +651,7 @@ export const playerFx = function() {
          let next_field = field_order.indexOf(field) + 1;
          if (next_field == field_order.length) next_field = 0;
          player_container[field_order[next_field]].element.focus(); 
-      }
+      };
 
       // IOC Awesomplete
       let ioc_codes = env.ioc_codes || [];
@@ -667,7 +666,7 @@ export const playerFx = function() {
          player_container.ioc.element.value = c.text.label;
          player_container.ioc.typeAhead.suggestions = [];
          player_container.ioc.element.style.background = (!require_ioc || player.ioc) ? 'white' : 'yellow';
-      }
+      };
       player_container.ioc.element.addEventListener("awesomplete-selectcomplete", selectComplete, false);
       player_container.ioc.element.addEventListener('keydown', catchTab , false);
       player_container.ioc.element.addEventListener('keyup', catchTab , false);
@@ -690,7 +689,7 @@ export const playerFx = function() {
          player[attr] = elem ? elem.value : evt ? evt.target.value : '';
          if (required) player_container[attr].element.style.background = player[attr] ? 'white' : 'yellow';
          if ((!evt || evt.which == 13 || evt.which == 9) && (!required || (required && player[attr]))) return nextFieldFocus(attr);
-      }
+      };
 
       let saveEditedPlayer = () => { 
          if (!player.first_name || !player.last_name || (require_ioc && !player.ioc)) return;
@@ -703,22 +702,22 @@ export const playerFx = function() {
 
          if (typeof callback == 'function') callback(player); 
          displayGen.closeModal();
-      }
+      };
 
       let handleSaveKeyDown = (evt) => {
          evt.preventDefault();
          if (evt.which == 9) nextFieldFocus(evt.shiftKey ? 'email' : 'save'); 
-      }
+      };
 
       let handleSaveKeyUp = (evt) => {
          catchTab(evt); 
          if (evt.which == 13) saveEditedPlayer();
-      }
+      };
 
       let handleCancelKeyEvent = (evt) => {
-         evt.preventDefault()
+         evt.preventDefault();
          if (evt.which == 9) nextFieldFocus(evt.shiftKey ? 'phone' : 'cancel');
-      }
+      };
 
       function birthKeyUp(evt) { validateBirth(evt.target, evt); }
 
@@ -754,11 +753,11 @@ export const playerFx = function() {
          let seed = team[0].seed && !designator ? ` [${team[0].seed}]` : '';
 
          // draw_order is order in ranked list of event opponents
-         let draw_order = seed ? '' : team[0].draw_order && !designator ? ` (${team[0].draw_order})` : '';
+         // let draw_order = seed ? '' : team[0].draw_order && !designator ? ` (${team[0].draw_order})` : '';
 
          let info = designator ? ` [${designator}]` : '';
          if (team.length == 1) { return opponentName({ opponent: team[0], designator }); }
-         return `${upperName(team[0])}/${upperName(team[1])}${seed}${info}`
+         return `${upperName(team[0])}/${upperName(team[1])}${seed}${info}`;
          
       });
    }
@@ -795,7 +794,7 @@ export const playerFx = function() {
 
       return text;
 
-      function uCase(name) { return (name && name.toUpperCase()) || '' }
+      function uCase(name) { return (name && name.toUpperCase()) || ''; }
    }
 
    return fx;

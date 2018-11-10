@@ -1,13 +1,12 @@
-import { env } from './env'
+import { env } from './env';
 import { util } from './util';
 import { UUID } from './UUID';
 import { drawFx } from './drawFx';
 import { courtFx } from './courtFx';
-import { stringFx } from './stringFx';
 import { scoreBoard } from './scoreBoard';
 
 export const matchFx = function() {
-   let fx = {}
+   let fx = {};
    let dfx = drawFx();
 
    fx.getScoringFormat = ({ e, match, format }) => {
@@ -16,13 +15,13 @@ export const matchFx = function() {
       let score_format = (e.scoring_format && e.scoring_format[format]) || e.score_format || (match && match.score_format) || scoreboard[format];
       if (score_format.final_set_supertiebreak == undefined) score_format.final_set_supertiebreak = format == 'doubles' ? true : false;
       return score_format;
-   }
+   };
 
    fx.getExistingScores = ({ match }) => {
       if (!match.score) return undefined;
       let es = scoreBoard.convertStringScore({ string_score: match.score, score_format: match.score_format || {}, winner_index: match.winner_index });
       return es;
-   }
+   };
 
    // Returns NEW objects; modifications don't change originals
    // if 'source' is true, then source object is included...
@@ -58,7 +57,7 @@ export const matchFx = function() {
 
       total_matches = completed_matches.length + pending_matches.length;
 
-      return { completed_matches, pending_matches, upcoming_matches, total_matches }
+      return { completed_matches, pending_matches, upcoming_matches, total_matches };
    }
 
    function eventMatchStorageObjects(tournament, evt, source) {
@@ -69,7 +68,7 @@ export const matchFx = function() {
       // for Round Robin Draw to be considered qualification it needs to be linked to an Elimination Draw
       let draw_format = evt.draw.brackets ? 'round_robin' : 'tree';
       if (draw_format == 'round_robin' && (!evt.links || !evt.links['E'])) {
-         event_matches.forEach(match => { if (match.round_name) match.round_name = match.round_name.replace('Q', '') });
+         event_matches.forEach(match => { if (match.round_name) match.round_name = match.round_name.replace('Q', ''); });
       }
 
       let complete = event_matches
@@ -84,7 +83,7 @@ export const matchFx = function() {
 
       let upcoming = upcomingEventMatches(evt, tournament).map(m=>matchStorageObject({ tournament, e: evt, match: m, source })).filter(f=>f) || [];
 
-      return { complete, incomplete, upcoming }
+      return { complete, incomplete, upcoming };
    }
 
    function matchStorageObject({ tournament, e, match, source }) {
@@ -111,7 +110,7 @@ export const matchFx = function() {
       let schedule = match.match.schedule;
       if (schedule && schedule.luid && tournament.locations) {
          let loc = tournament.locations.reduce((p, c) => c.luid == schedule.luid ? c : p, undefined);
-         if (loc) coords = { latitude: loc.latitude, longitude: loc.longitude }
+         if (loc) coords = { latitude: loc.latitude, longitude: loc.longitude };
       }
 
       let score_format = match.match.score_format || {};
@@ -158,7 +157,7 @@ export const matchFx = function() {
             sets_to_win: score_format.sets_to_win,
             supertiebreak_to: score_format.supertiebreak_to,
             tiebreak_to: score_format.tiebreak_to,
-            tiebreaks_at: score_format.tiebreaks_at,
+            tiebreaks_at: score_format.tiebreaks_at
          },
          delegated_score: match.match.delegated_score,
 
@@ -170,7 +169,7 @@ export const matchFx = function() {
             org: tournament.org,
             start: tournament.start,
             end: tournament.end,
-            rank: tournament.rank,
+            rank: tournament.rank
          },
          'event': {
             name: e.name,
@@ -179,7 +178,7 @@ export const matchFx = function() {
             surface: e.surface,
             category: e.category,
             draw_type: e.draw_type,
-            custom_category: e.custom_category,
+            custom_category: e.custom_category
          },
          dual_match: match.dual_match,
          sequence: match.sequence,
@@ -188,8 +187,8 @@ export const matchFx = function() {
          // TODO: can this be removed?
          winner: match.match.winner_index,
 
-         winner_index: match.match.winner_index,
-      }
+         winner_index: match.match.winner_index
+      };
 
       if (source) obj.source = match.match;
       return obj;
@@ -250,7 +249,7 @@ export const matchFx = function() {
       if (!e.draw.dual_matches) return [];
       if (!e.draw.dual_matches[muid]) return [];
       return e.draw.dual_matches[muid].matches || [];
-   }
+   };
 
    fx.eventMatches = eventMatches;
    function eventMatches(e, tournament) {
@@ -343,7 +342,7 @@ export const matchFx = function() {
       let all_loser_ids = [].concat(...completed_matches.map(match => match.match.loser.map(team=>team.id)));
       let losing_players = tournament.players.filter(p=>all_loser_ids.indexOf(p.id) >= 0);
       return losing_players;
-   }
+   };
 
    fx.addMUIDs = addMUIDs;
    function addMUIDs(e) {
@@ -376,68 +375,7 @@ export const matchFx = function() {
       }
    }
 
-   // LEGACY... from parsed matches...
-   // takes a list of matches creates a list of players and events they played/are playing
-   fx.matchPlayers = matchPlayers;
-   function matchPlayers(matches) {
-      if (!matches) return [];
-      addMatchDraw(matches);
-
-      let players = [].concat(...matches.map(match => {
-         let gender = rankCalc.determineGender(match);
-         // add player sex if doesn't exist already
-         match.players.forEach(player => player.sex = player.sex || gender);
-         return match.players;
-      }));
-
-      // make a list of all events in which a player is participating
-      let player_events = {};
-      matches.forEach(match => {
-         match.puids.forEach(puid => { 
-            if (!player_events[puid]) player_events[puid] = []; 
-            let format = match.format == 'doubles' ? 'd' : 's';
-            player_events[puid].push(`${format}_${match.draw || 'M'}`);
-         })
-      });
-
-      let hashes = [];
-      let uplayers = players
-         .map(player => {
-            let hash = `${player.hash}${player.puid}`;
-            if (hashes.indexOf(hash) < 0) {
-               hashes.push(hash);
-               return player;
-            }
-         })
-         .filter(f=>f)
-         .sort((a, b) => {
-            let a1 = stringFx.replaceDiacritics(a.full_name);
-            let b1 = stringFx.replaceDiacritics(b.full_name);
-            return a1 < b1 ? -1 : a1 > b1 ? 1 : 0
-         });
-
-      uplayers.forEach(player => {
-         // add player events to player objects
-         if (player_events[player.puid]) player.events = unique(player_events[player.puid]).join(', ');
-      });
-
-      return uplayers;
-
-      function addMatchDraw(matches) {
-         // TODO: .round needs to be replaced with .round_name
-         matches.forEach(match => { 
-            if (!match.gender) match.gender = rankCalc.determineGender(match); 
-            if (match.consolation) match.draw = 'C';
-            if (match.round && match.round.indexOf('Q') == 0 && match.round.indexOf('QF') < 0) match.draw = 'Q';
-
-            // TODO: RR is not always Q... if there is only one bracket...
-            if (match.round && match.round.indexOf('RR') == 0) match.draw = 'Q';
-         });
-      }
-
-   }
-
-   fx.isTeam = (t) => { return ['team', 'dual'].indexOf(t.type) >= 0; }
+   fx.isTeam = (t) => { return ['team', 'dual'].indexOf(t.type) >= 0; };
 
    return fx;
 }();

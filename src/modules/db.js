@@ -2,10 +2,10 @@ export const db = function() {
    var db = {};
 
    var ad_errors = 0;
-   db.addDev = function(variable) {
+   db.addDev = (variable) => {
       try { Object.keys(variable).forEach(key => dev[key] = variable[key]); }
       catch(err) { if (!ad_errors) { console.log('production environment'); ad_errors += 1; } }
-   }
+   };
 
    db.initDB = () => {
       return new Promise ((resolve, reject) => {
@@ -20,7 +20,7 @@ export const db = function() {
             tournaments: "&tuid, name, start, end, category, cuid",
             players: "&puid, hash, cuid, &id, [last_name+first_name], last_name, birthdate",
             rankings: "category",
-            settings: "key",
+            settings: "key"
          });
          db.db.version(2).stores({ 
             aliases: "&alias",
@@ -50,12 +50,12 @@ export const db = function() {
          });
          db.db.open().then(resolve, reject);
       });
-   }
+   };
 
    db.resetDB = (callback) => {
       db.db.close();
       Dexie.delete('CourtHiveTournaments').then(callback, () => alert('Failed to Reset Database'));
-   }
+   };
 
    db.findAll = (table) => new Promise((resolve, reject) => db.db[table].toArray(resolve, reject).catch(reject));
    db.findAllClubs = () => db.findAll('clubs');
@@ -88,7 +88,7 @@ export const db = function() {
 
    db.deleteMatch = (muid) => {
       return new Promise((resolve, reject) => db.db.matches.where('muid').equals(muid).delete().then(() => db.deleteMatchPoints(muid), reject));
-   }
+   };
    db.deleteMatchPoints = (muid) => db.db.points.where('muid').equals(muid).delete();
 
    db.deleteEventMatches = (tuid, euid) => new Promise ((resolve, reject) => db.db.matches.where('tournament.tuid').equals(tuid).modify((match, ref) => {
@@ -104,7 +104,7 @@ export const db = function() {
          function deleteTournamentMatches() { db.deleteTournamentMatches(tuid).then(deleteTournamentPoints, reject); }
          function deleteTournamentPoints() { db.deleteTournamentPoints(tuid).then(resolve, reject); }
       });
-   }
+   };
    // Sometimes necessary to delete only specific gender (when loading gendered spreadsheet)
    db.deleteTournamentMatches = (tuid, gender, format) => new Promise ((resolve, reject) => db.db.matches.where('tournament.tuid').equals(tuid).modify((match, ref) => {
       if (!gender && !format) return delete ref.value;
@@ -125,11 +125,11 @@ export const db = function() {
       return new Promise((resolve, reject) => {
          console.log('deleteing rankings');
          db.deleteAllPlayerRankings().then(deleteRankings, logError);
-         function deleteRankings() { console.log('deleting points'); db.deleteAllPlayerPoints().then(deleteCalcs, logError) }
+         function deleteRankings() { console.log('deleting points'); db.deleteAllPlayerPoints().then(deleteCalcs, logError); }
          function deleteCalcs() { console.log('deleting calcs'); db.db.calculations.toCollection().delete().then(() => console.log('complete'), logError); }
          function logError(err) { console.log('error:', err); reject(); }
       });
-   }
+   };
 
    // database cleanup
    db.deleteAllTournamentMatches = () => db.db.tournaments.toCollection().modify(tournament => delete tournament.matches).then(() => console.log('done'));
@@ -164,7 +164,7 @@ export const db = function() {
             } else {
                db.addItem(tbl, item).then(resolve, reject);
             }
-         }, (err) => { console.log(err); reject(err) });
+         }, (err) => { console.log(err); reject(err); });
    });
 
    db.addMatch = (match) => db.modifyOrAddUnique('matches', 'muid', match.muid, match);
@@ -176,13 +176,13 @@ export const db = function() {
    db.addPointEvent = (point_event) => {
       point_event.round = point_event.round_name;
       return db.modifyOrAddUnique('points', '[puid+tuid+format+round]', [point_event.puid, point_event.tuid, point_event.format, point_event.round], point_event);
-   }
+   };
    db.addCategoryRankings = (rankings) => db.modifyOrAddUnique('rankings', 'category', rankings.category, rankings);
    db.addSetting = (setting) => db.replaceOrAddUnique('settings', 'key', setting.key, setting);
 
    db.replaceOrAddUnique = (tbl, attr, val, item) => new Promise ((resolve, reject) => {
       db.db[tbl].where(attr).equals(val).delete()
-         .then(() => { db.addItem(tbl, item).then(resolve, reject) }, (err) => { console.log(err); reject(err) });
+         .then(() => { db.addItem(tbl, item).then(resolve, reject); }, (err) => { console.log(err); reject(err); });
    });
 
    db.modify = (tbl, attr, val, fx, params) => new Promise((resolve, reject) => {
@@ -191,7 +191,7 @@ export const db = function() {
             Object.assign(params, { item });
             fx(params);
          })
-         .then(resolve, err => console.log('error:', err));
+         .then(resolve, err => { console.log('error:', err); reject(); });
    });
 
    return db;

@@ -2,13 +2,13 @@ export const floatingEntry = function() {
 
    let o = {
       selector: undefined,
-      centerY: true,
-   }
+      centerY: true
+   };
 
    let floater;
    let events = { 
       'click': undefined,
-      'cleanup': undefined,
+      'cleanup': undefined
    };
 
    function entry(x=0, y=0, html) {
@@ -23,11 +23,10 @@ export const floatingEntry = function() {
          .style('left', x + 'px')
          .html(html)
 
-         .on('click', d => { 
+         .on('click', () => { 
             d3.event.preventDefault(); d3.event.stopPropagation(); 
             if (events.click && typeof events.click == 'function') events.click();
          });
-
 
       var dims = floater.node().getBoundingClientRect();
       if (o.centerY) y = y - dims.height / 2;
@@ -36,10 +35,10 @@ export const floatingEntry = function() {
 
       floater
          .style('top', y + 'px')
-         .style('left', x + 'px')
+         .style('left', x + 'px');
    }
 
-   entry.destroy = function() { d3.select(o.selector || 'body').selectAll('.floating-entry').remove(); }
+   entry.destroy = function() { d3.select(o.selector || 'body').selectAll('.floating-entry').remove(); };
   
    entry.center = function() {
       let fe = document.querySelector('.floating-entry');
@@ -53,14 +52,16 @@ export const floatingEntry = function() {
 
       floater
          .style('top', y + 'px')
-         .style('left', x + 'px')
-   }
+         .style('left', x + 'px');
+   };
 
+   /*
    entry.items = function(e) {
       if (!arguments.length) return items;
       for (i in arguments) items.push(arguments[i]);
       return entry;
-   }
+   };
+   */
 
    entry.selector = function (value) {
       if (!arguments.length) { return o.selector; }
@@ -72,13 +73,13 @@ export const floatingEntry = function() {
       if (!arguments.length) return o;
       keyWalk(values, o);
       return entry;
-   }
+   };
 
    entry.events = function(functions) {
       if (!arguments.length) return events;
       keyWalk(functions, events);
       return entry;
-   }
+   };
 
    function keyWalk(valuesObject, optionsObject) {
       if (!valuesObject || !optionsObject) return;
@@ -98,4 +99,4 @@ export const floatingEntry = function() {
    }
 
    return entry;
-}
+};

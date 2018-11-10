@@ -7,7 +7,7 @@ export const publishFx = function() {
       let ebo = eventBroadcastObject(tourny, evt, draw_type_name, options);
       let eventCircular = CircularJSON.stringify(ebo);
       coms.emitTmx({ eventCircular });
-   }
+   };
 
    function eventBroadcastObject(tourny, evt, draw_type_name, options) {
       return { 
@@ -42,11 +42,11 @@ export const publishFx = function() {
             score_format: evt.score_format,
             lucky_losers: evt.lucky_losers,
             published: evt.published || new Date().getTime(),
-            name: evt.broadcast_name || evt.name,
+            name: evt.broadcast_name || evt.name
          },
          draw: evt.draw,
          options
-      }
+      };
    }
 
    return fx;

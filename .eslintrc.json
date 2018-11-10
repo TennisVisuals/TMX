@@ -1,29 +1,66 @@
 {
-    "parserOptions": {
-        "ecmaVersion": 6,
-        "sourceType": "module",
-        "ecmaFeatures": { "jsx": true }
-    },
-    "extends": "eslint:recommended",
-    "rules": {
-        "semi": 2,
-        "no-console": "off",
-        "comma-dangle": ["error", "never"],
-        "no-cond-assign": ["error", "always"]
-    },
-    "globals": {
-        "CircularJSON": false,
-        "setTimeout": false,
-        "navigator": false,
-        "location": false,
-        "document": false,
-        "console": false,
-        "history": false,
-        "Promise": false,
-        "window": false,
-        "Map": false,
-        "Set": false,
-        "d3": false,
-        "dev": true
-    }
+      "parserOptions": {
+         "ecmaVersion": 6,
+         "sourceType": "module",
+         "ecmaFeatures": { "jsx": true }
+      },
+      "extends": "eslint:recommended",
+      "rules": {
+         "semi": 2,
+         "no-console": "off",
+         "comma-dangle": ["error", "never"],
+         "no-cond-assign": ["error", "always"]
+      },
+      "globals": {
+         "requestAnimationFrame": false,
+
+         "XMLHttpRequest": false,
+         "XMLSerializer": false,
+
+         "Uint32Array": false,
+         "Uint8Array": false,
+         "ArrayBuffer": false,
+
+         "CustomEvent": false,
+         "clearTimeout": false,
+         "setTimeout": false,
+
+         "FileReader": false,
+
+         "Promise": false,
+
+         "navigator": false,
+         "DOMParser": false,
+         "location": false,
+         "document": false,
+         "console": false,
+         "history": false,
+         "window": false,
+         "alert": false,
+
+         "Image": false,
+         "Map": false,
+         "Set": false,
+         "Blob": false,
+         "atob": false,
+         "btoa": false,
+
+         "dev": true,
+
+         "Awesomplete": false,
+         "sanitizeHtml": false,
+         "CircularJSON": false,
+         "pdfMake": false,
+         "Pikaday": false,
+         "introJs": false,
+         "google": false,
+         "QRious": false,
+         "Dexie": false,
+         "Quill": false,
+         "XLSX": false,
+         "d3": false,
+         "io": true,
+         "R": false,
+         "L": false
+      }
 }

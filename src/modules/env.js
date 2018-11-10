@@ -5,7 +5,7 @@ export const env = {
    first_time_user: false,
 
    // version is Major.minor.added.changed.fixed
-   version: '1.4.4.10.2',
+   version: '1.5.1.5.4.alpha',
    version_check: undefined,
    reset_new_versions: false,
 
@@ -16,34 +16,33 @@ export const env = {
    org: {
       name: undefined,
       abbr: undefined,
-      ouid: undefined,
+      ouid: undefined
    },
-   // editing: { players: { birth: true, gender: true } },
    assets: {
       flags: '/media/flags/',
-      ioc_codes: './assets/ioc_codes',
+      ioc_codes: './assets/ioc_codes'
    },
    auto_update: {
-      players: false,
+      players: false
    },
    metadata: {
       exchange_formats: {
          oops: 1.0,
          matches: 1.0,
-         tournaments: 1.0,
+         tournaments: 1.0
       }
    },
    exports: {
       utr: false
    },
    uploads: {
-      matches: false,
+      matches: false
    },
    locations: {
       geolocate: true,
       geoposition: undefined,
       map: undefined,
-      map_provider: 'leaflet', // 'google' or 'leaflet'
+      map_provider: 'leaflet' // 'google' or 'leaflet'
    },
    leaflet: {
       map: {
@@ -53,7 +52,7 @@ export const env = {
       },
       satellite: {
          tileLayer: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-         attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+         attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
       }
    },
    calendar: {
@@ -76,18 +75,18 @@ export const env = {
    points: {
       walkover_wins: ['QF', 'SF', 'F'],
       points_table: {
-         validity: [ { from: "1900-01-01", to: "2100-12-31", table: "default" }, ],
+         validity: [ { from: "1900-01-01", to: "2100-12-31", table: "default" } ],
          tables : {
             default: {
                categories: {
-                  "All": { ratings: { type:  'utr' }, },
-                  "U10": { ages: { from:  7, to: 10 }, },
-                  "U12": { ages: { from:  9, to: 12 }, },
-                  "U14": { ages: { from: 10, to: 14 }, },
-                  "U16": { ages: { from: 12, to: 16 }, },
-                  "U18": { ages: { from: 13, to: 18 }, },
-                  "Adult":  { ages: { from: 16, to: 40 }, },
-                  "Senior":  { ages: { from: 35, to: 100 }, },
+                  "All": { ratings: { type:  'utr' } },
+                  "U10": { ages: { from:  7, to: 10 } },
+                  "U12": { ages: { from:  9, to: 12 } },
+                  "U14": { ages: { from: 10, to: 14 } },
+                  "U16": { ages: { from: 12, to: 16 } },
+                  "U18": { ages: { from: 13, to: 18 } },
+                  "Adult":  { ages: { from: 16, to: 40 } },
+                  "Senior":  { ages: { from: 35, to: 100 } }
                },
                rankings: { "1": {}, "2": {}, "3": {}, "4": {}, "5": {}, "6": {}, "7": {}, "8": {} }
             }
@@ -145,7 +144,7 @@ export const env = {
             tiebreaks_at: 6,
             supertiebreak_to: 10,
             final_set_tiebreak: true,
-            final_set_supertiebreak: false,
+            final_set_supertiebreak: false
          },
          doubles: {
             max_sets: 3,
@@ -155,9 +154,9 @@ export const env = {
             tiebreaks_at: 6,
             supertiebreak_to: 10,
             final_set_tiebreak: false,
-            final_set_supertiebreak: true,
-         },
-      },
+            final_set_supertiebreak: true
+         }
+      }
    },
    draws: {
       autodraw: true,
@@ -167,7 +166,7 @@ export const env = {
          roundrobin: true,
          consolation: true,
          compass: true,
-         playoff: true,
+         playoff: true
       },
       subtypes: {
          qualification: {
@@ -179,7 +178,7 @@ export const env = {
          feedin: {
             elimination: true,
             consolation: true
-         },
+         }
       },
       gem_seeding: false,
       settings: {
@@ -202,7 +201,7 @@ export const env = {
             singles: 2,
             doubles: 2
          },
-         round_limits: false,
+         round_limits: false
       },
       rr_draw: {
          doubles: true,
@@ -220,14 +219,14 @@ export const env = {
             seeding: true,
             won_lost: true,
             games_won_lost: false,
-            bracket_order: true,
+            bracket_order: true
          },
          brackets: {
             min_bracket_size: 3,
             default_bracket_size: 4,
-            max_bracket_size: 6,
-         },
-      },
+            max_bracket_size: 6
+         }
+      }
    },
    printing: {
       save_pdfs: false
@@ -237,7 +236,7 @@ export const env = {
       livescore: false,
       require_confirmation: false,
       publish_on_score_entry: true,
-      publish_draw_creation: false,
+      publish_draw_creation: false
    },
    schedule: {
       clubs: true,
@@ -248,7 +247,7 @@ export const env = {
    },
    searchbox: {
       lastfirst: false,
-      diacritics: false,
+      diacritics: false
    },
    delegation: false,
    messages: [],
@@ -258,7 +257,7 @@ export const env = {
       requests: {
          externalRequest: [ 'fetchClubs', 'fetchNewPlayers', 'fetchNewTournaments', 'fetchRankList', 'fetchRegisteredPlayers' ],
          sheetDataStorage: [ 'syncClubs', 'syncPlayers', 'syncTournaments' ],
-         userInterface: [ 'defaultIdiom', ],
-      },
+         userInterface: [ 'defaultIdiom' ]
+      }
    }
 };

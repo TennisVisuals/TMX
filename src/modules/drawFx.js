@@ -16,42 +16,42 @@ export function rrDraw() {
       min_height: 200,
 
       brackets: {
-         size: 4,
+         size: 4
       },
 
       player_cells: {
          color: 'white',
-         highlight_color: 'lightgray',
+         highlight_color: 'lightgray'
       },
 
       score_cells: {
          color: 'white',
          live_color: '#A9F5A9',
-         highlight_color: 'lightblue',
+         highlight_color: 'lightblue'
       },
 
       margins: {
          top: 6,
          left: 10,
          right: 10,
-         bottom: 0,
+         bottom: 0
       },
 
       names: {
          first_initial: false,
          length_divisor: 9,
          max_font_size: 14,
-         min_font_size: 10,
+         min_font_size: 10
       },
 
       scores: {
          max_font_size: 14,
-         min_font_size: 10,
+         min_font_size: 10
       },
 
       bracket: {
          positions: 4,
-         initial_position: 1,
+         initial_position: 1
       },
 
       details: {
@@ -63,10 +63,10 @@ export function rrDraw() {
          seeding: true,
          won_lost: true,
          games_won_lost: false,
-         bracket_order: true,
+         bracket_order: true
       },
-      sizeToFit: false,
-   }
+      sizeToFit: false
+   };
 
    var root;
    var dfx = drawFx();
@@ -81,10 +81,10 @@ export function rrDraw() {
       'qorder'       : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
       'result'       : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
       'draw_position': { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
-      'sizing'       : { 'width': null, },  // optional functions for sizeToFit
+      'sizing'       : { 'width': null }  // optional functions for sizeToFit
    };
 
-   function chart(opts) {
+   function chart() {
       root = d3.select(o.selector || 'body');
 
       let ref_width = document.querySelector(o.ref_width_selector) ? +d3.select(o.ref_width_selector).style('width').match(/\d+/)[0] * o.ref_width_factor : undefined;
@@ -135,7 +135,7 @@ export function rrDraw() {
       if (!arguments.length) return events;
       keyWalk(obj, events);
       return chart;
-   }
+   };
 
    chart.updateBracket = function(bracket_index, reset) {
       if (reset) bracket_charts[bracket_index].reset();
@@ -152,33 +152,33 @@ export function rrDraw() {
 
       bracket_charts[bracket_index]();
       return chart;
-   }
+   };
 
    chart.brackets = function() {
       return bracket_charts;
-   }
+   };
 
    chart.options = function(values) {
       if (!arguments.length) return o;
       keyWalk(values, o);
       return chart;
-   }
+   };
 
    chart.bracketSize = function(value) {
       if (!arguments.length) { return o.brackets.size; }
       o.brackets.size = value;
       return chart;
-   }
+   };
 
    chart.data = function(value) {
       if (!arguments.length) { return data; }
       data = value;
       return chart;
-   }
+   };
 
    chart.matches = function() { 
       return dfx.drawInfo(data); 
-   }
+   };
 
    chart.selector = function (value) {
       if (!arguments.length) { return o.selector; }
@@ -189,7 +189,7 @@ export function rrDraw() {
    chart.info = function() {
       if (!data || !Object.keys(data).length) return {};
       return dfx.drawInfo(data);
-   }
+   };
 
    chart.unHighlightCells = unHighlightCells;
    function unHighlightCells() {
@@ -217,7 +217,7 @@ export function rrDraw() {
 
    chart.unHighlightPlayer = unHighlightPlayer;
    function unHighlightPlayer() {
-      Array.from(root.node().querySelectorAll('.rr_player')).forEach(e=>e.style.fill = o.player_cells.color)
+      Array.from(root.node().querySelectorAll('.rr_player')).forEach(e=>e.style.fill = o.player_cells.color);
    }
 
    function keyWalk(valuesObject, optionsObject) {
@@ -260,35 +260,35 @@ export function roundRobin() {
       cells: {
          bye: '#fcf4ed',
          live: '#A9F5A9',
-         invalid: 'gray',
+         invalid: 'gray'
       },
 
       margins: {
          top: 6,
          left: 10,
          right: 10,
-         bottom: 0,
+         bottom: 0
       },
 
       names: {
          first_initial: false,
          length_divisor: 9,
          max_font_size: 14,
-         min_font_size: 10,
+         min_font_size: 10
       },
 
       seeds: {
-         limit: undefined,
+         limit: undefined
       },
 
       scores: {
          max_font_size: 14,
-         min_font_size: 10,
+         min_font_size: 10
       },
 
       bracket: {
          positions: 4,
-         initial_position: 1,
+         initial_position: 1
       },
 
       details: {
@@ -300,9 +300,9 @@ export function roundRobin() {
          seeding: false,
          won_lost: true,
          games_won_lost: false,
-         bracket_order: true,
-      },
-   }
+         bracket_order: true
+      }
+   };
 
    var dfx = drawFx();
 
@@ -312,14 +312,13 @@ export function roundRobin() {
       player_ratings: false,
       club_codes: true,
       draw_entry: true,
-      seeding: true,
-   }
+      seeding: true
+   };
 
    var byes = [];
    var puids = [];
    var teams = [];
    var scores = [];
-   var players = [];
    var matches = [];
 
    var events = {
@@ -329,7 +328,7 @@ export function roundRobin() {
       'qorder'       : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
       'result'       : { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
       'draw_position': { 'click': null, 'mouseover': null, 'mouseout': null, 'contextmenu': null },
-      'sizing'       : { 'width': null, },  // optional functions for sizeToFit
+      'sizing'       : { 'width': null }  // optional functions for sizeToFit
    };
 
    var intersection = (a, b) => a.filter(n => b.indexOf(n) !== -1).filter((e, i, c) => c.indexOf(e) === i);
@@ -366,8 +365,8 @@ export function roundRobin() {
                   games_won: tbr.team_results[puid_hash].games_won,
                   games_lost: tbr.team_results[puid_hash].games_lost,
                   points_won: tbr.team_results[puid_hash].points_won,
-                  points_lost: tbr.team_results[puid_hash].points_lost,
-               }
+                  points_lost: tbr.team_results[puid_hash].points_lost
+               };
                player.result = tbr.team_results[puid_hash].result;
                player.games = tbr.team_results[puid_hash].games;
             });
@@ -387,7 +386,6 @@ export function roundRobin() {
          o.height = o.height || Math.max(window.innerHeight, o.minHeight || 0);
       }
 
-      // let point_order_differences = players.reduce((p, c) => c.qorder != c.points_order ? true : p, false);
       let point_order_differences = opponents.reduce((p, c) => c[0].qorder != c[0].points_order ? true : p, false);
 
       let playerHeight = o.height / o.bracket.positions + 1;
@@ -399,7 +397,6 @@ export function roundRobin() {
       let draw_width = o.width - o.margins.left - o.margins.right;
       let draw_height = o.height - o.margins.top - o.margins.bottom;
 
-      // let seed_limit = o.seeds.limit || dfx.seedLimit(players.length);
       let seed_limit = o.seeds.limit || dfx.seedLimit(opponents.length);
 
       // supporting functions
@@ -409,20 +406,19 @@ export function roundRobin() {
          }
          if (!d.row && d.column < 3) return 'none';
          if (d.mc != undefined && d.row == d.mc) return o.cells.invalid;
-         // if (d.attr == 'score' && d.players.filter(p=>p).length < 2) return o.cells.bye;
          if (d.attr == 'score' && d.teams.filter(p=>p).length < 2) return o.cells.bye;
          if (d.row && d.row != d.mc && d.attr == 'score') {
             let sc = scores[d.row - 1][d.mc - 1];
             if (sc && sc.indexOf('LIVE') >= 0) return o.cells.live;
          }
          return 'white';
-      }
+      };
       let cellStroke = (d) => (d.row || d.column > 2) ? 'black' : 'none';
       let labelX = (d) => d.row && d.attr == 'player' ? d.x + 5 : d.x + d.width / 2;
       let labelY = (d) => {
          if (d.row) return d.y + d.height / 2;
          return d.y + d.height / 1.6;  // because row 0 is smaller...
-      }
+      };
       // 0,0 position used for bracket name, if any...
       let textAnchor = (d) => (d.row && d.attr == 'player') || (!d.row && !d.column) ? 'start' : 'middle';
       let textWeight = (d) => {
@@ -434,7 +430,7 @@ export function roundRobin() {
          if (d.row && d.attr == 'player' && d.team && d.team[0].seed && d.team[0].seed <= seed_limit) weight = 'bold';
          if (d.row && d.attr == 'seed') weight = 'bold';
          return weight;
-      }
+      };
       let opponentName = (opponent) => {
          let length_threshold = 20;
          let first_initial = opponent.first_name ? `, ${opponent.first_name[0]}` : '';
@@ -446,7 +442,7 @@ export function roundRobin() {
          if (text.length > length_threshold) text = `${last_name}${first_first_name}`;
          if (o.names.first_initial || text.length > length_threshold) text = last_first_i;
          return text;
-      }
+      };
 
       let teamName = (team) => {
          if (!Array.isArray(team) || !team.length) return '';
@@ -454,18 +450,18 @@ export function roundRobin() {
          if (names.length == 1) return names[0];
          return team.map(opponent => shortLastName(opponent.last_name) || '').filter(f=>f).join('/');
          function shortLastName(last_name) { return last_name.split(' ')[0]; }
-      }
+      };
       let textColor = (d) => {
          if (!d.row && !d.column) return 'blue';
+         /*
          if (d.row && d.attr == 'score' && d.row != d.mc) {
             let sc = scores[d.row - 1][d.mc - 1];
             let num = sc ? sc.match(/\d+/g) : undefined;
-            if (sc && !num) {
-               let color = d.match.loser[0].draw_position == d.row ? 'red' : 'black';
-            }
+            if (sc && !num) { let color = d.match.loser[0].draw_position == d.row ? 'red' : 'black'; }
          }
+         */
          return 'black';
-      }
+      };
       let cellText = (d) => {
          // var player = d.row ? opponents[d.row - 1] : undefined;
          var team = d.row ? teams[d.row - 1] : undefined;
@@ -551,7 +547,7 @@ export function roundRobin() {
             return sc;
          }
          return '';
-      }
+      };
 
       // cellClass generates a unique selector
       let cellClass = (d) => {
@@ -570,12 +566,12 @@ export function roundRobin() {
 
          // don't return additional classes for score cells when same player
          return (d.attr == 'score' && d.row == d.column - 2) ? 'cell' : `cell rr_${d.attr} ${base_class} ${specific_class} ${score_class}`;
-      }
+      };
 
       let handleContextClick = (d) => {
          d3.event.preventDefault();
          if (events[d.attr] && typeof events[d.attr].contextmenu == 'function') events[d.attr].contextmenu(d);
-      }
+      };
 
       let clickEvent = (d) => events[d.attr] && typeof events[d.attr].click == 'function' ? events[d.attr].click(d) : undefined;
       let mouseOver = (d) => events[d.attr] && typeof events[d.attr].mouseover == 'function' ? events[d.attr].mouseover(d) : undefined;
@@ -656,10 +652,9 @@ export function roundRobin() {
       puids = [];
       teams = [];
       scores = [];
-      players = [];
       matches = [];
       return chart;
-   }
+   };
 
    chart.selector = function (value) {
       if (!arguments.length) { return o.selector; }
@@ -671,13 +666,13 @@ export function roundRobin() {
       if (!arguments.length) { return o.bracket_name; }
       o.bracket_name = value;
       return chart;
-   }
+   };
 
    chart.bracketIndex = function(value) {
       if (!arguments.length) { return o.bracket_index; }
       o.bracket_index = value;
       return chart;
-   }
+   };
 
    chart.width = function (value) {
       if (!arguments.length) { return o.width; }
@@ -701,25 +696,25 @@ export function roundRobin() {
       if (!arguments.length) return o;
       keyWalk(values, o);
       return chart;
-   }
+   };
 
    chart.initialBracketPosition = function(position) {
       if (!arguments.length) return o.bracket.initial_position;
       o.bracket.initial_position = position;
       return chart;
-   }
+   };
 
    chart.bracketPositions = function(positions) {
       if (!arguments.length) return o.bracket.positions;
       o.bracket.positions = positions;
       return chart;
-   }
+   };
 
    chart.seedLimit = function(seed_limit) {
       if (!arguments.length) return o.seeds.limit;
       o.seeds.limit = seed_limit;
       return chart;
-   }
+   };
 
    chart.addScores = function() {
       if (!matches.length) return chart;
@@ -738,7 +733,7 @@ export function roundRobin() {
          chart.addScore(p1, p2, match.score);
       });
       return chart;
-   }
+   };
 
    chart.addScore = function(a, b, score) {
       // if (!players[a] || !players[b]) { return chart; }
@@ -748,7 +743,7 @@ export function roundRobin() {
       scores[a][b] = score;
       scores[b][a] = dfx.reverseScore(score);
       return chart;
-   }
+   };
 
    /*
    chart.addPlayer = function(player) {
@@ -771,7 +766,7 @@ export function roundRobin() {
       teams[team_index] = team;
       puids[team_index] = puidHash(team);
       return chart;
-   }
+   };
 
    /*
    chart.addPlayers = function(plz) {
@@ -787,32 +782,32 @@ export function roundRobin() {
       if (!Array.isArray(tmz)) return chart;
       tmz.forEach(team => chart.addTeam(team));
       return chart;
-   }
+   };
 
    chart.addMatch = function(match) {
       if (typeof match != 'object') return chart;
-   }
+   };
 
    chart.addMatches = function(match_array) {
       if (!arguments.length) return matches;
       matches = match_array;
       return chart;
-   }
+   };
 
    chart.addByes = function(byz) {
       if (!arguments.length) return byes;
       if (Array.isArray(byz)) {
          byes = [];
-         byz.forEach(b => { if (b.position) byes[b.position] = true });
+         byz.forEach(b => { if (b.position) byes[b.position] = true; });
       }
       return chart;
-   }
+   };
 
    chart.events = function(obj) {
       if (!arguments.length) return events;
       keyWalk(obj, events);
       return chart;
-   }
+   };
 
    function keyWalk(valuesObject, optionsObject) {
       if (!valuesObject || !optionsObject) return;
@@ -875,8 +870,8 @@ export function roundRobin() {
                row, column: i,
                width: cw(column.pct),
                height: rowHeight(row),
-               bracket: o.bracket_index,
-            }
+               bracket: o.bracket_index
+            };
             if (!row && !i) { cell.group_name = o.bracket_name || `GROUP ${o.bracket_index + 1}`; }
             if (column.mc != undefined) cell.mc = column.mc + 1;
             if (cell.attr == 'player') {
@@ -932,11 +927,11 @@ export function treeDraw() {
       invert_threshold: 140,
 
       draw: {
-         feed_in: false,
+         feed_in: false
       },
 
       seeds: {
-         limit: undefined,
+         limit: undefined
       },
 
       max_round: undefined,
@@ -944,14 +939,14 @@ export function treeDraw() {
       text: {
          bye: 'BYE',
          qualifier: 'Qualifier',
-         title: '',
+         title: ''
       },
 
       edit_fields: {
          display: true,
          color: 'gray',
          highlight_color: 'blue',
-         opacity: .2,
+         opacity: .2
       },
 
       schedule: {
@@ -964,18 +959,18 @@ export function treeDraw() {
       flags: {
          display: false,
          threshold: 140,
-         path: undefined,
+         path: undefined
       },
 
       lines: {
-         stroke_width: 1,
+         stroke_width: 1
       },
 
       margins: {
          top: 6,
          left: 10,
          right: 10,
-         bottom: 20,
+         bottom: 20
       },
 
       details: {
@@ -984,17 +979,17 @@ export function treeDraw() {
          player_ratings: false,
          club_codes: false,
          draw_entry: false,
-         seeding: false,
+         seeding: false
       },
 
       detail_attr: {
          font_size: 10,
-         seeding_font_size: 12,
+         seeding_font_size: 12
       },
 
       detail_offsets: {
          base: 20,
-         width: 20,
+         width: 20
       },
 
       players: {
@@ -1006,7 +1001,7 @@ export function treeDraw() {
 
       clubs: {
          length_divisor: 3,
-         threshold: 140,
+         threshold: 140
       },
 
       names: {
@@ -1015,18 +1010,18 @@ export function treeDraw() {
          min_font_size: 10,
          seed_number: true,
          bold_seeds: true,
-         first_initial: false,
+         first_initial: false
       },
 
       scores: {
          max_font_size: 14,
-         min_font_size: 10,
+         min_font_size: 10
       },
 
       umpires: {
          display: true,
          offset: 15,
-         color: '#777777',
+         color: '#777777'
       },
 
       matchdates: {
@@ -1036,7 +1031,7 @@ export function treeDraw() {
          start_monday: false,
          day_abbrs : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
       }
-   }
+   };
 
    let datascan = {
       draw_positions: true,
@@ -1046,13 +1041,12 @@ export function treeDraw() {
       draw_entry: true,
       feed_arms: false,
       seeding: true,
-      ioc: true,
-   }
+      ioc: true
+   };
 
    let dfx = drawFx();
 
    var root;
-   let draw = {};
    let data = {};
 
    let events = {
@@ -1065,7 +1059,7 @@ export function treeDraw() {
       'score'    : { 'mouseover': null, 'mouseout': null, 'click': null, 'contextmenu': null },
       'umpire'   : { 'mouseover': null, 'mouseout': null, 'click': null, 'contextmenu': null },
       'matchdate': { 'mouseover': null, 'mouseout': null, 'click': null, 'contextmenu': null },
-      'sizing'   : { 'width': null, },  // optional functions for sizeToFit
+      'sizing'   : { 'width': null }  // optional functions for sizeToFit
    };
 
    function chart(opts) {
@@ -1112,7 +1106,7 @@ export function treeDraw() {
       let depth = o.maxTreeDepth || info.depth;
       let doubles = info.doubles;
       let draw_positions = info.draw_positions;
-      let max_draw_position = Math.max(...draw_positions);
+      // let max_draw_position = Math.max(...draw_positions);
       let total_rounds = dfx.drawRounds(draw_positions.length);
       let total_players = draw_positions.length - info.byes.length;
 
@@ -1138,7 +1132,7 @@ export function treeDraw() {
          round_width = (draw_width / (depth + 1));
          invert_first = depth > 1 && !o.draw.feed_in && (o.invert_first || round_width < o.invert_threshold) ? true : false;
          if (invert_first) round_width = (draw_width / depth);
-      }
+      };
 
       calcRoundWidth();
       if (round_width < o.clubs.threshold) {
@@ -1173,7 +1167,6 @@ export function treeDraw() {
       // collect and sort an array of all bracket offsets
       let offsets = unique(links.map(l=>+Math.abs(l.source.x - l.target.x).toFixed(2))).sort((a, b) => a - b);
       let lastRound = (height) => height == depth;
-      let isEven = (n) => n % 2 == 0;
 
       // determine all heights > 2 at which feed rounds occur
       // keep a record in rh of the rounds for heach feed height
@@ -1198,6 +1191,7 @@ export function treeDraw() {
          links.forEach(l => {
             if (l.source.height >= ht) {
                // FUTURE TODO
+               // let isEven = (n) => n % 2 == 0;
                // let direction = isEven(rh[ht].fed) ? -1 : 1;
                let direction = 1;
                if (offsets[rh[ht].round - 1]) {
@@ -1239,7 +1233,7 @@ export function treeDraw() {
 
       if (invert_first) links[0].source.y = links[0].source.y - (2 * round_width);
 
-      let elbow = (d, i) => {
+      let elbow = (d) => {
          let target_y = d.target.y;
          let ydiff = d.source.y - d.target.y;
 
@@ -1254,14 +1248,14 @@ export function treeDraw() {
          if (d.target.depth == depth || (!o.draw.feed_in && d.target.depth < depth && !d.target.data.match)) ho = ho + left_column_offset - seeding;
 
          return `M${d.source.y},${d.source.x}H${target_y}V${d.target.x}${d.target.children ? "" : "h-" + ho}`;
-      }
+      };
 
       // temporarily used for figuring out feed-in draw layout
-      let pathColor = (d, i) => {
+      let pathColor = (d) => {
          if (!o.draw.feed_in || !d.target.data.feed) return 'black';
          return 'black';
          // return (d.source.height == depth ? 'blue' : 'green');
-      }
+      };
 
       if (o.cleanup) root.selectAll("svg").remove();
 
@@ -1275,7 +1269,7 @@ export function treeDraw() {
       let svg = svg_root.append("g")
           .attr("transform", "translate(" + translate_x + "," + top_margin + ")");
 
-      let link = svg.selectAll(".link")
+      svg.selectAll(".link")
           .data(links)
         .enter().append("path")
           .attr("class", "link")
@@ -1348,14 +1342,14 @@ export function treeDraw() {
              .attr('x', playerBaseX)
              .attr("y", -1 * imagesize + o.players.offset_singles / 2)
              .attr('height', imagesize + 'px')
-             .attr('width', imagesize + 'px')
+             .attr('width', imagesize + 'px');
 
          node.append('image')
              .attr('xlink:href', d => flagRef(d, 1))
              .attr('x', playerBaseX)
              .attr("y", -1 * imagesize + o.players.offset_doubles)
              .attr('height', imagesize + 'px')
-             .attr('width', imagesize + 'px')
+             .attr('width', imagesize + 'px');
       }
 
       if (o.edit_fields.display) {
@@ -1373,13 +1367,13 @@ export function treeDraw() {
              .on('mouseover', events.position.mouseover)
              .on('mouseout', events.position.mouseout)
              .on('contextmenu', handleContextClick);
+      }
 
-         function editWidth(d) {
-            let width = round_width - o.players.offset_left;
-            let feed = d.data && d.data.feed;
-            if (!d.height && !feed) { width += club_codes; }
-            return width > 0 ? width : 0;
-         }
+      function editWidth(d) {
+         let width = round_width - o.players.offset_left;
+         let feed = d.data && d.data.feed;
+         if (!d.height && !feed) { width += club_codes; }
+         return width > 0 ? width : 0;
       }
 
       function handleContextClick(d) {
@@ -1489,7 +1483,7 @@ export function treeDraw() {
              .style("fill", "#000")
              .style("shape-rendering", "geometricPrecision")
              .style("font-size", ccSize)
-             .on('click', events.p1club.click)
+             .on('click', events.p1club.click);
 
          node.append("text")
              .attr("class", "dbls")
@@ -1501,7 +1495,7 @@ export function treeDraw() {
              .style("fill", "#000")
              .style("shape-rendering", "geometricPrecision")
              .style("font-size", ccSize)
-             .on('click', events.p2club.click)
+             .on('click', events.p2club.click);
 
       }
 
@@ -1607,7 +1601,7 @@ export function treeDraw() {
          return new Date(parts[0], parseInt(parts[1]) - 1, parts[2]);
       }
 
-      function nameSize(d) {
+      function nameSize() {
          let ctl = this.getComputedTextLength();
          let size = Math.round(round_width * o.names.length_divisor / ctl); 
          if (size > o.names.max_font_size) size = o.names.max_font_size;
@@ -1615,7 +1609,7 @@ export function treeDraw() {
          return size + "px"; 
       }
 
-      function ccSize(d) {
+      function ccSize() {
          // club_code size
          let ctl = this.getComputedTextLength();
          let size = Math.round(round_width * o.clubs.length_divisor / ctl); 
@@ -1624,7 +1618,7 @@ export function treeDraw() {
          return size + "px"; 
       }
 
-      function scoreSize(d) {
+      function scoreSize() {
          let ctl = this.getComputedTextLength();
          let size = Math.round(round_width * 10 / ctl); 
          if (size > o.scores.max_font_size) size = o.scores.max_font_size;
@@ -1650,7 +1644,7 @@ export function treeDraw() {
          return x;
       }
 
-      function prX(d, i) {
+      function prX(d) {
          let x = baseX(d) - o.detail_offsets.base - seeding - club_codes;
          if (o.details.draw_entry && datascan.draw_entry) x -= o.detail_offsets.width;
          return x;
@@ -1687,21 +1681,21 @@ export function treeDraw() {
          return ranking_rating;
       }
 
-      function seedText(d, i) {
+      function seedText(d) {
          if (!d.data.team) return '';
          let player = d.data.team[0];
          if (!player || (o.draw.feed_in && d.depth < depth)) return '';
          return d.height ? '' : player.seed || '';
       }
 
-      function deText(d, i) {
+      function deText(d) {
          if (!d.data.team) return '';
          let player = d.data.team[0];
          if (!player || (o.draw.feed_in && d.depth < depth)) return '';
          return d.height ? '' : player.entry ? player.entry : player.qualifier ? 'Q' : '';
       }
 
-      function dpText(d, i) {
+      function dpText(d) {
          if (!d.data) return '';
 
          if (d.data.team && d.data.team.length) {
@@ -1820,7 +1814,7 @@ export function treeDraw() {
       return placement_complete && match_no_winner ? o.edit_fields.opacity : 0;
    }
 
-   function drawPosition(d) { return d.data.dp || '' }
+   function drawPosition(d) { return d.data.dp || ''; }
 
    function highlightCell(d) {
       if (d.data.dp && d.data.team) { root.selectAll("[dp='" + d.data.dp + "']").attr('fill', o.edit_fields.highlight_color).attr('opacity', '.2'); }
@@ -1832,7 +1826,7 @@ export function treeDraw() {
 
    chart.unHighlightCells = function() {
       root.selectAll(".edit_field").attr('fill', o.edit_fields.color);
-   }
+   };
 
    chart.selector = function(value) {
       if (!arguments.length) { return o.selector; }
@@ -1862,52 +1856,52 @@ export function treeDraw() {
       if (!arguments.length) return o;
       keyWalk(values, o);
       return chart;
-   }
+   };
 
    chart.dfxOptions = function(opts) {
       if (!arguments.length) return dfx.options();
       dfx.options(opts);
       return chart;
-   }
+   };
 
    chart.events = function(functions) {
       if (!arguments.length) return events;
       keyWalk(functions, events);
       return chart;
-   }
+   };
 
    chart.info = function() {
       if (!data || !Object.keys(data).length) return {};
       return dfx.drawInfo(data);
-   }
+   };
 
-   chart.nextSeedGroup = function() { return dfx.nextSeedGroup({ draw: data }); }
-   chart.distributeByes = function() { return dfx.distributeByes({ draw: data }); }
-   chart.distributeQualifiers = function() { return dfx.distributeQualifiers({ draw: data }); }
+   chart.nextSeedGroup = function() { return dfx.nextSeedGroup({ draw: data }); };
+   chart.distributeByes = function() { return dfx.distributeByes({ draw: data }); };
+   chart.distributeQualifiers = function() { return dfx.distributeQualifiers({ draw: data }); };
 
    chart.assignPosition = function(position, team = [{}], bye, qualifier) {
       if (!data || !Object.keys(data).length) return false;
       return dfx.assignPosition({ node: data, position, team, bye, qualifier });
-   }
+   };
 
    chart.advancePosition = function({ position, score }) {
-      if (!data || !Object.keys(data).length) return false;;
+      if (!data || !Object.keys(data).length) return false;
       return dfx.advancePosition({ node: data, position, score });
-   }
+   };
 
    chart.modifyPositionScore = function({ position, score, complete }) {
-      if (!data || !Object.keys(data).length) return false;;
+      if (!data || !Object.keys(data).length) return false;
       return dfx.modifyPositionScore({ node: data, position, score, complete });
-   }
+   };
 
    chart.schedulePosition = function({ position, schedule, venue }) {
-      if (!data || !Object.keys(data).length) return false;;
+      if (!data || !Object.keys(data).length) return false;
       return dfx.schedulePosition({ node: data, position, schedule, venue });
-   }
+   };
 
    chart.matches = function(round_names) {
       return dfx.matches(data, round_names);
-   }
+   };
 
    function keyWalk(valuesObject, optionsObject) {
       if (!valuesObject || !optionsObject) return;
@@ -1931,19 +1925,19 @@ export function treeDraw() {
       data = draw.compass ? draw[draw.compass] : draw;
       o.max_round = data.max_round;
       return chart;
-   }
+   };
 
    chart.placeSeedGroup = function(group_index) {
       return dfx.placeSeedGroup({ draw: data, group_index });
-   }
+   };
 
    chart.unplacedSeedGroups = function() {
       return dfx.unplacedSeedGroups({ draw: data });
-   }
+   };
 
    chart.advanceTeamsWithByes = function() {
       return dfx.advanceTeamsWithByes({ draw: data });
-   }
+   };
 
    // works for 8 players without modification
    // TODO: add draw.dbl_elimination flag
@@ -1952,13 +1946,13 @@ export function treeDraw() {
       o.draw.feed_in = true;
       data = dfx.doubleElimination(teams);
       chart();
-   }
+   };
 
    chart.feedInDraw = function({ teams, feed_limit, offset }) {
       o.draw.feed_in = true;
       data = dfx.feedInDraw({ teams, feed_limit, offset });
       chart();
-   }
+   };
 
    return chart;
 }
@@ -1969,11 +1963,11 @@ export function drawFx(opts) {
    let numArr = (count) => [...Array(count)].map((_, i) => i);
    let unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
    let range = (start, end) => Array.from({length: (end - start)}, (v, k) => k + start);
-   let indices = (val, arr) => arr.reduce((a, e, i) => { if (e === val) a.push(i); return a; }, []) 
-   let occurrences = (val, arr) => arr.reduce((r,val) => { r[val] = 1+r[val] || 1; return r},{})[val] || 0;
+   // let indices = (val, arr) => arr.reduce((a, e, i) => { if (e === val) a.push(i); return a; }, []) 
+   let occurrences = (val, arr) => arr.reduce((r,val) => { r[val] = 1+r[val] || 1; return r; },{})[val] || 0;
    let intersection = (a, b) => a.filter(n => b.indexOf(n) !== -1).filter((e, i, c) => c.indexOf(e) === i);
    let randomPop = (array) => array.length ? array.splice(Math.floor(Math.random()*array.length), 1)[0] : undefined;
-   let subSort = (arr, i, n, sortFx) => [].concat(...arr.slice(0, i), ...arr.slice(i, i + n).sort(sortFx), ...arr.slice(i + n, arr.length));
+   // let subSort = (arr, i, n, sortFx) => [].concat(...arr.slice(0, i), ...arr.slice(i, i + n).sort(sortFx), ...arr.slice(i + n, arr.length));
 
    var standard_draws = [2, 4, 8, 16, 32, 64, 128, 256];
    var draw_sizes = [2, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128, 224, 256];
@@ -1988,7 +1982,7 @@ export function drawFx(opts) {
          "24": [5, 20, 14, 11, 8, 17, 23],
          "32": [2, 31, 23, 10, 15, 18, 26, 7, 6, 27, 19, 14, 11, 22, 30],
          "48": [4, 45, 33, 16, 21, 28, 40, 9, 10, 30, 27, 22, 15, 34, 46],
-         "64": [2, 63, 47, 18, 31, 34, 50, 15, 10, 55, 39, 26, 23, 42, 58, 7, 5, 60, 44, 21, 28, 37, 53, 12, 13, 52, 36, 29, 20, 45, 61],
+         "64": [2, 63, 47, 18, 31, 34, 50, 15, 10, 55, 39, 26, 23, 42, 58, 7, 5, 60, 44, 21, 28, 37, 53, 12, 13, 52, 36, 29, 20, 45, 61]
       },
       compressed_draw_formats: true,
       fixed_bye_order: false,
@@ -2003,14 +1997,14 @@ export function drawFx(opts) {
          "25": [["0", ".0625"], ["1", ".1875"], ["0", ".3125"], ["1", ".4375"], ["0", ".5625"], ["1", ".6875"], ["0", ".8125"], ["1", ".9375"] ]
       },
       separation: { ioc: false, club_code: false, school: false }
-   }
+   };
 
    if (opts) keyWalk(opts, o);
 
    fx.options = (options) => {
       if (!options) return o;
       keyWalk(options, o); 
-   }
+   };
 
    fx.reverseScore = reverseScore;
    function reverseScore(score, split=' ') {
@@ -2040,12 +2034,14 @@ export function drawFx(opts) {
          return undefined;
       }
 
+      /*
       function formatSet(set) {
          if (set) {
             let tiebreak = set.tiebreak ? `(${set.tiebreak})` : '';
             return `${set.games}${tiebreak}`;
          }
       }
+      */
    }
 
    fx.acceptedDrawSizes = acceptedDrawSizes;
@@ -2086,8 +2082,8 @@ export function drawFx(opts) {
       if (!draw || !draw.brackets) return [];
       let bracket = draw.brackets[bracket_index];
 
-      let teamsHash = (teams) => { return teams.map(team=>team.map(p=>p.puid).sort().join('-')).sort().join('-'); }
-      let uniqueTeam = (arr, m) => { if (arr.map(teamsHash).indexOf(teamsHash(m)) < 0) arr.push(m); return arr; }
+      let teamsHash = (teams) => { return teams.map(team=>team.map(p=>p.puid).sort().join('-')).sort().join('-'); };
+      let uniqueTeam = (arr, m) => { if (arr.map(teamsHash).indexOf(teamsHash(m)) < 0) arr.push(m); return arr; };
 
       pruneDefunctMatches();
       findMissingMatches();
@@ -2125,8 +2121,8 @@ export function drawFx(opts) {
             players,
             round_name: 'RR',
             bracket: bracket_index,
-            puids: players.map(p=>p.puid),
-         }
+            puids: players.map(p=>p.puid)
+         };
          bracket.matches.push(match);
       }
 
@@ -2168,7 +2164,7 @@ export function drawFx(opts) {
          });
       return rounds;
 
-      function bracketMatches(bracket_index, matchups, round) {
+      function bracketMatches(bracket_index, matchups/*, round*/) {
          if (!matchups) return;
          let matches = draw.brackets[bracket_index].matches;
          let matchhashes = matchups.map(m=>m.sort().join('|'));
@@ -2188,12 +2184,12 @@ export function drawFx(opts) {
       let numArr = (count) => [...Array(count)].map((_, i) => i);
       let positions = numArr(2 * Math.round(opponents / 2) + 1).slice(1);
       let bye = positions.length > opponents ? opponents + 1 : undefined;
-      let rounds = numArr(positions.length - 1).map(m=>[]);
+      let rounds = numArr(positions.length - 1).map(()=>[]);
       let a_row = positions.slice(0,positions.length/2); 
       let b_row = positions.slice(positions.length/2); 
       positions.slice(1).forEach((p, i) => {
          a_row.forEach((a,j) => {
-            if (a_row[j] != bye && b_row[j] != bye) rounds[i].push([a_row[j], b_row[j]])
+            if (a_row[j] != bye && b_row[j] != bye) rounds[i].push([a_row[j], b_row[j]]);
          });
          let a_head = a_row.shift();
          let a_down = a_row.pop();
@@ -2214,7 +2210,7 @@ export function drawFx(opts) {
       let matches = [].concat(...draw.brackets.map(b=>b.matches)); 
 
       let total = (a, b) => a + b;
-      let total_matches = draw.brackets.map((b, i) => range(0, b.players.length).reduce(total, 0)).reduce(total, 0);
+      let total_matches = draw.brackets.map(b => range(0, b.players.length).reduce(total, 0)).reduce(total, 0);
 
       let seed_placements = [].concat(...draw.seed_placements.map(s=>s.placements)).map(p=>p.position);
       let unfinished_seed_placements = draw.seed_placements.filter(s=>s.range.length != s.placements.length);
@@ -2240,15 +2236,15 @@ export function drawFx(opts) {
          draw_type: 'roundrobin',
          draw_positions, matches, positions_filled, complete,
          byes, placements, unfilled_positions, total_matches,
-         unfinished_seed_placements, unplaced_seeds, open_seed_positions,
-      }
+         unfinished_seed_placements, unplaced_seeds, open_seed_positions
+      };
    }
 
    fx.compassInfo = compassInfo;
    function compassInfo(draw) {
       var complete, total_matches=0, all_matches=[], match_nodes=[], upcoming_match_nodes=[], unassigned=[];
       let directions = ['east', 'west', 'north', 'south', 'northeast', 'northwest', 'southeast', 'southwest'];
-      let existing_directions = directions.filter(d=>draw[d]).forEach(direction => {
+      directions.filter(d=>draw[d]).forEach(direction => {
          let info = treeInfo(draw[direction]);
          complete = complete || info.complete;
          total_matches += info.total_matches;
@@ -2281,7 +2277,7 @@ export function drawFx(opts) {
       if (node.depth < depth) node.children = node.children || node._children;
       if (!node.children) return;
       node.children.forEach(c=>collapseHierarchy(c, depth));
-   };
+   }
 
    fx.expandHierarchy = expandHierarchy;
    function expandHierarchy(node) {
@@ -2291,7 +2287,7 @@ export function drawFx(opts) {
       node._height = null;
       if (!node.children) return;
       node.children.forEach(c=>expandHierarchy(c));
-   };
+   }
 
    function treeInfo(draw, collapse) {
       if (!draw) return {};
@@ -2341,7 +2337,7 @@ export function drawFx(opts) {
          draw_type: 'tree', complete,
          draw_positions, assigned_positions, seeds, doubles, nodes, depth,
          total_matches, all_matches, match_nodes, upcoming_match_nodes, bye_nodes,
-         byes, structural_byes, qualifiers, final_round, final_round_players, unassigned,
+         byes, structural_byes, qualifiers, final_round, final_round_players, unassigned
       };
    }
 
@@ -2390,7 +2386,7 @@ export function drawFx(opts) {
       let positions = draw_positions && draw_positions.length;
       if (!p2(positions)) { positions += sByes(positions); }
       if (positions && p2(positions)) return positions / 2;
-   }
+   };
 
    fx.feedDrawSize = feedDrawSize;
    function feedDrawSize({ num_players, skip_rounds, feed_rounds }) {
@@ -2447,11 +2443,13 @@ export function drawFx(opts) {
       let info = drawInfo(draw);
       let draw_positions = info.draw_positions;
       let max_draw_position = draw_positions.length ? Math.max(...draw_positions) : 0;
-      let missing_draw_positions = max_draw_position ? Array.from(new Array(max_draw_position),(val,index)=>index+1).filter(p=>draw_positions.indexOf(p) < 0) : [];
+      // let missing_draw_positions = max_draw_position ? Array.from(new Array(max_draw_position),(val,index)=>index+1).filter(p=>draw_positions.indexOf(p) < 0) : [];
+      /*
       let chooseDrawPosition = (dp) => {
          let np = missing_draw_positions.filter(p => Math.abs(dp - p) == 1)[0];
          return np || '';
-      }
+      };
+      */
 
       walkNode(draw);
 
@@ -2499,7 +2497,7 @@ export function drawFx(opts) {
    function sByes(players) {
       if (p2(players)) return 0;
       let b=1;
-      while (b < players && !p2(players - b)) { b += 1 };
+      while (b < players && !p2(players - b)) { b += 1; }
       return b;
    }
 
@@ -2598,7 +2596,7 @@ export function drawFx(opts) {
    }
 
    fx.feedInDraw = feedInDraw;
-   function feedInDraw({ teams, skip_rounds=0, sequentials=0, feed_rounds=0, offset }) {
+   function feedInDraw({ teams, skip_rounds=0, /*sequentials=0, */feed_rounds=0, offset }) {
       let team_count = Array.isArray(teams) ? teams.length : teams;
       if (team_count < 2) return;
       let total_rounds = drawRounds(teams);
@@ -2621,11 +2619,11 @@ export function drawFx(opts) {
       // if (sequentials && sequentials > 1) feed_rounds = sequentials;
 
       let fed = 0;
-      let sequenced = 0;
+      // let sequenced = 0;
       if (round.length > 1 && fed < feed_rounds) {
          ({round, remaining} = feedRound(round, remaining, fed, rounds));
          fed += 1;
-         sequenced += 1;
+         // sequenced += 1;
       }
 
       /*
@@ -2678,7 +2676,7 @@ export function drawFx(opts) {
       let sections = Array.from(new Array(num_qualifiers),(val,i)=>i);
       let children = sections.map((u, i) => buildDraw({teams: section_size, offset: i * section_size}));
       let max_round = d3.hierarchy(children[0]).height;
-      return { children, max_round }
+      return { children, max_round };
    }
 
    fx.assignPosition = assignPosition;
@@ -2687,7 +2685,7 @@ export function drawFx(opts) {
       if (node.dp == position) {
          node.team = team;
          node.team.forEach(player => {
-            player.draw_position = position
+            player.draw_position = position;
             player.bye = bye;
             player.qualifier = qualifier;
             player.entry = player.entry ? player.entry : qualifier ? 'Q' : '';
@@ -2695,7 +2693,7 @@ export function drawFx(opts) {
          node.bye = bye;
          node.qualifier = qualifier;
          assigned = true;
-         if (!propagate) return assigned
+         if (!propagate) return assigned;
       }
       if (node.children) {
          let result = node.children.map(child => assignPosition({ node: child, position, team, bye, qualifier, propagate, assigned }));
@@ -2734,7 +2732,7 @@ export function drawFx(opts) {
    fx.advanceToNode = advanceToNode;
    function advanceToNode({ node, position, score, set_scores, complete, score_format, bye }) {
       // cannot advance if no position node
-      if (!node) { advanced: false };
+      if (!node) return { advanced: false };
       if (!node.match) node.match = {};
 
       // if there is an existing position assigned to node
@@ -2869,7 +2867,7 @@ export function drawFx(opts) {
 
       // Minimum one seed in first position for each bracket
       d3.range(auto_placed_seeds.length).forEach(s => {
-         let bracket = draw.brackets[s % bracket_count];
+         // let bracket = draw.brackets[s % bracket_count];
          placements.push({ 
             range: [s + 1], 
             positions: [{ bracket: s % bracket_count, position: 1 }], 
@@ -2882,7 +2880,7 @@ export function drawFx(opts) {
       let positions = [];
       d3.range(bracket_count).forEach(s => {
          let seed_index = auto_placed_seeds.length + s;
-         let bracket = draw.brackets[seed_index % bracket_count];
+         // let bracket = draw.brackets[seed_index % bracket_count];
 
          // the range is restricted by the number of remaining seeds
          if (s < random_placed_seeds.length) range.push(seed_index + 1);
@@ -2898,11 +2896,11 @@ export function drawFx(opts) {
    }
 
    fx.qualifyingBracketSeeding = qualifyingBracketSeeding;
-   function qualifyingBracketSeeding({ draw, num_players, qualifiers, seed_limit }) {
+   function qualifyingBracketSeeding({ draw, num_players, qualifiers/*, seed_limit*/ }) {
 
       let group_size = Math.ceil(num_players/qualifiers);
       let section_size = standardDrawSize(group_size);
-      let sections = Array.from(new Array(qualifiers),(val,i)=>i);
+      // let sections = Array.from(new Array(qualifiers),(val,i)=>i);
 
       let placements = [];
       let seeded_team_keys = Object.keys(draw.seeded_teams);
@@ -3004,7 +3002,7 @@ export function drawFx(opts) {
 
       // bye_positions is an array of UNDEFINED with length = # of byes
       // constructed by slicing from array number of actual teams/players
-      let bye_positions = info.draw_positions.map(m=>undefined).slice(num_players);
+      let bye_positions = info.draw_positions.map(()=>undefined).slice(num_players);
 
       // all draw positions which have a first-round opponent (no structural bye);
       let paired_positions = info.nodes.filter(f=>f.height == 1 && f.children).map(m=>[].concat(...m.children.map(c=>c.data.dp)));
@@ -3044,7 +3042,7 @@ export function drawFx(opts) {
          adjacent_to_seeds.filter(f=>f);
 
          let assignment = bye_positions.map((b, i) => adjacent_to_seeds[i] ? adjacent_to_seeds[i][randomBinary()] : undefined); 
-         let remaining = assignment.filter(f=>f==undefined).length;
+         // let remaining = assignment.filter(f=>f==undefined).length;
 
          // keep track of pairs with no seed or bye
          let pairs_no_seed_or_bye = pairs_no_seed.filter(pair => !intersection(pair, assignment).length);
@@ -3057,7 +3055,6 @@ export function drawFx(opts) {
             bye_positions = assignment.map(b => {
                if (b) return b;
                if (pairs_no_seed_or_bye.length) return randomPop(pairs_no_seed_or_bye)[Math.floor(Math.random() * 2)];
-               console.log('filtered bye position')
             }).filter(f=>f);
          }
 
@@ -3076,7 +3073,7 @@ export function drawFx(opts) {
    
       current_draw.bye_placements = bye_placements;
       return bye_placements;
-   };
+   }
 
    fx.rrByeDistribution = rrByeDistribution;
    function rrByeDistribution({ draw }) {
@@ -3132,7 +3129,7 @@ export function drawFx(opts) {
          let school_diff = unplaced_teams.filter(team => schools.indexOf(team[0].school_abbr) < 0);
 
          if (o.separation.school && school_diff.length) {
-            let team = randomPop(ioc_club_diff);
+            let team = randomPop(school_diff);
             placeTeam(team, position);
          } else if (o.separation.ioc && ioc_diff.length) {
             let team = randomPop(ioc_diff);
@@ -3197,25 +3194,25 @@ export function drawFx(opts) {
       let current_draw = draw.compass ? draw[draw.compass] : draw;
       let info = drawInfo(current_draw);
       let total = info.draw_positions.length;
-      let bye_positions = info.byes.map(b=>b.data.dp);
+      // let bye_positions = info.byes.map(b=>b.data.dp);
       let unassigned_positions = info.unassigned.map(u=>u.data.dp);
       let randomBinary = () => Math.floor(Math.random() * 2);
       num_qualifiers = num_qualifiers || current_draw.qualifiers || 0;
 
       // reverse qualifiers so that popping returns in numerical order
-      let qualifiers = d3.range(0, num_qualifiers).map((q, i) => { return [{ entry: 'Q', qualifier: true }] }).reverse();
+      let qualifiers = d3.range(0, num_qualifiers).map(() => { return [{ entry: 'Q', qualifier: true }]; }).reverse();
 
       let section_size = Math.floor(total/num_qualifiers);
       let sections = d3.range(0, Math.floor(total/section_size));
 
       // all draw positions which have a first-round opponent (no structural bye);
-      let paired_positions = info.nodes.filter(f=>f.height == 1 && f.children).map(m=>[].concat(...m.children.map(c=>c.data.dp)));
+      // let paired_positions = info.nodes.filter(f=>f.height == 1 && f.children).map(m=>[].concat(...m.children.map(c=>c.data.dp)));
 
       // paired positions which have no byes
       // TODO: don't place qualifiers with BYEs unless there is no alternative
-      let pairs_no_byes = paired_positions.filter(f=>intersection(bye_positions, f).length > 0);
+      // let pairs_no_byes = paired_positions.filter(f=>intersection(bye_positions, f).length > 0);
 
-      d3.range(0, num_qualifiers).forEach((e, i) => {
+      d3.range(0, num_qualifiers).forEach(() => {
          let section = randomPop(sections);
          let dprange = d3.range(section*section_size + 1, section*section_size + section_size + 1);
          let available_positions = intersection(dprange, unassigned_positions);
@@ -3247,7 +3244,7 @@ export function drawFx(opts) {
 
       // if no count is specified, place all seed groups
       count = count || current_draw.seed_placements.length;
-      d3.range(0, count).forEach(c=>placeSeedGroup({ draw: current_draw }));
+      d3.range(0, count).forEach(()=>placeSeedGroup({ draw: current_draw }));
    }
 
    fx.placeSeedGroup = placeSeedGroup;
@@ -3291,7 +3288,7 @@ export function drawFx(opts) {
             */
          } else {
             // processing a tree draw
-            assignPosition({ node: current_draw, position, team })
+            assignPosition({ node: current_draw, position, team });
          }
          seed_group.placements.push({ seed, position });
       });
@@ -3308,7 +3305,7 @@ export function drawFx(opts) {
 
       team.forEach(opponent => opponent.draw_position = position);
       draw.brackets[bracket_index].teams.push(team);
-   }
+   };
 
    fx.nextSeedGroup = nextSeedGroup;
    function nextSeedGroup({ draw }) {
@@ -3329,7 +3326,7 @@ export function drawFx(opts) {
       let current_draw = draw.compass ? draw[draw.compass] : draw;
       if (!current_draw.unseeded_teams) return;
 
-      let unfilled_positions = drawInfo(current_draw).unassigned.map(u=>u.data.dp);;
+      let unfilled_positions = drawInfo(current_draw).unassigned.map(u=>u.data.dp);
       if (!unfilled_positions.length) return;
 
       let position = unfilled_positions[0];
@@ -3349,7 +3346,7 @@ export function drawFx(opts) {
    }
 
    function randomUnseededDistribution({ draw }) {
-      let unfilled_positions = drawInfo(draw).unassigned.map(u=>u.data.dp);;
+      let unfilled_positions = drawInfo(draw).unassigned.map(u=>u.data.dp);
       unfilled_positions.forEach(position => {
          let team = randomPop(draw.unseeded_teams);
          if (team) assignPosition({ node: draw, position, team });
@@ -3428,7 +3425,7 @@ export function drawFx(opts) {
    }
 
    function sortedAttributeCount(attrs) {
-      let attr_count = attrs.reduce((a, c)=>{a[c]++?0:a[c]=1;return a},{})
+      let attr_count = attrs.reduce((a, c)=>{a[c]++?0:a[c]=1;return a; },{});
       return Object.keys(attr_count)
          .map(attr => ({ attr, count: attr_count[attr]}) )
          .sort((a, b) => b.count - a.count);
@@ -3492,7 +3489,7 @@ export function drawFx(opts) {
          teams.forEach(team => {
             // sometimes the seeding information is in the wrong place...
             if (team[1].seed && !team[0].seed) team[0].seed = team[1].seed;
-            assignPosition({ node: tree, position: team[0].draw_position, team })
+            assignPosition({ node: tree, position: team[0].draw_position, team });
          });
       }
 
@@ -3521,7 +3518,7 @@ export function drawFx(opts) {
             let pair = unique(match.players.map(p=>p.draw_position).sort());
             let i = pairings.filter(p => intersection(pair, p).length == 2);
             return i.length ? true : false;
-         }
+         };
 
          let { pass: round_matches, fail: remaining } = passFail(matches, conditionFx);
 
@@ -3615,19 +3612,19 @@ export function drawFx(opts) {
 
       // filter out any team positions which have won a match
       let team_positions = drawPositionsWithBye(bye_teams).filter(p=>winner_positions.indexOf(p) < 0);
-      team_positions.forEach(p => advancePosition({ node: draw, position: p }))
+      team_positions.forEach(p => advancePosition({ node: draw, position: p }));
    }
 
    fx.findDualMatchNode = (draw, dual_match_muid) => {
       let info = draw && drawInfo(draw);
       return info && info.match_nodes.reduce((p, c) => c.data.match && c.data.match.muid == dual_match_muid ? c : p, undefined);
-   }
+   };
 
    fx.findDualMatchNodeByMatch = (draw, muid) => {
       let dual_match_muid = draw.dual_matches && Object.keys(draw.dual_matches)
          .reduce((p, c) => draw.dual_matches[c].matches.reduce((x, y) => y.match.muid == muid ? y : x, undefined) ? c : p, undefined);
       return fx.findDualMatchNode(draw, dual_match_muid);
-   }
+   };
 
    fx.findMatchNodeByTeamPositions = findMatchNodeByTeamPositions;
    function findMatchNodeByTeamPositions(draw, positions) {
@@ -3680,8 +3677,8 @@ export function drawFx(opts) {
                round: node.height,
                calculated_round_name,
                match: node.data.match,
-               teams: node.data.children.map(c => c.team).filter(f=>f),
-            }
+               teams: node.data.children.map(c => c.team).filter(f=>f)
+            };
          });
       return matches;
    }
@@ -3727,7 +3724,7 @@ export function drawFx(opts) {
             }
          });
       return players;
-   }
+   };
 
    fx.matches = matches;
    function matches(data, round_names=[], calculated_round_names=[]) {
@@ -3752,8 +3749,8 @@ export function drawFx(opts) {
                   teams: match.teams || match.players.map(p=>[p]),
                   round_name: match.round_name,
                   result_order: match.result_order,
-                  match,
-               }
+                  match
+               };
             });
          return matches;
       }
@@ -3783,7 +3780,7 @@ export function drawFx(opts) {
          return bracket_players
             .map((p, i) => bracketSubset(i).map((q, k) => intersection(p, q).length ? [i, k] : false).filter(f=>f))
             .filter(f=>f.length);
-      }
+      };
       let add2Bracket = (match) => {
          let added = false;
          for (let b=0; b<bracket_players.length; b++) {
@@ -3798,7 +3795,7 @@ export function drawFx(opts) {
             bracket_players.push(match.puids);
             bracket_matches.push([match]);
          }
-      }
+      };
       matches.forEach(add2Bracket);
       let overlap = [].concat(...findBracketOverlap());
       while (overlap.length) {
@@ -3816,8 +3813,8 @@ export function drawFx(opts) {
             // players need to be sorted by player draw position!
             players: puids.map(puid => players[puid]).sort((a, b) => a.draw_position - b.draw_position),
             matches: bracket_matches[i],
-            bracket_size: Math.max(...Object.keys(players).map(k => players[k].draw_position)),
-         }
+            bracket_size: Math.max(...Object.keys(players).map(k => players[k].draw_position))
+         };
       });
 
       // to support legacy brackets
@@ -3853,8 +3850,8 @@ export function drawFx(opts) {
                   games_won: tbr.team_results[puid_hash].games_won,
                   games_lost: tbr.team_results[puid_hash].games_lost,
                   points_won: tbr.team_results[puid_hash].points_won,
-                  points_lost: tbr.team_results[puid_hash].points_lost,
-               }
+                  points_lost: tbr.team_results[puid_hash].points_lost
+               };
                player.result = tbr.team_results[puid_hash].result;
                player.games = tbr.team_results[puid_hash].games;
             });
@@ -3862,18 +3859,13 @@ export function drawFx(opts) {
       });
 
       return true;
-   }
+   };
 
    fx.tallyBracket = tallyBracket;
-   function tallyBracket({  matches, reset, qualifying }) {
-      let puids = [];
-      let scores = [];
+   function tallyBracket({  matches, qualifying }) {
       let disqualified = [];
-
-      let player_results = {};
-      let match_result_order = {};
-
       let team_results = {};
+      let match_result_order = {};
 
       if (!matches) return;
 
@@ -3937,8 +3929,8 @@ export function drawFx(opts) {
             games_won: 0,
             games_lost: 0,
             points_won: 0,
-            points_lost: 0,
-         }
+            points_lost: 0
+         };
       }
 
       Object.keys(team_results).forEach(puid_hash => {
@@ -3991,14 +3983,14 @@ export function drawFx(opts) {
       }
 
       // create an object mapping puid to order
-      let puid_order = Object.keys(team_results).reduce((o, t) => { o[t] = team_results[t].points_order; return o}, {});
+      let puid_order = Object.keys(team_results).reduce((o, t) => { o[t] = team_results[t].points_order; return o; }, {});
 
       matches.forEach(match => {
          let order = match.winner_index == undefined ? '' : puid_order[puidHash(match.winner)];
          match_result_order[match.muid] = `RR${qualifying ? 'Q' : ''}${order || ''}`;
       });
 
-      return { team_results, match_result_order }
+      return { team_results, match_result_order };
 
       function walkedOver(score) { return /W/.test(score) && /O/.test(score); }
       function defaulted(score) { return /DEF/.test(score); }
@@ -4014,9 +4006,10 @@ export function drawFx(opts) {
             let set_scores = score.split(' ');
             set_scores.forEach(set_score => {
                let divider = set_score.indexOf('-') > 0 ? '-' : set_score.indexOf('/') > 0 ? '/' : undefined;
+               // eslint-disable-next-line no-useless-escape
                let scores = (/\d+[\(\)\-\/]*/.test(set_score)) && divider ? set_score.split(divider).map(s => /\d+/.exec(s)[0]) : undefined;
                if (scores) {
-                  sets_tally[parseInt(scores[0]) > parseInt(scores[1]) ? 0 : 1] += 1
+                  sets_tally[parseInt(scores[0]) > parseInt(scores[1]) ? 0 : 1] += 1;
                }
             });
          }
@@ -4052,6 +4045,7 @@ export function drawFx(opts) {
          } else {
             let set_scores = score.split(' ');
             set_scores.forEach(set_score => {
+               // eslint-disable-next-line no-useless-escape
                let scores = (/\d+[\(\)\-\/]*/.test(set_score)) && set_score.indexOf('-') > 0 ? set_score.split('-').map(s => /\d+/.exec(s)[0]) : undefined;
                if (scores) {
                   games_tally[0].push(parseInt(scores[0]));
@@ -4079,7 +4073,7 @@ export function drawFx(opts) {
 
       function getComplement(score_format, value) {
          if (!score_format || value == '') return;
-         if (value == score_format.tiebreaks_at || value == score_format.tiebreaks_at + 1) tiebreak = true;
+         // if (value == score_format.tiebreaks_at || value == score_format.tiebreaks_at + 1) tiebreak = true;
          if (value == score_format.tiebreaks_at - 1 || value == score_format.tiebreaks_at) return parseInt(score_format.tiebreaks_at || 0) + 1;
          if (value < score_format.tiebreaks_at) return score_format.games_for_set;
          return score_format.tiebreaks_at;

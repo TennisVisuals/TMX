@@ -23,14 +23,16 @@ export const eventManager = function() {
          keys[evnt] = Object.keys(registeredFunctions[evnt]);
       }
       return em;
-   }
+   };
+
    em.deRegister = (cls, evnt) => {
       if (registeredFunctions[evnt]) {
          delete registeredFunctions[evnt][cls];
          keys[evnt] = Object.keys(registeredFunctions[evnt]);
       }
       return em;
-   }
+   };
+
    em.trigger = (cls, evnt, target, mouse) => registeredFunctions[evnt][cls].fx(target, mouse);
    em.list = () => console.log(registeredFunctions);
 
@@ -38,8 +40,9 @@ export const eventManager = function() {
    document.addEventListener(tapHandler, evt => processEvnt(evt, 'tap'));
 
    var last_tap = 0;
+
    function processEvnt(evt, evnt) {
-      var mouse = { x: evt.clientX, y: evt.clientY }
+      var mouse = { x: evt.clientX, y: evt.clientY };
       let class_list = Array.from(evt.target.classList);
       let cls_matches = class_list.length && keys[evnt] ? intersection(class_list, keys[evnt]) : [];
       if (cls_matches.length) {
@@ -50,16 +53,16 @@ export const eventManager = function() {
       }
    }
 
-   function callFunction(cls, target, evnt, mouse) { registeredFunctions[evnt][cls].fx(target, mouse) }
+   function callFunction(cls, target, evnt, mouse) { registeredFunctions[evnt][cls].fx(target, mouse); }
 
    document.addEventListener('touchstart', function(event) {
       em.touched = event.target;
       em.coords = [event.touches[0].clientX, event.touches[0].clientY];
       if (em.touched) { touchTimer = setTimeout(function(){ holdAction(); }, em.hold_time); }
    }, false);
-   document.addEventListener('touchend', function(event) { touchleave(); }, false);
+   document.addEventListener('touchend', function() { touchleave(); }, false);
    document.addEventListener('touchmove', function(event) { if (em.touched !== event.target) touchleave(); }, false);
-   function touchleave() { clearTimeout(touchTimer) }
+   function touchleave() { clearTimeout(touchTimer); }
    function holdAction() { if (typeof em.holdAction == 'function') { em.held = em.touched; em.holdAction(em.held, em.coords); } }
 
    (function(){
@@ -67,18 +70,18 @@ export const eventManager = function() {
       var isTouchTimer; 
       var curRootClass = ''; //var indicating current document root class ("can-touch" or "")
         
-      function addtouchclass(e) {
-         // console.log('adding touch class');
-         clearTimeout(isTouchTimer)
+      function addtouchclass() {
+         clearTimeout(isTouchTimer);
          isTouch = true;
          if (curRootClass != 'can-touch') { //add "can-touch' class if it's not already present
-            curRootClass = 'can-touch'
-            document.documentElement.classList.add(curRootClass)
+            curRootClass = 'can-touch';
+            document.documentElement.classList.add(curRootClass);
          }
-         isTouchTimer = setTimeout(function(){isTouch = false}, 500) //maintain "istouch" state for 500ms so removetouchclass doesn't get fired immediately following a touch event
+         //maintain "istouch" state for 500ms so removetouchclass doesn't get fired immediately following a touch event
+         isTouchTimer = setTimeout(function() { isTouch = false; }, 500);
       }
         
-      function removetouchclass(e) {
+      function removetouchclass() {
          // console.log('removing touch class');
          if (!isTouch && curRootClass == 'can-touch') { //remove 'can-touch' class if not triggered by a touch event and class is present
             isTouch = false;

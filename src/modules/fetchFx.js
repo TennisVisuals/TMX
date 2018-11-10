@@ -1,5 +1,5 @@
 import { db } from './db';
-import { env } from './env'
+import { env } from './env';
 import { util } from './util';
 import { UUID } from './UUID';
 import { dateFx } from './dateFx';
@@ -9,18 +9,18 @@ import { importFx } from './importFx';
 import { calendarFx } from './calendarFx';
 import { displayGen } from './displayGen';
 import { tournamentFx } from './tournamentFx';
-import { tournamentDisplay } from './tournamentDisplay';
 
 export const fetchFx = function() {
    let fx = {
-      update: undefined,  // determines when updated version is available
-   }
+      // determines when updated version is available
+      update: undefined
+   };
    let bearer_token = 'c611a05e-019e-4594-9578-e7a602125112';
 
    // AJAX REQUESTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
    function ajax(url, request, type, callback) {
-      var type = type || "GET";
+      type = type || "GET";
       if (['GET', 'POST'].indexOf(type) < 0) return false;
       if (typeof callback != 'function') return false;
 
@@ -37,7 +37,7 @@ export const fetchFx = function() {
          let parseable = attemptJSONparse(json_data);
          json_data = (parseable && parseable.data) || json_data;
          callback( json_data ? { json: json_data } : { result }); 
-      }
+      };
       remote.send(request);
       return true;
    }
@@ -88,17 +88,19 @@ export const fetchFx = function() {
    fx.fetchTournament = fetchTournament;
    function fetchTournament(merge_with_tuid, coords, modifyTournament) {
       db.findSetting('fetchTournament').then(s => {
+         let fetchFx;
          if (s) {
-            let fetchFx = s.fx ? util.createFx(s.fx) : undefined;
+            fetchFx = s.fx ? util.createFx(s.fx) : undefined;
             if (!fetchFx || typeof fetchFx != 'function') return;
 
             displayGen.enterLink(undefined, lang.tr('tournaments.id'), processID);
-            function processID(id) {
-               displayGen.closeModal();
-               if (id) fetchFx(id, fetchHTML).then(completeFetch, ()=>displayGen.popUpMessage(lang.tr('phrases.notfound')));
-            }
          } else {
             console.log('no fx');
+         }
+
+         function processID(id) {
+            displayGen.closeModal();
+            if (id) fetchFx(id, fetchHTML).then(completeFetch, ()=>displayGen.popUpMessage(lang.tr('phrases.notfound')));
          }
       });
 
@@ -132,7 +134,7 @@ export const fetchFx = function() {
                      return resolve();
                   } else {
                      player.full_name = `${player.last_name.toUpperCase()}, ${stringFx.normalizeName(player.first_name, false)}`;
-                     db.findPlayerById(player.id).then(searchResult, util.logError);
+                     db.findPlayerById(player.id).then(searchResult, reject);
                   }
 
                   function searchResult(existing) {
@@ -170,7 +172,7 @@ export const fetchFx = function() {
          existing.end = Math.max(existing.end, fetched.end);
          existing.players = mergePlayers(existing.players, fetched.players);
          db.addTournament(existing).then(() => {
-            calendarFx.createNewTournament({ tournament_data: existing, title: lang.tr('actions.edit_tournament'), callback: modifyTournament })
+            calendarFx.createNewTournament({ tournament_data: existing, title: lang.tr('actions.edit_tournament'), callback: modifyTournament });
          });
       }
 
@@ -223,9 +225,10 @@ export const fetchFx = function() {
          }
 
          function fetchNew(clbz, fetchobj) {
-            let cids = clbz.map(c=>+c.id);
-            let max_id = Math.max(0, ...clbz.map(c=>!isNaN(+c.id) ? +c.id : 0));
-
+            // let cids = clbz.map(c=>+c.id);
+            //
+            // let max_id = Math.max(0, ...clbz.map(c=>!isNaN(+c.id) ? +c.id : 0));
+            //
             // 'fetchNewClubs'
             // let request_object = {
             //     [fetchobj.type]: fetchobj.url + max_id
@@ -246,7 +249,7 @@ export const fetchFx = function() {
 
             function responseHandler(result) {
                if (result.json) {
-                  let new_clubs = result.json.filter(f=>cids.indexOf(+f.id) < 0);
+                  // let new_clubs = result.json.filter(f=>cids.indexOf(+f.id) < 0);
                   resolve(result.json);
                } else {
                   return reject(result.err || 'Error');
@@ -361,7 +364,7 @@ export const fetchFx = function() {
                let existing_puids = plyrz.map(p=>p.puid);
                let existing_puid_map = Object.assign({}, ...plyrz.map(p => ({ [p.puid]: p })));
                let new_puids = incoming_puids.filter(i=>existing_puids.indexOf(i) < 0);
-               let modify_puids = incoming_puids.filter(i=>existing_puids.indexOf(i) >= 0);
+               // let modify_puids = incoming_puids.filter(i=>existing_puids.indexOf(i) >= 0);
 
                // first add all the new players to the update
                let update_players = incoming_players.filter(p=>new_puids.indexOf(p.puid) >= 0);
@@ -412,8 +415,9 @@ export const fetchFx = function() {
 
          // TODO: PUID generation should occur on the remote server, not in this script!
          // nameHash should be elminated...
-         function normalizePlayers(players, fetchobj) {
-            let parser = fetchobj.parser && fetchobj.parser.fx && util.createFx(fetchobj.parser.fx);
+         function normalizePlayers(players) {
+         // function normalizePlayers(players, fetchobj) {
+            // let parser = fetchobj.parser && fetchobj.parser.fx && util.createFx(fetchobj.parser.fx);
 
             players.forEach(player => {
                let rtp_date = new Date(player.right_to_play_until);
@@ -423,7 +427,7 @@ export const fetchFx = function() {
                let birth_date = new Date(player.birth);
                player.birth = (birth_date != 'Invalid Date') ? birth_date.getTime() : undefined;
                let name = (player.first_name + player.last_name).trim();
-               player.hash = util.nameHash(name);
+               player.hash = stringFx.nameHash(name);
                let foreign = player.foreign != 'N';
                player.ioc = player.ioc || (!player.ioc && !foreign ? 'CRO' : undefined);
                // player.represents_ioc = player.represents_ioc != 'N';
@@ -455,9 +459,9 @@ export const fetchFx = function() {
    fx.fetchRankLists = fetchRankLists;
    function fetchRankLists(categories) {
       return new Promise((resolve, reject) => {
-         Promise.all(categories.map(c=>fetchRankList(c, true))).then(rankObj, rankErr)
+         Promise.all(categories.map(c=>fetchRankList(c, true))).then(rankObj, rankErr);
 
-         function rankErr(err) {
+         function rankErr() {
             let message = `<div style='margin: 1em;'>lang.tr('phrases.notconfigured')</div><div style='margin: 1em;'>Cannot Fetch Rank Lists</div>`;
             if (fx.errors) displayGen.popUpMessage(message);
             reject();
@@ -466,14 +470,14 @@ export const fetchFx = function() {
          function rankObj(rankings) {
             let failures = rankings.filter(f=>!f.valid);
             if (failures.length) notify(failures);
-            let obj = Object.assign({}, ...rankings.filter(f=>f.valid).map(r => { return { [r.rankings.category]: r }}));
+            let obj = Object.assign({}, ...rankings.filter(f=>f.valid).map(r => { return { [r.rankings.category]: r }; }));
             resolve(obj);
          }
       });
    }
 
    function notify(failures) {
-      console.log('failure to update rank lists');
+      console.log('failure to update rank lists', failures);
       return;
       // shouldn't be trying to update rank lists if there is no URL for updating!!
 
@@ -528,7 +532,7 @@ export const fetchFx = function() {
             let request = JSON.stringify(request_object);
             function responseHandler(data) {
                if (data && data.json && Array.isArray(data.json)) {
-                  let player_rankings = Object.assign({}, ...data.json.map(r => { return { [r.id]: r }}));
+                  let player_rankings = Object.assign({}, ...data.json.map(r => { return { [r.id]: r }; }));
                   let rankings = { category, players: player_rankings, date: new Date().getTime() };
                   db.addCategoryRankings(rankings).then(() => resolve({ valid: true, rankings }), err => reject({ error: err }));
                } else if (data && data.json && data.json.players && typeof data.json.players == 'object') {
@@ -573,7 +577,7 @@ export const fetchFx = function() {
          }
          ajax('/api/registrations/sheet', request, 'POST', responseHandler);
       });
-   }
+   };
 
    fx.fetchRegisteredPlayers = fetchRegisteredPlayers;
    function fetchRegisteredPlayers(tuid, category) {
@@ -594,7 +598,7 @@ export const fetchFx = function() {
                if (players && !players.length) return displayGen.popUpMessage('Players not found: Check Headers/Tab Names.');
                players.forEach(player => { player.full_name = `${player.last_name.toUpperCase()}, ${stringFx.normalizeName(player.first_name, false)}`; });
                resolve(players);
-            }
+            };
             importFx.loadPlayersDragAndDrop(id_obj.dropzone.element, ()=>{}, callback);
          }
 
@@ -645,7 +649,7 @@ export const fetchFx = function() {
          function scrape(scraper) {
             let parser = scraper.fx && util.createFx(scraper.fx);
             let ioc_codes = env.ioc_codes;
-            let ioc_map = Object.assign({}, ...ioc_codes.map(c=>({[c.name.toUpperCase()]: c.ioc})))
+            let ioc_map = Object.assign({}, ...ioc_codes.map(c=>({[c.name.toUpperCase()]: c.ioc})));
             ioc_map['USA'] = ioc_map['UNITED STATES'];
             ioc_map['UNITED KINGDOM'] = ioc_map['GREAT BRITAIN'];
 
@@ -658,7 +662,7 @@ export const fetchFx = function() {
                   if (!player.id) player.id = UUID.new();
                   if (!player.puid) player.puid = player.id;
                   if (!player.ioc && player.country) player.ioc = ioc_map[player.country.toUpperCase()];
-               })
+               });
                resolve(players);
             }, (err) => console.log('err:', err));
          }
@@ -729,8 +733,8 @@ export const fetchFx = function() {
 
    fx.fileNotRecognized = () => {
       let message = `File Not Recognized`;
-      let container = displayGen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
-   }
+      displayGen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+   };
 
    fx.loadGoogleMaps = loadGoogleMaps;
    function loadGoogleMaps() {

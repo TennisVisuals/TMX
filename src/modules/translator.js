@@ -1,4 +1,4 @@
-import { db } from './db'
+import { db } from './db';
 
 export const lang = function() {
 
@@ -6,7 +6,7 @@ export const lang = function() {
    let idioms = {};
    let selected_ioc = 'gbr';
 
-   lang.define = ({ ioc, idiom }) => { idioms[ioc] = idiom; }
+   lang.define = ({ ioc, idiom }) => { idioms[ioc] = idiom; };
 
    lang.set = (new_ioc) => {
       if (!new_ioc) return selected_ioc;
@@ -14,7 +14,7 @@ export const lang = function() {
       updateDefault(new_ioc);
       if (idioms[new_ioc] && idioms[new_ioc].locale) d3.timeFormatDefaultLocale(idioms[new_ioc].locale);
       return true;
-   }
+   };
 
    function updateDefault(ioc='gbr') {
       selected_ioc = ioc;
@@ -50,14 +50,14 @@ export const lang = function() {
          obj = obj && obj[child] || '';
       }
       return obj;
-   }
+   };
 
    lang.obj = (what) => {
       if (!what) return "";
       if (idioms[selected_ioc] && idioms[selected_ioc][what]) return idioms[selected_ioc][what];
       if (idioms.default[what]) return idioms.default[what];
       return {};
-   }
+   };
 
    idioms.default = {
       tour: 'Tour',
@@ -75,7 +75,6 @@ export const lang = function() {
       dl:      'Download',
       or:      'or',
       arp:     'All Ranking Points',
-      act:     'Actual',
       rlp:     'Points - Ranking Lists',
       trn:     'Tournament',
       rnd:     'Round',
@@ -162,7 +161,10 @@ export const lang = function() {
       start:   'Start',
       end:     'End',
       ref:     'Referee',
+
+      // this elment is duplicated/overloaded, but it works...
       scoring: 'Scoring',
+
       time:    'Time',
       duration:'Duration',
       qualifier: 'Qualifier',
@@ -232,13 +234,13 @@ export const lang = function() {
          matchdates: 'Match Dates',
          firstday: 'Week Starts Monday',
          draworderscores: 'Scores in Draw Order',
-         schedulecompleted: 'Schedule Completed Matches',
+         schedulecompleted: 'Schedule Completed Matches'
       },
 
       round_names: {
          F: 'Final',
          SF: 'Semifinal',
-         QF: 'Quarterfinal',
+         QF: 'Quarterfinal'
       },
 
       search: {
@@ -248,13 +250,13 @@ export const lang = function() {
          approve: 'Approve Player',
          add2team: 'Add Team Player',
          lastfirst: 'LAST First',
-         firstlast: 'First Last',
+         firstlast: 'First Last'
       },
 
       formats: {
          singles: 'Singles',
          doubles: 'Doubles',
-         team: 'Team',
+         team: 'Team'
       },
 
       scoring_format: {
@@ -266,12 +268,13 @@ export const lang = function() {
          superto: 'To'
       },
 
+      // eslint-disable-next-line no-dupe-keys
       scoring: {
          retire: 'Retire',
          default: 'Default',
          walkover: 'Walkover',
          supertiebreak: 'Supertiebreak',
-         normal: 'Normal',
+         normal: 'Normal'
       },
 
       draws: {
@@ -339,7 +342,7 @@ export const lang = function() {
          seedrange: 'Seeds',
          playerrange: 'All Players',
          unpublish: 'Unpublish Draw',
-         unpublishall: 'Unpublish All Events',
+         unpublishall: 'Unpublish All Events'
       },
 
       print: {
@@ -347,7 +350,7 @@ export const lang = function() {
          draw: 'Print',
          signin: 'Sign-In Sheet',
          ranklist: 'Rank List',
-         playerlist: 'Player List',
+         playerlist: 'Player List'
       },
 
       teams: {
@@ -365,7 +368,7 @@ export const lang = function() {
          coaches: 'Coaches',
          school: 'School',
          ioc: 'Country',
-         abbreviation: 'Abbreviation',
+         abbreviation: 'Abbreviation'
       },
 
       tournaments: {
@@ -397,7 +400,7 @@ export const lang = function() {
          received: 'Received Tournament Record',
          publishtime: 'Publish Time',
          replacelocal: 'Replace Local Copy?',
-         unpublish: 'Unpublish Tournament?',
+         unpublish: 'Unpublish Tournament?'
       },
 
       ddlb: {
@@ -470,7 +473,6 @@ export const lang = function() {
          rankedplayers: 'Ranked Players',
          judgesignature: 'Signature of Head Umpire:',
          nopointcalcs: 'No Point Calculations for given date',
-         nomatches: 'No Matches',
          downloadtemplate: 'Download Import Template',
          add2database: 'Add Players, Tournaments, Rankings to Database',
          noconnection: 'No Connection',
@@ -524,7 +526,7 @@ export const lang = function() {
          name: 'Name',
          address: 'Address',
          courts: 'Courts',
-         identifiers: 'Court IDs',
+         identifiers: 'Court IDs'
       },
 
       genders: {
@@ -532,14 +534,14 @@ export const lang = function() {
          male_abbr: 'M',
          female: 'Female',
          female_abbr: 'W',
-         mixed: 'Mixed',
+         mixed: 'Mixed'
       },
 
       surfaces: {
          clay: 'Clay',
          hard: 'Hard',
          grass: 'Grass',
-         carpet: 'Carpet',
+         carpet: 'Carpet'
       },
 
       actions: {
@@ -562,13 +564,13 @@ export const lang = function() {
          add_location: 'Add Location',
          delete_location: 'Delete Location',
          delete_tournament: 'Delete Tournament',
-         edit_tournament: 'Edit Tournament',
+         edit_tournament: 'Edit Tournament'
       },
 
       requests: {
          syncClubs: 'Synchronize Clubs',
          syncTournaments: 'Synchronize Tournaments',
-         syncPlayers: 'Synchronize Players',
+         syncPlayers: 'Synchronize Players'
       },
 
       signin: {
@@ -594,6 +596,7 @@ export const lang = function() {
       },
 
       schedule: {
+         rows: 'Schedule Rows',
          startrow: 'Start Row',
          allevents: 'All Events',
          allrounds: 'All Rounds',
@@ -632,7 +635,7 @@ export const lang = function() {
          registered: 'Updating Registered Players...',
          players: 'Updating Players...',
          calendar: 'Updating Calendar...',
-         clubs: 'Updating Clubs...',
+         clubs: 'Updating Clubs...'
       },
 
       penalties: {
@@ -646,12 +649,12 @@ export const lang = function() {
          foullanguage: 'Foul Language',
          timeviolation: 'Time Violation',
          latearrival: 'Late Arrival',
-         unsporting: 'Unsporting Behavior',
+         unsporting: 'Unsporting Behavior'
       },
 
       // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toLocaleDateString
-      datelocalization: 'en-EN',
-   }
+      datelocalization: 'en-EN'
+   };
 
    return lang;
 

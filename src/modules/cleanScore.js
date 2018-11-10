@@ -1,7 +1,9 @@
 export const cleanScore = function() {
 
    // remove extraneous characters and split match scores into set_scores
+   // eslint-disable-next-line no-useless-escape
    let replaceDots = (score) => score.replace(/\./g, ' ');
+   // eslint-disable-next-line no-useless-escape
    let removeExtraneous = (score) => score.replace(/\,/g, '');
    let clean = (score) => replaceDots(removeExtraneous(score));
 
@@ -26,18 +28,18 @@ export const cleanScore = function() {
       }
       if (tiebreak) set.score += `(${tiebreak})`;
       return set;
-   }
+   };
 
    let removeBrackets = (set_score) => {
       let brackets = /\[(\d+)-(\d+)\]/;
       if (!brackets.test(set_score)) return set_score;
       return brackets.exec(set_score).filter((f, i) => i && i < 3).join('-');
-   }
+   };
 
    let scoreDiff = (scores) => {
       if (!Array.isArray(scores) || scores.length != 2) return false;
       return Math.abs(scores.reduce((a, b) => +a - +b));
-   }
+   };
 
    let supertiebreak = (scores) => {
       if (!Array.isArray(scores) || scores.length != 2) return false;
@@ -47,14 +49,15 @@ export const cleanScore = function() {
       if (!gt10) return false;
       if (gt10 == 2 && diff != 2) return false;
       return true;
-   }
+   };
 
    let supertiebreakSet = (set_score) => {
       set_score = removeBrackets(set_score);
       let set = parseScore(set_score);
       return (set && set.type == 'supertiebreak') ? set.score : false;
-   }
+   };
 
+   /*
    let proSet = (set_score) => {
       let set;
       let tiebreak_score;
@@ -66,11 +69,14 @@ export const cleanScore = function() {
          set = parseScore(set_score, tiebreak_score, 9);
       }
       return (set && set.type == 'normal') ? set.score : false;
-   }
+   };
+   */
 
    let parseTiebreak = (set_score, total = 13) => {
       let tiebreak_score;
+      // eslint-disable-next-line no-useless-escape
       let tiebreak = /^([\d\:\.\-\/]+)\((\d+)\)/;
+      // eslint-disable-next-line no-useless-escape
       let backwards = /^\((\d+)\)([\d\:\.\-\/]+)/;
       let validSetScore = (ss) => ss.match(/[\d+]/g).map(m=>+m).reduce((a, b) => a + b) == total;
 
@@ -87,8 +93,8 @@ export const cleanScore = function() {
             tiebreak_score = sst[2];
          }
       }
-      return { set_score, tiebreak_score }
-   }
+      return { set_score, tiebreak_score };
+   };
 
    let normalSet = (set_score) => {
       let tiebreak_score;
@@ -102,7 +108,7 @@ export const cleanScore = function() {
       set_score = removeBrackets(set_score);
       let set = parseScore(set_score, tiebreak_score);
       return (set && set.type == 'normal') ? set.score : false;
-   }
+   };
 
    // set score is a standalone tiebreak score
    let tiebreakScore = (set_score) => /^\(\d+\)$/.test(set_score);
@@ -148,7 +154,7 @@ export const cleanScore = function() {
 
       match_score = set_scores.map(normalSet).filter(f=>f);
       if (match_score.length == set_scores.length) return match_score;
-   }
+   };
 
    let endedEarly = (score) => {
       let alpha = score.match(/[A-Za-z]+/g);
@@ -156,15 +162,15 @@ export const cleanScore = function() {
       let termination = ['wo', 'abandoned', 'ret', 'def', 'default'];
       let outcome = alpha.join('').toLowerCase();
       return termination.indexOf(outcome) >= 0 ? outcome : false;
-   }
+   };
 
    let walkout = (set_scores) => {
       if (set_scores.length < 2) return false;
       let last2 = set_scores.slice(set_scores.length - 2, set_scores.length);
       if (last2.join('').toLowerCase() == 'wo') return true;
-   }
+   };
 
-   let wo = (score) => walkout(clean(score).split(' ').filter(f=f));
+   let wo = (score) => walkout(clean(score).split(' ').filter(f=>f));
 
    let okScore = (set_scores) => {
       // all sets are "normal"
@@ -189,7 +195,7 @@ export const cleanScore = function() {
          return normal;
       }
       return false;
-   }
+   };
 
    let normalize = (score) => okScore(clean(score).split(' ').filter(f=>f));
 

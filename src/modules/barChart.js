@@ -54,7 +54,7 @@ export function barChart() {
               .attr("width", x.bandwidth())
               .attr("y", d => y(d.value))
               .attr("height", d => height - y(d.value))
-              .style("fill", colour)
+              .style("fill", colour);
 
            svg.append("g")
               .attr("transform", "translate(0," + height + ")")
@@ -82,12 +82,6 @@ export function barChart() {
     chart.margin = function(value) {
         if (!arguments.length) return margin;
         margin = value;
-        return chart;
-    };
-
-    chart.radius = function(value) {
-        if (!arguments.length) return radius;
-        radius = value;
         return chart;
     };
 

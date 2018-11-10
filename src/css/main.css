@@ -17,6 +17,10 @@ html {
 	box-sizing: border-box;
 }
 
+input:focus {
+   outline-color: rgb(59, 153, 252);
+}
+
 #header { overflow: hidden; }
 
 #main {
@@ -92,8 +96,9 @@ html {
 
 .header { margin-bottom: .5em; }
 
-.title { 
-   font-size: larger; 
+.tmx-title { 
+   margin-bottom: 1em;
+   font-size: 1.5em; 
    font-weight: bold; 
 }
 

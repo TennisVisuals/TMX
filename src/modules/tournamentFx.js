@@ -1,27 +1,25 @@
-import { env } from './env'
+import { env } from './env';
 import { util } from './util';
 import { coms } from './coms';
 import { UUID } from './UUID';
-import { dd } from './dropdown';
 import { drawFx } from './drawFx';
 import { staging } from './staging';
-import { matchFx } from './matchFx';
 import { lang } from './translator';
 import { stringFx } from './stringFx';
 import { playerFx } from './playerFx';
+import { matchFx as mfx} from './matchFx';
 
 export const tournamentFx = function() {
 
    let fx = {};
-   let mfx = matchFx;
    let dfx = drawFx();
 
-   fx.settingsLoaded = () => { dfx.options(env.drawFx); }
+   fx.settingsLoaded = () => { dfx.options(env.drawFx); };
 
    fx.deletedMUIDs = (tournament, muids) => {
       if (!tournament.deleted) tournament.deleted = { muids: [] };
       tournament.deleted.muids = tournament.deleted.muids.concat(...muids);
-   }
+   };
 
    fx.addPlayers = (tournament, players) => {
       let added = 0;
@@ -36,24 +34,24 @@ export const tournamentFx = function() {
          }
       });
       return added;
-   }
+   };
 
    fx.getScoreboardSettings = ({ format, category }) => {
       let settings = env.scoreboard.settings;
       if (format && category && settings.categories[category] && settings.categories[category][format]) return settings.categories[category][format];
       if (format && settings[format]) return settings[format];
       return settings.singles;
-   }
+   };
 
    fx.findEventByID = (tournament, id) => {
       if (!id || !tournament || !tournament.events || tournament.events.length < 1) return;
       return tournament.events.reduce((p, c) => c.euid == id ? c : p, undefined);
-   }
+   };
 
    fx.findTeamByID = (tournament, id) => {
       if (!id || !tournament || !tournament.teams || tournament.teams.length < 1) return;
       return tournament.teams.reduce((p, c) => c.id == id ? c : p, undefined);
-   }
+   };
 
    fx.genEventName = (e, pre) => {
       let types = {
@@ -64,14 +62,14 @@ export const tournamentFx = function() {
          'L': lang.tr('draws.dualmatches'),
          'T': lang.tr('draws.teamtourny'),
          'F': lang.tr('draws.feedin'),
-         'P': lang.tr('pyo'),
-      }
+         'P': lang.tr('pyo')
+      };
       let q_subtypes = (env.draws.subtypes && env.draws.subtypes.qualification) || {};
       let preround_naming = q_subtypes.preround ? lang.tr('draws.preround') : q_subtypes.incidentals ? lang.tr('draws.incidentals') : (types[e.draw_type] || lang.tr('draws.maindraw'));
       let type = pre ? preround_naming : (types[e.draw_type] || lang.tr('draws.maindraw'));
       let name = `${e.name}&nbsp;${type}`;
-      return { type, name }
-   }
+      return { type, name };
+   };
 
    fx.pruneMatch = (match) => {
       if (match) {
@@ -89,7 +87,7 @@ export const tournamentFx = function() {
       // delete match.teams;
       // delete match.round_name;
       // delete match.round;
-   }
+   };
 
    fx.replaceTournamentPlayer = ({ tournament, existing_player, new_player_data, replace_all }) => {
       if (!tournament || !tournament.players) return;
@@ -109,7 +107,7 @@ export const tournamentFx = function() {
             Object.keys(new_player_data).forEach(key=>player[key]=new_player_data[key]);
          }
       }
-   }
+   };
 
    function replaceEventPlayer(evnt, existing_player, new_player_data) {
       if (!evnt.draw) return;
@@ -139,7 +137,7 @@ export const tournamentFx = function() {
          .filter(n => n.data.team && util.intersection(n.data.team.map(t=>t.id), team_ids).length)
          .map(n => n.data.dp));
       return util.intersection(active_player_positions, position_in_linked).length;
-   }
+   };
 
    /*
    function playerActiveInLinked(qlinkinfo, plyr) {
@@ -152,7 +150,7 @@ export const tournamentFx = function() {
    }
    */
 
-   function opponentRemoved({ tournament, e, elink, qlink, dlinkinfo, previous_winner, previous_loser, outcome }) {
+   function opponentRemoved({ tournament, e, elink, qlink, dlinkinfo, previous_winner, outcome }) {
       if (qlink) {
          qlink.approved = qlink.approved ? qlink.approved.filter(a=>previous_winner.indexOf(a) < 0): [];
          qlink.draw.opponents = qlink.draw.opponents.filter(o=>util.intersection(o.map(m=>m.id), previous_winner).length == 0);
@@ -160,7 +158,7 @@ export const tournamentFx = function() {
             dlinkinfo.nodes.forEach(node => {
                if (!node.height && node.data.team && util.intersection(node.data.team.map(t=>t.id), previous_winner).length) {
                   node.data.qualifier = true;
-                  node.data.team = node.data.team.map(team => ({ bye: undefined, entry: 'Q', qualifier: true, draw_position: outcome.draw_position }) );
+                  node.data.team = node.data.team.map(() => ({ bye: undefined, entry: 'Q', qualifier: true, draw_position: outcome.draw_position }) );
                }
             });
          }
@@ -183,7 +181,7 @@ export const tournamentFx = function() {
    function qualifierChanged({ e, outcome, qlink, dlinkinfo, previous_winner, current_winner }) {
       // replace qualifier
       e.qualified = e.qualified.filter(q=>util.intersection(q.map(m=>m.id), previous_winner).length == 0);
-      e.qualified.push(outcome.teams[outcome.winner])
+      e.qualified.push(outcome.teams[outcome.winner]);
 
       // modify linked draw
       if (qlink) {
@@ -204,8 +202,7 @@ export const tournamentFx = function() {
       fx.logEventChange(e, { fx: 'qualifier changed', d: { team: outcome.teams[outcome.winner].map(t=>t.id) } });
    }
 
-   function consolationChanged({ e, outcome, elink, dlinkinfo, previous_loser, current_loser }) {
-
+   function consolationChanged({ e, outcome, elink, dlinkinfo, previous_loser }) {
       // modify linked draw
       if (elink) {
          let new_opponent = outcome.teams[1 - outcome.winner].map(p => Object.assign({}, p, { seed: undefined }));
@@ -229,9 +226,8 @@ export const tournamentFx = function() {
    }
 
    fx.safeScoreTreeDraw = ({ tournament, e, muid, existing_scores, outcome }) => {
-      try { return fx.scoreTreeDraw({ tournament, e, muid, existing_scores, outcome }); }
-      catch (err) { fx.logEventError(e, err, 'tournamentFx.scoreTreeDraw'); }
-   }
+      return coms.catchSync(fx.scoreTreeDraw)({ tournament, e, muid, existing_scores, outcome });
+   };
 
    fx.calcDualMatchesScore = (e, dual_match) => {
       let score = [0, 0];
@@ -250,11 +246,11 @@ export const tournamentFx = function() {
       if (completed) dual_match.match.score = `${dual_match.match.score} ${completed}`;
       let active_matches = match_record && match_record.matches.reduce((p, c) => c.match.score ? true : p, undefined);
       return { score, active_matches };
-   }
+   };
 
-   fx.scoreDualMatchDraw = ({ tournament, e, dual_match, dual_teams, muid, outcome }) => {
+   fx.scoreDualMatchDraw = ({ /*tournament, */e, dual_match, dual_teams, muid, outcome }) => {
       let match = e.draw.dual_matches[dual_match.match.muid].matches.reduce((p, c) => c.match.muid == muid ? c : p, undefined);
-      if (!match) return { success: false}
+      if (!match) return { success: false };
 
       match.match.score = outcome.score;
       match.match.winner_index = outcome.winner;
@@ -265,7 +261,7 @@ export const tournamentFx = function() {
       match.match.date = match.date || new Date().getTime();
 
       return fx.advanceDualMatchPosition( { e, dual_match, dual_teams });
-   }
+   };
 
    fx.advanceDualMatchPosition = ({ e, dual_match, dual_teams }) => {
       var result = { success: true };
@@ -290,7 +286,7 @@ export const tournamentFx = function() {
       e.active = active_matches;
 
       return result;
-   }
+   };
 
    fx.deleteDualMatchOutcome = ({ dual_match }) => {
       delete dual_match.match.winner_index;
@@ -301,7 +297,7 @@ export const tournamentFx = function() {
       delete dual_match.score;
       delete dual_match.team;
       delete dual_match.dp;
-   }
+   };
 
    fx.scoreTreeDraw = ({ tournament, e, muid, existing_scores, outcome }) => {
       var result = {};
@@ -315,7 +311,7 @@ export const tournamentFx = function() {
       let compass = e.draw && e.draw.compass;
 
       // qlink is a forward link from a qualification draw to an elimination draw
-      let qlink = e.draw_type == 'Q' && fx.findEventByID(tournament, e.links['E'])
+      let qlink = e.draw_type == 'Q' && fx.findEventByID(tournament, e.links['E']);
       // elink is a forward link from an elimination draw to a consolation draw
       let elink = e.draw_type == 'E' && fx.findEventByID(tournament, e.links['C']);
 
@@ -368,13 +364,13 @@ export const tournamentFx = function() {
          if (compass) {
             fx.removeDirectionalPlayer(tournament, e, target_draw, previous_loser, linked_info);
          } else {
-            opponentRemoved({ tournament, e, elink, qlink, dlinkinfo, previous_winner, previous_loser, outcome });
+            opponentRemoved({ tournament, e, elink, qlink, dlinkinfo, previous_winner, outcome });
          }
          if (dlink) result.approved_changed = dlink;
          result.winner_removed = true;
       } else if (winner_changed) {
          if (qlink) qualifierChanged({ e, outcome, qlink, dlinkinfo, previous_winner, current_winner });
-         if (elink) consolationChanged({ e, outcome, elink, dlinkinfo, previous_loser, current_loser });
+         if (elink) consolationChanged({ e, outcome, elink, dlinkinfo, previous_loser });
          if (compass) fx.removeDirectionalPlayer(tournament, e, target_draw, previous_loser, linked_info);
          result.winner_changed = true;
       }
@@ -411,7 +407,7 @@ export const tournamentFx = function() {
             complete: outcome.complete,
             position: outcome.position,
             set_scores: outcome.set_scores,
-            score_format: outcome.score_format,
+            score_format: outcome.score_format
          });
 
          if (result && !result.advanced) return { error: 'phrases.cannotchangewinner' };
@@ -434,7 +430,7 @@ export const tournamentFx = function() {
          complete: outcome.complete, 
          positions: outcome.positions,
          set_scores: outcome.set_scores,
-         score_format: outcome.score_format,
+         score_format: outcome.score_format
       });
 
       let puids = outcome.teams.map(t=>t.map(p=>p.puid).join('|'));
@@ -442,7 +438,7 @@ export const tournamentFx = function() {
          let tpuids = n.teams.map(t=>t.map(p=>p.puid).join('|'));
          let pint = util.intersection(tpuids, puids);
          return pint.length == 2 ? n : e; 
-      }
+      };
       let match_event = mfx.eventMatches(e, tournament).reduce(findMatch, undefined);
 
       if (!match_event) return { exit: true };
@@ -470,7 +466,7 @@ export const tournamentFx = function() {
          tuid: tournament.tuid,
          org: tournament.org,
          category: tournament.category,
-         round_name: match.round_name,
+         round_name: match.round_name
       };
 
       if (compass && match.loser) directLoser();
@@ -492,21 +488,21 @@ export const tournamentFx = function() {
             target_draw.unseeded_teams.push(losers);
 
             dfx.placeUnseededTeams({ draw: target_draw });
-            let unfilled_positions = dfx.drawInfo(target_draw).unassigned.map(u=>u.data.dp);;
+            let unfilled_positions = dfx.drawInfo(target_draw).unassigned.map(u=>u.data.dp);
             if (!unfilled_positions.length) dfx.advanceTeamsWithByes({ draw: target_draw });
          }
       }
-   }
+   };
 
    fx.getTargetDirection = (current_direction, match_round) => {
       let directions = {
          'east': ['west', 'north', 'northeast'],
          'west': ['south', 'southwest'],
          'north': ['northwest'],
-         'south': ['southeast'],
-      }
+         'south': ['southeast']
+      };
       return directions[current_direction] && directions[current_direction][match_round - 1];
-   }
+   };
 
    function existingOpponents(target_draw, opponents) {
       let existing_opponents_puids = target_draw.opponents.map(o=>o.map(p=>p.puid));
@@ -515,16 +511,15 @@ export const tournamentFx = function() {
    }
 
    fx.safeScoreRoundRobin = (tournament, e, existing_scores, outcome) => {
-      try { return fx.scoreRoundRobin(tournament, e, existing_scores, outcome); }
-      catch (err) { fx.logEventError(e, err, 'tournamentFx.scoreRoundRobin'); }
-   }
+      return coms.catchSync(fx.scoreRoundRobin)(tournament, e, existing_scores, outcome);
+   };
 
    fx.scoreRoundRobin = (tournament, e, existing_scores, outcome) => {
       var result = {};
       if (!outcome) return result;
 
       var qlink = e.draw_type == 'R' && fx.findEventByID(tournament, e.links['E']);
-      var qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
+      // var qlinkinfo = qlink && qlink.draw && dfx.drawInfo(qlink.draw);
       var puids = outcome.teams.map(t=>t[0].puid);
       var findMatch = (e, n) => (util.intersection(n.match.puids, puids).length == 2) ? n : e;
       var match_event = mfx.eventMatches(e, tournament).reduce(findMatch, undefined);
@@ -539,9 +534,9 @@ export const tournamentFx = function() {
 
       if (score_removed) result.deleted_muid = match_event.match && match_event.match.muid;
 
-      var draw_previously_complete = dfx.drawInfo(e.draw).complete;
+      // var draw_previously_complete = dfx.drawInfo(e.draw).complete;
       var bracket = e.draw.brackets[match_event.match.bracket];
-      var bracket_complete = dfx.bracketComplete(bracket);
+      // var bracket_complete = dfx.bracketComplete(bracket);
       var outcome_change = qualifier_changed || (previous_winner && !current_winner);
 
       if (qlink && outcome_change) {
@@ -601,10 +596,10 @@ export const tournamentFx = function() {
 
       e.active = true;
       return result;
-   }
+   };
 
    // TODO: make qualifying_position selectable (popup)
-   fx.qualifyTeam = ({ tournament, e, team, qualifying_position }) => {
+   fx.qualifyTeam = ({ tournament, e, team/*, qualifying_position*/ }) => {
       if (!e.qualified) e.qualified = [];
 
       // TODO: this is a hack
@@ -614,7 +609,7 @@ export const tournamentFx = function() {
 
       team_copy.forEach(player => {
          player.entry = 'Q';
-         delete player.seed
+         delete player.seed;
       });
 
       // RR Events reset e.qualified each time
@@ -659,7 +654,7 @@ export const tournamentFx = function() {
          edraw.opponents = approved_opponents;
          edraw.unseeded_teams = fx.teamSort(approved_opponents.filter(f=>!f[0].seed));
       }
-   }
+   };
 
    fx.approvedOpponents = ({ tournament, e }) => {
 
@@ -676,7 +671,7 @@ export const tournamentFx = function() {
       } else {
          if (e.format == 'D') { 
             approved = fx.approvedDoubles({ tournament, e })
-               .map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));;
+               .map(team => team.players.map(player => Object.assign(player, { seed: team.seed })));
          } else {
             approved = fx.approvedPlayers({ tournament, e }).map(p=>[p]);
          }
@@ -692,7 +687,7 @@ export const tournamentFx = function() {
       approved.forEach(opponent => opponent.forEach(plyr => { if (entry_data[plyr.id]) plyr.entry = entry_data[plyr.id]; }));
 
       return approved;
-   }
+   };
 
    fx.rankedTeams = (list) => {
       if (!list || !list.length) return false;
@@ -703,7 +698,7 @@ export const tournamentFx = function() {
       }
       let ranked = list.reduce((p, c) => c.category_ranking || p, false); 
       return ranked;
-   }
+   };
 
    fx.approvedDoubles = ({ tournament, e }) => {
       if (!e.wildcards) e.wildcards = [];
@@ -727,7 +722,7 @@ export const tournamentFx = function() {
          if (team.luckyloser) team.players[0].entry = 'LL';
       });
       return approved;
-   }
+   };
 
    /*
     * @param tournament {obj}    tournament object
@@ -737,7 +732,7 @@ export const tournamentFx = function() {
       let offset = 0;
       let players = tournament.players;
       if (!players) return {};
-      let idmap = Object.assign({}, ...players.map(p => { return { [p.id]: p }}));
+      let idmap = Object.assign({}, ...players.map(p => ({ [p.id]: p }) ));
 
       let teams = e.teams || [];
       let eligible = fx.eligiblePlayers(tournament, e);
@@ -752,7 +747,7 @@ export const tournamentFx = function() {
       }
 
       return { idmap, offset, changed: eligible.changed };
-   }
+   };
 
    fx.teamObj = (e, team, idmap, offset=0) => {
       let team_players = team.map(id=>playerFx.playerCopy(idmap[id])).sort(lastNameSort);
@@ -761,30 +756,32 @@ export const tournamentFx = function() {
       let team_rankings = team_players.map(t => (t.int && parseInt(t.int)) ? parseInt(t.int) : offset + t.category_ranking);
       let combined_rank = team_rankings.reduce((a, b) => (+a || 9999) + (+b || 9999));
       let combined_dbls_rank = team_players.map(t=>t.category_dbls).reduce((a, b) => (+a || 0) + (+b || 0));
-      team_players.forEach(p=>{
+      team_players.forEach(p => {
          p.category_ranking = util.parseInt(p.int) || p.category_ranking;
          p.rank = p.modified_ranking || p.category_ranking;
       });
-      return { players: team_players, combined_rank, combined_dbls_rank, subrank }
+      return { players: team_players, combined_rank, combined_dbls_rank, subrank };
 
+      /*
       function combinedRank(a, b) {
          if (a == undefined && b == undefined) return undefined;
          return (+a || 0) + (+b || 0);
       }
+      */
 
       function lastNameSort(a, b) {
          if (a.last_name < b.last_name) return -1;
          if (b.last_name < a.last_name) return 1;
          return 0;
       }
-   }
+   };
 
    fx.approvedTournamentTeams = ({ tournament, e }) => {
       let approved_teams = (tournament.teams || [])
          .filter(t => e.approved.indexOf(t.id) >= 0)
          .map(teamCopy);
       return approved_teams;
-   }
+   };
 
    function teamCopy(team) {
       let team_copy = Object.assign({}, team);
@@ -797,7 +794,7 @@ export const tournamentFx = function() {
    fx.findTournamentPlayer = ({ tournament, puid }) => {
       if (!tournament.players) return undefined;
       return tournament.players.reduce((p, c) => c.puid == puid ? c : p, undefined);
-   }
+   };
 
    fx.approvedPlayers = ({ tournament, e }) => {
 
@@ -860,9 +857,9 @@ export const tournamentFx = function() {
       }
 
       return approved_players;
-   }
+   };
 
-   fx.modifyEventScoring = ({ cfg_obj, tournament, evt, callback, format }) => {
+   fx.modifyEventScoring = ({ cfg_obj, evt, callback, format }) => {
       let bestof = cfg_obj.bestof.ddlb.getValue();
       let max_sets = parseInt(bestof);
       let sets_to_win = Math.ceil(max_sets/2);
@@ -873,8 +870,8 @@ export const tournamentFx = function() {
          tiebreaks_at: parseInt(cfg_obj.tiebreaksat.ddlb.getValue()),
          tiebreak_to: parseInt(cfg_obj.tiebreaksto.ddlb.getValue()),
          supertiebreak_to: parseInt(cfg_obj.supertiebreakto.ddlb.getValue()),
-         final_set_supertiebreak: cfg_obj.finalset.ddlb.getValue() == 'N' ? false : true,
-      }
+         final_set_supertiebreak: cfg_obj.finalset.ddlb.getValue() == 'N' ? false : true
+      };
       if (format) { evt.scoring_format[format] = sf; }
       evt.score_format = sf;
       modifyUnscoredMatches(sf);
@@ -894,7 +891,8 @@ export const tournamentFx = function() {
          }
          function modify(match) { if (!match.winner) { match.score_format = sf; } }
       }
-   }
+   };
+
    fx.setDrawSize = (tournament, e) => {
       if (e.active) return;
       let drawTypes = {
@@ -954,10 +952,10 @@ export const tournamentFx = function() {
          F() {
             e.draw_size = !e.draw ? 0 : dfx.drawInfo(e.draw).draw_positions.length;
          }
-      }
+      };
 
       drawTypes[e.draw_type] ? drawTypes[e.draw_type]() : undefined;
-   }
+   };
 
    fx.ineligiblePlayers = (tournament, e) => {
       let tournament_date = tournament && (tournament.points_date || tournament.start);
@@ -968,7 +966,7 @@ export const tournamentFx = function() {
 
       // TODO: render ineligible because of health certificate / suspension & etc.
       return { players };
-   }
+   };
 
    function eligibleGender(gender, p) { return !gender || (gender && p.sex == gender); }
 
@@ -1028,7 +1026,7 @@ export const tournamentFx = function() {
          if (filter.length) { e.approved = e.approved.filter(id => filter.indexOf(id) < 0); }
          return { players: tournament.players.filter(p=>filter.indexOf(p.id) >= 0), changed: filter.length };
       }
-   }
+   };
 
    fx.eligiblePlayers = (tournament, e, ineligible_players, unavailable_players) => {
       var approved_changed = false;
@@ -1077,7 +1075,7 @@ export const tournamentFx = function() {
 
             let winner_ids = [].concat(...completed_matches.map(match => match.match.winner.map(team=>team.id)));
             let all_loser_ids = [].concat(...completed_matches.map(match => match.match.loser.map(team=>team.id)));
-            let losing_players = tournament.players.filter(p=>all_loser_ids.indexOf(p.id) >= 0);
+            // let losing_players = tournament.players.filter(p=>all_loser_ids.indexOf(p.id) >= 0);
             let no_wins_ids = all_loser_ids.filter(i => winner_ids.indexOf(i) < 0);
 
             let alternate_ids = all_loser_ids.filter(i=>no_wins_ids.indexOf(i) < 0);
@@ -1112,11 +1110,11 @@ export const tournamentFx = function() {
 
       if (e.format == 'D') {
          let team_players = e.teams ? [].concat(...e.teams) : [];
-         return { players: available_players.filter(p => team_players.indexOf(p.id) < 0), changed: approved_changed }
+         return { players: available_players.filter(p => team_players.indexOf(p.id) < 0), changed: approved_changed };
       } else {
-         return { players: available_players.filter(p => e.approved.indexOf(p.id) < 0), changed: approved_changed }
+         return { players: available_players.filter(p => e.approved.indexOf(p.id) < 0), changed: approved_changed };
       }
-   }
+   };
 
    fx.eligibleTeams = (tournament, e, ineligible_teams, unavailable_teams) => {
       if (!unavailable_teams) {
@@ -1135,27 +1133,22 @@ export const tournamentFx = function() {
       let available_teams = tournament.teams
          // .filter(t => ineligible_uuids.indexOf(t.uuid) < 0)
          .filter(t => ineligible_uuids.indexOf(t.id) < 0)
-         .map((t, i) => { return Object.assign({}, t); })
+         .map(t => { return Object.assign({}, t); })
          // .filter(t => unavailable_uuids.indexOf(t.uuid) < 0)
          .filter(t => unavailable_uuids.indexOf(t.id) < 0)
          // .filter(t => e.approved.indexOf(t.uuid) < 0);
          .filter(t => e.approved.indexOf(t.id) < 0);
 
-      return { teams: available_teams }
-   }
+      return { teams: available_teams };
+   };
 
-   fx.ineligibleTeams = (tournament, e) => {
-      return { teams: [] }
-   }
-
-   fx.unavailableTeams = (tournament, e) => {
-      return { teams: [] };
-   }
+   fx.ineligibleTeams = () => { return { teams: [] }; };
+   fx.unavailableTeams = () => { return { teams: [] }; };
 
    fx.tournamentCategories = (tournament) => {
       if (!tournament.events || !tournament.events.length) return tournament.categories;
       return util.unique(tournament.events.map(e=>e.category));
-   }
+   };
 
    function exitProfiles(completed_matches) {
       let event_rounds = {};
@@ -1164,7 +1157,7 @@ export const tournamentFx = function() {
          let round = match.round;
          let loser_id = match.match.loser[0].id;
          let winner_id = match.match.winner[0].id;
-         if (!event_rounds[loser_id]) event_rounds[loser_id] = []
+         if (!event_rounds[loser_id]) event_rounds[loser_id] = [];
          if (!event_rounds[winner_id]) event_rounds[winner_id] = [];
          event_rounds[loser_id].push(round);
          event_rounds[winner_id].push(round);
@@ -1229,12 +1222,12 @@ export const tournamentFx = function() {
       return players.sort((a, b) => {
          let sort_a = `${a.last_name && a.last_name.toUpperCase()}, ${stringFx.normalizeName(a.first_name)}`;
          let sort_b = `${b.last_name && b.last_name.toUpperCase()}, ${stringFx.normalizeName(b.first_name)}`;
-         let a1 = strinfFx.replaceDiacritics(sort_a);
-         let b1 = strinfFx.replaceDiacritics(sort_b);
-         let result = a1 < b1 ? -1 : a1 > b1 ? 1 : 0
+         let a1 = stringFx.replaceDiacritics(sort_a);
+         let b1 = stringFx.replaceDiacritics(sort_b);
+         let result = a1 < b1 ? -1 : a1 > b1 ? 1 : 0;
          return result;
       });
-   }
+   };
 
    fx.rankDuplicates = (players, active_puids=[]) => {
       let notIranked = players.filter(p=>!internationalRanking(p));
@@ -1248,18 +1241,18 @@ export const tournamentFx = function() {
          duplicate_puids = duplicate_puids.concat(...active_puids);
       }
       return duplicate_puids;
-   }
+   };
 
    fx.qualifierSeedLimit = ({ env, e }) => {
       let limit = env && env.drawFx.qualifying_bracket_seeding ? (e.qualifiers * 2) : 0;
       if (!e || !e.approved) return limit;
       return Math.min(e.approved.length, limit);
-   }
+   };
 
    // TODO: qualifying_bracket_seeding is only here to identify HTS?
    fx.isPreRound = ({ env, e }) => e.draw_type == 'Q' && e.approved && e.approved.length && e.qualifiers == e.draw_size / 2 && env.drawFx.qualifying_bracket_seeding;
 
-   fx.combinedRankSort = (a, b, doubles_rankings) => {
+   fx.combinedRankSort = (a, b) => {
       var subrank_difference = (a.subrank || 1000) - (b.subrank || 1000);
       var combined_singles_difference = pad(a.combined_rank) - pad(b.combined_rank);
       var combined_doubles_difference = pad(b.combined_dbls_rank) - pad(a.combined_dbls_rank);
@@ -1267,22 +1260,22 @@ export const tournamentFx = function() {
 
       // if a team has NO ranking (undefined) then give them a ranking of 9999
       function pad(value) { return value == undefined ? 9999 : value; }
-   }
+   };
 
    fx.teamSort = (teams) => {
       return teams.sort((a, b) => {
          if (!a[0].full_name) a[0].full_name = fx.fullName(a[0]);
          if (!b[0].full_name) b[0].full_name = fx.fullName(b[0]);
-         let a1 = strinfFx.replaceDiacritics(a[0].full_name);
-         let b1 = strinfFx.replaceDiacritics(b[0].full_name);
-         return a1 < b1 ? -1 : a1 > b1 ? 1 : 0
+         let a1 = stringFx.replaceDiacritics(a[0].full_name);
+         let b1 = stringFx.replaceDiacritics(b[0].full_name);
+         return a1 < b1 ? -1 : a1 > b1 ? 1 : 0;
       });
-   }
+   };
 
    fx.fullName = (o, noaccents=true) => {
       if (o.last_name && o.first_name) return `${o.last_name.toUpperCase()}, ${stringFx.normalizeName(o.first_name, noaccents)}`; 
       return o.name || '';
-   }
+   };
 
    // RR Events
    fx.allBracketsComplete = (evt) => evt && evt.draw ? evt.draw.brackets.map(dfx.bracketComplete).reduce((a, b) => a && b) : false;
@@ -1303,7 +1296,7 @@ export const tournamentFx = function() {
       })
       .sort(rrQualSort);
       return ordered_opponents;
-   }
+   };
 
    fx.secondQualifiers = (evt) => {
       if (!evt || !evt.draw) return [];
@@ -1316,7 +1309,7 @@ export const tournamentFx = function() {
          })
       .sort(rrQualSort);
       return ordered_opponents;
-   }
+   };
 
    fx.thirdQualifiers = (evt) => {
       if (!evt || !evt.draw) return [];
@@ -1329,7 +1322,7 @@ export const tournamentFx = function() {
                if (o[0].qorder == 3 && o[0].sub_order == 1) return true;
          })
       .sort(rrQualSort);
-   }
+   };
 
    fx.determineRRqualifiers = (tournament, e) => {
       var event_complete = false;
@@ -1345,8 +1338,8 @@ export const tournamentFx = function() {
       e.qualified = [];
       qualified_teams.forEach(team => fx.qualifyTeam({ tournament, env, e, team }));
 
-      return { event_complete }
-   }
+      return { event_complete };
+   };
 
    fx.removeQualifiedRRplayers = (tournament, evt, bracket) => {
       var quids = evt.qualified ? [].concat(...evt.qualified.map(puidHash)) : [];
@@ -1377,7 +1370,7 @@ export const tournamentFx = function() {
          if (result.linkchanges) linkchanges = true;
       });
       return { remove_players, linkchanges, qlink };
-   }
+   };
 
    fx.possibleToRemoveRRmatch = (scoped_qualifiers, qlinkinfo) => {
       var active_in_linked = [];
@@ -1397,7 +1390,7 @@ export const tournamentFx = function() {
       }
 
       return active_in_linked.length == 0;
-   }
+   };
 
    // general event interactions
    fx.removeQualifiedTeam = (tournament, e, team_ids, qlink, qlinkinfo) => {
@@ -1430,8 +1423,8 @@ export const tournamentFx = function() {
       let linkchanges = (qlink && team_in_linked);
       if (linkchanges) fx.setDrawSize(tournament, qlink);
 
-      return { linkchanges, qlink }
-   }
+      return { linkchanges, qlink };
+   };
 
    fx.removeDirectionalPlayer = (tournament, e, target_draw, losing_team_ids, linked_info) => {
       if (!target_draw) return {};
@@ -1441,7 +1434,7 @@ export const tournamentFx = function() {
          if (node.data.team && util.intersection(node.data.team.map(t=>t.id), losing_team_ids).length) { delete node.data.team; }
       });
       return {};
-   }
+   };
 
    fx.removeConsolationTeam = (tournament, e, target_draw, losing_team_ids, linked_info) => {
       if (!target_draw) return {};
@@ -1450,14 +1443,14 @@ export const tournamentFx = function() {
          if (node.data.team && util.intersection(node.data.team.map(t=>t.id), losing_team_ids).length) { delete node.data.team; }
       });
       return {};
-   }
+   };
 
    fx.placeConsolationOpponent = (el_evt, c_evt, opponent) => {
       let player = opponent[0];
       let round = player.exit_profile.exit_round;
       let position = fx.getConsolationPosition(el_evt, c_evt.draw_size, round, player.elimination_position);
       dfx.assignPosition({ node: c_evt.draw, position, team: opponent });
-   }
+   };
 
    fx.getConsolationPosition = (el_evt, consolation_draw_size, round, elimination_position) => {
       if (!util.powerOfTwo(el_evt.draw_size)) {
@@ -1475,12 +1468,12 @@ export const tournamentFx = function() {
       // the 4th round starts at the bottom of the 3rd quarter, goes up and around
       let position = round == 1 ? origin : round_base + (round_size - origin) + 1;
       return position;
-   }
+   };
 
    fx.consolationOpponentsInRound = (opponents, round) => opponents.filter(o=>o[0].exit_profile.exit_round == round);
 
    fx.placeConsolationRoundOpponents = (evt, opponents, round) => {
-      let oir = opponentsInRound(opponents, round);
+      let oir = fx.consolationOpponentsInRound(opponents, round);
       oir.forEach(opponent => {
          let origin = Math.ceil(opponent[0].elimination_position / Math.pow(2, round));
          let round_base = util.range(0, round - 1).map(r=>evt.draw_size/Math.pow(2, r)).reduce((a, b) => a + b, 0);
@@ -1488,25 +1481,16 @@ export const tournamentFx = function() {
          let position = round == 1 ? origin : round_base + (round_size - origin) + 1;
          dfx.assignPosition({ node: evt.draw, position, team: opponent });
       });
-      function consolataionOpponentsInRound(opponents, round) { return opponents.filter(o=>o[0].exit_profile.exit_round == round) }
-   }
+   };
 
    // MISC
    fx.logEventChange = (evt, change) => {
       if (!evt.log) evt.log = [];
       change.timestamp = new Date().getTime();
       evt.log.push(change);
-   }
+   };
 
-   fx.logEventError = (evt, err, context) => {
-      coms.logError(err);
-
-      if (!evt.error_log) evt.error_log = [];
-      let timestamp = new Date().getTime();
-      evt.error_log.push({ timestamp, error_message, stack, context });
-   }
-
-   fx.isTeam = (t) => { return ['team', 'dual'].indexOf(t.type) >= 0; }
+   fx.isTeam = (t) => ['team', 'dual'].indexOf(t.type) >= 0;
    fx.isConsolationFeedIn = (e) => e && e.structure == 'feed' && e.draw_type == 'C';
    function internationalRanking(p) { return p.int > 0; }
    function teamHash(team) { return team.map(p=>p.id).join('|'); }
@@ -1525,6 +1509,8 @@ export const tournamentFx = function() {
       return moreThanHalf(av);
    }
 
+   /*
+   // TODO: move to legacyProcessing
    function getTournamentOptions(tournament) {
       var category = staging.legacyCategory(tournament.category);
 
@@ -1548,6 +1534,7 @@ export const tournamentFx = function() {
       return opts;
    }
 
+   // But perhaps this is unnecessary if tournaments are converted to events...
    fx.legacyTournament = (tournament, container) => {
       configureDDLBs(tournament, container);
       configureDateSelectors(tournament, container);
@@ -1592,10 +1579,11 @@ export const tournamentFx = function() {
             defaultDate: start,
             setDefaultDate: true,
             firstDay: env.calendar.first_day,
-            toString(date) { return dateFx.formatDate(date); },
+            toString(date) { return dateFx.formatDate(dateFx.timeUTC(date)); },
             onSelect: function() {
                start = this.getDate();
                updateStartDate();
+               // TODO: calcPlayerPoints needs to be accessible... and not in tournamentDisplay.js
                calcPlayerPoints({ date: this.getDate(), tournament, container });
             },
          });
@@ -1607,10 +1595,11 @@ export const tournamentFx = function() {
             defaultDate: end,
             setDefaultDate: true,
             firstDay: env.calendar.first_day,
-            toString(date) { return dateFx.formatDate(date); },
+            toString(date) { return dateFx.formatDate(dateFx.timeUTC(date)); },
             onSelect: function() {
                end = this.getDate();
                updateEndDate();
+               // TODO: calcPlayerPoints needs to be accessible... and not in tournamentDisplay.js
                calcPlayerPoints({ date: this.getDate(), tournament, container });
             },
          });
@@ -1619,12 +1608,11 @@ export const tournamentFx = function() {
          updateStartDate();
          updateEndDate();
       }
-   }
+   };
+   */
 
    fx.legacyTournamentOpts = legacyTournamentOpts;
    function legacyTournamentOpts(opts = {}, container) {
-      let numberValue = (val) => !val || isNaN(val) ? 0 : parseInt(val);
-
       let ddlb = util.intersection(Object.keys(container), ['category', 'dbl_rank', 'sgl_rank']).length == 3;
       if (!ddlb) {
          console.log('missing ddlb');
@@ -1645,14 +1633,14 @@ export const tournamentFx = function() {
          opts = {
             category: container.category.ddlb.getValue(),
             dbl_rank: container.dbl_rank.ddlb.getValue(),
-            sgl_rank: container.sgl_rank.ddlb.getValue(),
-         }
+            sgl_rank: container.sgl_rank.ddlb.getValue()
+         };
 
          // if both genders are present
          if (container.w_category.ddlb) opts['W'] = { category: container.w_category.ddlb.getValue() };
          if (container.w_dbl_rank.ddlb) opts['W'].dbl_rank = container.w_dbl_rank.ddlb.getValue();
          if (container.w_sgl_rank.ddlb) opts['W'].sgl_rank = container.w_sgl_rank.ddlb.getValue();
-         if (opts.W) opts.M = { category: opts.category, sgl_rank: opts.sgl_rank, dbl_rank: opts.dbl_rank }
+         if (opts.W) opts.M = { category: opts.category, sgl_rank: opts.sgl_rank, dbl_rank: opts.dbl_rank };
       }
       return opts;
    }

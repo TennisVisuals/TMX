@@ -27,14 +27,14 @@ export const UUID = function() {
       d0: dvals[0],
       d1: dvals[1],
       d2: dvals[2],
-      d3: dvals[3],
+      d3: dvals[3]
     };
   } :
   () => ({
     d0: Math.random() * 0x100000000 >>> 0,
     d1: Math.random() * 0x100000000 >>> 0,
     d2: Math.random() * 0x100000000 >>> 0,
-    d3: Math.random() * 0x100000000 >>> 0,
+    d3: Math.random() * 0x100000000 >>> 0
   });
 
   self.new = () => formatUuid(getRandomValuesFunc());
@@ -49,7 +49,7 @@ export const UUID = function() {
       lut[d1&0xff]+lut[d1>>8&0xff]+'-'+lut[d1>>16&0x0f|0x40]+lut[d1>>24&0xff]+'-'+
       lut[d2&0x3f|0x80]+lut[d2>>8&0xff]+'-'+lut[d2>>16&0xff]+lut[d2>>24&0xff]+
       lut[d3&0xff]+lut[d3>>8&0xff]+lut[d3>>16&0xff]+lut[d3>>24&0xff];
-  }
+  };
 
   /*
   // causes failure after babel

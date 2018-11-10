@@ -51,7 +51,7 @@ input[type="search"]::-webkit-search-decoration {
   color: #fff;
 }
 
-.searchbox .icon{
+.searchbox .search-icon{
   position: absolute;
   top: 20%;
   margin-left: .5em;
@@ -65,7 +65,7 @@ input[type="search"]::-webkit-search-decoration {
 }
 
 #search:focus, #search:active{ outline:none; }
-.searchbox:hover .icon{
+.searchbox:hover .search-icon{
   color: #93a2ad;
  
   -webkit-transform:scale(1.5); /* Safari and Chrome */

@@ -53,7 +53,7 @@ body {
    align-items: center;
 }
 
-.dd div.label {
+.dd div.dd-label {
    display: flex;
    -webkit-justify-content: flex-start;
    justify-content: flex-start;
@@ -94,7 +94,7 @@ body {
    height: 100%;
 }
 
-.dd .selected, .dd div.label {
+.dd .selected, .dd div.dd-label {
    display: flex;
    -webkit-justify-content: center;
    justify-content: center;

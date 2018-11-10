@@ -35,25 +35,25 @@ export const scoreBoard = function() {
       supertiebreak_to: 10,
       auto_score: true,
       final_set_tiebreak: true,
-      final_set_supertiebreak: false,
-   }
+      final_set_supertiebreak: false
+   };
 
    fx.settings = (values) => {
       if (!values) return settings;
       util.keyWalk(values, settings);
-   }
+   };
 
    let options = {
       bestof: [1, 3, 5],
       setsto: [4, 6, 8],
       tiebreaksto: [5, 7, 12],
       supertiebreakto: [7, 10, 21]
-   }
+   };
 
    fx.options = (values) => {
       if (!values) return options;
       util.keyWalk(values, options);
-   }
+   };
 
    fx.setMatchScore = ({
       sobj,
@@ -68,7 +68,6 @@ export const scoreBoard = function() {
       round_name,
       existing_scores,
       score_format={},
-      scoring_config={},
       auto_score=true
    }) => {
 
@@ -79,7 +78,6 @@ export const scoreBoard = function() {
       // scoped variables need to be defined before configuration
       var set_number;
       var supertiebreak;
-      var longset;
       var ddlb_lock;
       var set_scores;
       var action_drawer;
@@ -106,7 +104,7 @@ export const scoreBoard = function() {
             setScoreDisplay({ selected_set: set });
             displayActions(true);
             removeWinner();
-         }
+         };
       }
 
       let displayActions = (bool) => {
@@ -117,7 +115,7 @@ export const scoreBoard = function() {
          sobj.edit_scoring.element.style.display = action_drawer ? 'none' : 'inline';
          sobj.delegate.element.style.display = !action_drawer && !lock && delegation ? 'inline' : 'none';
          sobj.edit_delegation.element.style.display = action_drawer ? 'none' : 'inline';
-      }
+      };
 
       configureScoring({ sobj, stg: sf, changeFx: clearScores });
       configureOutcomeSelectors();
@@ -265,7 +263,7 @@ export const scoreBoard = function() {
                teams,
                delegate: true,
                score_format: sf
-            }
+            };
             if (typeof callback == 'function') { callback(directive); }
             if (floating) {
                document.body.style.overflow = null;
@@ -318,7 +316,7 @@ export const scoreBoard = function() {
       }
 
       function configureScoreSelectors() {
-         let options = [ { key: '-', value: '' }, ];
+         let options = [ { key: '-', value: '' } ];
          let upper_range = sf.games_for_set == sf.tiebreaks_at ? sf.games_for_set + 2 : sf.games_for_set + 1;
          util.range(0, upper_range).forEach(n => options.push({ key: n, value: n }));
 
@@ -347,7 +345,7 @@ export const scoreBoard = function() {
             { key: 'INC.', value: 'incomplete' },
             { key: 'CCL',  value: 'cancelled' },
             { key: 'LIVE', value: 'live' },
-            { key: `<div class='link'><img src='./icons/completed.png' class='completed_icon'></div>`, value: 'winner' },
+            { key: `<div class='link'><img src='./icons/completed.png' class='completed_icon'></div>`, value: 'winner' }
          ];
          let outcomeChange1 = (value) => outcomeChange(0, value);
          let outcomeChange2 = (value) => outcomeChange(1, value);
@@ -390,7 +388,6 @@ export const scoreBoard = function() {
          let numeric = value && !isNaN(value[0]) ? parseInt(value[0].toString().slice(-2)) : undefined;
 
          let tbgoal = supertiebreak ? sf.supertiebreak_to : sf.tiebreak_to;
-         // let tbgoal = supertiebreak ? sf.supertiebreak_to : longset ? true : sf.tiebreak_to;
          let complement = numeric == undefined ? '' : numeric + 2 < tbgoal ? tbgoal : numeric + 2;
 
          sobj[which ? 'p2tiebreak' : 'p1tiebreak'].element.value = numeric != undefined ? numeric : '';
@@ -501,8 +498,8 @@ export const scoreBoard = function() {
 
          if (!scoreGoal(p1, p2) && !tbScore(p1, p2)) {
             set_scores = set_scores.slice(0, set_number + 1);
-            let w = determineWinner();
             setScoreDisplay({ selected_set: set_number });
+            // let w = determineWinner();
             // if (!w) displayActions(false);
          } else {
             if (tbScore(p1, p2)) tiebreak = true;
@@ -638,7 +635,7 @@ export const scoreBoard = function() {
                if (sc[1].supertiebreak > sc[0].supertiebreak + 1 && sc[1].supertiebreak >= sf.supertiebreak_to) return [0, 1];
             }
             return [0, 0];
-         })
+         });
          let sets_won = totals.reduce((a, b) => [a[0] + b[0], a[1] + b[1]]);
          return sets_won;
       }
@@ -696,12 +693,14 @@ export const scoreBoard = function() {
          return isFinalSet(selected_set, actions);
       }
 
+      /*
       function setIsLongSet(selected_set, actions) {
          if (sf.final_set_supertiebreak || sf.final_set_tiebreak) return false;
          return isFinalSet(selected_set, actions);
       }
+      */
 
-      function isFinalSet(selected_set, actions) {
+      function isFinalSet(selected_set) {
          let sets_won = setsWon();
          let tied_sets = sets_won[0] == sets_won[1] && sets_won[0] + 1 == sf.sets_to_win;
          if (tied_sets && selected_set == set_scores.length) return true;
@@ -817,7 +816,7 @@ export const scoreBoard = function() {
             score += ' INC.';
          }
 
-         return { score, position, positions, complete, winner: winner_index }
+         return { score, position, positions, complete, winner: winner_index };
       }
 
       function unlockScoreboard() {
@@ -839,7 +838,6 @@ export const scoreBoard = function() {
          let p1 = sobj.p1action.ddlb.getValue();
          let p2 = sobj.p2action.ddlb.getValue();
          let winner = determineWinner();
-         let irregular_winner = irregularWinner();
          let other = which ? p1 : p2;
 
          sf.auto_score = settings.auto_score;
@@ -927,7 +925,7 @@ export const scoreBoard = function() {
             setScoreDisplay({ selected_set: set_number });
          }
       }
-   }
+   };
 
    fx.convertStringScore = convertStringScore;
    function convertStringScore({ string_score, winner_index, split=' ', score_format={} }) {
@@ -949,15 +947,15 @@ export const scoreBoard = function() {
          }
 
          // uglifier doesn't work if variable is undefined
-         let tbscore = null;;
+         let tbscore = null;
          let scores = set.split('-')
             .map(m => {
                let score;
                if (sst.test(m)) {
                   tbscore = +sst.exec(m)[2];
-                  score = { games: +sst.exec(m)[1] }
+                  score = { games: +sst.exec(m)[1] };
                } else if (ss.test(m)) {
-                  score = { games: +ss.exec(m)[1] }
+                  score = { games: +ss.exec(m)[1] };
                } else {
                   outcome = m;
                }
@@ -970,7 +968,7 @@ export const scoreBoard = function() {
          // add spacer for score without tiebreak score
          if (tbscore !== null) {
             let min_games = Math.min(...scores.map(s=>s.games));
-            scores.forEach(sf => { if (sf.games == min_games) { sf.tiebreak = tbscore } else { sf.spacer = tbscore; } });
+            scores.forEach(sf => { if (sf.games == min_games) { sf.tiebreak = tbscore; } else { sf.spacer = tbscore; } });
          }
 
          return scores;
@@ -987,7 +985,7 @@ export const scoreBoard = function() {
             delete st[0].games;
             delete st[1].games;
          } 
-      })
+      });
 
       if (winner_index != undefined) { sets.winner_index = winner_index; }
 
@@ -1018,7 +1016,7 @@ export const scoreBoard = function() {
    fx.getScoring = (score_format) => {
       let stb = score_format && score_format.final_set_supertiebreak ? '/S' : '';
       return `${score_format.max_sets}/${score_format.games_for_set}/${score_format.tiebreak_to}T${stb}`;
-   }
+   };
 
    fx.reverseScore = reverseScore;
    function reverseScore(score, split=' ') {
@@ -1048,12 +1046,14 @@ export const scoreBoard = function() {
          return undefined;
       }
 
+      /*
       function formatSet(set) {
          if (set) {
             let tiebreak = set.tiebreak ? `(${set.tiebreak})` : '';
             return `${set.games}${tiebreak}`;
          }
       }
+      */
    }
 
    fx.configureScoring = configureScoring;
@@ -1079,7 +1079,7 @@ export const scoreBoard = function() {
       let tbat_options = tiebreakAtOptions(gfs);
       dd.attachDropDown({ 
          id: sobj.tiebreaksat.id, 
-         options: tbat_options,
+         options: tbat_options
       });
       sobj.tiebreaksat.ddlb = new dd.DropDown({ element: sobj.tiebreaksat.element, id: sobj.tiebreaksat.id, onChange: setTiebreakAt });
       sobj.tiebreaksat.ddlb.selectionBackground();
@@ -1097,8 +1097,8 @@ export const scoreBoard = function() {
          id: sobj.finalset.id, 
          options: [
             {key: lang.tr('scoring.normal'), value: 'N'},
-            {key: lang.tr('scoring.supertiebreak'), value: 'S'},
-         ],
+            {key: lang.tr('scoring.supertiebreak'), value: 'S'}
+         ]
       });
       sobj.finalset.ddlb = new dd.DropDown({ element: sobj.finalset.element, id: sobj.finalset.id, onChange: finalSet });
       sobj.finalset.ddlb.selectionBackground();
@@ -1129,7 +1129,7 @@ export const scoreBoard = function() {
          return [
             { key: lang.tr('none'), value: undefined },
             { key: `${gfs-1}-${gfs-1}`, value: gfs - 1 },
-            { key: `${gfs}-${gfs}`, value: gfs },
+            { key: `${gfs}-${gfs}`, value: gfs }
          ];
       }
 
@@ -1170,7 +1170,7 @@ export const scoreBoard = function() {
          .append('div')
          .attr('class', 'match')
         .merge(sbz)
-         .html(matchHTML)
+         .html(matchHTML);
 
       sbz.exit()
          .remove();
@@ -1190,14 +1190,14 @@ export const scoreBoard = function() {
 
       let id_obj = Object.assign({}, ...Object.keys(all_ids).map(key => ({ [key]: displayFx.idObj(all_ids[key]) })));
       return id_obj;
-   }
+   };
 
    fx.floatingScoreBoard = ({ muid, teams, flags }) => {
-      let sb_ids = { scoreboard: displayFx.uuid(), }
+      let sb_ids = { scoreboard: displayFx.uuid() };
 
       let scoreboard = d3.select('body')
          .append('div')
-         .attr('class', 'modal')
+         .attr('class', 'tmx-modal')
          .attr('id', sb_ids.scoreboard);
 
       let { ids, html } = generateScoreBoard({ muid, teams, flags });
@@ -1207,7 +1207,7 @@ export const scoreBoard = function() {
          .events( {'click': () => {
             setClick(d3.event.target);
             let elems = document.querySelectorAll('li.dd_state');
-            Array.from(elems).forEach(elem => { elem.classList.remove("active"); })
+            Array.from(elems).forEach(elem => { elem.classList.remove("active"); });
          }});
 
       entry(window.innerWidth * .3, window.innerHeight * .4, html);
@@ -1217,18 +1217,18 @@ export const scoreBoard = function() {
       Object.assign(ids, sb_ids);
       let id_obj = displayFx.idObj(ids);
       return id_obj;
-   }
+   };
 
    fx.scoreBoardConfig = () => {
       let cfg_ids = { 
          config: displayFx.uuid(),
          cancel: displayFx.uuid(),
-         accept: displayFx.uuid(),
-      }
+         accept: displayFx.uuid()
+      };
 
       let config = d3.select('body')
          .append('div')
-         .attr('class', 'modal')
+         .attr('class', 'tmx-modal')
          .attr('id', cfg_ids.config);
 
       let { ids, html } = scoreBoardConfig();
@@ -1237,7 +1237,7 @@ export const scoreBoard = function() {
          .selector('#' + cfg_ids.config)
          .events( {'click': () => {
             let elems = document.querySelectorAll('li.dd_state');
-            Array.from(elems).forEach(elem => { elem.classList.remove("active"); })
+            Array.from(elems).forEach(elem => { elem.classList.remove("active"); });
          }});
 
       html = `
@@ -1283,9 +1283,10 @@ export const scoreBoard = function() {
       Object.assign(ids, cfg_ids);
       let id_obj = displayFx.idObj(ids);
       return id_obj;
-   }
+   };
 
    return fx;
+
 }();
 
 function scoreboardTeam({ team, index=0, flags }) {
@@ -1328,8 +1329,8 @@ function scoreBoardConfig() {
       tiebreaksto: UUID.idGen(),
       finalset: UUID.idGen(),
       supertiebreakto: UUID.idGen(),
-      stb2: UUID.idGen(),
-   }
+      stb2: UUID.idGen()
+   };
    let html = `
          <div id='${ids.edit_scoring}' class="scoreboard-config scoreboard-action">
             <div class="edit configure sb_flexrow">
@@ -1357,15 +1358,15 @@ function scoreBoardConfig() {
          </div>
    `;
 
-   return { ids, html }
+   return { ids, html };
 }
 
 function mobileDelegation() {
    let ids = {
       edit_delegation: UUID.idGen(),
       delegation_key: UUID.idGen(),
-      scoreboard_docs: UUID.idGen(),
-   }
+      scoreboard_docs: UUID.idGen()
+   };
    let html = `
          <div id='${ids.edit_delegation}' class="scoreboard-config scoreboard-action">
             <div class="edit configure sb_flexrow">
@@ -1376,7 +1377,7 @@ function mobileDelegation() {
          </div>
    `;
 
-   return { ids, html }
+   return { ids, html };
 }
 
 function generateScoreBoard({ muid, teams, flags, round_name, match }) {
@@ -1401,8 +1402,8 @@ function generateScoreBoard({ muid, teams, flags, round_name, match }) {
       p2selector: UUID.idGen(),
       p1tiebreak: UUID.idGen(),
       p2tiebreak: UUID.idGen(),
-      details: UUID.idGen(),
-   }
+      details: UUID.idGen()
+   };
 
    let config = scoreBoardConfig();
    let mobile_delegation = mobileDelegation();
@@ -1500,12 +1501,12 @@ function generateScoreBoard({ muid, teams, flags, round_name, match }) {
 
 function matchStatus(match) {
    if (!match) return '';
-   if (match.status) return status;
+   if (match.status) return match.status;
    if (!match.schedule) return '';
 
-   let today = new Date();
-   let mday = new Date(match.schedule.day);
-   let match_is_today = mday.getDay() == today.getDay() && mday.getMonth() == today.getMonth() && mday.getYear() == today.getYear();
+   // let today = new Date();
+   // let mday = new Date(match.schedule.day);
+   // let match_is_today = mday.getDay() == today.getDay() && mday.getMonth() == today.getMonth() && mday.getYear() == today.getYear();
 
    let duration = matchDuration(match.schedule);
    if (duration) return `Duration ${duration}`;

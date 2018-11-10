@@ -29,7 +29,7 @@ export const ladderChart = function() {
               text:     undefined
            },
            source: {
-              text:     undefined,
+              text:     undefined
            },
            footnote: {
               fill:     '#74736c', 
@@ -51,7 +51,7 @@ export const ladderChart = function() {
               default: '#b3b3cc'
            },
            yAxis: {
-              fontSize:    18,
+              fontSize:    18
            },
            xAxis: {
               maxTicks:    10,
@@ -83,7 +83,7 @@ export const ladderChart = function() {
           settingsImg: false,
           helpImg:     false,
           sizeToFit:   true
-       },
+       }
     };
 
     var superShapes = [
@@ -107,18 +107,17 @@ export const ladderChart = function() {
 
     function chart(selection) {
         selection.each(function () {
+            var help;
+
             dom_parent = d3.select(this);
 
             var root = dom_parent.append('svg')
-                .attr('class', 'itemCalendar')
+                .attr('class', 'itemCalendar');
 
             var frame = root.append('rect');
             var chartHolder = root.append('g')
                .attr('class', 'chartHolder')
-               .attr('transform', 'translate(0, 0)')
-
-            var help;
-            var settings;
+               .attr('transform', 'translate(0, 0)');
 
             var hoverFrame = root.append('svg').attr('class','hoverFrame');
 
@@ -128,14 +127,15 @@ export const ladderChart = function() {
 
             var xAxis = calendarPlot.append('g').attr('class', 'axis x');
             var yAxis = calendarPlot.append('g').attr('class', 'axis y');
-            var xLine = calendarPlot.append("line")
-            var yLine = calendarPlot.append("line")
+            var xLine = calendarPlot.append("line");
+            var yLine = calendarPlot.append("line");
             var legends = chartHolder.append('g').attr('class', 'legends');
             var title = legends.append('text').attr('class', 'title');
             var footnote = legends.append('text').attr('class', 'footnote');
 
-            update = function(opts) {
+            update = (opts) => {
 
+               var dateDomain;
                var nodata = (!data.values.length);
 
                root
@@ -149,17 +149,17 @@ export const ladderChart = function() {
                }
 
                if (nodata || !options.data.calculateDomain) {
-                  var dateDomain = [options.plot.dateDomain.start, options.plot.dateDomain.end];
+                  dateDomain = [options.plot.dateDomain.start, options.plot.dateDomain.end];
                } else {
-                  var dateDomain = d3.extent(data.values.map(function(m) { return m[options.plot.shape.dateKey]; }));
-                  var total_days = daysBetween(dateDomain[0], dateDomain[1]);
-                  var new_start = new Date(dateDomain[0].getFullYear(), 0, 1);
-                  var new_end   = new Date(dateDomain[1].getFullYear(), 11, 31);
+                  dateDomain = d3.extent(data.values.map(function(m) { return m[options.plot.shape.dateKey]; }));
+                  let total_days = daysBetween(dateDomain[0], dateDomain[1]);
+                  let new_start = new Date(dateDomain[0].getFullYear(), 0, 1);
+                  let new_end   = new Date(dateDomain[1].getFullYear(), 11, 31);
                   if (options.data.fullYearsOnly) {
                      dateDomain = [new_start, new_end];
                   } else if (options.data.oneYearMinimum && total_days < 365) {
-                     var start_distance = daysBetween(new_start, dateDomain[0]);
-                     var end_distance   = daysBetween(dateDomain[1], new_end);
+                     let start_distance = daysBetween(new_start, dateDomain[0]);
+                     let end_distance   = daysBetween(dateDomain[1], new_end);
                      if (start_distance < end_distance && total_days + start_distance >= 365) {
                         dateDomain = [new_start, dateDomain[1]];
                      } else if (total_days + end_distance >= 365) {
@@ -212,7 +212,7 @@ export const ladderChart = function() {
 
                root
                   .attr('width', options.width + 'px')
-                  .attr('height', options.height + 'px')
+                  .attr('height', options.height + 'px');
 
                frame
                   .attr('class', 'frame')
@@ -231,21 +231,21 @@ export const ladderChart = function() {
                      return options.width - options.margins.right - this.getComputedTextLength();
                      // return options.width - options.margins.right - 80;
                   })
-                  .attr('y', options.height)
+                  .attr('y', options.height);
 
                calendarPlot
                   .attr('transform', 'translate(' + options.margins.left + ',' + options.margins.top + ')');
 
                xAxis
                   .attr('transform', 'translate(0,' + (plot_height - options.plot.margins.bottom) + ')')
-                   .call(axisX);
+                  .call(axisX);
 
                xLine
                    .attr('stroke', 'black')
                    .attr('x1', 0)
                    .attr('x2', plot_width)
                    .attr('y1', plot_height - options.plot.margins.bottom)
-                   .attr('y2', plot_height - options.plot.margins.bottom)
+                   .attr('y2', plot_height - options.plot.margins.bottom);
 
                yAxis
                   .attr('transform', 'translate(' + options.plot.margins.left + ',' + '0' + ')')
@@ -256,12 +256,12 @@ export const ladderChart = function() {
                    .attr('x1', options.plot.margins.left)
                    .attr('x2', options.plot.margins.left)
                    .attr('y1', plot_height - options.plot.margins.bottom)
-                   .attr('y2', options.plot.margins.top)
+                   .attr('y2', options.plot.margins.top);
 
                calendarPlot.selectAll('.axis.y .tick line')
                   .attr('dy','-2')
                   .style('stroke', '#cec6b9')
-                  .style('stroke-dasharray', '2 2')
+                  .style('stroke-dasharray', '2 2');
 
                calendarPlot.selectAll('.axis.y .tick text')
                   .attr('dy', '-2')
@@ -277,21 +277,21 @@ export const ladderChart = function() {
 
                calendarPlot.selectAll('.axis.x .tick line')
                    .style('stroke', '#cec6b9')
-                   .style('stroke-dasharray', '2 2')
+                   .style('stroke-dasharray', '2 2');
 
                calendarPlot.selectAll('.axis.x .tick text')
                   .attr('dx', '1')
                   .style('font-weight', options.plot.xAxis.fontWeight)
                   .style('fill', '#74736c')
-                  .on('click', function(d, i) { 
+                  .on('click', d => { 
                      var years = dateDomain[1].getFullYear() - dateDomain[0].getFullYear();
                      if (events.axis.x.click) events.axis.x.click(d, years);
                   });
 
                calendarPlot.selectAll('.axis.y .tick line')
-                  .attr('transform', 'translate(' + -(options.plot.margins.left) + ',' + '0' + ')')
+                  .attr('transform', 'translate(' + -(options.plot.margins.left) + ',' + '0' + ')');
                calendarPlot.selectAll('.axis.x .tick line')
-                  .attr('transform', 'translate(' + '0' + ',' + options.plot.margins.right + ')')
+                  .attr('transform', 'translate(' + '0' + ',' + options.plot.margins.right + ')');
 
                calendarPlot.selectAll('g.axis path.domain')
                   .style('display', 'none');
@@ -304,7 +304,7 @@ export const ladderChart = function() {
                   .on('click', function() { 
                      if (events.title.click) events.title.click();
                   })
-                  .html(function(d) { 
+                  .html(() => { 
                      var years = [dateDomain[0].getFullYear(), dateDomain[1].getFullYear()]
                         .filter(function(item, i, self) { return self.lastIndexOf(item) == i; })
                         .join(' - ');
@@ -323,7 +323,7 @@ export const ladderChart = function() {
                   .style('fill', options.plot.connector.fill)
                   .style('stroke', options.plot.connector.stroke)
                   .style('stroke-opacity', options.plot.connector.opacity)
-                  .style('stroke-width', options.plot.connector.width)
+                  .style('stroke-width', options.plot.connector.width);
 
                if (d3.superformula) {
                   var shapeSelector = d3.scaleOrdinal()
@@ -345,7 +345,7 @@ export const ladderChart = function() {
                item_shapes.enter()
                   .append(shape ? 'path' : 'circle')
                   .attr('transform',  function(d) {
-                     return 'translate(' + xScale(d[options.plot.shape.dateKey]) + ',' + yScale(d[options.plot.shape.rungKey]) + ')' 
+                     return 'translate(' + xScale(d[options.plot.shape.dateKey]) + ',' + yScale(d[options.plot.shape.rungKey]) + ')';
                   })
                   .style('opacity', 0)
                   .style('fill-opacity', 0)
@@ -357,11 +357,11 @@ export const ladderChart = function() {
                   .attr('d', shape)
                .merge(item_shapes)
                   .attr('transform',  function(d) {
-                     return 'translate(' + xScale(d[options.plot.shape.dateKey]) + ',' + yScale(d[options.plot.shape.rungKey]) + ')' 
+                     return 'translate(' + xScale(d[options.plot.shape.dateKey]) + ',' + yScale(d[options.plot.shape.rungKey]) + ')';
                   })
                   .attr('id', function(d) { 
                        var id = options.data.contextAttribute ? d[options.data.contextAttribute] : '';
-                       return 'itemDate' + id 
+                       return 'itemDate' + id;
                   })
                   .attr('r', circleRadius)
                   .attr('d', shape)
@@ -381,14 +381,14 @@ export const ladderChart = function() {
                   .remove();
 
                calendarPlot.select('.axis.y').selectAll('text')
-                  .style('font-size', scaleFont(options.plot.yAxis.fontSize, plot_width) + 'px')
+                  .style('font-size', scaleFont(options.plot.yAxis.fontSize, plot_width) + 'px');
 
                calendarPlot.select('.axis.x').selectAll('text')
-                  .style('font-size', scaleFont(options.plot.xAxis.fontSize, plot_width) + 'px')
+                  .style('font-size', scaleFont(options.plot.xAxis.fontSize, plot_width) + 'px');
 
                if (options.display.helpImg) {
                   help = hoverFrame.selectAll('image')
-                     .data([0])
+                     .data([0]);
 
                   help.enter()
                     .append('image')
@@ -400,7 +400,7 @@ export const ladderChart = function() {
                     .attr('y', 0)
                     .attr('height', '20px')
                     .attr('width', '20px')
-                    .attr('opacity', 0)
+                    .attr('opacity', 0);
 
                   help.exit().remove();
 
@@ -410,7 +410,7 @@ export const ladderChart = function() {
 
                function showImgs() { if (options.display.helpImg) help.attr('opacity', 1); }
                function hideImgs() { if (options.display.helpImg) help.attr('opacity', 0); }
-            }
+            };
         });
     }
 
@@ -432,17 +432,17 @@ export const ladderChart = function() {
     }
 
     // ACCESSORS
-    chart.exports = function() {
-       return { circleRadius: circleRadius, shapeSize: shapeSize, shapeColor: shapeColor, root: dom_parent }
-    }
+    chart.exports = () => {
+       return { circleRadius: circleRadius, shapeSize: shapeSize, shapeColor: shapeColor, root: dom_parent };
+    };
 
     // allows updating individual options and suboptions
     // while preserving state of other options
-    chart.options = function(values) {
+    chart.options = (values) => {
         if (!arguments.length) return options;
         keyWalk(values, options);
         return chart;
-    }
+    };
 
     function keyWalk(valuesObject, optionsObject) {
         if (!valuesObject || !optionsObject) return;
@@ -461,52 +461,52 @@ export const ladderChart = function() {
         }
     }
 
-    chart.events = function(functions) {
+    chart.events = (functions) => {
          if (!arguments.length) return events;
          keyWalk(functions, events);
          return chart;
-    }
+    };
 
-    chart.width = function(value) {
+    chart.width = (value) => {
         if (!arguments.length) return options.width;
         options.width = value;
         return chart;
     };
 
-    chart.height = function(value) {
+    chart.height = (value) => {
         if (!arguments.length) return options.height;
         options.height = value;
         return chart;
     };
 
-    chart.data = function(value) {
+    chart.data = (value) => {
         if (!arguments.length) return data;
         data = value;
         return chart;
     };
 
-    chart.update = function(opts) {
+    chart.update = (opts) => {
       if (events.update.begin) events.update.begin(); 
       if (typeof update === 'function' && data) update(opts);
        setTimeout(function() { 
          if (events.update.end) events.update.end(); 
        }, options.display.transition_time);
-    }
+    };
 
-    chart.colors = function(color3s) {
+    chart.colors = (color3s) => {
         if (!arguments.length) return colors;
         if (typeof color3s !== 'object') return false;
         var keys = Object.keys(color3s);        
         if (!keys.length) return false;
         // remove all properties that are not colors
-        keys.forEach(function(f) { if (! /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(color3s[f])) delete color3s[f]; })
+        keys.forEach(function(f) { if (! /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(color3s[f])) delete color3s[f]; });
         if (Object.keys(color3s).length) {
            colors = color3s;
         } else {
            colors = JSON.parse(JSON.stringify(default_colors));
         }
         return chart;
-    }
+    };
 
     function daysBetween(one, another) {
        return Math.round(Math.abs((+one) - (+another))/8.64e7);
@@ -523,4 +523,4 @@ export const ladderChart = function() {
     }
 
    return chart;
-}
+};

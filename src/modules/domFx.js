@@ -38,7 +38,7 @@ export const domFx = function() {
    fx.selectParent = (elem, class_name) => {
       let container = fx.getParent(elem, class_name);
       return d3.select(container);
-   }
+   };
    fx.eachElementClass = (elem, cls, fx) => {
       if (!elem || !cls || !fx || typeof fx != 'function') return;
       try { Array.from(elem.querySelectorAll(`.${cls}`)).forEach(fx); }
@@ -47,6 +47,7 @@ export const domFx = function() {
 
    fx.findUpClass = findUpClass;
    function findUpClass(el, class_name) {
+      if (el.classList && Array.from(el.classList).indexOf(class_name) >= 0) return el;
       while (el.parentNode) {
          el = el.parentNode;
          if (el.classList && Array.from(el.classList).indexOf(class_name) >= 0) return el;
@@ -66,6 +67,33 @@ export const domFx = function() {
      traverse(elem);
      return matches;
    }
+
+   fx.swapElements = (obj1, obj2) => {
+      // save the location of obj2
+      var parent2 = obj2.parentNode;
+      var next2 = obj2.nextSibling;
+      // special case for obj1 is the next sibling of obj2
+      if (next2 === obj1) {
+         // just put obj1 before obj2
+         parent2.insertBefore(obj1, obj2);
+      } else {
+         // insert obj2 right before obj1
+         obj1.parentNode.insertBefore(obj2, obj1);
+
+         // now insert obj1 where obj2 was
+         if (next2) {
+            // if there was an element after obj2, then insert obj1 right before that
+            parent2.insertBefore(obj1, next2);
+         } else {
+            // otherwise, just append as last child
+            parent2.appendChild(obj1);
+         }
+      }
+   };
+
+   fx.insertAfter = (newNode, referenceNode) => referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
+   fx.resizeInput = (elem, padding = 2) => elem.style.width = elem.value.length + padding + "ch";
+
    return fx;
 
 }();

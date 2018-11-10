@@ -1,5 +1,5 @@
-import { db } from './db'
-import { env } from './env'
+import { db } from './db';
+import { env } from './env';
 import { util } from './util';
 import { coms } from './coms';
 import { config } from './config';
@@ -9,13 +9,12 @@ import { importFx } from './importFx';
 import { stringFx } from './stringFx';
 import { calendarFx } from './calendarFx';
 import { displayGen } from './displayGen';
+import { scoreBoard } from './scoreBoard';
 import { tournamentDisplay } from './tournamentDisplay';
-import { tournamentFx } from './tournamentFx';
 
 export const staging = function() {
 
    let fx = {};
-   let tfx = tournamentFx;
 
    fx.init = () => {
       coms.fx.processDirective = processDirective;
@@ -25,26 +24,29 @@ export const staging = function() {
       coms.fx.receiveIdiomList = receiveIdiomList;
       coms.fx.tmxMessage = tmxMessage;
       coms.fx.receiveTournamentEvents = receiveTournamentEvents;
-   }
+   };
 
-   fx.legacy_categories = { 'S': '20', };
+   fx.legacy_categories = { 'S': '20' };
    fx.legacyCategory = (category, reverse) => {
       let legacy = reverse ?  Object.keys(fx.legacy_categories).map(key => ({ [fx.legacy_categories[key]]: key })) : fx.legacy_categories;
       if (legacy[category]) category = legacy[category];
       return category;
-   }
+   };
 
    function resetDB() {
-      return new Promise((resolve, reject) => {
+      return new Promise(resolve => {
          let reload = () => window.location.replace(window.location.pathname);
-         let okAction = () => db.resetDB(reload);
+         let okAction = () => {
+            db.resetDB(reload);
+            resolve();
+         };
          let cancelAction = () => {
             util.clearHistory(); 
             displayGen.closeModal(); 
             resolve();
-         }
+         };
          let message = `<div style='margin: 1em;'><h2>${lang.tr('warn')}:</h2><p>${lang.tr('phrases.reset')}</div>`;
-         let container = displayGen.okCancelMessage(message, okAction, cancelAction);
+         displayGen.okCancelMessage(message, okAction, cancelAction);
       });
    }
 
@@ -71,11 +73,11 @@ export const staging = function() {
          if (json_data.directive == 'add idiom' && json_data.content) {
             lang.define(json_data.content);
             db.addIdiom(json_data.content).then(setIdiom, error => console.log('error:', error));
-            function setIdiom() {
-               config.idiomSelectorOptions(json_data.content.ioc);
-               config.changeIdiom(json_data.content.ioc);
-            }
          }
+      }
+      function setIdiom() {
+         config.idiomSelectorOptions(json_data.content.ioc);
+         config.changeIdiom(json_data.content.ioc);
       }
    }
 
@@ -97,7 +99,7 @@ export const staging = function() {
          <p><b>${lang.tr('tournaments.replacelocal')}</b></p>
       `;
       let cancelAction = () => displayGen.closeModal();
-      let msg = displayGen.actionMessage({ message, actionFx: saveReceivedTournament, action: lang.tr('replace'), cancelAction });
+      displayGen.actionMessage({ message, actionFx: saveReceivedTournament, action: lang.tr('replace'), cancelAction });
       function saveReceivedTournament() {
          displayGen.closeModal();
          published_tournament.received = new Date().getTime();
@@ -106,7 +108,7 @@ export const staging = function() {
       function displayTournament() { tournamentDisplay.displayTournament({tuid: published_tournament.tuid}); }
    }
 
-   function receiveTournaments(tournaments, authorized) {
+   function receiveTournaments(tournaments) {
       let new_trnys = tournaments.map(t=>attemptJSONparse(t)).filter(f=>f);
       Promise.all(new_trnys.map(mergeTournament)).then(checkDisplay, util.logError);
 
@@ -165,13 +167,13 @@ export const staging = function() {
       }
    }
 
-   fx.endBroadcast = () => { env.publishing.broadcast = false; }
+   fx.endBroadcast = () => { env.publishing.broadcast = false; };
    fx.broadcasting = () => {
       if (env.publishing.broadcast && coms.connected()) return true;
-      // if (env.publishing.broadcast && !coms.connected() && navigator.onLine) { connectSocket(); }
-      if (env.publishing.broadcast && !coms.connected) { connectSocket(); }
+      // if (env.publishing.broadcast && !coms.connected() && navigator.onLine) { coms.connectSocket(); }
+      if (env.publishing.broadcast && !coms.connected) { coms.connectSocket(); }
       return false;
-   }
+   };
 
    fx.broadcastScore = (match) => {
       // format match_message the way the old tournaments client requires
@@ -194,15 +196,15 @@ export const staging = function() {
 
       var score = {
          components: { sets },
-         points: '',
-      }
+         points: ''
+      };
 
       let playerName = (player) => 
             ({ 
                lname: stringFx.normalizeName(player.last_name, false),
                fname: stringFx.normalizeName(player.first_name, false),
                name: stringFx.normalizeName(`${player.first_name} ${player.last_name}`, false),
-               ioc: player.ioc,
+               ioc: player.ioc
             });
 
       let teams = match.team_players.map(team => team.map(i => playerName(match.players[i])));
@@ -210,14 +212,14 @@ export const staging = function() {
       var match_message = {
          match: {
             muid: match.muid,
-            date: match.date,
+            date: match.date
          },
          tournament: {
             name: match.tournament.name,
             tuid: match.tournament.tuid,
             category: match.tournament.category,
             // TODO: clear this up... scheduled matches and completed matches are different
-            round: match.round_name || match.round,
+            round: match.round_name || match.round
          }, 
          status: match.winner != undefined ? 'Finished' : 'Scheduled',
          players: match.players.map(playerName),
@@ -230,13 +232,13 @@ export const staging = function() {
          edit: false,
          geoposition: {
             latitude: coords.latitude,
-            longitude: coords.longitude,
+            longitude: coords.longitude
          },
-         undo: false,
-      }
+         undo: false
+      };
 
       return match_message;
-   }
+   };
 
    function receiveTournamentEvents(data) {
       let updated = false;
@@ -250,7 +252,7 @@ export const staging = function() {
       }
       let events = data.events.map(e => CircularJSON.parse(e));
       let received_euids = events.map(e=>e.event.euid);
-      let received = Object.assign({}, ...events.map(e=>({[e.event.euid]: e})))
+      let received = Object.assign({}, ...events.map(e=>({[e.event.euid]: e})));
       db.findTournament(tuid).then(trny => confirmMerge(trny), util.logError);
 
       function confirmMerge(trny) {

@@ -1,6 +1,5 @@
-import { db } from './db'
-import { env } from './env'
-import { util } from './util'
+import { db } from './db';
+import { env } from './env';
 import { lang } from './translator';
 import { stringFx } from './stringFx';
 import { sharedFx } from './sharedFx';
@@ -14,8 +13,8 @@ let funcs = {
    receiveTournament: () => console.log('receive Tournament'),
    receiveTournaments: () => console.log('receive Tournaments.'),
    receiveTournamentEvents: () => console.log('receive Tournament Events'),
-   receiveTournamentRecord: () => console.log('receive Tournament Record'),
-}
+   receiveTournamentRecord: () => console.log('receive Tournament Record')
+};
 
 export const coms = function() {
 
@@ -28,44 +27,46 @@ export const coms = function() {
          "force new connection" : true,
          "reconnectionDelay" : 1000,
          "reconnectionAttempts": "Infinity",
-         "timeout" : 20000,
-      },
-   }
+         "timeout" : 20000
+      }
+   };
 
-   mod.setFx = (func, fx) => { funcs[func] = fx; }
+   mod.setFx = (func, fx) => { funcs[func] = fx; };
 
    mod.fx = funcs;
 
    // takes a promise or async function
-   mod.catcyAsync = (fn) => (...args) => fn(...args).catch(err => mod.logError(err)); 
-   mod.catchSync = (fn) => (...args) => { try { return fn(...args) } catch(err) { mod.logError(err); } };
+   mod.catchAsync = (fn) => (...args) => fn(...args).catch(err => mod.logError(err)); 
+   mod.catchSync = (fn, errorAction) => (...args) => {
+      try { return fn(...args); }
+      catch(err) {
+         mod.logError(err);
+         if (errorAction && typeof errorAction === 'function') { errorAction(); }
+      }
+   };
 
    mod.logError = (err) => {
-      console.log(err);
       let stack = err.stack.toString();
       let error_message = err.toString();
-      let eventError = { stack, error_message, event: CircularJSON.stringify(evt) };
-
+      let eventError = { stack, error_message };
       mod.emitTmx({ eventError });
-   }
+   };
 
    let queue = [];
    let connected = false;
 
    mod.connected = () => connected;
    function comsConnect() {
-      console.log('connected');
       connected = true;
       while (queue.length) {
          let message = queue.pop();
          oi.socket.emit(message.header, message.data);
       }
-   };
+   }
    function comsDisconnect() {
-      console.log('disconnect');
       connected = false;
-   };
-   function comsError(err) { };
+   }
+   function comsError() {}
 
    mod.versionNotice = (version) => {
       db.findSetting('superUser').then(setting => {
@@ -73,9 +74,9 @@ export const coms = function() {
             mod.emitTmx({ updateVersion: { version, client: 'tmx', notice: `Version ${version} available` } });
          }
       });
-   }
+   };
 
-   mod.notShared = (err) => {
+   mod.notShared = () => {
       mod.emitTmx({ 
          event: 'Connection',
          notice: `lat/lng: Geolocation Not Shared`,
@@ -83,7 +84,7 @@ export const coms = function() {
          longitude: '0.00',
          version: env.version
       });
-   }
+   };
 
    mod.connectAction = () => {
       let options = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
@@ -99,7 +100,7 @@ export const coms = function() {
                }
              }, (err) => console.log('error:', err));
       }
-   }
+   };
 
    mod.locationShared = (pos) => {
       env.locations.geoposition = pos;
@@ -110,7 +111,7 @@ export const coms = function() {
          longitude: pos.coords.longitude,
          version: env.version
       });
-   }
+   };
 
    mod.connectSocket = () => {
       // if (navigator.onLine && !oi.socket) {   
@@ -136,7 +137,7 @@ export const coms = function() {
          oi.socket.on('match score', data => sharedFx.receiveScore(data));
          oi.socket.on('crowd score', data => console.log('crowd score:', data));
       }
-   } 
+   };
 
    function receiveAcknowledgement(msg) {
       if (msg.uuid && ackRequests[msg.uuid]) {
@@ -147,16 +148,16 @@ export const coms = function() {
 
    mod.requestAcknowledgement = ({ uuid, callback }) => {
       ackRequests[uuid] = callback;
-   }
+   };
 
-   mod.joinTournament = (tuid, authorized) => connected ?  oi.socket.emit('join tournament', tuid) : false;
-   mod.leaveTournament = (tuid, authorized) => connected ?  oi.socket.emit('leave tournament', tuid) : false;
+   mod.joinTournament = (tuid) => connected ?  oi.socket.emit('join tournament', tuid) : false;
+   mod.leaveTournament = (tuid) => connected ?  oi.socket.emit('leave tournament', tuid) : false;
 
    function tmxError(err) {
       let error = err.phrase ? lang.tr(`phrases.${err.phrase}`) : err.error;
       if (err.error) {
          let message = `${lang.tr('phrases.servererror')}<p>${error}`;
-         let container = displayGen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+         displayGen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
       }
    }
 
@@ -165,7 +166,7 @@ export const coms = function() {
       if (msg && msg.revoked != undefined && mod.revoked && typeof mod.revoked == 'function') mod.revoked(msg);
    }
 
-   mod.sendKey = (key) => { mod.emitTmx({ key }); }
+   mod.sendKey = (key) => { mod.emitTmx({ key }); };
 
    mod.deleteMatch = (data) => {
       if (!data || !data.muid || !data.tuid) return;
@@ -174,7 +175,7 @@ export const coms = function() {
       } else {
          queue.push({ header: 'delete match', data });
       }
-   }
+   };
 
    mod.requestTournamentEvents = (tuid) => {
       if (connected) {
@@ -184,22 +185,23 @@ export const coms = function() {
          // oi.socket.emit('tmx trny evts', { tuid, authorized: true });
       } else {
          let message = `Offline: must be connected to internet`;
-         let container = displayGen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+         displayGen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
       }
-   }
+   };
 
    mod.requestTournament = (tuid) => {
       if (connected) {
          db.findSetting('userUUID').then(sendRequest);
-         function sendRequest(uuuid) {
-            let data = { tuid, timestamp: new Date().getTime(), uuuid: uuuid ? uuuid.value : undefined };
-            oi.socket.emit('tmx tourny', data);
-         }
       } else {
          let message = `Offline: must be connected to internet`;
-         let container = displayGen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
+         displayGen.popUpMessage(`<div style='margin-left: 2em; margin-right: 2em;'>${message}</div>`);
       }
-   }
+
+      function sendRequest(uuuid) {
+         let data = { tuid, timestamp: new Date().getTime(), uuuid: uuuid ? uuuid.value : undefined };
+         oi.socket.emit('tmx tourny', data);
+      }
+   };
 
    mod.emitTmx = (data) => {
       Object.assign(data, { timestamp: new Date().getTime(), uuuid: env.uuuid });
@@ -208,7 +210,7 @@ export const coms = function() {
       } else {
          queue.push({ header: 'tmx', data });
       }
-   }
+   };
 
    return mod;
 

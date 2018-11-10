@@ -5,12 +5,12 @@ import { util } from './util';
 import { coms } from './coms';
 import { dd } from './dropdown';
 import { domFx } from './domFx';
+import { dateFx } from './dateFx';
 import { tmxTour } from './tmxTour';
 import { fetchFx } from './fetchFx';
 import { lang } from './translator';
 import { staging } from './staging';
 import { stringFx } from './stringFx';
-// import { pointsFx } from './pointsFx';
 import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
 import { rankCalc } from './rankCalc';
@@ -26,8 +26,8 @@ export const config = function() {
 
    // eslint-disable-next-line no-unused-vars
    window.onerror = (msg, url, lineNo, columnNo, error) => {
-     console.log('error:', msg);
-     return false;
+      let eventError = { error_message: msg, url, lineNo, columnNo, error };
+      coms.emitTmx({ eventError });
    };
 
    // module container
@@ -56,13 +56,9 @@ export const config = function() {
    })();
 
    function checkQueryString() {
-      return new Promise((resolve, reject) => {
-         if (queryString.actionKey) {
-            coms.sendKey(queryString.actionKey);
-            resolve();
-         } else {
-            reject();
-         }
+      return new Promise((resolve) => {
+         if (queryString.actionKey) { coms.sendKey(queryString.actionKey); }
+         resolve();
       });
    }
    // END queryString
@@ -308,6 +304,19 @@ export const config = function() {
 
          let { container } = displayGen.tabbedModal({ tabs, tabdata, title: lang.tr('set') });
 
+         let schedule_rows = env.schedule.max_matches_per_court;
+         if (v.schedule) {
+            // max_matches_per_court can be customized by keys
+            let schedule_options = [16, 20, 24, 28, 32];
+            if (schedule_options.indexOf(schedule_rows) < 0) schedule_options.push(schedule_rows);
+            schedule_options.sort();
+
+            let options = schedule_options.map(c=> ({ key: c, value: c }));
+            dd.attachDropDown({ id: container.schedule_rows.id, options });
+            container.schedule_rows.ddlb = new dd.DropDown({ element: container.schedule_rows.element, onChange: setScheduleRows });
+            container.schedule_rows.ddlb.setValue(schedule_rows, 'white');
+         }
+
          let org_logo = document.getElementById('org_logo');
          if (org_logo) {
             org_logo.addEventListener('change', evt => exportFx.handleFileUpload(evt, 'orgLogo', 'org_logo_display'));
@@ -337,6 +346,7 @@ export const config = function() {
          if (container.save.element) container.save.element.addEventListener('click', saveSettings);
          if (container.cancel.element) container.cancel.element.addEventListener('click', revertSettings);
 
+         function setScheduleRows(value) { env.schedule.max_matches_per_court = util.parseInt(value) || 16; }
          function fixedByeOrder() { env.drawFx.fixed_bye_order = container.fixed_bye_order.element.checked; }
          function automatedByes() {
             env.drawFx.auto_byes = container.auto_byes.element.checked;
@@ -659,8 +669,6 @@ export const config = function() {
             searchBox.searchCount(arr.length);
             searchBox.searchCategory('search_tournament_total');
 
-            // exclude tournaments which don't have a category, start, or rank
-            arr = arr.filter(f=>f.category && f.start && f.rank);
             searchBox.typeAhead.list = !arr.length ? [] : arr.map(tournament => { 
                let category = tournament.category == 'S' ? 'S' : `U${tournament.category}`;
                let start_date = dateFx.formatDate(new Date(tournament.start));
@@ -680,7 +688,7 @@ export const config = function() {
    };
 
    function initDB() {
-      coms.catcyAsync(db.initDB)().then(checkQueryString, dbUpgrade).then(envSettings, util.logError).then(DBReady);
+      coms.catchAsync(db.initDB)().then(checkQueryString, dbUpgrade).then(envSettings, util.logError).then(DBReady);
       function dbUpgrade() { displayGen.showConfigModal('<h2>Database Upgraded</h2><div style="margin: 1em;">Please refresh your cache or load tmx+</div>'); }
 
       function DBReady() {
@@ -703,7 +711,6 @@ export const config = function() {
    function settingsLoaded() {
       tournamentDisplay.settingsLoaded();
       tournamentFx.settingsLoaded();
-      // pointsFx.settingsLoaded(env);
    }
 
    fx.receiveSettings = receiveSettings;
@@ -915,10 +922,14 @@ export const config = function() {
 
    fx.init = () => {
       console.log('version:', env.version);
+      if (location.pathname.indexOf('tmx+') >= 0) {
+         env.messages.push({ title: 'warn', notice: "Pre-release version of TMX" });
+         displayGen.homeIconState('update');
+      }
 
       displayGen.initModals();
       let supported_device = true;
-      if (device.isIpad || (window.innerWidth > 700 && window.innerHeight > 700)) {
+      if (queryString.mobile === 'xmt' || device.isIpad || (window.innerWidth > 700 && window.innerHeight > 700)) {
          supported_device = true;
       } else if (device.isMobile || device.isIDevice) {
          supported_device = false;

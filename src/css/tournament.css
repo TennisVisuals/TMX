@@ -148,7 +148,7 @@
 
 }
 
-.tournament_container .label {
+.tournament_container .tmx-label {
    color: black;
    font-weight: bold;
    text-align: left;
@@ -171,6 +171,7 @@
    align-content: center;
    -webkit-align-items: center;
    align-items: center;
+   margin-bottom: 1em;
 }
 
 .tournament_name {
@@ -819,12 +820,10 @@ button.ratings-submit:hover { background: #68FF33; }
 
 .scoringformat {
    font-size: 16px;
-   padding: 2px 8px 2px 8px;
    background: white;
    text-align: center;
    white-space: nowrap;
    vertical-align: middle;
-   min-width: 3em;
 }
 
 .event_details, .team_details {

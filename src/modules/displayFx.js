@@ -6,7 +6,7 @@ export const displayFx = function() {
    // idObj() returns unique element ids and element references so that calling
    // functions can bind events (onclick) and pass ids to other components
    fx.idObj = idObj;
-   function idObj(ids) { return Object.assign({}, ...Object.keys(ids).map(id => { return { [id]: { id: ids[id], element: document.getElementById(ids[id]) }} })); }
+   function idObj(ids) { return Object.assign({}, ...Object.keys(ids).map(id => ({ [id]: { id: ids[id], element: document.getElementById(ids[id]) }} ) )); }
 
    fx.uuid = () => `ch${UUID.new()}`;
 
@@ -35,12 +35,12 @@ export const displayFx = function() {
       var g = parseInt(hexcolor.substr(3,2),16);
       var b = parseInt(hexcolor.substr(5,2),16);
       return fx.rgbContrastYIQ({ r, g, b });
-   }
+   };
 
    fx.rgbContrastYIQ = ({ r, g, b }) => {
       var yiq = ((r*299)+(g*587)+(b*114))/1000;
       return (yiq >= 128) ? 'black' : 'white';
-   }
+   };
 
    fx.parseRGBA = (rgbastring) => {
       if (!rgbastring) return;
@@ -48,10 +48,10 @@ export const displayFx = function() {
       if (extract && extract.length == 2) {
          let values = extract[1].split(',');
          if (values.length == 3 || values.length == 4) {
-            return { r: values[0], g: values[1], b: values[2], a: values[3] }
+            return { r: values[0], g: values[1], b: values[2], a: values[3] };
          }
       } 
-   }
+   };
 
    return fx;
  

@@ -31,21 +31,21 @@ export const searchBox = function() {
       // stub for function to invoke for control/right-click
       contextMenu: undefined,
 
-      metaClick: {},
-   }
+      metaClick: {}
+   };
 
    searchBox.resetFx = [];
    searchBox.reset = () => {
       searchBox.active = {};
       searchBox.resetFx.forEach(f => { if (typeof f == 'function') f(); });
-   }
+   };
    searchBox.cleanUp = () => tmxTour.clear();
    searchBox.setSearchCategory = (notice) => {
       if (!searchBox.element) return;
       let searchtype = `search.${searchBox.category}`;
       let placeholder = notice || lang.tr(searchtype) || 'Search';
       searchBox.element.setAttribute('placeholder', placeholder);
-   }
+   };
    searchBox.normalFunction = ({ stateFunction=searchBox.setSearchCategory } = {}) => {
       searchBox.resetFx.forEach(f => { if (typeof f == 'function') f(); });
 
@@ -55,15 +55,15 @@ export const searchBox = function() {
          searchBox.irregular_search_list = false; 
       }
       stateFunction();
-   }
-   searchBox.focus = () => { if (searchBox.element) searchBox.element.focus(); }
-   searchBox.searchCount = (num) => { if (searchBox.count_element) searchBox.count_element.innerHTML = num; }
-   searchBox.searchCategory = (class_name) => { if (searchBox.category_element) searchBox.category_element.className = `icon15 ${class_name}`; }
+   };
+   searchBox.focus = () => { if (searchBox.element) searchBox.element.focus(); };
+   searchBox.searchCount = (num) => { if (searchBox.count_element) searchBox.count_element.innerHTML = num; };
+   searchBox.searchCategory = (class_name) => { if (searchBox.category_element) searchBox.category_element.className = `icon15 ${class_name}`; };
    searchBox.updateSearch = (category) => { 
       if (!searchBox.populateSearch) return;
       category = category || searchBox.category || searchBox.default_category; 
       if (searchBox.populateSearch[category] && typeof searchBox.populateSearch[category] == 'function') searchBox.populateSearch[category](); 
-   }
+   };
    searchBox.nextSearchCategory = (next) => {
       if (!searchBox.category_switching) return;
       if (!searchBox.populateSearch) return;
@@ -81,9 +81,9 @@ export const searchBox = function() {
 
       searchBox.setSearchCategory();
       searchBox.updateSearch();
-   }
+   };
 
-   let catchTab = (event) => { if (event.which == 9) { event.preventDefault(); event.stopPropagation(); } }
+   let catchTab = (event) => { if (event.which == 9) { event.preventDefault(); event.stopPropagation(); } };
    searchBox.init = () => {
       if (!searchBox.element_id) return;
       searchBox.element = document.getElementById(searchBox.element_id);
@@ -119,7 +119,7 @@ export const searchBox = function() {
       if (searchBox.meta_element) searchBox.meta_element.addEventListener('click', () => clickMeta());
       if (searchBox.search_select_element) searchBox.search_select_element.addEventListener('click', () => searchBox.searchSelect());
       searchBox.focus();
-   }
+   };
 
    function selectionComplete(e) {
       if (searchBox.cleanUp && typeof searchBox.cleanUp == 'function') searchBox.cleanUp();
@@ -144,12 +144,12 @@ export const searchBox = function() {
       if (!category) return;
       if (!searchBox.searchType || !searchBox.searchType[category] || typeof searchBox.searchType[category] != 'function') return;
       searchBox.searchType[category](uuid);
-   }
+   };
 
    searchBox.searchSelect = (category) => {
       searchBox.nextSearchCategory(category);
       searchBox.focus();
-   }
+   };
 
    return searchBox;
     

@@ -1,4 +1,4 @@
-export const metaFx = function() {
+export const mapFx = function() {
 
    let fx = {};
 

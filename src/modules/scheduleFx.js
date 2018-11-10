@@ -1,4 +1,4 @@
-import { env } from './env'
+import { env } from './env';
 import { util } from './util';
 import { domFx } from './domFx';
 import { drawFx } from './drawFx';
@@ -18,7 +18,7 @@ export const scheduleFx = function() {
 
    fx.fx = {};
 
-   fx.generateSchedule = (tournament, date_filter) => {
+   fx.generateSchedule = (tournament) => {
       if (!tournament.schedule) tournament.schedule = {};
 
       var date_range = dateFx.dateRange(tournament.start, tournament.end);
@@ -33,7 +33,7 @@ export const scheduleFx = function() {
             date: date.value,
             datestring: date.key,
             courts
-         }
+         };
       }).filter(d => Object.keys(d.courts).length);
 
       if (!days_matches.length) return;
@@ -75,7 +75,7 @@ export const scheduleFx = function() {
             status: match.status,
             umpire: match.umpire,
             winner_index: match.winner_index
-         }
+         };
          return mso;
       }
 
@@ -104,17 +104,17 @@ export const scheduleFx = function() {
                organization: tournament.organization,
                start: tournament.start,
                end: tournament.start,
-               org: tournament.org,
+               org: tournament.org
             },
             lang: {
                singles: lang.tr('formats.singles'),
                doubles: lang.tr('formats.doubles'),
                or: lang.tr('or')
             }
-         }
+         };
          return tournamentOOP;
       }
-   }
+   };
 
    fx.schedulingIssues = (matches) => {
       let puid_analysis = {};
@@ -154,7 +154,7 @@ export const scheduleFx = function() {
       });
 
       return issues;
-   }
+   };
 
    fx.colorCell = (elem, muid, cls) => {
       let cell = Array.from(elem.querySelectorAll('.schedule_box')).reduce((p, c) => c.getAttribute('muid') == muid ? c : p, undefined);
@@ -162,15 +162,13 @@ export const scheduleFx = function() {
          let class_root = cell.className.split(' ').slice(0, -1).join(' ');
          cell.className = `${class_root} ${cls}`;
       }
-   }
+   };
 
    fx.scheduleGrid = ({ element, schedule_day, scheduled, courts=[], oop_rounds=[], editable, options }) => {
       function ctuuid(schedule) { return schedule ? `${schedule.luid}|${schedule.index}` : ''; }
       courts = [].concat(...courts, Array(Math.max(0, 10 - courts.length)).fill(''));
       function activeScheduled(match, court) { return match.schedule.day == schedule_day && ctuuid(match.schedule) == ctuuid(court); }
-      function inActiveScheduled(match, court) {
-         return match.schedule.day == schedule_day && ctuuid(match.schedule) == ctuuid(court);
-      }
+      // function inActiveScheduled(match, court) { return match.schedule.day == schedule_day && ctuuid(match.schedule) == ctuuid(court); }
       let columns = courts.map(court => {
          let header = `<div class='court_header'>${court.name || ''}</div>`;
          // let court_matches = scheduled.filter(m => m.schedule && ctuuid(m.schedule) == ctuuid(court));
@@ -232,15 +230,15 @@ export const scheduleFx = function() {
 
       element.innerHTML = html;
       fx.scaleTeams(element);
-   }
+   };
 
    fx.scaleTeams = (container) => {
       let scheduled_teams = container.querySelectorAll('.scheduled_team');
       Array.from(scheduled_teams).forEach(el => domFx.scaleFont(el));
-   }
+   };
 
    fx.scheduleBox = ({ match={}, luid, index, court, oop_round, editable, options } = {}) => {
-      let ids = { scorebox: displayFx.uuid(), }
+      let ids = { scorebox: displayFx.uuid() };
       let empty = !Object.keys(match).length;
       let offgrid = empty && !court;
       let complete = match.winner_index != undefined;
@@ -273,7 +271,7 @@ export const scheduleFx = function() {
          </div>
       `;
       return { ids, html, innerHTML: content };
-   }
+   };
 
    function scheduledMatchHTML(match, options={}) {
       let winner_index = match.winner_index;
@@ -371,7 +369,7 @@ export const scheduleFx = function() {
          </div>
       `;
       return html;
-   }
+   };
 
    fx.sortedUnscheduled = sortedUnscheduled;
    function sortedUnscheduled(tournament, unscheduled_matches, order_priority) {
@@ -390,9 +388,10 @@ export const scheduleFx = function() {
          if (evnt.draw_type == 'R') {
             // compute order of play for round robin
             let rrr = dfx.roundRobinRounds(evnt.draw);
+
             // transform into ordered list of muids
+            let roundMatchupMUIDs = (rrround) => [].concat(...rrround.map(m=>m.matchups.map(u=>u.muid)));
             match_order = [].concat(...rrr.map(roundMatchupMUIDs));
-            function roundMatchupMUIDs(rrround) { return [].concat(...rrround.map(m=>m.matchups.map(u=>u.muid))); }
          } else {
             // get an ordered list of muids based on draw positions
             if (evnt.draw.compass) {
@@ -430,7 +429,8 @@ export const scheduleFx = function() {
 
          // get an array of all muids in this group
          let group_muids = indices.map(i=>unscheduled_matches[i].muid);
-         let [group_euid, round_name] = match_group.split('|');
+         // let [group_euid, round_name] = match_group.split('|');
+         let [group_euid] = match_group.split('|');
 
          // use the group muids to filter the ordered_muids
          let ordered_group = ordered_muids[group_euid]

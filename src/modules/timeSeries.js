@@ -20,16 +20,16 @@ export const timeSeries = function() {
          top: 30,
          left: 50,
          right: 50,
-         bottom: 30,
-      },
-   }
+         bottom: 30
+      }
+   };
 
    let data = [];
    let cwidth;
    let cheight;
 
    let events = {
-       'datapoints':  { 'mouseover': null, },
+       'datapoints':  { 'mouseover': null }
    };
 
    function chart(opts) {
@@ -109,7 +109,7 @@ export const timeSeries = function() {
          .data(d => d)
        .enter().append("g")
          .attr("class", "ts-label")
-         .attr("transform", (d, i) => "translate(" + x(d.date) + "," + (d.value ? y(d.value) : 0) + ")");
+         .attr("transform", d => "translate(" + x(d.date) + "," + (d.value ? y(d.value) : 0) + ")");
 
       label_background.append("text")
          .attr("dy", ".35em")
@@ -132,7 +132,7 @@ export const timeSeries = function() {
          .data(d => d)
        .enter().append("g")
          .attr("class", "ts-label-spacer")
-         .attr("transform", (d, i) => "translate(" + x(d.date) + "," + (d.value ? y(d.value) : 0) + ")");
+         .attr("transform", d => "translate(" + x(d.date) + "," + (d.value ? y(d.value) : 0) + ")");
 
       label.append("text")
          .attr("dy", ".35em")
@@ -146,13 +146,13 @@ export const timeSeries = function() {
       label.selectAll('rect').lower();
 
       if (o.datapoints && !o.lables) {
-         let circles = serie.selectAll(".ts-datum")
+         serie.selectAll(".ts-datum")
             .data(d => d)
           .enter().append("circle")
             .attr("class", "ts-datum")
             .attr("r", 2)
             .style("fill", d => z(d.key))
-            .attr("transform", (d, i) => "translate(" + x(d.date) + "," + y(d.value) + ")")
+            .attr("transform", d => "translate(" + x(d.date) + "," + y(d.value) + ")")
             .on("mouseover", events.datapoints.mouseover);
       }
 
@@ -161,41 +161,41 @@ export const timeSeries = function() {
       }
    }
 
-   chart.selector = function (value) {
+   chart.selector = (value) => {
       if (!arguments.length) { return o.selector; }
       o.selector = value;
       return chart;
    };
 
-   chart.width = function (value) {
+   chart.width = (value) => {
       if (!arguments.length) { return o.width; }
       o.width = value;
       return chart;
    };
 
-   chart.height = function (value) {
+   chart.height = (value) => {
       if (!arguments.length) { return o.height; }
       o.height = value;
       return chart;
    };
 
-   chart.sizeToFit = function (value) {
+   chart.sizeToFit = (value) => {
       if (!arguments.length) { return o.sizeToFit; }
       o.sizeToFit = value;
       return chart;
    };
 
-   chart.options = function(values) {
+   chart.options = (values) => {
        if (!arguments.length) return o;
        keyWalk(values, o);
        return chart;
-   }
+   };
 
-   chart.events = function(functions) {
+   chart.events = (functions) => {
        if (!arguments.length) return events;
        keyWalk(functions, events);
        return chart;
-   }
+   };
 
    function keyWalk(valuesObject, optionsObject) {
        if (!valuesObject || !optionsObject) return;
@@ -214,17 +214,18 @@ export const timeSeries = function() {
        }
    }
 
-   chart.data = function (value) {
+   chart.data = (value) => {
       if (!arguments.length) { return data; }
       data = value;
       return chart;
-   }
+   };
 
+   /*
    function maxValue(obj_arr) {
       return d3.max(obj_arr.map(obj => d3.max(Object.keys(obj).map(m=>typeof obj[m].getMonth != 'function' ? obj[m] : 0))));
    }
-
-   let unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
+   */
 
   return chart;
-}
+
+};
