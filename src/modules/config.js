@@ -26,7 +26,7 @@ export const config = function() {
 
    // eslint-disable-next-line no-unused-vars
    window.onerror = (msg, url, lineNo, columnNo, error) => {
-      let eventError = { error_message: msg, url, lineNo, columnNo, error };
+      let eventError = { error_message: msg, url, stack: { lineNo, columnNo, error } };
       coms.emitTmx({ eventError });
    };
 
