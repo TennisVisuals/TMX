@@ -725,10 +725,7 @@ export const playerFx = function() {
          let datestring = elem.value;
          let valid_date = (!ages && !datestring) || dateFx.validDate(datestring, daterange);
          elem.style.background = valid_date ? 'white' : 'yellow';
-         if (valid_date) {
-            console.log('valid', elem);
-            return defineAttr('birth', evt, ages, elem);
-         }
+         if (valid_date) { return defineAttr('birth', evt, ages, elem); }
       }
 
       player_container.last_name.element.addEventListener('keydown', (evt) => { if (evt.shiftKey && evt.which == 9) nextFieldFocus('email'); });
