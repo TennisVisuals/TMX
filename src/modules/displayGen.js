@@ -243,7 +243,7 @@ export const displayGen = function() {
       pmodal.style.cssText = 'display: none;';
       pmodal.innerHTML = `
         <div class="modaloffset flexcenter">
-           <div class="modalcontent flexcenter">
+           <div class="modalcontent flexcenter" style="overflow: visible">
               <div id="processingtext" class="noselect"> </div>
            </div>
         </div>
@@ -294,9 +294,10 @@ export const displayGen = function() {
       return content.map(c => existing_content.indexOf(c) >= 0).filter(f=>f).indexOf(true) >= 0;
    };
 
-   function setProcessingText(html, noselect=true) {
+   function setProcessingText({ html, noselect=true, overflow='hidden' }) {
       let processing = document.getElementById('processingtext');
       processing.innerHTML = html;
+      processing.style.overflow  = overflow;
       if (noselect) {
          processing.classList.add('noselect');
       } else {
@@ -325,7 +326,7 @@ export const displayGen = function() {
             </div>
          </div>
       `;
-      setProcessingText(html);
+      setProcessingText({ html });
       let id_obj = displayFx.idObj(ids);
       id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
       id_obj.download.element.addEventListener('click', () => gen.closeModal());
@@ -334,7 +335,7 @@ export const displayGen = function() {
    gen.showProcessing = (html) => {
       if (searchBox.element) searchBox.element.blur();
       document.body.style.overflow  = 'hidden';
-      setProcessingText(html);
+      setProcessingText({ html });
       document.getElementById('processing').style.display = "flex";
    };
 
@@ -370,7 +371,7 @@ export const displayGen = function() {
             <button id='${ids.cancel}' class='btn btn-medium dismiss' style='display: none'>${cancel}</button>
          </div>
       `;
-      setProcessingText(html);
+      setProcessingText({ html });
       let id_obj = displayFx.idObj(ids);
       id_obj.cancel.element.addEventListener('click', cancelAction);
       if (id_obj.alt) id_obj.alt.element.addEventListener('click', altAction);
@@ -401,7 +402,7 @@ export const displayGen = function() {
             ${ok_button}
          </div>
       `;
-      setProcessingText(html, noselect);
+      setProcessingText({ html, noselect });
       let id_obj = displayFx.idObj(ids);
       if (id_obj.ok) id_obj.ok.element.addEventListener('click', actionFx);
       id_obj.cancel.element.addEventListener('click', cancelAction);
@@ -429,7 +430,7 @@ export const displayGen = function() {
             <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${lang.tr('actions.ok')}</button>
          </div>
       `;
-      setProcessingText(html);
+      setProcessingText({ html });
       if (messages.length) {
          messages.forEach((message, i) => {
             let dT = () => {
@@ -470,7 +471,7 @@ export const displayGen = function() {
             <button id='${ids.ok}' class='btn btn-medium dismiss'>${lang.tr('actions.ok')}</button>
          </div>
       `;
-      setProcessingText(html);
+      setProcessingText({ html });
       let id_obj = displayFx.idObj(ids);
       gen.disable_keypress = true;
       id_obj.ok.element.addEventListener('click', dismissPopUp);
@@ -2375,7 +2376,7 @@ export const displayGen = function() {
          </div>
       `;
       document.getElementById('processing').style.display = "flex";
-      setProcessingText(html);
+      setProcessingText({ html });
       gen.closeonclick = true;
       gen.clickaway = true;
       displayGen.escapeModal();
@@ -2397,7 +2398,7 @@ export const displayGen = function() {
          </div>
       `;
       document.getElementById('processing').style.display = "flex";
-      setProcessingText(html);
+      setProcessingText({ html });
       displayGen.escapeModal();
       return displayFx.idObj(ids);
    };
@@ -2421,7 +2422,7 @@ export const displayGen = function() {
          </div>
       `;
       document.getElementById('processing').style.display = "flex";
-      setProcessingText(html);
+      setProcessingText({ html });
       gen.closeonclick = true;
       displayGen.escapeModal();
       return displayFx.idObj(ids);
@@ -2558,7 +2559,6 @@ export const displayGen = function() {
          display_id: displayFx.uuid(),
          locations: displayFx.uuid(),
          locations_actions: displayFx.uuid(),
-         location: displayFx.uuid(),
          location_details: displayFx.uuid(),
          location_attributes: displayFx.uuid(),
          location_map: displayFx.uuid(),
@@ -2589,7 +2589,13 @@ export const displayGen = function() {
          team_display_name: displayFx.uuid(),
          team_edit_name: displayFx.uuid(),
          team_attributes: displayFx.uuid(),
-         dual: displayFx.uuid()
+         dual: displayFx.uuid(),
+
+         location: displayFx.uuid(),
+         latitude: displayFx.uuid(),
+         longitude: displayFx.uuid(),
+         googlemap: displayFx.uuid(),
+         geoloc: displayFx.uuid()
       };
 
       let classes = {
@@ -2664,24 +2670,35 @@ export const displayGen = function() {
                        <label class='attr_label'>${lang.tr('draws.organizers')}:</label>
                        <input class='attr_input' id="${ids.organizers}" disabled>
                    </div>
-                </div>
-
-                <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                   <div class='tournament_attr'>
-                       <label class='attr_label'>${lang.tr('signin.place')}:</label>
-                       <input class='attr_input' id="${ids.location}" disabled>
-                   </div>
-         <!--
-                   <div class='tournament_attr'>
-                       <label class='attr_label'>${lang.tr('signin.id')}:</label>
-                       <input class='attr_input' id="${ids.display_id}" disabled>
-                   </div>
-         -->
                    <div class='tournament_attr'>
                        <label class='attr_label'>${lang.tr('signin.judge')}:</label>
                        <input class='attr_input' id="${ids.judge}" disabled>
                    </div>
                 </div>
+
+               <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+                  <div class='location_attribute locaddress'>
+                     <div class='loclabel'>${lang.tr('locations.address')}:</div>
+                     <input id='${ids.location}' class='locvalue'> 
+                  </div>
+                  <div class='flexrow'>
+                     <div class='loclatlong flexcol'>
+                        <div class='location_attribute'>
+                           <div class='loclabel'>Latitude</div>
+                           <input id='${ids.latitude}' class='locvalue_short'> 
+                        </div>
+                        <div class='location_attribute'>
+                           <div class='loclabel'>Longitude</div>
+                           <input id='${ids.longitude}' class='locvalue_short'> 
+                        </div>
+                     </div>
+                     <div class='flexrow' style='margin-left: 1em;'>
+                        <div id='${ids.googlemap}' class='googlemaps action_icon_large' ></div>
+                        <div id='${ids.geoloc}' class='geolocation action_icon_large' ></div>
+                     </div>
+                  </div>
+               </div>
+
             </div>
 
             <div id='${ids.notes_entry}' class='tournament_notes' style='display: none'>
@@ -4322,6 +4339,7 @@ export const displayGen = function() {
          school: displayFx.uuid(),
          club: displayFx.uuid(),
          ioc: displayFx.uuid(),
+         sort: displayFx.uuid(),
 
          publish: displayFx.uuid(),
          unpublish: displayFx.uuid(),
@@ -4341,7 +4359,7 @@ export const displayGen = function() {
                 </div>
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('rnk')}:</label>
-                    <input type='checkbox' id="${ids.rank}" ${attributes.ranking ? 'checked' : ''}>
+                    <input type='checkbox' id="${ids.rank}" ${attributes.rank ? 'checked' : ''}>
                 </div>
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('rtg')}:</label>
@@ -4360,6 +4378,9 @@ export const displayGen = function() {
                     <input type='checkbox' id="${ids.club}" ${attributes.club ? 'checked' : ''}>
                 </div>
             </div>
+            <div class='flexcenter'>
+               <div id="${ids.sort}"></div>
+            </div>
             <div class='flexcenter' style='margin-bottom: 2em; margin-top: 1em;'>
                <button id='${ids.publish}' class='btn btn-small edit-submit' style='margin-right: 2em'>${lang.tr('actions.publish')}</button>
                <button id='${ids.unpublish}' class='btn btn-small edit-submit' style='margin-right: 2em'>${lang.tr('actions.unpublish')}</button>
@@ -4369,11 +4390,41 @@ export const displayGen = function() {
       `;
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
-      setProcessingText(html);
+      setProcessingText({ html, overflow: 'visible' });
       displayGen.escapeModal();
       let id_obj = displayFx.idObj(ids);
       if (id_obj.cancel) id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
+
+      let options = [];
+      dd.attachDropDown({ id: ids.sort, label: 'Sort by:', options });
+      id_obj.sort.ddlb = new dd.DropDown({ element: id_obj.sort.element });
+      setSortOptions(attributes.sort);
+
+      let checkboxes = Array.from(document.getElementById('processingtext').querySelectorAll('input'));
+      checkboxes.forEach(cb=>cb.addEventListener('click', () => setSortOptions()));
+
       return id_obj;
+
+      function setSortOptions(preset) {
+         let checked =  [
+            { value: 'last_name', l: 'lnm', active: true },
+            { value: 'gender', l: 'gdr', active: id_obj.gender.element.checked },
+            { value: 'year', l: 'yr', active: id_obj.year.element.checked },
+            { value: 'rank', l: 'rnk', active: id_obj.rank.element.checked },
+            { value: 'rating', l: 'rtg', active: id_obj.rating.element.checked },
+            { value: 'club', l: 'clb', active: id_obj.club.element.checked },
+            { value: 'school', l: 'scl', active: id_obj.school.element.checked },
+            { value: 'ioc', l: 'cnt', active: id_obj.ioc.element.checked }
+         ];
+         let options = checked.filter(c=>c.active).map(c=>({ key: lang.tr(c.l), value: c.value }));
+         id_obj.sort.ddlb.setOptions(options);
+
+         let values = checked.filter(c=>c.active).map(c=>c.value);
+         let value = preset || id_obj.sort.ddlb.getValue();
+         if (value == '' || values.indexOf(value) < 0) value = checked[0].value;
+
+         id_obj.sort.ddlb.setValue(value, 'white');
+      }
    };
 
    gen.addTeamOptions = () => {
@@ -4401,7 +4452,7 @@ export const displayGen = function() {
       `;
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
-      setProcessingText(html);
+      setProcessingText({ html });
       displayGen.escapeModal();
       let id_obj = displayFx.idObj(ids);
       if (id_obj.cancel) id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
@@ -4636,7 +4687,7 @@ export const displayGen = function() {
          </div>
       `;
       document.getElementById('processing').style.display = "flex";
-      setProcessingText(html);
+      setProcessingText({ html });
       gen.clickaway = true;
       displayGen.escapeModal();
       return displayFx.idObj(ids);
@@ -5004,7 +5055,7 @@ export const displayGen = function() {
       `;
       document.body.style.overflow  = 'hidden';
       document.getElementById('processing').style.display = "flex";
-      setProcessingText(html);
+      setProcessingText({ html });
 
       let id_obj = displayFx.idObj(ids);
       id_obj.link.element.value = existing_link || '';
