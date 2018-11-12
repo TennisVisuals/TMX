@@ -239,8 +239,8 @@
    display: flex;
    -webkit-flex-direction: column;
    flex-direction: column;
-   -webkit-justify-content: space-between;
-   justify-content: space-between;
+   -webkit-justify-content: flex-start;
+   justify-content: flex-start;
    -webkit-align-content: space-between;
    align-content: space-between;
    margin-right: 1em;
