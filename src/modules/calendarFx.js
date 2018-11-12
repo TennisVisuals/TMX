@@ -273,7 +273,6 @@ export const calendarFx = function() {
       container.tournament_type.ddlb.setValue(trny.type || '', 'white');
 
       function setCategory(value) {
-         // setTimeout(function() { container.category.ddlb.selectionBackground(value ? 'white' : 'yellow'); }, 200);
          container.category.ddlb.selectionBackground(value ? 'white' : 'yellow');
          trny.category = value;
       }
