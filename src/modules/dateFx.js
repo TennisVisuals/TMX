@@ -94,20 +94,28 @@ export const dateFx = function() {
    fx.timeUTC = (date) => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 
    fx.dateRange = (startDt, endDt) => {
-       var error = ((fx.isDate(endDt)) && (fx.isDate(startDt)) && isValidDateRange(startDt, endDt)) ? false : true;
-       var between = [];
-       if (error) {
+      let error = ((fx.isDate(endDt)) && (fx.isDate(startDt)) && isValidDateRange(startDt, endDt)) ? false : true;
+      let between = [];
+      let iterations = 0;
+      let keep_looping = true;
+
+      if (error) {
           console.log('error occured!!!... Please Enter Valid Dates');
-       } else {
-           var currentDate = fx.offsetDate(startDt);
-           var end = fx.offsetDate(endDt);
-           while (currentDate <= end) {
-              // must be a *new* Date otherwise it is an array of the same object
-              between.push(new Date(currentDate));
-              currentDate.setDate(currentDate.getDate() + 1);
-           }
-       }
-       return between;
+      } else {
+          var currentDate = fx.offsetDate(startDt);
+          var end = fx.offsetDate(endDt);
+          while (currentDate <= end && keep_looping) {
+             iterations += 1;
+             if (iterations > 300) {
+                console.log('excessive while loop');
+                keep_looping = false;
+             }
+             // must be a *new* Date otherwise it is an array of the same object
+             between.push(new Date(currentDate));
+             currentDate.setDate(currentDate.getDate() + 1);
+          }
+      }
+      return between;
    };
 
    // unused
