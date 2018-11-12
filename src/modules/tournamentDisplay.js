@@ -52,9 +52,10 @@ export const tournamentDisplay = function() {
 
    db.addDev({db});
    db.addDev({dfx});
+   db.addDev({tfx});
+   db.addDev({mfx});
    db.addDev({util});
    db.addDev({UUID});
-   db.addDev({exportFx});
 
    fx.settingsLoaded = () => {
       dfx.options(env.drawFx);
@@ -327,7 +328,7 @@ export const tournamentDisplay = function() {
       }
 
       domFx.addEventToClass(classes.publish_schedule, (evt) => {
-         if (evt.ctrlKey || evt.shiftKey) return unPublishSchedule();
+         if (evt.ctrlKey || evt.shiftKey || tournament.schedule.up_to_date) return unPublishSchedule();
          publishSchedule();
       });
       domFx.addEventToClass(classes.publish_schedule, unPublishSchedule, undefined, 'contextmenu');
@@ -415,12 +416,13 @@ export const tournamentDisplay = function() {
          function configurePlayerPublishing() {
             tournament.publishing.players = {
                rating: publist.rating.element.checked,
-               ranking: publist.rank.element.checked,
+               rank: publist.rank.element.checked,
                year: publist.year.element.checked,
                club: publist.club.element.checked,
                school: publist.school.element.checked,
                gender: publist.gender.element.checked,
                ioc: publist.ioc.element.checked && env.assets.flags,
+               sort: publist.sort.ddlb.getValue(),
                up_to_date: true
             };
             displayGen.closeModal();
@@ -708,12 +710,17 @@ export const tournamentDisplay = function() {
          let existing_link = tournament.registration.link;
          displayGen.enterLink(existing_link, lang.tr('tournaments.registration'), trnyRegLink);
          function trnyRegLink(link) {
-            displayGen.closeModal();
-            if (!checkLink(link)) return invalidURL();
             let changed = (tournament.registration.link || '') != (link || '');
-            tournament.registration.link = link;
-            tournament.registration.label = lang.tr('tournaments.register');
-            if (changed) saveTournament(tournament);
+            displayGen.closeModal();
+            if (!link) {
+               delete tournament.registration.link;
+               delete tournament.registration.label;
+            } else {
+               if (!checkLink(link)) return invalidURL();
+               tournament.registration.link = link;
+               tournament.registration.label = lang.tr('tournaments.register');
+            }
+            if (changed) { saveTournament(tournament); }
          }
          function checkLink(l) {
             let parts = l.split('/');
@@ -754,6 +761,8 @@ export const tournamentDisplay = function() {
          if (!tournament.notes) container.notes_container.element.style.display = 'none';
       }
 
+      function isImage(url) { return url && ['jpeg', 'jpg', 'png'].indexOf(url.split('.').reverse()[0]) >= 0; }
+
       function parseSocialLinks() {
          let supported = {
             'youtube.com': 'youtube', 
@@ -762,13 +771,23 @@ export const tournamentDisplay = function() {
             'twitter.com': 'twitter',
             'linkedin.com': 'linkedin'
          };
-         let urls = Object.keys(supported);
+         let supported_urls = Object.keys(supported);
          let text = container.social_links.element.value;
-         let lines = text.split('\n');
-         let valid = Object.assign({}, ...lines.map(line => {
-            let found = urls.reduce((p, c) => line.toLowerCase().indexOf(c) >=0 ? c : p, undefined);
-            if (found) return { [supported[found]]: line };
+         let urls = text.split('\n');
+         let images = [];
+         let valid = Object.assign({}, ...urls.map(url => {
+            let found = supported_urls.reduce((p, c) => url.toLowerCase().indexOf(c) >=0 ? c : p, undefined);
+            if (found) {
+               return { [supported[found]]: url };
+            } else {
+               if (isImage(url) && url.indexOf('http') == 0) { images.push(url); }
+            }
          }).filter(f=>f));
+         
+         if (images.length) {
+            if (!tournament.publishing) tournament.publishing = {};
+            tournament.publishing.logo = images[0];
+         }
       
          tournament.media.social = valid;
       }
@@ -1372,14 +1391,25 @@ export const tournamentDisplay = function() {
          if (!tournament.players) tournament.players = [];
 
          let added = tfx.addPlayers(tournament, [new_player]);
+         playersOutOfDate();
+
          if (added) saveTournament(tournament);
       }
 
+      function playersOutOfDate() {
+         if (tournament.publishing && tournament.publishing.players) {
+            tournament.publishing.players.up_to_date = false;
+            playersPublishState();
+         }
+      }
+
       function addNewTournamentPlayer(player) {
+         playersOutOfDate();
          player.puid = `pl${UUID.new()}`;
          player.id = player.puid;
 
          let new_player = Object.assign({}, player);
+
          // delete unnecessary attributes...
          delete new_player.signed_in;
 
@@ -7071,6 +7101,7 @@ export const tournamentDisplay = function() {
                }
 
                function deletePlayer() {
+                  playersOutOfDate();
                   tournament.players = tournament.players.filter(p=>p.puid != clicked_player.puid);
                   deleteTeamTournamentPlayer(clicked_player.puid);
                   displayGen.closeModal();
@@ -10031,9 +10062,15 @@ export const tournamentDisplay = function() {
          }
          function unscheduleStrandedMatches({ proposed_start, proposed_end }) {
             return new Promise((resolve, reject) => {
-               let date_range = dateFx.dateRange(proposed_start, proposed_end).map(d=>dateFx.formatDate(dateFx.timeUTC(d)));
+
+               let pstart = dateFx.timeUTC(new Date(proposed_start));
+               let pend = dateFx.timeUTC(new Date(proposed_end));
+
+               let date_range = dateFx.dateRange(pstart, pend);
+               let formatted_date_range = date_range.map(d=>dateFx.formatDate(dateFx.timeUTC(d)));
                let { scheduled } = mfx.scheduledMatches(tournament);
-               let stranded = scheduled.filter(s=>date_range.indexOf(s.schedule.day) < 0);
+
+               let stranded = scheduled.filter(s=>formatted_date_range.indexOf(s.schedule.day) < 0);
 
                if (!stranded.length) {
                   resolve();
@@ -10048,6 +10085,7 @@ export const tournamentDisplay = function() {
                      match.source.schedule = {};
                      matchEventOutOfDate(match);
                   });
+                  displayGen.closeModal();
                   resolve();
                }
             });
