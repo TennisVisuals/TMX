@@ -5,14 +5,16 @@ export const env = {
    first_time_user: false,
 
    // version is Major.minor.added.changed.fixed
-   version: '1.5.3.13.9',
+   version: '1.5.21.50.29',
    version_check: undefined,
    reset_new_versions: false,
 
    ioc: 'gbr',
    orientation: undefined,
-   documentation: true,
-
+   documentation: {
+      links: true,
+      hoverhelp: true
+   },
    org: {
       name: undefined,
       abbr: undefined,
@@ -240,6 +242,7 @@ export const env = {
    },
    schedule: {
       clubs: true,
+      time24: true,
       ioc_codes: false,
       scores_in_draw_order: true,
       completed_matches_in_search: false,
@@ -259,5 +262,15 @@ export const env = {
          sheetDataStorage: [ 'syncClubs', 'syncPlayers', 'syncTournaments' ],
          userInterface: [ 'defaultIdiom' ]
       }
+   },
+   device: {
+      isStandalone: 'standalone' in window.navigator && window.navigator.standalone,
+      isIDevice: (/iphone|ipod|ipad/i).test(window.navigator.userAgent),
+      isIpad: (/iPad/i).test(window.navigator.userAgent),
+      isWindows: (/indows/i).test(window.navigator.userAgent),
+      isMobile: /Mobi/.test(navigator.userAgent)
+   },
+   actions: {
+      finish2calendar: true
    }
 };

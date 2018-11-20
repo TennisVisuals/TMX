@@ -10,6 +10,7 @@ export const tmxTour = function() {
    let fx = {};
 
    fx.guide = guide;
+   guide.onafterchange(() => { document.body.scrollIntoView(); });
 
    fx.clear = () => {
       let hints = document.querySelector('.introjs-hints');
@@ -31,7 +32,7 @@ export const tmxTour = function() {
    };
 
    fx.tournamentTours = (context) => {
-      // document.body.scrollIntoView();
+      document.body.scrollIntoView();
 
       if (context == 'calendar') return calendarTour();
       if (context == 'tournament_tab') return tournamentTabTour();
@@ -47,6 +48,8 @@ export const tmxTour = function() {
       if (context == 'teams_tab') return teamsTabTour();
    };
    fx.tournamentHints = (context) => {
+      document.body.scrollIntoView();
+
       if (fx.hintsActive()) {
          fx.clear();
       } else {
@@ -705,11 +708,11 @@ function tournamentTabTour() {
    let activated = [];
    if (tElement('notes_entry')) activated.push({ step: 'notes_entry', intro: '<b>Notes Editor</b><p>Formatted text which will appear online beneath the tournament header' });
    if (tElement('social_media')) activated.push({ step: 'social_media', intro: '<b>Social Media Links</b><p>Enter web addresses for social media sites such as Facebook, Twitter and Instgram<p>One web address per line' });
-   if (tElement('stat_charts')) activated.push({ step: 'stat_charts', intro: '<b>Tournament Charts</b>Visualizations of data derived from tournament data' });
+   // if (tElement('stat_charts')) activated.push({ step: 'stat_charts', intro: '<b>Tournament Charts</b>Visualizations of data derived from tournament data' });
 
    let components = [
       { step: 'edit_notes', intro: '<b>Notes Editor</b><p>Click to toggle the WYSIWYG Notes editor. <p>Notes will appear online when a tournament is published' },
-      { step: 'stats', intro: '<b>Tournament Statistics</b><p>Click to toggle view analysis of tournament players and matches' },
+      // { step: 'stats', intro: '<b>Tournament Statistics</b><p>Click to toggle view analysis of tournament players and matches' },
       { step: 'social', intro: '<b>Social Media</b><p>Click to toggle entry field for defining social media links' },
       { step: 'push2cloud', intro: 'Send a copy of the tournament record to the CourtHive Cloud Server' },
       { step: 'localdownload', intro: 'Save a copy of the tournament record to your computer/tablet' },
@@ -727,8 +730,8 @@ function tournamentTabTour() {
    let attr_visible = tElement('tournament_attrs');
    let details = !attr_visible ? [] : [
       { element: dates, intro: 'Set tournament start and end dates' },
-      { element: orginfo, intro: 'Specify and Organization and Organizers' },
-      { element: umpirebox, intro: 'Set the Location and Head Umpire' }
+      { element: orginfo, intro: 'Specify Organization, Organizers and Umpire' },
+      { element: umpirebox, intro: 'Set the Location<p>Will display on CourtHive.com/Live ' }
    ];
 
    activated.concat(...components).forEach(component => { if (tElement(component.step)) steps.push(componentObj(component.step, component.intro)); });

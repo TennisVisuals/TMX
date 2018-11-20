@@ -33,6 +33,9 @@ export const eventManager = function() {
       return em;
    };
 
+   em.call = (cls, evnt, ...args) => {
+      return registeredFunctions[evnt] && registeredFunctions[evnt][cls] && registeredFunctions[evnt][cls].fx(...args);
+   };
    em.trigger = (cls, evnt, target, mouse) => registeredFunctions[evnt][cls].fx(target, mouse);
    em.list = () => console.log(registeredFunctions);
 
@@ -42,6 +45,7 @@ export const eventManager = function() {
    var last_tap = 0;
 
    function processEvnt(evt, evnt) {
+      evt.stopPropagation();
       var mouse = { x: evt.clientX, y: evt.clientY };
       let class_list = Array.from(evt.target.classList);
       let cls_matches = class_list.length && keys[evnt] ? intersection(class_list, keys[evnt]) : [];

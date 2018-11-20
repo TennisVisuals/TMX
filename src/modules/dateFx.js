@@ -125,6 +125,12 @@ export const dateFx = function() {
        d1.getDate() === d2.getDate();
    };
 
+   fx.futureDate = (days=1) => {
+      let currentDate = new Date();
+      currentDate.setDate(currentDate.getDate() + days);
+      return currentDate;
+   };
+
    return fx;
 
 }();

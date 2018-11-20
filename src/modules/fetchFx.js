@@ -33,19 +33,13 @@ export const fetchFx = function() {
       remote.onload = function() { 
          let result = JSON.parse(remote.responseText);
          let data = result.data ? result.data.split('').filter(f=>f.charCodeAt() > 13).join('') : undefined;
-         let json_data = attemptJSONparse(data);
-         let parseable = attemptJSONparse(json_data);
+         let json_data = util.attemptJSONparse(data);
+         let parseable = util.attemptJSONparse(json_data);
          json_data = (parseable && parseable.data) || json_data;
          callback( json_data ? { json: json_data } : { result }); 
       };
       remote.send(request);
       return true;
-   }
-
-   function attemptJSONparse(data) {
-      if (!data) return undefined;
-      try { return CircularJSON.parse(data); }
-      catch(e) { return undefined; }
    }
 
    function fetchJSON(url) {
@@ -111,6 +105,19 @@ export const fetchFx = function() {
          // just to be sure... such filtering should be done in injected fx
          let players = fetched.players.filter(p=>p);
          delete fetched.players;
+
+         // legacy for CZE
+         players.forEach(p => {
+            if (p.alt == 'Y') {
+               p.acceptance = 'alternate';
+            } else if (p.qual == 'Y') {
+               p.acceptance = 'qualifying';
+            } else if (p.withdrawn == 'Y') {
+               p.acceptance = 'withdrawn';
+            } else if (p.id.indexOf('CZE' == 0)) {
+               p.acceptance ='main';
+            }
+         });
 
          addTournamentPlayers(players).then(addTournament, util.logError);
 
@@ -327,6 +334,42 @@ export const fetchFx = function() {
       if ((parts.indexOf('docs.google.com') < 0 || parts.indexOf('spreadsheets') < 0)) return undefined;
       return parts.reduce((p, c) => (!p || c.length > p.length) ? c : p, undefined);
    }
+
+   /*
+   // Doesn't work because players are loaded asynchronously after initial page load
+   fx.parseUTR = (doc) => {
+      let utr_cards = Array.from(doc.querySelectorAll('.utr-card'));
+      let players = utr_cards.map(card => {
+         let flag = card.querySelector('.flag');
+         let values = Array.from(card.querySelectorAll('.value'))
+            .map(v => ({ 
+               value: v.innerText,
+               status: v.getAttribute('title'),
+               type: v.parentElement.querySelector('.match-type-indicator') 
+            }) )
+            .filter(f=>f.type)
+            .map(v => ({
+               value: v.value,
+               status: v.status,
+               type: v.type.parentElement.getAttribute('title') 
+            }) );
+         let singles = values.reduce((p, c) => !p && c.type == 'singles' ? c : p, undefined);
+         let doubles = values.reduce((p, c) => !p && c.type == 'doubles' ? c : p, undefined);
+         let name = card.querySelector('.name');
+         let full_name = name && name.innerText;
+         let player = {
+            profile: card.parentElement.getAttribute('href'),
+            ioc: flag && flag.getAttribute('alt'),
+            full_name,
+            ratings: {
+               utr: { singles, doubles }
+            }
+         };
+         return player;
+      });
+      return players;
+   };
+   */
 
    fx.fetchNewPlayers = fetchNewPlayers;
    function fetchNewPlayers() {
@@ -603,7 +646,7 @@ export const fetchFx = function() {
          }
 
          function promptLoadPlayers() {
-            let message = `<h2>${lang.tr('phrases.locallycreated')}</h2><h3><i>${lang.tr('phrases.noremote')}</i></h3>`;
+            let message = `<h3 class='title is-4'>${lang.tr('phrases.locallycreated')}</h3><h4 class='subtitle is-5'><i>${lang.tr('phrases.noremote')}</i></h4>`;
             displayGen.actionMessage({ message, actionFx: okAction, action: lang.tr('actions.ok'), cancel: lang.tr('phrases.loadplayers'), cancelAction: loadAction });
          }
 
@@ -628,7 +671,7 @@ export const fetchFx = function() {
          function selectScraper(fetchobj) {
             let keys = Object.keys(fetchobj.scrapers);
             if (keys.length > 1) {
-               let message = `<h2>${lang.tr('phrases.playerimport')}</h2>`;
+               let message = `<h3 class='title is-4'>${lang.tr('phrases.playerimport')}</h3>`;
                displayGen.buttonSelect({
                   message,
                   buttons: keys,

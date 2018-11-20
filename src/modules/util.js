@@ -161,7 +161,20 @@ export const util = function() {
       return n && (n & (n - 1)) === 0;
    };
 
+   util.asciiSort = (a, b) => {
+      var textA = (a && a.toString().toUpperCase()) || '';
+      var textB = (b && b.toString().toUpperCase()) || '';
+      return textA.localeCompare(textB);
+   };
+
+   util.attemptJSONparse = (data) => {
+      if (!data) return undefined;
+      try { return CircularJSON.parse(data); }
+      catch(e) { return undefined; }
+   };
+
    util.logError = (err) => console.log(err);
 
    return util;
+
 }();

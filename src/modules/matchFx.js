@@ -18,7 +18,7 @@ export const matchFx = function() {
    };
 
    fx.getExistingScores = ({ match }) => {
-      if (!match.score) return undefined;
+      if (!match || !match.score) return undefined;
       let es = scoreBoard.convertStringScore({ string_score: match.score, score_format: match.score_format || {}, winner_index: match.winner_index });
       return es;
    };

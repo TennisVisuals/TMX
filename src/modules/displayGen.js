@@ -14,11 +14,12 @@ import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
 import { displayFx } from './displayFx';
 import { searchBox } from './searchBox';
+import { modalViews } from './modalViews';
 import { scoreBoard } from './scoreBoard';
-import { timeSeries } from './timeSeries';
-import { ladderChart } from './ladderChart';
 import { contextMenu } from './contextMenu';
 import { tournamentFx } from './tournamentFx';
+import { timeSeries as ts } from './timeSeries';
+import { ladderChart as lc} from './ladderChart';
 import { floatingEntry } from './floatingEntry';
 
 export const displayGen = function() {
@@ -31,6 +32,8 @@ export const displayGen = function() {
       onreset: undefined,
       content: undefined,
       arrowFx: undefined,
+      enterFx: undefined,
+      numericFx: undefined,
       escapeFx: undefined,
       closeonclick: undefined,
       clickaway: undefined
@@ -68,14 +71,25 @@ export const displayGen = function() {
 
    let dfx = drawFx();
 
-   document.addEventListener('keydown', evt => { 
+   function hoverHelp(type) { return (!env.device.isMobile && env.documentation.hoverhelp) ? gen[type] : ''; }
+
+   document.addEventListener('keyup', evt => { 
       // capture key up/left/down/right events and pass to subscribed function
       if (evt.key.indexOf('Arrow') == 0 && typeof gen.arrowFx == 'function') gen.arrowFx(evt.key); 
-      if (evt.key.indexOf('Escape') == 0 && typeof gen.escapeFx == 'function') gen.escapeFx(); 
+      if (evt.key.indexOf('Escape') == 0 && typeof gen.escapeFx == 'function') {
+         gen.escapeFx(); 
+         gen.escapeFx = undefined;
+         gen.numericFx = undefined;
+      }
+      if (evt.keyCode == 13 && gen.enterFx && typeof gen.enterFx == 'function') { gen.enterFx(); }
       if ((evt.keyCode == 13 || evt.keyCode == 9) && gen.disable_keypress) {
          evt.preventDefault();
          evt.stopPropagation();
       }
+      if (gen.numericFx && ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].indexOf(evt.key) >= 0) {
+         if (typeof gen.numericFx == 'function') { gen.numericFx(evt.key); }
+      }
+
       if (gen.content == 'calendar' && !gen.modal && evt.keyCode == '112' && caldates.calstart) document.getElementById(caldates.calstart).focus();
       if (gen.content == 'calendar' && !gen.modal && evt.keyCode == '113' && caldates.calend) document.getElementById(caldates.calend).focus();
    });
@@ -220,8 +234,7 @@ export const displayGen = function() {
       emodal.classList = 'editmodal';
       emodal.style.cssText = 'display: none;';
       emodal.innerHTML = `
-        <div id="close-edit" class="closeicon closeeditmodal"></div>
-        <div class="modal-content">
+        <div class="ch-modal-content">
            <div id="edittext" class="modaltext noselect"> </div>
         </div>
      `;
@@ -231,8 +244,7 @@ export const displayGen = function() {
       modal.classList = 'tmx-modal';
       modal.style.cssText = 'display: none;';
       modal.innerHTML = `
-        <div id="close-modal" class="closeicon closemodal"></div>
-        <div class="modal-content">
+        <div class="ch-modal-content">
            <div id="modaltext" class="modaltext noselect"> </div>
         </div>
      `;
@@ -243,8 +255,8 @@ export const displayGen = function() {
       pmodal.style.cssText = 'display: none;';
       pmodal.innerHTML = `
         <div class="modaloffset flexcenter">
-           <div class="modalcontent flexcenter" style="overflow: visible">
-              <div id="processingtext" class="noselect"> </div>
+           <div class="flexcenter" style="overflow: visible">
+              <div id="processingtext" class="noselect" style="padding: 1em;"> </div>
            </div>
         </div>
      `;
@@ -255,7 +267,7 @@ export const displayGen = function() {
       cmodal.style.cssText = 'display: none;';
       cmodal.innerHTML = `
          <div class="modaloffset flexcenter">
-           <div class="modalcontent flexcenter">
+           <div class="ch-modal-content flexcenter">
               <div id="configtext" class="noselect"> </div>
            </div>
         </div>
@@ -271,6 +283,145 @@ export const displayGen = function() {
    function closeOnClick() { if (gen.closeonclick) { gen.closeModal(); delete gen.closeonclick; } }
    function clickAway() { if (gen.clickaway) { gen.closeModal(); delete gen.clickaway; } }
 
+   // NEW MODALS
+
+   gen.tournamentLinks = () => {
+      let auth_keys = `<div class='action_icon_1_5 keys_green' style='margin-right: 1em;'></div>`;
+      let noauth_keys = `<div class='action_icon_1_5 keys_blue' style='margin-right: 1em;'></div>`;
+      let html = `
+         <nav class="panel">
+            <p class="panel-heading">
+               ${lang.tr('settings.organization')} ${lang.tr('phrases.weblink')}
+            </p>
+            <label class='panel-block tournamentLinkAuth'>${auth_keys}${lang.tr('tournaments.auth')}</label>
+            <label class='panel-block tournamentLinkNoAuth'>${noauth_keys}${lang.tr('tournaments.unofficial')}</label>
+            <label class='panel-block downloadQRcode'>${lang.tr('tournaments.auth')} ${lang.tr('phrases.qrcode')}</label>
+         </nav>
+         </div>
+      `;
+      modalViews.modalWindow({ html });
+   };
+
+   gen.newTournamentMenu = () => {
+      let html = `
+         <nav class="panel">
+            <p class="panel-heading">
+               ${lang.tr('tournaments.add')}
+            </p>
+            <label class='panel-block newTournament'>${lang.tr('tournaments.new')}</label>
+            <label class='panel-block fetchTournamentByID'>${lang.tr('tournaments.loadbyid')}</label>
+            <label class='panel-block importTournamentRecord'>${lang.tr('tournaments.import')}</label>
+         </nav>
+         </div>
+      `;
+      modalViews.modalWindow({ html });
+   };
+
+   gen.cloudFetchMenu = () => {
+      let html = `
+         <nav class="panel">
+            <p class="panel-heading">
+               ${lang.tr('dl')}
+            </p>
+            <label class='panel-block fetchTournamentRecord'>${lang.tr('tournaments.fetchtournament')}</label>
+            <label class='panel-block mergeEvents'>${lang.tr('tournaments.mergeevents')}</label>
+         </nav>
+      `;
+      modalViews.modalWindow({ html });
+   };
+
+   gen.support = () => {
+      let html =`
+         <div class='section'>
+            <h2 class='title is-2'>Support</h2>
+            <h3 class='title is-5' style='text-align: left;'>Email</h3>
+            <div style='text-align: left;'>Please send all feedback and support requests to&nbsp;<b>support@courthive.com</b></div>
+         <div>
+      `;
+      modalViews.modalWindow({ html });
+   };
+
+   gen.authorizeActions = () => {
+      let html = `
+         <nav class="panel">
+           <p class="panel-heading">
+             ${lang.tr('tournaments.key')}
+           </p>
+           <label class="panel-block generateKey">${lang.tr('phrases.generatekey')}</label>
+           <label class="panel-block authorizeAdmin">${lang.tr('admin')}</label>
+           <label class="panel-block revokeAuthorization">${lang.tr('revoke')}</label>
+           <div class="panel-block">
+              <button class="button is-warning is-outlined is-fullwidth closeModal"> ${lang.tr('ccl')} </button>
+           </div>
+         </nav>
+      `;
+      modalViews.modalWindow({ html, x: false });
+   };
+
+   gen.playersTabPDFs = () => {
+      let html = `
+         <nav class="panel">
+           <p class="panel-heading">
+             ${lang.tr('pyr')}
+           </p>
+            <label class='panel-block singlesSignInPDF'>${lang.tr('sgl')} ${lang.tr('print.signin')}</label>
+            <label class='panel-block doublesSignInPDF'>${lang.tr('dbl')} ${lang.tr('print.signin')}</label>
+            <label class='panel-block playersListPDF'>${lang.tr('print.playerlist')}</label>
+            <div class="panel-block flexcenter">
+               <button class="button is-warning is-outlined closeModal"> ${lang.tr('ccl')} </button>
+            </div>
+         </nav>
+      `;
+      modalViews.modalWindow({ html, x: false });
+   };
+
+   gen.keyActions = (keys=[]) => {
+      let ids = {
+         key: displayFx.uuid(),
+         submitnewkey: displayFx.uuid()
+      };
+
+      let key_blocks = keys.reverse().map(keyBlock).join('');
+
+      let html = `
+      <nav class="panel">
+         <p class="panel-heading">
+            ${lang.tr('keys')}
+         </p>
+         <p class="panel-tabs">
+            <a modalpeer="new" class="is-active modalPeer">${lang.tr('new')}</a>
+            <a modalpeer="keys" class="modalPeer">${lang.tr('existing')}</a>
+         </p>
+         <div class="modalpeer new">
+            <div class="panel-block">
+               <p class="control">
+                  <input id="${ids.key}" class="input is-small" type="text" placeholder="${lang.tr('phrases.submitkey')}">
+               </p>
+            </div>
+            <div class="panel-block is-centered">
+               <button id="${ids.submitnewkey}" class="button is-fullwidth is-success"> ${lang.tr('sbt')} </button>
+            </div>
+         </div>
+         <div class="modalpeer keys" style="display: none; cursor: pointer;">
+            ${key_blocks}
+         </div>
+      </nav>
+      `;
+
+      modalViews.modalWindow({ html, x: true });
+      return { container: displayFx.idObj(ids) };
+
+      function keyBlock(key) {
+         return `
+            <div keyid="${key.keyid}" class="panel-block selectKey">
+               ${key.description}
+            </div>
+         `;
+      }
+   };
+
+   // END NEW MODALS
+
    gen.closeModal = (which) => {
       searchBox.active = {};
       if (which) {
@@ -280,7 +431,11 @@ export const displayGen = function() {
          Array.from(document.querySelectorAll('.tmx-modal')).forEach(modal => modal.style.display = "none");
          gen.modal = 0;
       }
-      if (!gen.modal) document.body.style.overflow  = null;
+      if (!gen.modal) {
+         document.body.style.overflow  = null;
+         domFx.freezeBody(false);
+      }
+      gen.enterFx = undefined;
       gen.escapeFx = undefined;
       gen.disable_keypress = false;
    };
@@ -430,7 +585,9 @@ export const displayGen = function() {
             <button id='${ids.ok}' class='btn btn-medium edit-submit' style='margin-left: 1em;'>${lang.tr('actions.ok')}</button>
          </div>
       `;
+
       setProcessingText({ html });
+
       if (messages.length) {
          messages.forEach((message, i) => {
             let dT = () => {
@@ -449,8 +606,8 @@ export const displayGen = function() {
          let color = msg.warning ? '#EF8C7E' : msg.authorized || msg.success ? '#D1FBA7' : '#FEF8A7';
          let pointer = msg.inDB ? 'cursor: pointer;' : '';
          let html = `
-            <div id='${msguid}' class='flexrow flexcenter' style='margin: 1em; padding: 1px; background-color: ${color}; ${pointer}'>
-               <h3>${lang.tr(msg.title)}</h3>: ${msg.notice}
+            <div id='${msguid}' class='box' style='background-color: ${color}; ${pointer}'>
+               <b>${lang.tr(msg.title)}</b>: ${msg.notice}
             </div>
          `;
          return { html, msguid };
@@ -489,30 +646,27 @@ export const displayGen = function() {
       document.getElementById('configtext').innerHTML = html;
       let modal = document.getElementById('configmodal');
       modal.style.display = "flex";
-      let content = modal.querySelector('.modalcontent');
+      let content = modal.querySelector('.ch-modal-content');
       content.style.overflow = overflow;
       gen.modal += 1;
    };
 
-   gen.showModal = (html, close = true, overflow='auto') => {
+   gen.showModal = (html, overflow='auto') => {
       if (searchBox.element) searchBox.element.blur();
       document.body.style.overflow  = 'hidden';
       let modaltext = document.getElementById('modaltext');
       modaltext.innerHTML = html;
-      document.getElementById('close-modal').style.display = close ? 'inline' : 'none';
       document.getElementById('modal').style.display = "flex";
       if (modaltext.scrollIntoView) modaltext.scrollIntoView();
-      let content = document.querySelector('.modal-content');
+      let content = document.querySelector('.ch-modal-content');
       content.style.overflow = overflow;
       gen.modal += 1;
    };
 
-   gen.showEdit = (html, close = true) => {
+   gen.showEdit = (html) => {
       if (searchBox.element) searchBox.element.blur();
       document.body.style.overflow  = 'hidden';
       document.getElementById('edittext').innerHTML = html;
-      document.getElementById('close-edit').style.display = close ? 'inline' : 'none';
-      document.getElementById('edit').style.display = "flex";
       gen.modal += 1;
    };
 
@@ -737,7 +891,7 @@ export const displayGen = function() {
 
    gen.playerPoints = (point_events, title, expire_date) => {
       let html = `
-         <div class='section_row flexrow section_header'>
+         <div class='box section_row flexrow section_header'>
             <div class='ptrny'><b>${lang.tr('trn')}</b></div>
             <div class='pround'><b>${lang.tr('rnd')}</b></div>
             <div class='pdate'><b>${lang.tr('dt')}</b></div>
@@ -911,7 +1065,7 @@ export const displayGen = function() {
          var ioc = player_ioc ? `(<u>${player_ioc.toUpperCase()}</u>)` : '';
          var flag =  !flags ? ioc : player_ioc ? `<img onerror="this.style.visibility='hidden'" width="15px" src="${flag_root}${player_ioc.toUpperCase()}.png">` : '';
          var penalty = !tournament ? undefined : matchPenalties(tournament.players, p.puid, match.muid);
-         var penalty_icon = !penalty ? '' : `<img height="10px" src="./icons/penalty.png">`;
+         var penalty_icon = !penalty ? '' : `<img style='width: 1em;' src="./icons/penalty.png">`;
          var assoc = p.club_code ? `(${p.club_code})` : p.ioc && player_ioc != undefined ? flag : '';
          var left = side == 'right' ? `${assoc} ` : `${penalty_icon}`;
          var right = side == 'left' ? ` ${assoc}` : `${penalty_icon}`;
@@ -1034,31 +1188,31 @@ export const displayGen = function() {
       }
 
       let round_icon = `
-         <div class='${gen.info}' label='${lang.tr("rnd")}'>
+         <div class='${hoverHelp('info')}' label='${lang.tr("rnd")}'>
             <div class='match_block_icon drawsize_header'></div>
          </div>`;
       let duration_icon = `
-         <div class='${gen.info}' label='${lang.tr("duration")}'>
+         <div class='${hoverHelp('info')}' label='${lang.tr("duration")}'>
             <div class='match_block_icon duration_header'></div>
          </div>`;
       let time_icon = `
-         <div class='${gen.info}' label='${lang.tr("draws.endtime")}'>
+         <div class='${hoverHelp('info')}' label='${lang.tr("draws.endtime")}'>
             <div class='match_block_icon time_header'></div>
          </div>`;
       let cal_icon = `
-         <div class='${gen.info}' label='${lang.tr("dt")}'>
+         <div class='${hoverHelp('info')}' label='${lang.tr("dt")}'>
             <div class='match_block_icon cal_header'></div>
          </div>`;
       let status_icon = `
-         <div class='${gen.info}' label='Status'>
+         <div class='${hoverHelp('info')}' label='Status'>
             <div class='match_block_icon status_header'></div>
          </div>`;
       let score_icon = `
-         <div class='${gen.info} flexcenter' label='${lang.tr("scr")}'>
+         <div class='${hoverHelp('info')} flexcenter' label='${lang.tr("scr")}'>
             <img class='score_header' src="./icons/scoreboard.png" style='width: 30px;'>
          </div>`;
       let court_icon = `
-         <div class='flexcenter ${gen.info}' style='width: 100%' label='${lang.tr("crt") || "Court"}'>
+         <div class='flexcenter ${hoverHelp('info')}' style='width: 100%' label='${lang.tr("crt") || "Court"}'>
             <div class='match_block_icon surface_header'></div>
          </div>`;
 
@@ -1105,7 +1259,7 @@ export const displayGen = function() {
             return `<div class='cell_${match.format} ${d.cell}' style='${style}' muid='${match.muid}'${euid}>${d.fx(match)}</div>`;
          });
          let rows = [].concat(header_row, ...match_rows);
-         return `<div class='column ${d.column}'>${rows.join('')}</div>`;
+         return `<div class='mcolumn ${d.column}'>${rows.join('')}</div>`;
       }).join('');
 
       let title_display = title ? `<div class='match_block_title'>${title}</div>` : '';
@@ -1126,24 +1280,18 @@ export const displayGen = function() {
       };
 
       let html = `
-         <div id=${ids.container} class='playerprofile'>
-            <div class='player_section'>
-               <div id=${ids.info}></div>
+         <div id=${ids.container} class='section playerprofile'>
+            <div class='player_section' id=${ids.info}></div>
+            <div class='player_section' id=${ids.actions}></div>
+            <div class='player_section' id=${ids.season}></div>
+            <div class='player_section' id=${ids.rankchart}></div>
+            <div class='player_rankings column' style='display: none'>
+               <div class='flexrow'>
+                  <h2 class='title is-4'>${lang.tr('rlp')}</h2>
+                  <input id=${ids.rankingsdate} style='height: 1.5em; margin-left: 2em;' class='rankingsdate'>
+               </div>
+               <div class='player_section' id=${ids.rankings}></div>
             </div>
-            <div class='player_section'>
-               <div id=${ids.actions}></div>
-            </div>
-            <div class='player_section'>
-               <div id=${ids.season}></div>
-            </div>
-            <div class='player_section'>
-               <div id=${ids.rankchart}></div>
-            </div>
-            <div class='player_rankings' style='display: none'>
-               <h2 class='tmx-title'>${lang.tr('rlp')}</h2>
-               <div class='flexcenter'><input id=${ids.rankingsdate} style='height: 1.5em; margin-left: 2em;' class='rankingsdate'></div>
-            </div>
-            <div class='player_section' id=${ids.rankings}></div>
             <div class='player_section' id=${ids.matches}> </div>
          </div>`;
 
@@ -1151,6 +1299,7 @@ export const displayGen = function() {
          display(html);
       } else {
          selectDisplay(html, 'player');
+         // modalViews.modalWindow({ html });
       }
       let id_obj = displayFx.idObj(ids);
       return id_obj;
@@ -1188,56 +1337,6 @@ export const displayGen = function() {
       return { ids, html };
    };
 
-   gen.keyActions = (keys=[]) => {
-      let ids = {
-         container: displayFx.uuid(),
-         cancel: displayFx.uuid()
-      };
-
-      let submit = gen.submitKey();
-      let existing = gen.existingKeys();
-
-      let tabdata = [ { tab: lang.tr('add'), content: submit.html } ];
-      if (keys.length) tabdata.push({ tab: lang.tr('existing'), content: existing.html });
-      let tabs = jsTabs.generate({ tabs: tabdata });
-      let docs = env.documentation ? 'flex' : 'none';
-
-      let cancel = `
-         <div id='${ids.cancel}' class='link ${gen.info}' style='margin-left: 1em;'>
-            <img src='./icons/xmark.png' class='club_link'>
-         </div>`;
-
-      let html = `
-         <div id='${ids.container}' class='flexcol' style='width: 100%;'>
-            <div class='settings_info'>
-               <h2 class='tmx-title'>${lang.tr('keys')}</h2>
-               <div class='flexrow'>${cancel}</div>
-            </div>
-            <div>${tabs}</div>
-            <div class='flexjustifyend' style='margin-top: 8px; margin-right: 2px;'>
-               <div class='doclink' url='tmx_configuration'><div class='tiny_docs_icon' style='display: ${docs}'></div></div>
-            </div>
-         </div>
-      `;
-      
-      gen.showModal(html, false, 'visible');
-
-      Object.assign(ids, submit.ids, existing.ids);
-      let id_obj = displayFx.idObj(ids);
-
-      jsTabs.load({ el: id_obj.container.element });
-      if (id_obj.cancel.element) id_obj.cancel.element.addEventListener('click', () => gen.closeModal());
-
-      if (keys.length) {
-         let options = keys.reverse().map(k=>({key: k.description, value: k.keyid}));
-         dd.attachDropDown({ id: ids.keys, options });
-         id_obj.keys.ddlb = new dd.DropDown({ element: id_obj.keys.element });
-         id_obj.keys.ddlb.setValue(keys[0].keyid, 'white');
-      }
-
-      return { container: id_obj };
-   };
-
    gen.tabbedModal = ({ tabs, tabdata, title, save=true }) => {
       let ids = {
          save: displayFx.uuid(),
@@ -1253,7 +1352,7 @@ export const displayGen = function() {
             <img src='./icons/xmark.png' class='club_link'>
          </div>`;
       let done = save ? `
-         <div id='${ids.save}' class='link ${gen.info}' label='${lang.tr("apt")}' style='margin-left: 1em;'>
+         <div id='${ids.save}' class='link ${hoverHelp('info')}' label='${lang.tr("apt")}' style='margin-left: 1em;'>
             <img src='./icons/finished.png' class='club_link'>
          </div>` : '';
 
@@ -1268,7 +1367,7 @@ export const displayGen = function() {
       `;
 
       gen.escapeModal();
-      gen.showModal(html, false, 'visible');
+      gen.showModal(html, 'visible');
 
       Object.assign(ids, ...Object.keys(tabs).filter(t=>tabs[t]).map(t=>tabs[t].ids));
       let id_obj = displayFx.idObj(ids);
@@ -1439,6 +1538,7 @@ export const displayGen = function() {
    gen.generalSettings = () => {
       let ids = {
          first_day: displayFx.uuid(),
+         hoverhelp: displayFx.uuid(),
          documentation: displayFx.uuid()
       };
       let ddlb = [];
@@ -1455,6 +1555,10 @@ export const displayGen = function() {
                     <label class='calabel'>${lang.tr('settings.documentation')}</label>
                     <input type='checkbox' id="${ids.documentation}">
                 </div>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.hoverhelp')}</label>
+                    <input type='checkbox' id="${ids.hoverhelp}">
+                </div>
              </div>
          </div>
 
@@ -1465,6 +1569,7 @@ export const displayGen = function() {
 
    gen.scheduleSettings = () => {
       let ids = {
+         time24: displayFx.uuid(),
          scores_in_draw_order: displayFx.uuid(),
          completed_matches_in_search: displayFx.uuid(),
          schedule_rows: displayFx.uuid()
@@ -1475,6 +1580,10 @@ export const displayGen = function() {
          <h2 class='tmx-title'>&nbsp;</h2>
          <div class='flexcenter' style='width: 100%;'>
              <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+                <div class='tournament_attr'>
+                    <label class='calabel'>${lang.tr('settings.time24')}</label>
+                    <input type='checkbox' id="${ids.time24}">
+                </div>
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('settings.draworderscores')}</label>
                     <input type='checkbox' id="${ids.scores_in_draw_order}">
@@ -1729,7 +1838,7 @@ export const displayGen = function() {
 
       let inout = lang.tr('inout').split(' ').join('&nbsp;');
       let html = `
-         <div class='add_tournament' style='margin: 2em; width: auto'>
+         <div style='width: auto'>
             ${header}
             <div id='${ids.form}' class='add_tournament_form'>
                <div class='rowcol'>
@@ -2006,17 +2115,17 @@ export const displayGen = function() {
 
    gen.tabbedPlayerRankings = (tabdata, container) => {
       if (!tabdata.length) {
-         container.rankings.element.innerHTML = `<h2 class='tmx-title' class="flexcenter">${lang.tr('phrases.norankingdata')}</h2>`;
+         container.rankings.element.innerHTML = `<h2 class='title is-4'>${lang.tr('phrases.norankingdata')}</h2>`;
          return;
       }
-      let html = ` <div>${jsTabs.generate({ tabs: tabdata })}</div> `;
+      let html = `${jsTabs.generate({ tabs: tabdata })}`;
       container.rankings.element.innerHTML = html;
       jsTabs.load({ el: container.rankings.element });
    };
 
    gen.tabbedPlayerMatches = (puid, singles, doubles, container) => {
       if (!singles.length && !doubles.length) {
-         container.matches.element.innerHTML = `<h2 class='tmx-title' class="flexcenter">${lang.tr('phrases.nomatches')}</h2>`;
+         container.matches.element.innerHTML = `<h2 class='title is-4'>${lang.tr('phrases.nomatches')}</h2>`;
          return;
       }
       let tabdata = [];
@@ -2026,8 +2135,10 @@ export const displayGen = function() {
       // if (singles.length) tabdata.push({ tab: lang.tr('h2h'), content: gen.playerHead2Head(singles, puid) });
       let tabs = jsTabs.generate({ tabs: tabdata });
       let html = `
-         <h2 class='tmx-title'>${lang.tr('emts')}</h2>
-         <div>${tabs}</div>
+         <div class='column'>
+            <h2 class='title is-4'>${lang.tr('emts')}</h2>
+            ${tabs}
+         </div>
       `;
       container.matches.element.innerHTML = html;
       jsTabs.load({ el: container.matches.element });
@@ -2178,8 +2289,20 @@ export const displayGen = function() {
          let w = arr.filter(f=>f.sex == 'W');
          let u = arr.filter(f=>['M', 'W'].indexOf(f.sex) < 0);
 
-         html += `<div class='signin-section'>${lang.tr(notice)}</div>`;
-         html += tpHeader({ display, additional_attributes, ratings_type, doubles });
+         let help = edit ? 'flex' : 'none';
+         let header = `
+            <div class='signin-section'>
+               <div class='options_left' style='margin-bottom: .5em; font-size: 1.5em;'>
+                  ${lang.tr(notice)}
+               </div>
+               <div class='options_right' style='flex-grow: 1; margin-left: 5em; margin-bottom: .5em;'>
+                  <div class='hintslink icon_margin' context='players_tab'><div class='dotdot hints_icon' style='display: ${help}'></div></div>
+                  <div class='tourlink icon_margin' context='players_tab'><div class='tiny_tour_icon' style='display: ${help}'></div></div>
+                  <div class='doclink' url='tmx_tournament_players'><div class='tiny_docs_icon' style='display: ${help}'></div></div>
+               </div>
+            </div>
+         `;
+         html += tpHeader({ display, header, additional_attributes, ratings_type, doubles });
 
          m.forEach((p, i) => rowHTML(p, i, 'M'));
          if (m.length) html += `<div class='signin-row'></div>`;
@@ -2197,11 +2320,15 @@ export const displayGen = function() {
       container.players.element.innerHTML = html;
       container.players.element.style.display = 'flex';
 
+      let total_players = players.length;
+      let player_count = document.querySelector('.player_count');
+      if (player_count) player_count.innerText = total_players.toString();
+
       return display_order;
    };
 
    // TODO: make additional rows configurable; CROPIN should be configuration option
-   function tpHeader({ display, additional_attributes, ratings_type, doubles }) {
+   function tpHeader({ display, header, additional_attributes, ratings_type, doubles }) {
       let additional = !additional_attributes ? '' :
          additional_attributes.map(attr => `<div class='registered_attr flexcenter'><b>${attr.header}</b></div>`);
       let years = display.years ? `<div class='registered_attr flexcenter'><b>${lang.tr('yr')}</b></div>` : '';
@@ -2211,13 +2338,24 @@ export const displayGen = function() {
       let rating = ratings_type ? `<div class='registered_attr flexcenter contextAction rankbyrating' contextaction='rankByRating'><b>${lang.tr('rtg')}</b></div>` : '';
       let ranking = doubles ? lang.tr('dbl') : lang.tr('prnk');
       let html = `
-         <div class='signin-row flexrow signin-header'>
-            <div class='registered_count flexjustifystart'><b>#</b></div>
-            <div class='registered_player flexjustifystart contextAction tournamentPlayers' contextaction='tournamentPlayers'><b>${lang.tr('ply')}</b></div>
-            ${additional}${rating}
-            <div class='registered_attr flexcenter contextAction playerRanking' contextaction='playerRanking'><b>${ranking}</b></div>
-            ${years} ${clubs} ${countries} ${schools}
-            <div class='registered_attr flexcenter'><b>${lang.tr('gdr')}</b></div>
+         <div class="box players_header" style="width: 100%">
+         ${header}
+         <div class="tile is-ancestor is-marginless is-paddingless signin-row" style="width: 100%;">
+           <div class="tile is-parent is-paddingless">
+             <div class="tile is-child player_section player_header">
+                  <div class='registered_count flexcenter'><b>#</b></div>
+                  <div class='registered_player flexjustifystart contextAction tournamentPlayers' contextaction='tournamentPlayers'><b>${lang.tr('ply')}</b></div>
+             </div>
+           </div>
+           <div class="tile is-parent is-paddingless">
+             <div class="tile is-child player_section player_details">
+               ${additional}${rating}
+               <div class='registered_attr flexcenter contextAction playerRanking' contextaction='playerRanking'><b>${ranking}</b></div>
+               ${years} ${clubs} ${countries} ${schools}
+               <div class='registered_attr flexcenter'><b>${lang.tr('gdr')}</b></div>
+             </div>
+           </div>
+         </div>
          </div>
       `;
 
@@ -2232,11 +2370,12 @@ export const displayGen = function() {
       let birth = p.birth ? new Date(p.birth).getFullYear() : '';
       let birthyear = !isNaN(birth) ? birth : '----';
 
+      let wd = (p) => (p.withdrawn == true || p.withdrawn == 'Y') && !p.signed_in;
       let font_color = !gender ? 'black' : gender == 'W' ? '#840076' : '#00368c'; 
       let medical_icon = !playerFx.medical(p, tournament) ? `&nbsp;<div class='medical_icon'></div>` : '';
       let penalty_icon = p.penalties && p.penalties.length ? `&nbsp;<div class='penalty_icon'></div>` : '';
       let font_weight = penalty_icon ? 'bold' : 'normal';
-      let style = `style='color: ${font_color}; font-weight: ${font_weight}'`;
+      let style = `style='color: ${font_color}; font-weight: ${font_weight} width: 100$;'`;
 
       let ranking = util.numeric(doubles ? p.category_dbls : p.category_ranking) || '';
       if (!doubles && p.int && p.int > 0) ranking = `{${ranking}}`;
@@ -2262,35 +2401,41 @@ export const displayGen = function() {
          (p.ratings[ratings_type] && p.ratings[ratings_type].singles && p.ratings[ratings_type].singles.value) || '';
       let player_rating = rating_value && !isNaN(rating_value) && parseFloat(rating_value) > 0 ? parseFloat(rating_value).toFixed(2) : '';
       if (player_rating == 0) player_rating = '';
-
-      /*
-      let player_rating = !ratings_type || !p.ratings ? '' :
-         (p.ratings[ratings_type] && p.ratings[ratings_type].singles && p.ratings[ratings_type].singles.value) || '';
-      */
+      let acceptance = `acceptance_${wd(p) ? 'withdrawn' : (p.acceptance || '')}`;
 
       let html = `
-         <div puid='${p.puid}' index='${i}' class='player_click signin-row flexrow detail' ${style}>
-            <div class='registered_count flexjustifystart'>${i || ''}</div>
-            <div class='registered_player flexjustifystart'>${p.full_name}${penalty_icon}${medical_icon}</div>
-            ${additional}
-            <div class='registered_attr rankrow' style='display: ${ratings_type ? "flex" : "none"}'>
-               <span class='flexcenter ratingvalue'>${player_rating}</span>
-               <span class='flexjustifyend ratingentry' style='display: none;'>
-                  <input ratingentry='${p.id}' order='${j}' class='manualrating' value='${player_rating}'>
-               </span>
-            </div>
-            <div class='registered_attr rankrow'>
-               <span class='flexcenter rankvalue'>${ranking}</span>
-               <span class='flexjustifyend rankentry' style='display: none;'>
-                  <input rankentry='${p.id}' order='${j}' class='manualrank' value='${ranking}'>
-               </span>
-               <span class='flexjustifyend ranksub' style='display: none;'>
-                  <input rankentry='${p.id}' puid='${p.puid}' order='${j}' class='subrank' value='${p.subrank || ''}' style='opacity: 0;'>
-               </span>
-            </div>
-            ${years} ${clubs} ${countries} ${schools}
-            <div class='registered_attr flexcenter'>${p.sex || 'X'}</div>
-         </div>`;
+         <div puid='${p.puid}' index='${i}' class="tile is-ancestor is-marginless signin-row player_click" ${style}>
+           <div class="tile is-parent is-paddingless">
+             <div class="tile is-child player_section player_header">
+               <div class='${acceptance} registered_count flexcenter'>${i || ''}</div>
+               <div class='registered_player flexjustifystart'>${p.full_name}${penalty_icon}${medical_icon}</div>
+             </div>
+           </div>
+           <div class="tile is-parent is-paddingless">
+             <div class="tile is-child player_section player_details">
+               ${additional}
+               <div class='registered_attr rankrow' style='display: ${ratings_type ? "flex" : "none"}'>
+                  <span class='flexcenter ratingvalue'>${player_rating}</span>
+                  <span class='flexjustifyend ratingentry' style='display: none;'>
+                     <input ratingentry='${p.id}' order='${j}' class='manualrating' value='${player_rating}'>
+                  </span>
+               </div>
+               <div class='registered_attr rankrow'>
+                  <span class='flexcenter rankvalue'>${ranking}</span>
+                  <span class='flexjustifyend rankentry' style='display: none;'>
+                     <input rankentry='${p.id}' order='${j}' class='manualrank' value='${ranking}'>
+                  </span>
+                  <span class='flexjustifyend ranksub' style='display: none;'>
+                     <input rankentry='${p.id}' puid='${p.puid}' order='${j}' class='subrank' value='${p.subrank || ''}' style='opacity: 0;'>
+                  </span>
+               </div>
+               ${years} ${clubs} ${countries} ${schools}
+               <div class='registered_attr flexcenter'>${p.sex || 'X'}</div>
+             </div>
+           </div>
+         </div>
+      `;
+
       return html;
    }
 
@@ -2361,84 +2506,6 @@ export const displayGen = function() {
 
       gen.showEdit(html, false);
       return displayFx.idObj(ids);
-   };
-
-   gen.cloudFetchMenu = () => {
-      let ids = {
-         tournament: displayFx.uuid(),
-         events: displayFx.uuid()
-      };
-
-      let html = `
-         <div class='flexcol' style='width: 100%'>
-            <div id='${ids.tournament}' class='menuitem menuseparator'>${lang.tr('tournaments.fetchtournament')}</div>
-            <div id='${ids.events}' class='menuitem'>${lang.tr('tournaments.mergeevents')}</div>
-         </div>
-      `;
-      document.getElementById('processing').style.display = "flex";
-      setProcessingText({ html });
-      gen.closeonclick = true;
-      gen.clickaway = true;
-      displayGen.escapeModal();
-      return displayFx.idObj(ids);
-   };
-
-   gen.newTournamentMenu = () => {
-      let ids = {
-         create: displayFx.uuid(),
-         fetchbyid: displayFx.uuid(),
-         import: displayFx.uuid()
-      };
-
-      let html = `
-         <div class='flexcol' style='width: 100%'>
-            <div id='${ids.create}' class='menuitem menuseparator'>${lang.tr('tournaments.new')}</div>
-            <div id='${ids.fetchbyid}' class='menuitem menuseparator'>${lang.tr('tournaments.loadbyid')}</div>
-            <div id='${ids.import}' class='menuitem'>${lang.tr('tournaments.import')}</div>
-         </div>
-      `;
-      document.getElementById('processing').style.display = "flex";
-      setProcessingText({ html });
-      displayGen.escapeModal();
-      return displayFx.idObj(ids);
-   };
-
-   gen.mainMenu = () => {
-      let ids = {
-         version: displayFx.uuid(),
-         messages: displayFx.uuid(),
-         release: displayFx.uuid(),
-         support: displayFx.uuid(),
-         tour: displayFx.uuid()
-      };
-
-      let html = `
-         <div class='flexcol' style='width: 100%'>
-            <div id='${ids.version}' class='menuitem menuseparator'>${lang.tr('version')}</div>
-            <div id='${ids.messages}' class='menuitem menuseparator' style='display: none'>${lang.tr('messages')}</div>
-            <div id='${ids.tour}' class='menuitem menuseparator'>TMX ${lang.tr('tour')}</div>
-            <div id='${ids.release}' class='menuitem menuseparator'>${lang.tr('releasenotes')}</div>
-            <div id='${ids.support}' class='menuitem'>${lang.tr('support')}</div>
-         </div>
-      `;
-      document.getElementById('processing').style.display = "flex";
-      setProcessingText({ html });
-      gen.closeonclick = true;
-      displayGen.escapeModal();
-      return displayFx.idObj(ids);
-   };
-
-   gen.support = (evt) => {
-      evt.stopPropagation();
-      displayGen.closeModal();
-      let message =`
-         <h2 class='tmx-title' style='margin: 1em;'>Support</h2>
-         <div class='releasenotes'>
-            <h3 class='flexjustifystart'>Email</h3>
-            <div class='flexjustifystart'>Please send all feedback and support requests to&nbsp;<b>support@courthive.com</b></div>
-         <div>
-      `;
-      gen.showModal(message);
    };
 
    gen.legacyTournamentTab = (elem, tournament) => {
@@ -2512,6 +2579,7 @@ export const displayGen = function() {
          social_media: displayFx.uuid(),
          stat_charts: displayFx.uuid(),
          edit: displayFx.uuid(),
+         x: displayFx.uuid(),
          finish: displayFx.uuid(),
          draws: displayFx.uuid(),
          points: displayFx.uuid(),
@@ -2623,27 +2691,31 @@ export const displayGen = function() {
          schedule_details: displayFx.uuid()
       };
 
+      let local_download = env.device.isIDevice || env.device.isMobile || env.device.isIpad ? '' : `
+         <div id='${ids.localdownload}' class='${hoverHelp('info')}' label='${lang.tr("phrases.export")}' style='display: none;'>
+            <div id='${ids.localdownload_state}' class='download action_icon'></div>
+         </div>
+      `;
+
       let tournament_tab = `
-         <div id='${ids.tournament}' class='flexcol flexcenter' style='min-height: 10em;'>
+         <div id='${ids.tournament}' class='section flexcol flexcenter' style='min-height: 10em; padding: 1em;'>
             <div class='tournament_options'>
                <div class='options_left'>
-                  <div id='${ids.penalty_report}' class='${gen.info}' label='${lang.tr("ptz")}' style='display: none'> <div class='penalty action_icon'></div> </div>
-                  <div id='${ids.edit_notes}' class='${gen.info}' label='${lang.tr("notes")}' style='display: none'> <div class='tnotes action_icon'></div> </div>
-                  <div id='${ids.register}' class='${gen.info}' label='${lang.tr("tournaments.registration")}' style='display: none; margin-left: .5em;'>
+                  <div id='${ids.penalty_report}' class='${hoverHelp('info')}' label='${lang.tr("ptz")}' style='display: none'> <div class='penalty action_icon'></div> </div>
+                  <div id='${ids.edit_notes}' class='${hoverHelp('info')}' label='${lang.tr("notes")}' style='display: none'> <div class='tnotes action_icon'></div> </div>
+                  <div id='${ids.register}' class='${hoverHelp('info')}' label='${lang.tr("tournaments.registration")}' style='display: none; margin-left: .5em;'>
                      <div class='register action_icon'></div>
                   </div>
-                  <div id='${ids.social}' class='${gen.info}' label='${lang.tr("social")}' style='display: none; margin-left: .5em;'> <div class='social action_icon'></div> </div>
+                  <div id='${ids.social}' class='${hoverHelp('info')}' label='${lang.tr("social")}' style='display: none; margin-left: .5em;'> <div class='social action_icon'></div> </div>
                </div>
                <div class='options_center'>
                </div>
                <div class='options_right'>
-                  <div id='${ids.push2cloud}' class='${gen.info}' label='${lang.tr("phrases.send")}' style='display: none;'>
+                  <div id='${ids.push2cloud}' class='${hoverHelp('info')}' label='${lang.tr("phrases.send")}' style='display: none;'>
                      <div id='${ids.push2cloud_state}' class='push2cloud action_icon'></div>
                   </div>
-                  <div id='${ids.localdownload}' class='${gen.info}' label='${lang.tr("phrases.export")}' style='display: none;'>
-                     <div id='${ids.localdownload_state}' class='download action_icon'></div>
-                  </div>
-                  <div id='${ids.pubTrnyInfo}' class='${gen.info}' label='${lang.tr("draws.publish")}' style='display: none'>
+                  ${local_download}
+                  <div id='${ids.pubTrnyInfo}' class='${hoverHelp('info')}' label='${lang.tr("draws.publish")}' style='display: none'>
                      <div id='${ids.pubStateTrnyInfo}' style='margin-left: 1em;' class='unpublished action_icon'></div>
                   </div>
                </div>
@@ -2693,8 +2765,8 @@ export const displayGen = function() {
                         </div>
                      </div>
                      <div class='flexrow' style='margin-left: 1em;'>
-                        <div id='${ids.googlemap}' class='googlemaps action_icon_large' ></div>
-                        <div id='${ids.geoloc}' class='geolocation action_icon_large' ></div>
+                        <div id='${ids.googlemap}' class='googlemaps action_icon_large googleTournamentLocation' ></div>
+                        <div id='${ids.geoloc}' class='geolocation action_icon_large currentTournamentLocation' ></div>
                      </div>
                   </div>
                </div>
@@ -2712,14 +2784,14 @@ export const displayGen = function() {
             </div>
 
          </div>
-         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+         <div class='section flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
             <div class='tourlink icon_margin' context='tournament_tab'><div class='tiny_tour_icon'></div></div>
             <div class='doclink' url='tmx_tournament_overview'><div class='tiny_docs_icon'></div></div>
          </div>
       `;
 
       let points_tab = `
-         <div class='tab_section points_tab'>
+         <div class='section tab_section points_tab'>
             <div class='filter_row'>
                <div class='category_filter'>
                   <div class='calendar_date' style='font-weight: bold'>
@@ -2746,7 +2818,7 @@ export const displayGen = function() {
                <div id='${ids.points}' class='player_points'></div>
             </div>
          </div>
-         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+         <div class='section flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
             <div class='tourlink icon_margin' context='points_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
          </div>
       `;
@@ -2756,13 +2828,22 @@ export const displayGen = function() {
       let done = ` <button type="button" class='btn done' style='display: none'>${lang.tr('actions.done')}</button> `;
       let cancel = ` <button type="button" class='btn cancel' style='display: none'>${lang.tr('actions.cancel')}</button> `;
       let events_tab = `
-         <div class='events tab_section'>
+         <div class='section tab_section events' style='padding: 1em;'>
             <div class='event_list'>
-               <div id='${ids.events_actions}' class='events_actions flexrow' style="display: none;"> ${add} </div>
+               <div id='${ids.events_actions}' class='events_actions flexrow' style="display: none;">
+                  <div class='options_left' style='margin-bottom: .5em;'>
+                     ${add}
+                  </div>
+                  <div class='options_right' style='flex-grow: 1; margin-left: 5em; margin-bottom: .5em;'>
+                     <div class='hintslink icon_margin' context='events_tab'><div class='dotdot hints_icon' style='display: none'></div></div>
+                     <div class='tourlink icon_margin' context='events_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
+                     <div class='doclink' url='tmx_events_management'><div class='tiny_docs_icon' style='display: none'></div></div>
+                  </div>
+               </div>
                <div id='${ids.events}' class='event_rows'> </div>
             </div>
             <div id='${ids.event_details}' class='event_details' style='display: none'>
-               <div class='detail_header'>
+               <div class='box detail_header'>
                   <div id='${ids.event_display_name}' class='event_name flexcenter'>${lang.tr('events.newevent')}</div>
                   <input id='${ids.event_edit_name}' style='display: none; width: 50%; height: 1.5em; font-size: larger;'> 
                   <div class='flexrow'>
@@ -2772,41 +2853,44 @@ export const displayGen = function() {
                   </div>
                   <div>${del}${done}</div>
                </div>
+
                <div class='detail_body'>
-                  <div class='detail_config'>
-                     <div id='${ids.detail_fields}' class='detail_fields'></div>
-                     <div id='${ids.draw_config}' class='detail_column'></div>
-                  </div>
-                  <div class='detail_selections'>
-                     <div id='${ids.detail_opponents}' class='detail_opponents'> </div>
-                  </div>
+                     <div class="tile is-ancestor" style="width: 100%;">
+                       <div class="tile is-parent is-4">
+                         <div class="box is-paddingless tile is-child">
+                           <div id='${ids.detail_fields}'></div>
+                           <div id='${ids.draw_config}'></div>
+                        </div>
+                       </div>
+                       <div class="tile is-parent">
+                         <div class="tile is-child">
+                           <div id='${ids.detail_opponents}' class='detail_opponents'> </div>
+                         </div>
+                       </div>
+                     </div>
                </div>
+
             </div>
-         </div>
-         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
-            <div class='hintslink icon_margin' context='events_tab'><div class='dotdot hints_icon' style='display: none'></div></div>
-            <div class='tourlink icon_margin' context='events_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
-            <div class='doclink' url='tmx_events_management'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
 
       let add_team = ` <button id='${ids.add_team}' type="button" class='btn add'>${lang.tr('actions.add_team')}</button> `;
       let del_team = ` <button type="button" class='btn del' style='display: none'>${lang.tr('actions.delete_team')}</button> `;
       let teams_tab = `
-         <div class='teams_tab'>
+         <div class='section tab_section teams_tab'>
             <div class='team_list'>
                <div id='${ids.teams_actions}' class='teams_actions flexrow' style="display: none;"> ${add_team} </div>
                <div id='${ids.teams}' class='team_rows'></div>
             </div>
             <div id='${ids.team_details}' class='team_details' style='display: none'>
-               <div class='detail_header'>
+               <div class='box detail_header'>
                   <div id='${ids.team_display_name}' class='team_display_name flexcenter'>${lang.tr('teams.newteam')}</div>
                   <input id='${ids.team_edit_name}' style='display: none; width: 50%; height: 1.5em; font-size: larger;'> 
                   <div class='flexrow'>
                      <div class='${classes.team_rankings} info' label='${lang.tr("teams.rankings")}'>
                         <div class='action_icon ranking_order ranking_order_inactive'></div>
                      </div>
-                     <div class='${classes.roster_link} ${gen.info}' label='${lang.tr("signin.reglink")}' style='margin-left: .5em;'>
+                     <div class='${classes.roster_link} ${hoverHelp('info')}' label='${lang.tr("signin.reglink")}' style='margin-left: .5em;'>
                         <div class='action_icon roster_link link_inactive'></div>
                      </div>
                      <div class='${classes.refresh_roster}' label='${lang.tr("refresh.general")}'>
@@ -2822,7 +2906,7 @@ export const displayGen = function() {
                </div>
             </div>
          </div>
-         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+         <div class='section flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
             <div class='tourlink icon_margin' context='teams_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
             <div class='doclink' url='tmx_tournament_teams'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
@@ -2833,14 +2917,22 @@ export const displayGen = function() {
       let save_location = ` <button type="button" class='btn save' style='display: none'>${lang.tr('actions.save_location')}</button> `;
 
       let courts_tab = `
-         <div class='events courts_tab'>
+         <div class='section tab_section events courts_tab' style='padding: 1em;'>
             <div class='event_list'>
-               <div id='${ids.locations_actions}' class='events_actions flexrow' style="display: none;"> ${add_location} </div>
+               <div id='${ids.locations_actions}' class='events_actions flexrow' style="display: none;">
+                  <div class='options_left' style='margin-bottom: .5em;'>
+                     ${add_location}
+                  </div>
+                  <div class='options_right' style='flex-grow: 1; margin-left: 5em; margin-bottom: .5em;'>
+                     <div class='tourlink icon_margin' context='courts_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
+                     <div class='doclink' url='tmx_tournament_courts'><div class='tiny_docs_icon' style='display: none'></div></div>
+                  </div>
+               </div>
                <div id='${ids.locations}' class='event_rows' style='display: none'> </div>
             </div>
             <div id='${ids.location_details}' class='event_details' style='display: none'>
 
-               <div class='detail_header'>
+               <div class='box detail_header'>
                   <div class='event_name flexcenter'>${lang.tr('locations.newlocation')}</div>
                   <div class='flexrow location_detail_actions'>
                   </div>
@@ -2853,50 +2945,46 @@ export const displayGen = function() {
                </div>
             </div>
          </div>
-         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
-            <div class='tourlink icon_margin' context='courts_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
-            <div class='doclink' url='tmx_tournament_courts'><div class='tiny_docs_icon' style='display: none'></div></div>
-         </div>
       `;
 
       let schedule_tab = `
          <div id='${ids.schedule_tab}' class='schedule_tab'>
-            <div class='schedule_options'>
-               <div class='options_left'>
+            <div class='schedule_options' style='flex-wrap: wrap-reverse; margin-left: 1em; margin-right: 1em; margin-top: .5em; margin-bottom: 0;'>
+               <div class='options_left' style='margin-bottom: .5em;'>
                   <div id='${ids.schedule_day}'></div>
                </div>
-               <div class='options_right'>
-                  <div class='${classes.schedule_matches} ${gen.infoleft}' label='${lang.tr("phrases.schedulematches")}' style='display: none;'>
+               <div class='options_right' style='flex-grow: 1; margin-left: 5em; margin-bottom: .5em;'>
+                  <div class='${classes.schedule_matches} ${hoverHelp('info')}' label='${lang.tr("phrases.schedulematches")}' style='display: none;'>
                      <div class='matches_header_inactive action_icon'></div>
                   </div>
-                  <div class='${classes.schedule_details} ${gen.info}' label='${lang.tr("schedule.timing")}' style='display: none; margin-left: 1em;'>
+                  <div class='${classes.schedule_details} ${hoverHelp('info')}' label='${lang.tr("schedule.timing")}' style='display: none; margin-left: 1em;'>
                      <div class='time_header_inactive action_icon'></div>
                   </div>
-                  <div class='${classes.print_schedule} ${gen.info}' label='${lang.tr("print.schedule")}'style='display: none;'>
+                  <div class='${classes.print_schedule} ${hoverHelp('info')}' label='${lang.tr("print.schedule")}'style='display: none;'>
                      <div class='print action_icon'></div>
                   </div>
-                  <div class='${classes.publish_schedule} ${gen.info}' label='${lang.tr("draws.publish")}' style='display: none;'>
+                  <div class='${classes.publish_schedule} ${hoverHelp('info')}' label='${lang.tr("draws.publish")}' style='display: none;'>
                      <div style='margin-left: 1em;' class='schedule_publish_state unpublished action_icon'></div>
                   </div>
                </div>
             </div>
+            <div class='section' style='padding-top: 0;'>
             <div id='${ids.scheduling}' class='dropremove flexcenter flexcol schedule_unscheduled' style='display: none' ondragover="event.preventDefault();">
-               <div class='schedule_options' style='width: 100%'>
-                  <div class='options_left'>
-                     <div id='${ids.event_filter}'></div>
-                     <div id='${ids.round_filter}'></div>
-                     <div id='${ids.dual_filter}'></div>
-                     <div id='${ids.order_filter}'></div>
-                  </div>
-                  <div class='options_center'>
-                     <div id='${ids.autoschedule}' class='autofill'>${lang.tr('schedule.autoschedule')}</div>
-                     <div id='${ids.schedulelimit}' class='autofill' style='margin-left: 1em; display: none'>${lang.tr('schedule.limit')}</div>
-                  </div>
-                  <div class='options_right'>
-                     <div id='${ids.clearschedule}' class='autofill'>${lang.tr('schedule.clearschedule')}</div>
-                  </div>
+
+               <div class='flexrow' style='flex-wrap: wrap; width: 100%;'>
+                     <div class='options_left' style='margin-bottom: .5em;'>
+                        <div id='${ids.event_filter}'></div>
+                        <div id='${ids.round_filter}'></div>
+                        <div id='${ids.dual_filter}'></div>
+                        <div id='${ids.order_filter}'></div>
+                     </div>
+                     <div class='options_right' style='flex-grow: 1; margin-bottom: .5em;'>
+                        <div id='${ids.autoschedule}' class='button is-rounded is-success is-outlined'>${lang.tr('schedule.autoschedule')}</div>
+                        <div id='${ids.clearschedule}' class='button is-rounded is-danger is-outlined'>${lang.tr('schedule.clearschedule')}</div>
+                     </div>
                </div>
                <div id='${ids.unscheduled}' class='unscheduled_matches'></div>
+
             </div>
             <div class='schedule_options' style='display: none'>
                <div class='options_left'>
@@ -2904,18 +2992,20 @@ export const displayGen = function() {
                </div>
             </div>
             <div id='${ids.schedule}' class='schedule_sheet'> </div>
+            </div>
          </div>
-         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+
+         <div class='section flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
             <div class='tourlink icon_margin' context='schedule_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
             <div class='doclink' url='tmx_tournament_schedule'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
 
       let matches_tab = `
-         <div class='tab_section matches_tab'>
+         <div class='section tab_section matches_tab' style='padding: 1em;'>
             <div class='filter_row'>
                <div class='options_left'>
-                  <div id='${ids.stats}' class='${gen.info}' label='${lang.tr("stats")}' style='display: none; margin-left: .5em;'> <div class='stats action_icon'></div> </div>
+                  <div id='${ids.stats}' class='${hoverHelp('info')}' label='${lang.tr("stats")}' style='display: none; margin-left: .5em;'> <div class='stats action_icon'></div> </div>
                </div>
                <div class='filters'>
                   <div class='${classes.filter_m}'><div class='filter_m action_icon filter_m_selected'></div></div>
@@ -2929,29 +3019,29 @@ export const displayGen = function() {
             <div id='${ids.stat_charts}' class='stat_charts' style='display: none'></div>
             <div id='${ids.matches}' class='tournament_match flexcol flexcenter'> </div>
          </div>
-         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+         <div class='section flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
             <div class='tourlink icon_margin' context='matches_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
             <div class='doclink' url='tmx_tournament_matches'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
 
       let draws_tab = `
-         <div class='tab_section draws'>
-            <div class='draw_options'>
+         <div class='section tab_section draws' style='padding: 1em;'>
+            <div class='draw_options' style='flex-wrap: wrap-reverse; margin-left: 1em; margin-right: 1em; margin-top: .5em; margin-bottom: 0;'>
                <div class='options_left'>
                   <div class='select_draw' id='${ids.select_draw}'></div>
                   <div class='select_draw' id='${ids.compass_direction}'></div>
                </div>
                <div class='options_right'>
-                  <div id='${ids.compass}' class='${gen.infoleft}' label='${lang.tr("draws.compass")}'style='display: none'>
+                  <div id='${ids.compass}' class='${hoverHelp('infoleft')}' label='${lang.tr("draws.compass")}'style='display: none'>
                      <div class='compass action_icon' style='margin-right: 1em;'></div>
                   </div>
-                  <div id='${ids.recycle}' class='${gen.infoleft}' label='${lang.tr("draws.clear")}'style='display: none'><div class='cleardraw action_icon'></div></div>
-                  <div id='${ids.player_reps}' class='${gen.infoleft}' label='${lang.tr("draws.playerreps")}' style='display: none'>
+                  <div id='${ids.recycle}' class='${hoverHelp('infoleft')}' label='${lang.tr("draws.clear")}'style='display: none'><div class='cleardraw action_icon'></div></div>
+                  <div id='${ids.player_reps}' class='${hoverHelp('infoleft')}' label='${lang.tr("draws.playerreps")}' style='display: none'>
                      <div id='${ids.player_reps_state}' style='margin-left: 1em;' class='reps_incomplete action_icon'></div>
                   </div>
                   <div class='${classes.print_draw}' style='display: none'><div class='print action_icon'></div></div>
-                  <div id='${ids.publish_draw}' class='${gen.info}' label='${lang.tr("draws.publish")}' style='display: none'>
+                  <div id='${ids.publish_draw}' class='${hoverHelp('info')}' label='${lang.tr("draws.publish")}' style='display: none'>
                      <div id='${ids.publish_state}' style='margin-left: 1em;' class='unpublished action_icon'></div>
                   </div>
                </div>
@@ -2970,49 +3060,57 @@ export const displayGen = function() {
                </div>
             </div>
          </div>
-         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+         <div class='section flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
             <div class='tourlink icon_margin' context='draws_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
             <div class='doclink' url='tmx_tournament_draws'><div class='tiny_docs_icon' style='display: none'></div></div>
          </div>
       `;
 
-      let modify_info = tournament.players && tournament.players.length ? `${gen.infoleft}` : '';
+      let modify_info = tournament.players && tournament.players.length ? `${hoverHelp('infoleft')}` : '';
       let players_tab = `
          <div class='tab_section players_tab'>
-            <div class='filter_row'>
-               <div class='category_filter'>
-                  <div class='flexcenter entry_field' id='${ids.category_filter}'></div>
+            <div class='level flexrow' style='flex-wrap: wrap; margin-top: 1rem; margin-bottom: 0; margin-left: 1em; margin-right: 1em;'>
+
+               <div class='actionrow'>
+                  <div><div class='action_icon search_players_black'></div></div>
+                  <div class='player_count flexcenter'>0</div>
+                  <div class='entry_field' id='${ids.category_filter}'></div>
                   <div class='${classes.ranking_order} ${modify_info}' style='margin-left: 1em;' label='${lang.tr("signin.modifyrankings")}'>
                      <div class='action_icon ranking_order ranking_order_inactive'></div>
                   </div>
                </div>
-               <div class='flexrow'>
-                  <div class='${classes.reg_link} ${gen.info}' label='${lang.tr("signin.reglink")}' style='display: none'>
+
+            <div class='flexrow flexjustifyend' style='flex-grow: 1'>
+               <div class='actionrow'>
+                  <div class='${classes.reg_link} ${hoverHelp('info')}' label='${lang.tr("signin.reglink")}' style='display: none'>
                      <div class='action_icon reg_link link_inactive'></div>
                   </div>
-                  <div class='${classes.refresh_registrations}' label='${lang.tr("refresh.general")}'>
+                  <div class='${classes.refresh_registrations} ${hoverHelp('info')}' label='${lang.tr("refresh.general")}'>
                      <div class='action_icon refresh_registrations refresh_icon'></div>
-                  </div>
-               </div>
-               <div class='filters'>
-                  <div class='${classes.filter_m}'><div class='filter_m action_icon filter_m_selected'></div></div>
-                  <div class='${classes.filter_w}'><div class='filter_w action_icon filter_w_selected'></div></div>
-
-                  <div class=''><div class='action_icon'></div></div>
-
-                  <div class='${classes.print_sign_in} ${gen.infoleft}' label='${lang.tr("print.signin")}' style='margin-right: 1em; display: none;'>
-                     <div class='print action_icon'></div>
-                  </div>
-                  <div class='${classes.publish_players} ${gen.info}' label='${lang.tr("draws.publish")}' style='display: none;'>
-                     <div class='schedule_publish_state unpublished action_icon'></div>
                   </div>
                </div>
             </div>
 
-            <div id='${ids.players}' class='registered_players flexcol flexcenter'> </div>
+            <div class='flexrow flexjustifyend' style='flex-grow: 1'>
+               <div class='actionrow'>
+                  <div class='${classes.filter_m}'><div class='filter_m action_icon filter_m_selected'></div></div>
+                  <div class='${classes.filter_w}'><div class='filter_w action_icon filter_w_selected'></div></div>
+                  <div class='${classes.print_sign_in} ${hoverHelp('infoleft')}' label='${lang.tr("print.signin")}' style='margin-right: 1em; display: none;'>
+                     <div class='print action_icon'></div>
+                  </div>
+                  <div class='${classes.publish_players} ${hoverHelp('info')}' label='${lang.tr("draws.publish")}' style='display: none;'>
+                     <div class='schedule_publish_state unpublished action_icon'></div>
+                  </div>
+                  </div>
+               </div>
+            </div>
+
+               <div class='section' style='padding-top: 1em;'>
+                  <div id='${ids.players}' class='registered_players flexcol flexcenter'> </div>
+               </div>
 
          </div>
-         <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
+         <div class='section flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
             <div class='hintslink icon_margin' context='players_tab'><div class='dotdot hints_icon' style='display: none'></div></div>
             <div class='tourlink icon_margin' context='players_tab'><div class='tiny_tour_icon' style='display: none'></div></div>
             <div class='doclink' url='tmx_tournament_players'><div class='tiny_docs_icon' style='display: none'></div></div>
@@ -3030,21 +3128,21 @@ export const displayGen = function() {
          { ref: 'matches',    tab: lang.tr('mts'), content: matches_tab, id: `MT${ids.container}`, display: 'none' },
          { ref: 'points',     tab: lang.tr('pts'), content: points_tab, id: `PT${ids.container}`, display: 'none' }
       ];
-      let tabs = jsTabs.generate({ tabs: tabdata });
+      let tabs = jsTabs.generate({ tabs: tabdata, shadow: false });
       let tab_refs = Object.assign({}, ...tabdata.map((t, i)=>({[t.ref]: i})));
       let authorize_button = `
-         <div id='${ids.authorize}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.key")}' style='display: none'>
-            <div class='action_icon_1_5 keys_black'></div>
+         <div id='${ids.authorize}' class='link ${hoverHelp('infoleft')} authorizeActions' style='display: none; margin-right: .5em;'>
+            <div class='action_icon_1_5 keys_black authorizeActions'></div>
          </div>
       `;
       let cloudfetch_button = `
-         <div id='${ids.cloudfetch}' class='contextAction link ${gen.infoleft}' label='${lang.tr("tournaments.fetch")}' style='display: none;' contextaction='requestTournamentEvents'>
+         <div id='${ids.cloudfetch}' class='contextAction link ${hoverHelp('infoleft')}' label='${lang.tr("tournaments.fetch")}' style='display: none;' contextaction='requestTournamentEvents'>
             <img src='./icons/cloudfetch.png' class='club_link'>
          </div>
       `;
       let pubLink_button = `
-         <div id='${ids.pub_link}' class='${gen.info}' label='${lang.tr("phrases.weblink")}' style='margin-left: .2em; display: none;'>
-            <img src='./icons/link.png' class='club_link'>
+         <div id='${ids.pub_link}' class='${hoverHelp('info')} tournamentLinks' label='${lang.tr("phrases.weblink")}' style='margin-left: .2em; display: none;'>
+            <img src='./icons/link.png' class='club_link tournamentLinks'>
           </div>
       `;
       let delegation = env.delegation ? '' : 'visibility: hidden';
@@ -3053,27 +3151,37 @@ export const displayGen = function() {
             <img src='./icons/mobile.png' style='height: 1.5em;'>
           </div>
       `;
-      let edit_button = `
-         <div id='${ids.edit}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.edit")}' style='display: none'>
-            <img src='./icons/edit.png' class='club_link'>
-         </div>
-         `;
+      let edit_button = ` <a id='${ids.edit}' class="button is-success" style='display: none'>${lang.tr('tournaments.edit')}</a> `;
+      let x_button = ` <a id='${ids.x}' class="button is-danger is-outlined closeOldModal">${lang.tr('tournaments.close')}</a> `;
       let finish_button = `
-         <div id='${ids.finish}' class='link ${gen.infoleft}' label='${lang.tr("tournaments.done")}' style='display: none'>
+         <div id='${ids.finish}' class='link ${hoverHelp('infoleft')}' label='${lang.tr("tournaments.done")}' style='display: none'>
             <img src='./icons/finished.png' class='club_link'>
          </div>`;
+      let header = `
+         <div class="tile is-ancestor is-marginless" style="width: 100%; padding-left: 1em; padding-right: 1em;">
+           <div class="tile is-parent is-8 is-paddingless">
+             <div id='${ids.name}' class="tile is-child tmx-title" style="text-align: left;"> ${tournament.name} </div>
+           </div>
+           <div class="tile is-parent is-paddingless">
+             <div class="tile is-child">
+               <div class='flexrow flexcenter'>${authorize_button}${cloudfetch_button}${pubLink_button}${delegate_button}</div>
+             </div>
+           </div>
+           <div class="tile is-parent is-paddingless">
+             <div class="tile is-child">
+               <div class='flexrow flexjustifyend buttons'>${edit_button}${x_button}${finish_button}</div>
+             </div>
+           </div>
+         </div>
+      `;
       let html = `
          <div id='${ids.container}' class='tournament_container'>
-            <div class='tournament_info'> 
-               <div id='${ids.name}'><span class='tmx-title'>${tournament.name}</span></div>
-               <div class='flexrow'>${authorize_button}${cloudfetch_button}${pubLink_button}${delegate_button}</div>
-               ${edit_button}${finish_button}
-            </div>
+            ${header}
             ${tabs}
          </div>
       `;
 
-      let display_context = selectDisplay(html, ['identify', 'tournament']);
+      let display_context = gen.showModal(html, ['identify', 'tournament']);
 
       let id_obj = displayFx.idObj(ids);
       let displayTab = jsTabs.load({ el: id_obj.container.element, callback: tabCallback });
@@ -3430,7 +3538,7 @@ export const displayGen = function() {
       let key_div = element.querySelector('div');
       if (key_div) {
          let state = authorized ? 'green' : authorized == false ? 'blue' : 'black';
-         key_div.className = `action_icon_1_5 keys_${state}`;
+         key_div.className = `action_icon_1_5 keys_${state} authorizeActions`;
       }
    };
 
@@ -3465,17 +3573,17 @@ export const displayGen = function() {
 
    gen.pubStateTrnyInfo = (elem, value) => {
       let publish_state = value == undefined ? 'unpublished' : value == false ? 'publishedoutofdate' : 'publisheduptodate';
-      elem.className = `${publish_state} action_icon`;
+      if (elem) elem.className = `${publish_state} action_icon`;
    };
 
    gen.tournamentPublishState = (elem, value) => {
       let publish_state = value == undefined ? 'push2cloud' : value == false ? 'push2cloud_outofdate' : 'push2cloud_updated';
-      elem.className = `${publish_state} action_icon`;
+      if (elem) elem.className = `${publish_state} action_icon`;
    };
 
    gen.localSaveState = (elem, value) => {
       let save_state = value == undefined ? 'download' : value == false ? 'download_outofdate' : 'download_updated';
-      elem.className = `${save_state} action_icon`;
+      if (elem) elem.className = `${save_state} action_icon`;
    };
 
    gen.drawRepState = (elem, evt) => {
@@ -3494,11 +3602,19 @@ export const displayGen = function() {
    gen.locationList = (container, locations, highlight_listitem) => {
       let display = locations && locations.length;
       let html = !display ? '' : `
-         <div class='event_row events_header'>
-            <div class='cell location_abbr'>${lang.tr('locations.abbreviation')}</div>
-            <div class='cell location_name'>${lang.tr('locations.name')}</div>
-            <div class='cell location_address'>${lang.tr('locations.address')}</div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("locations.courts")}'><div class='event_icon surface_header'></div></div>
+         <div class="tile is-ancestor is-marginless eventlist_header" style="width: 100%; margin-bottom: .5em !important;">
+           <div class="tile is-parent is-paddingless">
+             <div class="tile is-child flexrow">
+                <div class='cell location_abbr'>${lang.tr('locations.abbreviation')}</div>
+                <div class='cell location_name'>${lang.tr('locations.name')}</div>
+                <div class='cell location_address'>${lang.tr('locations.address')}</div>
+             </div>
+           </div>
+           <div class="tile is-parent is-paddingless">
+               <div class="tile is-child flexjustifyend">
+                  <div class='cell event_data icon ${hoverHelp('info')} flexcenter' label='${lang.tr("locations.courts")}'><div class='event_icon surface_header'></div></div>
+               </div>
+           </div>
          </div>
       `;
       if (display) html += locations.map((l, i) => locationRow(l, i, highlight_listitem)).join('');
@@ -3510,11 +3626,19 @@ export const displayGen = function() {
       let highlight = highlight_listitem != undefined && highlight_listitem == i ? ' highlight_listitem' : '';
 
       let html = `
-         <div class='location event_row${highlight}' index='${i}'>
-            <div class='location_abbr'>${l.abbreviation || ''}</div>
-            <div class='location_name'>${l.name}</div>
-            <div class='location_address'>${l.address}</div>
-            <div class='event_data'>${l.courts || 0}</div>
+         <div class="tile is-ancestor is-marginless location${highlight}" index="${i}">
+           <div class="tile is-parent is-paddingless">
+             <div class="tile is-child flexrow displayLocationDetails" style='flex-wrap: wrap'>
+               <div class='location_abbr displayLocationDetails'>${l.abbreviation || ''}</div>
+               <div class='location_name displayLocationDetails'>${l.name}</div>
+               <div class='location_address displayLocationDetails'>${l.address}</div>
+             </div>
+           </div>
+           <div class="tile is-parent is-paddingless">
+               <div class="tile is-child flexjustifyend">
+                  <div class='location_court_count event_data'>${l.courts || 0}</div>
+               </div>
+           </div>
          </div>
       `;
 
@@ -3526,14 +3650,13 @@ export const displayGen = function() {
       let html = !display ? '' : `
          <div class='team_row team_header'>
             <div class='cell tname'>${lang.tr('teams.name')}</div>
-            <div class='cell team_data icon ${gen.info} flexcenter' label='${lang.tr("teams.members")}'><div class='event_icon opponents_header'></div></div>
-            <div class='cell team_data icon ${gen.info} flexcenter' label='${lang.tr("teams.matches")}'><div class='event_icon matches_header'></div></div>
-            <div class='cell team_data icon ${gen.info} flexcenter' label='${lang.tr("teams.winloss")}'><div class='event_icon winloss_header'></div></div>
+            <div class='cell team_data icon ${hoverHelp('info')} flexcenter' label='${lang.tr("teams.members")}'><div class='event_icon opponents_header'></div></div>
+            <div class='cell team_data icon ${hoverHelp('info')} flexcenter' label='${lang.tr("teams.matches")}'><div class='event_icon matches_header'></div></div>
+            <div class='cell team_data icon ${hoverHelp('info')} flexcenter' label='${lang.tr("teams.winloss")}'><div class='event_icon winloss_header'></div></div>
          </div>
       `;
       if (display) html += teams.map((team, i) => teamRow(team, i, highlighted)).join('');
       d3.select(container.teams.element).style('display', display ? 'flex' : 'none').html(html);
-      d3.select('#TM' + container.container.id).style('display', 'flex');
    };
 
    function teamRow(team, i, highlighted) {
@@ -3553,19 +3676,27 @@ export const displayGen = function() {
    gen.eventList = (container, events, highlight_euid) => {
       let display = events && events.length;
       let html = !display ? '' : `
-         <div class='event_row events_header'>
-            <div class='cell event_category icon ${gen.info} flexjustifystart' label='${lang.tr("cat")}'><div class='event_icon category_header'></div></div>
-            <div class='cell event_name'>${lang.tr('events.name')}</div>
-            <div class='cell event_draw_type'>${lang.tr('events.draw_type')}</div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.draw_size")}'><div class='event_icon drawsize_header'></div></div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.opponents")}'><div class='event_icon opponents_header'></div></div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("emts")}'><div class='event_icon matches_header'></div></div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("sch")}'><div class='event_icon time_header'></div></div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.rank")}'><div class='event_icon rank_header'></div></div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("inout")}'><div class='event_icon inout_header'></div></div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.surface")}'><div class='event_icon surface_header'></div></div>
-            <div class='cell event_data icon ${gen.info} flexcenter' label='${lang.tr("events.created")}'><div class='event_icon complete_header'></div></div>
-            <div class='cell event_data icon ${gen.info} flexcenter publish_status' label='${lang.tr("draws.published")}'><div class='event_icon published_header'></div></div>
+         <div class="tile is-ancestor is-marginless eventlist_header" style="width: 100%; border-bottom: 1px solid lightgray;">
+           <div class="tile is-parent is-paddingless">
+             <div class="tile is-child flexrow">
+               <div class='cell eventlist_category icon ${hoverHelp('info')} flexjustifystart' label='${lang.tr("cat")}'><div class='event_icon category_header'></div></div>
+               <div class='cell eventlist_header_field'>${lang.tr('events.name')}</div>
+               <div class='cell eventlist_header_field'>${lang.tr('events.draw_type')}</div>
+             </div>
+           </div>
+           <div class="tile is-parent is-paddingless">
+             <div class="tile is-child flexjustifyend">
+               <div class='cell event_data icon ${hoverHelp('info')} flexcenter' label='${lang.tr("events.draw_size")}'><div class='event_icon drawsize_header'></div></div>
+               <div class='cell event_data icon ${hoverHelp('info')} flexcenter' label='${lang.tr("events.opponents")}'><div class='event_icon opponents_header'></div></div>
+               <div class='cell event_data icon ${hoverHelp('info')} flexcenter' label='${lang.tr("emts")}'><div class='event_icon matches_header'></div></div>
+               <div class='cell event_data icon ${hoverHelp('info')} flexcenter' label='${lang.tr("sch")}'><div class='event_icon time_header'></div></div>
+               <div class='cell event_data icon ${hoverHelp('info')} flexcenter' label='${lang.tr("events.rank")}'><div class='event_icon rank_header'></div></div>
+               <div class='cell event_data icon ${hoverHelp('info')} flexcenter' label='${lang.tr("inout")}'><div class='event_icon inout_header'></div></div>
+               <div class='cell event_data icon ${hoverHelp('info')} flexcenter' label='${lang.tr("events.surface")}'><div class='event_icon surface_header'></div></div>
+               <div class='cell event_data icon ${hoverHelp('info')} flexcenter' label='${lang.tr("events.created")}'><div class='event_icon complete_header'></div></div>
+               <div class='cell event_data icon ${hoverHelp('info')} flexcenter publish_status' label='${lang.tr("draws.published")}'><div class='event_icon published_header'></div></div>
+             </div>
+           </div>
          </div>
       `;
       if (display) html += events.map((e, i) => eventRow(e, i, highlight_euid)).join('');
@@ -3597,19 +3728,69 @@ export const displayGen = function() {
       let created_label = created_labels[created_state];
 
       let html = `
-         <div class='event event_row${highlight}${warning}' index='${i}' euid='${e.euid}'>
-            <div class='event_category'>${e.custom_category || e.category}</div>
-            <div class='event_name'>${e.name}</div>
-            <div class='event_draw_type'>${e.draw_type_name}</div>
-            <div class='event_data flexcenter'>${e.draw_size}</div>
-            <div class='event_data flexcenter'>${e.opponents}</div>
-            <div class='event_data flexcenter'>${e.total_matches || 0}</div>
-            <div class='event_data flexcenter'>${e.scheduled || 0}</div>
-            <div class='event_data flexcenter'>${e.rank}</div>
-            <div class='event_data flexcenter'><div class='event_icon ${inout_icons[e.inout]}'></div></div>
-            <div class='event_data flexcenter'><div class='event_icon ${surface_icons[e.surface[0]]}'></div></div>
-            <div class='event_data flexcenter ${gen.info}' label='${created_label}'><div class='event_icon ${created_state}'></div></div>
-            <div class='event_data flexcenter ${gen.info} pubstate' label='${publish_label}'><div class='event_icon ${publish_state}'></div></div>
+         <div class="tile is-ancestor is-marginless${highlight}${warning} eventlist_entry event" index='${i}' euid='${e.euid}' style="width: 100%;">
+           <div class="tile is-parent is-paddingless">
+             <div class="tile is-child flexrow">
+               <div class='displayEventDetails eventlist_category flexjustifystart'>${e.custom_category || e.category}</div>
+               <div class='displayEventDetails eventlist_header_field flexjustifystart'>${e.name}</div>
+               <div class='displayEventDetails eventlist_header_field flexjustifystart'>${e.draw_type_name}</div>
+             </div>
+           </div>
+           <div class="tile is-parent is-paddingless eventlist_eventdata">
+             <div class="tile is-child displayEventDetails flexjustifyend eventdata_large">
+               <div class='event_data flexcenter'>${e.draw_size}</div>
+               <div class='event_data flexcenter'>${e.opponents}</div>
+               <div class='event_data flexcenter'>${e.total_matches || 0}</div>
+               <div class='event_data flexcenter'>${e.scheduled || 0}</div>
+               <div class='event_data flexcenter'>${e.rank}</div>
+               <div class='event_data flexcenter'><div class='event_icon ${inout_icons[e.inout]}'></div></div>
+               <div class='event_data flexcenter'><div class='event_icon ${surface_icons[e.surface[0]]}'></div></div>
+               <div class='event_data flexcenter ${hoverHelp('info')}' label='${created_label}'><div class='event_icon ${created_state}'></div></div>
+               <div class='event_data flexcenter ${hoverHelp('info')} pubstate eventPubState' label='${publish_label}'><div class='eventPubState event_icon ${publish_state}'></div></div>
+             </div>
+             <div class="tile is-child displayEventDetails flexrow eventdata_small" style='padding-left: .5em !important'>
+                <div class="field is-grouped is-grouped-multiline">
+                    <div class="control">
+                      <div class="tags has-addons">
+                        <span class="tag displayEventDetails"><div class='event_icon drawsize_header'></div></span>
+                        <span class="tag displayEventDetails" style="background-color: #C1DCFF;">${e.draw_size}</span>
+                      </div>
+                    </div>
+
+                    <div class="control">
+                      <div class="tags has-addons">
+                        <span class="tag displayEventDetails"><div class='event_icon opponents_header'></div></span>
+                        <span class="tag displayEventDetails" style="background-color: #C1DCFF;">${e.opponents}</span>
+                      </div>
+                    </div>
+
+                    <div class="control">
+                      <div class="tags has-addons">
+                        <span class="tag displayEventDetails"><div class='event_icon matches_header'></div></span>
+                        <span class="tag displayEventDetails" style="background-color: #C1DCFF;">${e.total_matches || 0}</span>
+                      </div>
+                    </div>
+
+                    <div class="control">
+                      <div class="tags has-addons">
+                        <span class="tag displayEventDetails"><div class='event_icon time_header'></div></span>
+                        <span class="tag displayEventDetails" style="background-color: #C1DCFF;">${e.scheduled || 0}</span>
+                      </div>
+                    </div>
+
+                    <div class="control">
+                      <div class="tags has-addons">
+                        <span class="tag displayEventDetails"><div class='event_icon rank_header'></div></span>
+                        <span class="tag displayEventDetails" style="background-color: #C1DCFF;">${e.rank || '&nbsp;'}</span>
+                      </div>
+                    </div>
+               </div>
+               <div class='event_data flexcenter' style='margin-bottom: .75em;'><div class='event_icon ${inout_icons[e.inout]}'></div></div>
+               <div class='event_data flexcenter' style='margin-bottom: .75em;'><div class='event_icon ${surface_icons[e.surface[0]]}'></div></div>
+               <div class='event_data flexcenter' style='margin-bottom: .75em;'><div class='event_icon ${created_state}'></div></div>
+               <div class='event_data flexcenter pubstate eventPubState' style='margin-bottom: .75em;'><div class='eventPubState event_icon ${publish_state}'></div></div>
+             </div>
+           </div>
          </div>
       `;
 
@@ -3650,7 +3831,7 @@ export const displayGen = function() {
 
       let html = `
          <div class='tournament_attrs'>
-               <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+               <div class='box' style='border: 1px solid gray;'>
                   <div class='location_attribute locabbr'>
                      <div class='loclabel'>${lang.tr('locations.abbreviation')}:</div>
                      <input id='${ids.abbreviation}' class='locvalue_short'> 
@@ -3670,7 +3851,7 @@ export const displayGen = function() {
                      <input id='${ids.name}' class='locvalue'> 
                   </div>
                </div>
-               <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
+               <div class='box' style='border: 1px solid gray;'>
                   <div class='location_attribute locaddress'>
                      <div class='loclabel'>${lang.tr('locations.address')}:</div>
                      <input id='${ids.address}' class='locvalue'> 
@@ -3709,13 +3890,15 @@ export const displayGen = function() {
          rank: displayFx.uuid(),
          singles_scoring: displayFx.uuid(),
          doubles_scoring: displayFx.uuid(),
+         points_per: displayFx.uuid(),
          surface: displayFx.uuid(),
          inout: displayFx.uuid(),
          singles_limit: displayFx.uuid(),
          doubles_limit: displayFx.uuid()
       };
       let detail_fields = `
-            <div class='column'>
+         <div class='detail_fields'>
+            <div class='column is-paddingless'>
                <div class='entry_label' style='text-align: right'>${lang.tr('cat')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('events.rank')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('events.surface')}</div>
@@ -3726,8 +3909,9 @@ export const displayGen = function() {
                <div class='entry_label' style='text-align: right'><b>${lang.tr('scoring')}:</b></div>
                <div class='entry_label' style='text-align: right'>${lang.tr('sgl')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('dbl')}</div>
+               <div class='entry_label' style='text-align: right'>Points Per</div>
             </div>
-            <div class='column'>
+            <div class='column is-paddingless'>
                <div class='entry_field' id='${ids.category}'></div>
                <div class='entry_field' id='${ids.rank}'></div>
                <div class='entry_field' id='${ids.surface}'></div>
@@ -3745,20 +3929,22 @@ export const displayGen = function() {
                      <input class='matchlimit' value='0' disabled>
                   </div>
                </div>
+
                <div class='entry_field'></div>
-               <div class='entry_field dd'>
-                  <div class='tmx-label'></div>
-                  <div class='options' style='border: 1px solid #000'>
+
+               <div class='entry_field escoring' style='margin-left: 2px;'>
+                  <div class='options' style='border: 1px solid #000; padding: 2px; width: 4.5em;'>
                      <div class='scoringformat' id='${ids.singles_scoring}'></div>
                   </div>
                </div>
-               <div class='entry_field dd'>
-                  <div class='tmx-label'></div>
-                  <div class='options' style='border: 1px solid #000'>
+               <div class='entry_field escoring' style='margin-left: 2px;'>
+                  <div class='options' style='border: 1px solid #000; padding: 2px; width: 4.5em;'>
                      <div class='scoringformat' id='${ids.doubles_scoring}'></div>
                   </div>
                </div>
+               <div class='entry_field' id='${ids.points_per}'></div>
             </div>
+         </div>
       `;
       container.detail_fields.element.innerHTML = detail_fields;
       gen.setEventName(container, e);
@@ -3799,21 +3985,12 @@ export const displayGen = function() {
          </div>
       `;
 
-      let match_points = `
-         <div style='margin: 1em;'>
-            <div style='margin-bottom: 1em;'><b>Singles Best-of Scoring</b></div>
-            <div style='margin-bottom: 1em;'><b>Doubles Best-of Scoring</b></div>
-            <div style='margin-bottom: 1em; text-decoration: line-through;'><b>Doubles One-Point best of Scoring</b></div>
-            <div style='margin-bottom: 1em; text-decoration: line-through;'><b>GEM Scores decide Ties</b></div>
-         </div>
-      `;
-
-      let removeall = !edit ? '' : `<div class='removeall ${gen.infoleft}' label='${lang.tr("tournaments.removeall")}'>-</div>`;
-      let addall = !edit ? '' : `<div class='addall ${gen.infoleft}' label='${lang.tr("tournaments.addall")}'>+</div>`;
-      let promoteall = !edit ? '' : `<div class='promoteall ${gen.infoleft}' label='${lang.tr("tournaments.addall")}'>+</div>`;
+      let removeall = !edit ? '' : `<div class='removeall ${hoverHelp('infoleft')}' label='${lang.tr("tournaments.removeall")}'>-</div>`;
+      let addall = !edit ? '' : `<div class='addall ${hoverHelp('infoleft')}' label='${lang.tr("tournaments.addall")}'>+</div>`;
+      let promoteall = !edit ? '' : `<div class='promoteall ${hoverHelp('infoleft')}' label='${lang.tr("tournaments.addall")}'>+</div>`;
 
       let detail_opponents = `
-         <div class='flexrow divider approved'>
+         <div class='flexrow divider approved' style='margin-top: 1em;'>
             <div>${lang.tr('events.approved')} <span id='${ids.approved_count}'></span></div>
             ${removeall}
          </div>
@@ -3834,7 +4011,6 @@ export const displayGen = function() {
       let tabdata = [];
       tabdata.push({ tab: 'Opponents', content: detail_opponents });
       tabdata.push({ tab: 'Match Profile', content: match_priority });
-      tabdata.push({ tab: 'Match Points', content: match_points });
 
       container.detail_opponents.element.innerHTML = jsTabs.generate({ tabs: tabdata, shadow: false });
       jsTabs.load({ el: container.detail_opponents.element, callback: tabCallback, tab });
@@ -3858,7 +4034,8 @@ export const displayGen = function() {
          eligible_count: displayFx.uuid()
       };
       let detail_fields = `
-            <div class='column'>
+         <div class='detail_fields'>
+            <div class='column is-paddingless'>
                <div class='entry_label' style='text-align: right'>${lang.tr('gdr')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('cat')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('events.rank')}</div>
@@ -3868,7 +4045,7 @@ export const displayGen = function() {
                <div class='entry_label' style='text-align: right'>${lang.tr('inout')}</div>
                <div class='entry_label' style='text-align: right'>${lang.tr('dtp')}</div>
             </div>
-            <div class='column'>
+            <div class='column is-paddingless'>
                <div class='entry_field egender' id='${ids.gender}'></div>
                <div class='entry_field ecategory' id='${ids.category}'></div>
                <div class='entry_field erank' id='${ids.rank}'></div>
@@ -3882,14 +4059,14 @@ export const displayGen = function() {
                <div class='entry_field einout' id='${ids.inout}'></div>
                <div class='entry_field edrawtype' id='${ids.draw_type}'></div>
             </div>
+         </div>
       `;
       container.detail_fields.element.innerHTML = detail_fields;
 
-      let removeall = !edit ? '' : `<div class='removeall ${gen.infoleft}' label='${lang.tr("tournaments.removeall")}'>-</div>`;
-      let addall = !edit ? '' : `<div class='addall ${gen.infoleft}' label='${lang.tr("tournaments.addall")}'>+</div>`;
-      let promoteall = !edit ? '' : `<div class='promoteall ${gen.infoleft}' label='${lang.tr("tournaments.addall")}'>+</div>`;
+      let removeall = !edit ? '' : `<div class='removeall ${hoverHelp('infoleft')}' label='${lang.tr("tournaments.removeall")}'>-</div>`;
+      let addall = !edit ? '' : `<div class='addall ${hoverHelp('infoleft')}' label='${lang.tr("tournaments.addall")}'>+</div>`;
+      let promoteall = !edit ? '' : `<div class='promoteall ${hoverHelp('infoleft')}' label='${lang.tr("tournaments.addall")}'>+</div>`;
       let approved_count = e && e.approved && e.approved.length ? `(${e.approved.length})` : '';
-      // let eligible_count = '';
 
       let detail_opponents = `
          <div class='flexrow divider approved'>
@@ -3939,7 +4116,7 @@ export const displayGen = function() {
 
       let config = `
          <div class='detail_fields'>
-            <div class='column'>
+            <div class='column is-paddingless'>
                <div class='entry_label roundlimit' style='display: none;'>${lang.tr('draws.roundlimit')}</div>
                <div class='entry_label'>${lang.tr('draws.structure')}</div>
                <div class='entry_label feedconfig' style='display: none;'>${lang.tr('draws.skiprounds')}</div>
@@ -3947,7 +4124,7 @@ export const displayGen = function() {
                <div class='entry_label feedconfig' style='display: none;'>${lang.tr('draws.sequential')}</div>
                <div class='entry_label qualifiers' style='display: none;'>${lang.tr('qualifiers')}</div>
             </div>
-            <div class='column'>
+            <div class='column is-paddingless'>
                <div class='entry_field roundlimit' id='${ids.roundlimit}' style='display: none;'></div>
                <div class='entry_field structure' id='${ids.structure}'></div>
                <div class='entry_field feedconfig skiprounds' style='display: none;' id='${ids.skiprounds}'></div>
@@ -3998,7 +4175,7 @@ export const displayGen = function() {
                <div class='entry_label' style='text-align: right'>${lang.tr('draws.bracketsize')}</div>
                <div class='entry_label qualifiers' style='text-align: right; display: none;'>${lang.tr('qualifiers')}</div>
             </div>
-            <div class='column'>
+            <div class='column is-paddingless'>
                <div class='entry_field brackets' id='${ids.brackets}'></div>
                <div class='entry_field bracket_size' id='${ids.bracket_size}'></div>
                <div class='entry_field qualifiers' style='display: none;' id='${ids.qualifiers}'></div>
@@ -4024,10 +4201,10 @@ export const displayGen = function() {
       };
       let config = `
          <div class='detail_fields'>
-            <div class='column'>
+            <div class='column is-paddingless'>
                <div class='entry_label' style='text-align: right'>${lang.tr('qualifiers')}</div>
             </div>
-            <div class='column'>
+            <div class='column is-paddingless'>
                <div class='entry_field qualifiers' id='${ids.qualifiers}'></div>
             </div>
          </div>
@@ -4210,32 +4387,36 @@ export const displayGen = function() {
 
       caldates.calstart = ids.start;
       caldates.calend = ids.end;
-      let docs = env.documentation ? 'flex' : 'none';
+      let docs = env.documentation.links ? 'flex' : 'none';
 
       let html = `
-         <div id='${ids.container}' class='calendar_container'>
-            <div class='calendar_selection'>
-               <div class='flexrow'>
-                  <div class='calendar_date' style='font-weight: bold'>
-                     <div class='calabel'>${lang.tr('frm')}:</div>
-                     <input tabindex='-1' class='calinput' id='${ids.start}'>
+         <div class='flexjustifyend' style='width: 100%; margin-right: 1em;'>
+            <div class='tourlink icon_margin' context='calendar'><div class='tiny_tour_icon'></div></div>
+            <div class='doclink' url='tmx_tournaments_navigation'><div class='tiny_docs_icon' style='display: ${docs}'></div></div>
+         </div>
+         <div id='${ids.container}' class='section calendar_container'>
+            <div class='box is-paddingless calendar_selection columns'>
+               <div class='column flexrow' style='flex-wrap: wrap'>
+                  <div class='flexrow'>
+                     <div class='calendar_date' style='font-weight: bold'>
+                        <div class='calabel'>${lang.tr('frm')}:</div>
+                        <input tabindex='-1' class='calinput' id='${ids.start}'>
+                     </div>
+                  </div>
+                  <div class='flexrow'>
+                     <div class='calendar_date' style='font-weight: bold'>
+                        <div class='calabel'>${lang.tr('to')}:</div>
+                        <input tabindex='-1' class='calinput' id='${ids.end}'>
+                     </div>
                   </div>
                </div>
-               <div class='flexrow'>
-                  <div class='calendar_date' style='font-weight: bold'>
-                     <div class='calabel'>${lang.tr('to')}:</div>
-                     <input tabindex='-1' class='calinput' id='${ids.end}'>
-                  </div>
+               <div class='column flexrow'>
+                  <div id='${ids.category}'></div>
+                  <div id='${ids.add}' class='add_tournament_action ${hoverHelp('infoleft')}' label='${lang.tr("tournaments.add")}'><div class='calendar_add_tournament'></div></div>
                </div>
-               <div id='${ids.category}'></div>
-               <div id='${ids.add}' class='add_tournament_action infoleft' label='${lang.tr("tournaments.add")}'><div class='calendar_add_tournament'></div></div>
             </div>
 
-            <div id='${ids.rows}' class='flexcol' style='width: auto;'></div>
-            <div class='flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
-               <div class='tourlink icon_margin' context='calendar'><div class='tiny_tour_icon'></div></div>
-               <div class='doclink' url='tmx_tournaments_navigation'><div class='tiny_docs_icon' style='display: ${docs}'></div></div>
-            </div>
+            <div id='${ids.rows}' style='width: auto; margin-top: 2em;'></div>
          </div>
       `;
 
@@ -4247,43 +4428,30 @@ export const displayGen = function() {
    };
 
    gen.calendarRows = (element, tournaments) => {
-      let html = `
-         <div class='calendar_row calendar_header'>
-            <span class='dates'>${lang.tr('dt')}</span>
-            <div class='name'>${lang.tr('trn')}</div>
-            <div class='category icon ${gen.info} flexcenter' label='${lang.tr("cat")}'><span class='event_icon category_header_white'></span></div>
-            <div class='rank'>${lang.tr('trnk')}</div>
-         </div>
-      `;
-      html += tournaments.map(calendarRow).filter(f=>f).join('');
+      let html = tournaments.map(calendarRow).filter(f=>f).join('');
       element.innerHTML = html;
    };
 
    function calendarRow(tournament) {
       let categories = staging.legacyCategory(tournament.category, true);
-      if (tournament.categories && tournament.categories.length) categories = tournament.categories.map(c=>`<span>${c}</span>`).join('');
+      if (tournament.categories && tournament.categories.length) categories = tournament.categories.join(',');
       let background = new Date().getTime() > tournament.end ? 'calendar_past' : 'calendar_future';
       let received = tournament.received ? 'tournament_received' : '';
 
-      /*
-      // this was legacy... when tournaments go re-ranked...
-      let actual_rankings = '';
-      if (tournament.accepted) {
-         let rankDiff = (rank) => `<span class='${rank != tournament.rank ? "diff" : ""}'>${rank}</span>`;
-         actual_rankings = Object.keys(tournament.accepted).map(key => {
-            let singles = rankDiff(tournament.accepted[key].sgl_rank);
-            let doubles = rankDiff(tournament.accepted[key].dbl_rank);
-            return `<span style='white-space: nowrap'>${key}: [S-${singles}, D-${doubles}]</span>`;
-         }).join('<span>&nbsp;</span>');
-      }
-      */
-
       return `
-         <div tuid='${tournament.tuid}' class='calendar_click calendar_row calendar_highlight ${background} ${received}'>
-            <span class='dates calctx' style='overflow: hidden'> ${displayDate(tournament.start)}&nbsp;/ ${displayDate(tournament.end)} </span>
-            <div class='name calclk ctxclk'>${tournament.name}</div>
-            <div class='category calctx flexcol'>${categories || ''}</div>
-            <div class='rank calctx'>${tournament.rank || ''}</div>
+         <div tuid='${tournament.tuid}' class='tile is-ancestor calendar_click calendar_row calendar_highlight ${background} ${received}'>
+            <div class='tile is-parent is-vertical calendar_entry'>
+               <div class='calclk ctxclk' style='width: 100%;'>${tournament.name}</div>
+               <div class='flexrow' style='width: 100%;'>
+                  <span class='calctx' style='whitespace: nowrap; overflow: hidden;'>${displayDate(tournament.start)} / ${displayDate(tournament.end)}</span>
+                  <span class='calclk ctxclk' style='flex-grow: 1;'>&nbsp;</span>
+               </div>
+            </div>
+            <div class='calclk ctxclk tile is-parent calendar_details flexjustifyend'>
+               <div class='calclk ctxclk cell event_category icon flexjustifystart'><div class='event_icon category_header'></div></div>
+               ${categories || ''}
+               <div class='calclk ctxclk rank'>${tournament.rank || ''}</div>
+            </div>
          </div>
       `;
    }
@@ -4325,7 +4493,7 @@ export const displayGen = function() {
       function action(setting, id, label, icon) {
          let bool = (typeof setting != 'object') ? setting : Object.keys(setting).reduce((p, c) => setting[c] || p, undefined);
          if (!bool) return '';
-         return `<div id='${id}' class='${gen.info} action' label="${label}"><div class='splash_icon ${icon}'></div></div>`;
+         return `<div id='${id}' class='${hoverHelp('info')} action' label="${label}"><div class='splash_icon ${icon}'></div></div>`;
       }
    };
 
@@ -4335,7 +4503,7 @@ export const displayGen = function() {
          year: displayFx.uuid(),
          rating: displayFx.uuid(),
          rank: displayFx.uuid(),
-         gender: displayFx.uuid(),
+         sex: displayFx.uuid(),
          school: displayFx.uuid(),
          club: displayFx.uuid(),
          ioc: displayFx.uuid(),
@@ -4351,14 +4519,14 @@ export const displayGen = function() {
             <div class='flexcol' style='width: 100%;'>
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('gdr')}:</label>
-                    <input type='checkbox' id="${ids.gender}" ${attributes.gender ? 'checked' : ''}>
+                    <input type='checkbox' id="${ids.sex}" ${attributes.sex ? 'checked' : ''}>
                 </div>
                 <div class='tournament_attr'>
                     <label class='calabel'>${lang.tr('yr')}:</label>
                     <input type='checkbox' id="${ids.year}" ${attributes.year ? 'checked' : ''}>
                 </div>
                 <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('rnk')}:</label>
+                    <label class='calabel'>${lang.tr('prnk')}:</label>
                     <input type='checkbox' id="${ids.rank}" ${attributes.rank ? 'checked' : ''}>
                 </div>
                 <div class='tournament_attr'>
@@ -4408,7 +4576,7 @@ export const displayGen = function() {
       function setSortOptions(preset) {
          let checked =  [
             { value: 'last_name', l: 'lnm', active: true },
-            { value: 'gender', l: 'gdr', active: id_obj.gender.element.checked },
+            { value: 'sex', l: 'gdr', active: id_obj.sex.element.checked },
             { value: 'year', l: 'yr', active: id_obj.year.element.checked },
             { value: 'rank', l: 'rnk', active: id_obj.rank.element.checked },
             { value: 'rating', l: 'rtg', active: id_obj.rating.element.checked },
@@ -4541,7 +4709,7 @@ export const displayGen = function() {
       let message = `<div id='${ids.dropzone}' class='dropzone flexcenter container'>
          <div class='flexcol'>
             <div class='actions'>
-               <div class='action ${gen.info}' label='${lang.tr("phrases.importdata")}'><label for='file'><div class='splash_icon splash_upload'></div></label></div>
+               <div class='action ${hoverHelp('info')}' label='${lang.tr("phrases.importdata")}'><label for='file'><div class='splash_icon splash_upload'></div></label></div>
             </div>
             <div class='flexcenter' style='width: 100%;'><div style='width: 80%;'>${lang.tr('phrases.draganddrop')}</div></div>
          </div>
@@ -4561,9 +4729,9 @@ export const displayGen = function() {
       let html = `<div class='dropzone flexcenter container'>
          <div class='flexcol'>
             <div class='actions'>
-               <div class='action ${gen.info}' label='${lang.tr("phrases.importdata")}'><label for='file'><div class='splash_icon splash_upload'></div></label></div>
-               <div id='${ids.template}' class='action ${gen.info}' label='${lang.tr("phrases.importtemplate")}'> <div class='splash_icon icon_spreadsheet'></div> </div>
-               <div id='${ids.download}' class='action ${gen.info}' label='${lang.tr("phrases.exportdata")}'><div class='splash_icon splash_download'></div></div>
+               <div class='action ${hoverHelp('info')}' label='${lang.tr("phrases.importdata")}'><label for='file'><div class='splash_icon splash_upload'></div></label></div>
+               <div id='${ids.template}' class='action ${hoverHelp('info')}' label='${lang.tr("phrases.importtemplate")}'> <div class='splash_icon icon_spreadsheet'></div> </div>
+               <div id='${ids.download}' class='action ${hoverHelp('info')}' label='${lang.tr("phrases.exportdata")}'><div class='splash_icon splash_download'></div></div>
             </div>
             <div class='flexcenter' style='width: 100%;'>${lang.tr('phrases.draganddrop')}</div>
          </div>
@@ -4624,19 +4792,19 @@ export const displayGen = function() {
       let html = `<div class='flexcenter container'>
 
          <div class='actions'>
-            <div id='${ids.add}' class='${gen.info} action' label='${lang.tr("actions.add_player")}' style='display: none'>
+            <div id='${ids.add}' class='${hoverHelp('info')} action' label='${lang.tr("actions.add_player")}' style='display: none'>
                <div class='player_add_player'></div>
             </div>
-            <div id='${ids.manage}' class='${gen.info} action' label='${lang.tr("actions.manage_players")}' style='display: none'>
+            <div id='${ids.manage}' class='${hoverHelp('info')} action' label='${lang.tr("actions.manage_players")}' style='display: none'>
                <div class='player_view_players'></div>
             </div>
-            <div id='${ids.teams}' class='${gen.info} action' label='${lang.tr("actions.manage_teams")}' style='display: none'>
+            <div id='${ids.teams}' class='${hoverHelp('info')} action' label='${lang.tr("actions.manage_teams")}' style='display: none'>
                <div class='player_teams'></div>
             </div>
-            <div id='${ids.pointCalc}' class='${gen.info} action' label='${lang.tr("phrases.calculateranking")}' style='display: none'>
+            <div id='${ids.pointCalc}' class='${hoverHelp('info')} action' label='${lang.tr("phrases.calculateranking")}' style='display: none'>
                <div class='player_calc_points'></div>
             </div>
-            <div id='${ids.rankCalc}' class='${gen.info} action' label='${lang.tr("phrases.generateranklist")}' style='display: none'>
+            <div id='${ids.rankCalc}' class='${hoverHelp('info')} action' label='${lang.tr("phrases.generateranklist")}' style='display: none'>
                <div class='player_calc_ranks'></div>
             </div>
          </div>
@@ -4672,27 +4840,6 @@ export const displayGen = function() {
       return displayFx.idObj(ids);
    };
 
-   gen.playersTabPrinting = () => {
-      let ids = {
-         singles: displayFx.uuid(),
-         doubles: displayFx.uuid(),
-         playerlist: displayFx.uuid()
-      };
-
-      let html = `
-         <div class='flexcol' style='width: 100%'>
-            <div id='${ids.singles}' class='menuitem menuseparator'>${lang.tr('sgl')} ${lang.tr('print.signin')}</div>
-            <div id='${ids.doubles}' class='menuitem menuseparator'>${lang.tr('dbl')} ${lang.tr('print.signin')}</div>
-            <div id='${ids.playerlist}' class='menuitem'>${lang.tr('print.playerlist')}</div>
-         </div>
-      `;
-      document.getElementById('processing').style.display = "flex";
-      setProcessingText({ html });
-      gen.clickaway = true;
-      displayGen.escapeModal();
-      return displayFx.idObj(ids);
-   };
-
    gen.twoChoices = ({ text, option1, option2 }) => {
       let ids = {
          option1: displayFx.uuid(),
@@ -4718,6 +4865,7 @@ export const displayGen = function() {
       let ids = {
          order: displayFx.uuid(),
          at_row: displayFx.uuid(),
+         column: displayFx.uuid(),
          round: displayFx.uuid()
       };
       let html = `
@@ -4725,21 +4873,25 @@ export const displayGen = function() {
             <div class='flexcol' style='width: 100%'>
                <div class='flexcenter' style='margin: .5em;'><h2 class='tmx-title'>${lang.tr('phrases.schedulepriority')}</h2></div>
             </div>
-            <div id='${ids.at_row}' class='config_actions'>
-               Start Scheduling at Round: 1
-            </div>
+            <div id='${ids.at_row}' class='config_actions'></div>
+            <div id='${ids.column}' class='config_actions'></div>
             <div class='config_actions'>
                <div id='${ids.order}' class='btn btn-large config_submit'>${lang.tr('ord')}</div>
                <div id='${ids.round}' class='btn btn-large config_submit'>${lang.tr('rnd')}</div>
             </div>
          </div>
       `;
+
       gen.showConfigModal(html, 'visible');
       document.getElementById('configmodal').addEventListener('click', () => gen.closeModal());
-
       let id_obj = displayFx.idObj(ids);
+
       dd.attachDropDown({ id: ids.at_row, label: `${lang.tr('schedule.startrow')}:` });
       id_obj.at_row.ddlb = new dd.DropDown({ element: id_obj.at_row.element });
+
+      dd.attachDropDown({ id: ids.column, label: `${lang.tr('schedule.column')}:` });
+      id_obj.column.ddlb = new dd.DropDown({ element: id_obj.column.element });
+
       return id_obj;
    };
 
@@ -4812,8 +4964,8 @@ export const displayGen = function() {
       let html = `
          <div id='GC${category}${gender}' class='rank_column_heading flexrow flexcenter'>
             ${lang.tr(gender == 'M' ? 'genders.male' : gender == 'W' ? 'genders.female' : 'genders.mixed')}
-            <div><div class='print action_icon_small ${gen.infoleft}' label='${lang.tr("print.ranklist")}' category='${category}' gender='${gender}'></div></div>
-            <div><div class='category_csv icon_csv action_icon_small ${gen.info}' label='CSV' category='${category}' gender='${gender}'></div></div>
+            <div><div class='print action_icon_small ${hoverHelp('infoleft')}' label='${lang.tr("print.ranklist")}' category='${category}' gender='${gender}'></div></div>
+            <div><div class='category_csv icon_csv action_icon_small ${hoverHelp('info')}' label='CSV' category='${category}' gender='${gender}'></div></div>
          </div>
       `;
       html += `
@@ -4859,17 +5011,17 @@ export const displayGen = function() {
 
    gen.displayPlayerRankChart = (container, data) => {
       if (!data) return;
-      let sr = timeSeries().selector('#' + container.rankchart.id);
+      let sr = ts().selector('#' + container.rankchart.id);
       sr.options({ margins: { left: 10, right: 10 }});
       sr.height(200).options({ invert: true });
       sr.data(data);
       sr();
 
-      container.container.element.querySelector(".player_rankings").style.display = 'flex';
+      container.container.element.querySelector(".player_rankings").style.display = 'inline';
    };
 
    gen.playerSeason = (container, data, season_events) => {
-      let playerSeason = ladderChart();
+      let playerSeason = lc();
       playerSeason.colors({
          "H":        "#235dba",
          "C":        "#db3e3e",
@@ -5204,12 +5356,12 @@ export const displayGen = function() {
          backplane.remove(); 
       }
       function pickerHTML({ hour_range = {}, minute_increment, minutes } = {}) {
-         let hour_list = util.range(hour_range.start || 0, (hour_range.end || 23) + 1)
-            .map(h=>`<li class='hour'>${util.zeroPad(h)}</li>`).join('');
+         let hours = util.range(hour_range.start || 0, (hour_range.end || 23) + 1);
+         let civilian_hours = hours.map(h=>h > 12 ? h - 12 : h);
+         let hour_list = (env.schedule.time24 ? hours : civilian_hours).map(h=>`<li class='hour'>${util.zeroPad(h)}</li>`).join('');
          let minute_end = Math.abs(60 / (minute_increment || 1));
          minutes = minutes || util.range(0, minute_end).map((m, i)=>i*(minute_increment || 1));
-         let minute_list = minutes
-            .map(m=>`<li class='minute'>${util.zeroPad(m)}</li>`).join('');
+         let minute_list = minutes.map(m=>`<li class='minute'>${util.zeroPad(m)}</li>`).join('');
          let html = `
                <span class="time-picker">
                   <input class="display-time" type="text" placeholder='HH:mm'>
@@ -5401,7 +5553,7 @@ export const displayGen = function() {
 
    }
 
-   gen.dateSelector = ({ date, date_element, dateFx, container }) => {
+   gen.dateSelector = ({ date, date_element, selectFx, container }) => {
       if (!date_element) return;
 
       date = new Date(date || new Date());
@@ -5416,7 +5568,7 @@ export const displayGen = function() {
             let this_date = this.getDate();
             date = new Date(dateFx.timeUTC(this_date));
             this.setStartRange(new Date(date));
-            if (dateFx && typeof dateFx == 'function') dateFx(date);
+            if (selectFx && typeof selectFx == 'function') selectFx(date);
          },
          bound: false,
          container

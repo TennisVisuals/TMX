@@ -162,37 +162,37 @@ export const timeSeries = function() {
    }
 
    chart.selector = (value) => {
-      if (!arguments.length) { return o.selector; }
+      if (!value) { return o.selector; }
       o.selector = value;
       return chart;
    };
 
    chart.width = (value) => {
-      if (!arguments.length) { return o.width; }
+      if (!value) { return o.width; }
       o.width = value;
       return chart;
    };
 
    chart.height = (value) => {
-      if (!arguments.length) { return o.height; }
+      if (!value) { return o.height; }
       o.height = value;
       return chart;
    };
 
    chart.sizeToFit = (value) => {
-      if (!arguments.length) { return o.sizeToFit; }
+      if (!value) { return o.sizeToFit; }
       o.sizeToFit = value;
       return chart;
    };
 
    chart.options = (values) => {
-       if (!arguments.length) return o;
+       if (!values) return o;
        keyWalk(values, o);
        return chart;
    };
 
    chart.events = (functions) => {
-       if (!arguments.length) return events;
+       if (!functions) return events;
        keyWalk(functions, events);
        return chart;
    };

@@ -60,10 +60,12 @@ export const lang = function() {
    };
 
    idioms.default = {
-      tour: 'Tour',
+      admin:    'Administrator',
+      revoke:   'Revoke',
+      tour:     'Tour',
       noresults: 'No Results',
       delete:  'Delete',
-      continue: 'Do you wish to continue?',
+      continue:'Do you wish to continue?',
       notes:   'Notes',
       social:  'Social Media',
       stats:   'Statistics',
@@ -199,8 +201,12 @@ export const lang = function() {
       },
 
       settings: {
+         help: 'Help',
+         schedule: 'Schedule',
+         calendar: 'Calendar',
          search: 'Search',
          documentation: 'Documentation Links',
+         hoverhelp: 'Hover Hints',
          diacritics: 'Diacritics',
          lastfirst: 'Last name, First name',
          organization: 'Organization',
@@ -233,6 +239,7 @@ export const lang = function() {
          matchtimes: 'Match Times',
          matchdates: 'Match Dates',
          firstday: 'Week Starts Monday',
+         time24: '24 Hour Clock',
          draworderscores: 'Scores in Draw Order',
          schedulecompleted: 'Schedule Completed Matches'
       },
@@ -383,6 +390,7 @@ export const lang = function() {
          id: 'Tournament ID',
          loadbyid: 'Load by ID',
          edit: 'Edit',
+         close: 'Close',
          done: 'Finish',
          import: 'Import Record',
          removeall: 'Remove All',
@@ -412,6 +420,7 @@ export const lang = function() {
       },
 
       phrases: {
+         mainmenu: 'Main Menu',
          sheetdataurls: 'Enter Google Sheet URLs for Synchronizing Data',
          playerimport: 'Player Import',
          entersheeturl: 'Enter Sheet URL',
@@ -466,6 +475,7 @@ export const lang = function() {
          noremote: 'No Remote Registrations to Update',
          calculateranking: 'Calculate Ranking Points',
          generateranklist: 'Generate Rank List',
+         generatekey: 'Generate Key',
          norankingdata: 'No Ranking Data',
          oop_system: 'Order of Play',
          schedulepublished: 'Publishing Time:',
@@ -596,6 +606,7 @@ export const lang = function() {
       },
 
       schedule: {
+         column: 'Column',
          rows: 'Schedule Rows',
          startrow: 'Start Row',
          allevents: 'All Events',

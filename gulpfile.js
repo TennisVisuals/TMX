@@ -143,6 +143,11 @@ gulp.task('copy-css-img', function() {
       .pipe(gulp.dest(target + '/css/img'));
 });
 
+gulp.task('copy-css-images', function() {
+   return gulp.src(['src/css/images/*'])
+      .pipe(gulp.dest(target + '/css/images'));
+});
+
 gulp.task('copy-fonts', function() {
    return gulp.src(['dist/fonts/*'])
       .pipe(gulp.dest(target + '/fonts'));
@@ -193,7 +198,8 @@ gulp.task('bundle-sw', [
       'concat-lib',
       'copy-fonts',
       'copy-assets',
-      'copy-css-img'
+      'copy-css-img',
+      'copy-css-images'
    ], () => {
      return wbBuild.generateSW({
        globDirectory: target,

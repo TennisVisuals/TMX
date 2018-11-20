@@ -5,8 +5,10 @@ import { coms } from './coms';
 import { config } from './config';
 import { fetchFx } from './fetchFx';
 import { lang } from './translator';
+import { idiomFx } from './idiomFx';
 import { importFx } from './importFx';
 import { stringFx } from './stringFx';
+import { settingsFx } from './settingsFx';
 import { calendarFx } from './calendarFx';
 import { displayGen } from './displayGen';
 import { scoreBoard } from './scoreBoard';
@@ -21,7 +23,6 @@ export const staging = function() {
       coms.fx.receiveTournament = receiveTournament;
       coms.fx.receiveTournaments = receiveTournaments;
       coms.fx.receiveTournamentRecord = receiveTournamentRecord;
-      coms.fx.receiveIdiomList = receiveIdiomList;
       coms.fx.tmxMessage = tmxMessage;
       coms.fx.receiveTournamentEvents = receiveTournamentEvents;
    };
@@ -35,7 +36,10 @@ export const staging = function() {
 
    function resetDB() {
       return new Promise(resolve => {
-         let reload = () => window.location.replace(window.location.pathname);
+         let reload = () => {
+            displayGen.closeModal();
+            window.location.replace(window.location.pathname);
+         };
          let okAction = () => {
             db.resetDB(reload);
             resolve();
@@ -51,11 +55,11 @@ export const staging = function() {
    }
 
    function processDirective(data) {
-      let json_data = attemptJSONparse(data);
+      let json_data = util.attemptJSONparse(data);
 
       if (json_data && json_data.directive) {
          if (json_data.directive == 'settings') {
-            config.receiveSettings(json_data);
+            settingsFx.receiveSettings(json_data);
          }
          if (json_data.directive == 'new version') {
             let msg = json_data.notice || '';
@@ -76,8 +80,8 @@ export const staging = function() {
          }
       }
       function setIdiom() {
-         config.idiomSelectorOptions(json_data.content.ioc);
-         config.changeIdiom(json_data.content.ioc);
+         idiomFx.idiomSelectorOptions(json_data.content.ioc);
+         idiomFx.changeIdiom(json_data.content.ioc);
       }
    }
 
@@ -88,18 +92,21 @@ export const staging = function() {
 
    function receiveTournament({ record, authorized }) {
       let published_tournament = CircularJSON.parse(record);
+
       let auth_message = authorized ? `<span style='color: green'>${lang.tr('tournaments.auth')}</span>` : lang.tr('tournaments.noauth');
       let publishtime = !published_tournament.pushed2cloud ? '' :
          `<p><b>${lang.tr('tournaments.publishtime')}:</b><br>${new Date(published_tournament.pushed2cloud)}</p>`;
       let message = `
-         <h2>${lang.tr('tournaments.received')}</h2>
-         ${published_tournament.name}
+         <h2 class='title is-4'>${lang.tr('tournaments.received')}</h2>
+         <h4 class='subtitle is-5'>${published_tournament.name}</h4>
+         <h5 class='title is-5'>${auth_message}</h5>
          ${publishtime}
-         ${auth_message}
-         <p><b>${lang.tr('tournaments.replacelocal')}</b></p>
+         <h4 class='title is-4' style='margin-top: 1em;'><b>${lang.tr('tournaments.replacelocal')}</b></h4>
       `;
+
       let cancelAction = () => displayGen.closeModal();
       displayGen.actionMessage({ message, actionFx: saveReceivedTournament, action: lang.tr('replace'), cancelAction });
+
       function saveReceivedTournament() {
          displayGen.closeModal();
          published_tournament.received = new Date().getTime();
@@ -109,8 +116,8 @@ export const staging = function() {
    }
 
    function receiveTournaments(tournaments) {
-      let new_trnys = tournaments.map(t=>attemptJSONparse(t)).filter(f=>f);
-      Promise.all(new_trnys.map(mergeTournament)).then(checkDisplay, util.logError);
+      let new_trnys = tournaments && tournaments.map(t=>util.attemptJSONparse(t)).filter(f=>f);
+      if (new_trnys) Promise.all(new_trnys.map(mergeTournament)).then(checkDisplay, util.logError);
 
       function mergeTournament(trny) {
          return new Promise((resolve, reject) => {
@@ -134,36 +141,6 @@ export const staging = function() {
       } else {
          msg.notice = msg.notice || msg.tournament;
          if (msg.notice) config.addMessage(msg);
-      }
-   }
-
-   // currently duplicated in staging and coms
-   function attemptJSONparse(data) {
-      if (!data) return undefined;
-      try { return CircularJSON.parse(data); }
-      catch(e) { return undefined; }
-   }
-
-   fx.receiveIdiomList = receiveIdiomList;
-   function receiveIdiomList(data) {
-      config.available_idioms = Object.assign({}, ...data.map(attemptJSONparse).filter(f=>f).map(i=>({[i.ioc]: i})));
-
-      // set timeout to give first-time initialization a chance to load default language file
-      setTimeout(function() { db.findSetting('defaultIdiom').then(findIdiom, (error) => console.log('error:', error)); }, 2000);
-
-      function findIdiom(idiom={}) { db.findIdiom(idiom.ioc).then(checkIdiom, error=>console.log('error:', error)); }
-      function checkIdiom(idiom={ ioc: 'gbr', name: 'English' }) {
-         config.idiomSelectorOptions(idiom.ioc);
-         let a = config.available_idioms[idiom.ioc];
-         if (a && a.updated != idiom.updated) {
-            displayGen.escapeModal();
-            let message = `${lang.tr('phrases.updatedioc')}: ${idiom.name || idiom.ioc}?`;
-            displayGen.okCancelMessage(message, updateLanguageFile, () => displayGen.closeModal());
-         }
-         function updateLanguageFile() {
-            coms.sendKey(`${idiom.ioc}.idiom`);
-            displayGen.closeModal();
-         }
       }
    }
 
@@ -245,19 +222,21 @@ export const staging = function() {
       let tuid = data.tuid;
       if (!data.events || !data.events.length) {
          let action = lang.tr('actions.ok');
-         let message = ` <h2>${lang.tr('phrases.notfound')}</h2> `;
+         let message = ` <h2 class='title is-4'>${lang.tr('phrases.notfound')}</h2> `;
          displayGen.escapeModal();
          displayGen.actionMessage({ message, actionFx: () => displayGen.closeModal(), action });
          return;
       }
-      let events = data.events.map(e => CircularJSON.parse(e));
-      let received_euids = events.map(e=>e.event.euid);
-      let received = Object.assign({}, ...events.map(e=>({[e.event.euid]: e})));
-      db.findTournament(tuid).then(trny => confirmMerge(trny), util.logError);
+      let events = data.events && data.events.map(e => CircularJSON.parse(e));
+      let received_euids = events && events.map(e=>e.event.euid);
+      let received = events && Object.assign({}, ...events.map(e=>({[e.event.euid]: e})));
+      if (events) db.findTournament(tuid).then(trny => confirmMerge(trny), util.logError);
 
       function confirmMerge(trny) {
+
          let action = lang.tr('merge');
-         let message = ` <h2>${lang.tr('events.received')}</h2> `;
+         let message = ` <h2 class="title is-3">${lang.tr('events.received')}</h2> `;
+
          displayGen.escapeModal();
          displayGen.actionMessage({ message, actionFx, action, cancelAction: () => displayGen.closeModal() });
 

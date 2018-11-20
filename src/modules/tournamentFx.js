@@ -7,6 +7,7 @@ import { staging } from './staging';
 import { lang } from './translator';
 import { stringFx } from './stringFx';
 import { playerFx } from './playerFx';
+import { settingsFx } from './settingsFx';
 import { matchFx as mfx} from './matchFx';
 
 export const tournamentFx = function() {
@@ -14,7 +15,8 @@ export const tournamentFx = function() {
    let fx = {};
    let dfx = drawFx();
 
-   fx.settingsLoaded = () => { dfx.options(env.drawFx); };
+   function settingsLoaded() { dfx.options(env.drawFx); }
+   settingsFx.register('tournamentFx', settingsLoaded);
 
    fx.deletedMUIDs = (tournament, muids) => {
       if (!tournament.deleted) tournament.deleted = { muids: [] };
@@ -231,15 +233,28 @@ export const tournamentFx = function() {
 
    fx.calcDualMatchesScore = (e, dual_match) => {
       let score = [0, 0];
-      let completed = dual_match.score && ['W.O.', 'RET.', 'DEF.'].reduce((p, c) => (dual_match.score.indexOf(c) >= 0 ? c : false) || p, undefined);
+      let completed = dual_match.score && ['W.O.', 'RET.', 'DEF.', 'TIME'].reduce((p, c) => (dual_match.score.indexOf(c) >= 0 ? c : false) || p, undefined);
       let match_record = e && e.draw && e.draw.dual_matches && e.draw.dual_matches[dual_match.match.muid];
 
       e.score_goal = getDualEventScoreGoal(e);
 
+      let per = e.dual_points && e.dual_points.per;
       match_record && match_record.matches
-         .map(m => ({ winner: m.match.winner_index, value: m.value }))
+         .map(m => ({ winner: m.match.winner_index, value: m.value, score: m.match.score }))
          .filter(f=>f.winner != undefined)
-         .forEach(result => score[result.winner] += parseInt(result.value || 1));
+         .forEach(result => {
+            let tally = countSets(result.score);
+            if (per == 'set') {
+               if (result.winner != undefined) {
+                  score[result.winner] += tally[0] * result.value;
+                  score[1 - result.winner] += tally[1] * result.value;
+               } else {
+                  tally.forEach((t, i) => score[i] += t * result.value);
+               }
+            } else {
+               score[result.winner] += parseInt(result.value || 1);
+            }
+         });
       let max_score = Math.max(...score);
       let winner_index = !e.score_goal || max_score < e.score_goal ? undefined : (score[0] >= e.score_goal) ? 0 : 1;
       dual_match.match.score = winner_index ? score.map(s=>s).reverse().join('-') : score.join('-');
@@ -247,6 +262,26 @@ export const tournamentFx = function() {
       let active_matches = match_record && match_record.matches.reduce((p, c) => c.match.score ? true : p, undefined);
       return { score, active_matches };
    };
+
+   function countSets(score) {
+      let sets_tally = [0, 0];
+      if (!score) return sets_tally;
+      if (!disqualifyingScore(score)) {
+         let set_scores = score.split(' ');
+         set_scores.forEach(set_score => {
+            let divider = set_score.indexOf('-') > 0 ? '-' : set_score.indexOf('/') > 0 ? '/' : undefined;
+            // eslint-disable-next-line no-useless-escape
+            let scores = (/\d+[\(\)\-\/]*/.test(set_score)) && divider ? set_score.split(divider).map(s => /\d+/.exec(s)[0]) : undefined;
+            if (scores) {
+               sets_tally[parseInt(scores[0]) > parseInt(scores[1]) ? 0 : 1] += 1;
+            }
+         });
+      }
+      return sets_tally;
+      function walkedOver(score) { return /W/.test(score) && /O/.test(score); }
+      function defaulted(score) { return /DEF/.test(score); }
+      function disqualifyingScore(score) { return walkedOver(score) || defaulted(score); }
+   }
 
    fx.scoreDualMatchDraw = ({ /*tournament, */e, dual_match, dual_teams, muid, outcome }) => {
       let match = e.draw.dual_matches[dual_match.match.muid].matches.reduce((p, c) => c.match.muid == muid ? c : p, undefined);
@@ -872,7 +907,10 @@ export const tournamentFx = function() {
          supertiebreak_to: parseInt(cfg_obj.supertiebreakto.ddlb.getValue()),
          final_set_supertiebreak: cfg_obj.finalset.ddlb.getValue() == 'N' ? false : true
       };
-      if (format) { evt.scoring_format[format] = sf; }
+      if (format) {
+         if (!evt.scoring_format) evt.scoring_format = {};
+         evt.scoring_format[format] = sf;
+      }
       evt.score_format = sf;
       modifyUnscoredMatches(sf);
       let stb = sf.final_set_supertiebreak ? '/S' : '';
@@ -889,7 +927,7 @@ export const tournamentFx = function() {
             // update scoring format for unfinished RR matches
             info.matches.forEach(modify);
          }
-         function modify(match) { if (!match.winner) { match.score_format = sf; } }
+         function modify(match) { if (match && !match.winner) { match.score_format = sf; } }
       }
    };
 
@@ -1505,144 +1543,18 @@ export const tournamentFx = function() {
 
    fx.getDualEventScoreGoal = getDualEventScoreGoal;
    function getDualEventScoreGoal(evt) {
-      let av = (evt.matchorder && evt.matchorder.map(m=>util.parseInt(m.value)).reduce((a, b) => (a || 0) + (b || 0))) || 0;
-      return moreThanHalf(av);
-   }
+      let per = evt.dual_points && evt.dual_points.per;
+      let av = (evt.matchorder && evt.matchorder.map(matchValue).reduce((a, b) => (a || 0) + (b || 0))) || 0;
+      let ps = (evt.matchorder && evt.matchorder.map(perSetValue).reduce((a, b) => (a || 0) + (b || 0))) || 0;
+      return moreThanHalf(per ? ps : av);
 
-   /*
-   // TODO: move to legacyProcessing
-   function getTournamentOptions(tournament) {
-      var category = staging.legacyCategory(tournament.category);
-
-      var opts = tournament.rank_opts || { category, sgl_rank: tournament.rank, dbl_rank: tournament.rank };
-
-      if (tournament.accepted) {
-         if (tournament.accepted.M) {
-            opts.category = staging.legacyCategory(tournament.accepted.M.category);
-            opts.sgl_rank = tournament.accepted.M.sgl_rank;
-            opts.dbl_rank = tournament.accepted.M.dbl_rank;
-            opts.M = tournament.accepted.M;
-         }
-         if (tournament.accepted.W) {
-            opts.w_category = staging.legacyCategory(tournament.accepted.W.category);
-            opts.w_sgl_rank = tournament.accepted.W.sgl_rank;
-            opts.w_dbl_rank = tournament.accepted.W.dbl_rank;
-            opts.W = tournament.accepted.W;
-         }
+      function matchValue(m) { return util.parseInt(m.value); }
+      function perSetValue(m) {
+         let format = evt.scoring_format && evt.scoring_format[m.format] || evt.score_format;
+         let sets_to_win = format.sets_to_win;
+         let value = util.parseInt(m.value);
+         return value * sets_to_win;
       }
-
-      return opts;
-   }
-
-   // But perhaps this is unnecessary if tournaments are converted to events...
-   fx.legacyTournament = (tournament, container) => {
-      configureDDLBs(tournament, container);
-      configureDateSelectors(tournament, container);
-
-      function configureDDLBs(tournament, container) {
-         let cpp = (value) => { calcPlayerPoints({ tournament, container }); }
-         container.category.ddlb = new dd.DropDown({ element: container.category.element, onChange: cpp });
-         container.dbl_rank.ddlb = new dd.DropDown({ element: container.dbl_rank.element, onChange: cpp });
-         container.sgl_rank.ddlb = new dd.DropDown({ element: container.sgl_rank.element, onChange: cpp });
-
-         if (tournament.genders.length > 1 || tournament.genders.indexOf('W') >= 0) {
-            container.w_category.ddlb = new dd.DropDown({ element: container.w_category.element, onChange: cpp });
-            container.w_dbl_rank.ddlb = new dd.DropDown({ element: container.w_dbl_rank.element, onChange: cpp });
-            container.w_sgl_rank.ddlb = new dd.DropDown({ element: container.w_sgl_rank.element, onChange: cpp });
-         }
-
-         // set ddlb options
-         let opts = getTournamentOptions(tournament);
-         legacyTournamentOpts(opts, container);
-      }
-
-      function configureDateSelectors(tournament, container) {
-         let start = new Date(tournament.start);
-         let end = new Date(tournament.end);
-
-         function updateStartDate() {
-            tournament.start = start.getTime();
-            startPicker.setStartRange(new Date(start));
-            endPicker.setStartRange(new Date(start));
-            endPicker.setMinDate(new Date(start));
-         };
-         function updateEndDate() {
-            tournament.end = end.getTime();
-            startPicker.setEndRange(new Date(end));
-            startPicker.setMaxDate(new Date(end));
-            endPicker.setEndRange(new Date(end));
-         };
-
-         let startPicker = new Pikaday({
-            field: container.start_date.element,
-            i18n: lang.obj('i18n'),
-            defaultDate: start,
-            setDefaultDate: true,
-            firstDay: env.calendar.first_day,
-            toString(date) { return dateFx.formatDate(dateFx.timeUTC(date)); },
-            onSelect: function() {
-               start = this.getDate();
-               updateStartDate();
-               // TODO: calcPlayerPoints needs to be accessible... and not in tournamentDisplay.js
-               calcPlayerPoints({ date: this.getDate(), tournament, container });
-            },
-         });
-         env.date_pickers.push(startPicker);
-
-         let endPicker = new Pikaday({
-            field: container.end_date.element,
-            i18n: lang.obj('i18n'),
-            defaultDate: end,
-            setDefaultDate: true,
-            firstDay: env.calendar.first_day,
-            toString(date) { return dateFx.formatDate(dateFx.timeUTC(date)); },
-            onSelect: function() {
-               end = this.getDate();
-               updateEndDate();
-               // TODO: calcPlayerPoints needs to be accessible... and not in tournamentDisplay.js
-               calcPlayerPoints({ date: this.getDate(), tournament, container });
-            },
-         });
-         env.date_pickers.push(endPicker);
-
-         updateStartDate();
-         updateEndDate();
-      }
-   };
-   */
-
-   fx.legacyTournamentOpts = legacyTournamentOpts;
-   function legacyTournamentOpts(opts = {}, container) {
-      let ddlb = util.intersection(Object.keys(container), ['category', 'dbl_rank', 'sgl_rank']).length == 3;
-      if (!ddlb) {
-         console.log('missing ddlb');
-         return opts;
-      }
-
-      if (Object.keys(opts).length) {
-         container.category.ddlb.setValue(opts.category, 'white');
-         container.dbl_rank.ddlb.setValue(opts.dbl_rank, 'white');
-         container.sgl_rank.ddlb.setValue(opts.sgl_rank, 'white');
-
-         if (opts.W) {
-            if (container.w_category.ddlb && opts.W.category) container.w_category.ddlb.setValue(opts.W.category, 'white');
-            if (container.w_category.ddlb && opts.W.sgl_rank) container.w_sgl_rank.ddlb.setValue(opts.W.sgl_rank, 'white');
-            if (container.w_category.ddlb && opts.W.dbl_rank) container.w_dbl_rank.ddlb.setValue(opts.W.dbl_rank, 'white');
-         }
-      } else {
-         opts = {
-            category: container.category.ddlb.getValue(),
-            dbl_rank: container.dbl_rank.ddlb.getValue(),
-            sgl_rank: container.sgl_rank.ddlb.getValue()
-         };
-
-         // if both genders are present
-         if (container.w_category.ddlb) opts['W'] = { category: container.w_category.ddlb.getValue() };
-         if (container.w_dbl_rank.ddlb) opts['W'].dbl_rank = container.w_dbl_rank.ddlb.getValue();
-         if (container.w_sgl_rank.ddlb) opts['W'].sgl_rank = container.w_sgl_rank.ddlb.getValue();
-         if (opts.W) opts.M = { category: opts.category, sgl_rank: opts.sgl_rank, dbl_rank: opts.dbl_rank };
-      }
-      return opts;
    }
 
    return fx;

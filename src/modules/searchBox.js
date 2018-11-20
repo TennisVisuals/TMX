@@ -1,3 +1,4 @@
+import { env } from './env';
 import { tmxTour } from './tmxTour';
 import { lang } from './translator';
 
@@ -44,7 +45,7 @@ export const searchBox = function() {
       if (!searchBox.element) return;
       let searchtype = `search.${searchBox.category}`;
       let placeholder = notice || lang.tr(searchtype) || 'Search';
-      searchBox.element.setAttribute('placeholder', placeholder);
+      searchBox.element.setAttribute('placeholder', `${placeholder}...`);
    };
    searchBox.normalFunction = ({ stateFunction=searchBox.setSearchCategory } = {}) => {
       searchBox.resetFx.forEach(f => { if (typeof f == 'function') f(); });
@@ -56,7 +57,7 @@ export const searchBox = function() {
       }
       stateFunction();
    };
-   searchBox.focus = () => { if (searchBox.element) searchBox.element.focus(); };
+   searchBox.focus = () => { if (searchBox.element && !env.device.isMobile) searchBox.element.focus(); };
    searchBox.searchCount = (num) => { if (searchBox.count_element) searchBox.count_element.innerHTML = num; };
    searchBox.searchCategory = (class_name) => { if (searchBox.category_element) searchBox.category_element.className = `icon15 ${class_name}`; };
    searchBox.updateSearch = (category) => { 

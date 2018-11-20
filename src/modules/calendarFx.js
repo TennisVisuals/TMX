@@ -14,7 +14,9 @@ import { importFx } from './importFx';
 import { rankCalc } from './rankCalc';
 import { searchBox } from './searchBox';
 import { displayGen } from './displayGen';
+import { modalViews } from './modalViews';
 import { tournamentFx } from './tournamentFx';
+import { eventManager } from './eventManager';
 import { tournamentDisplay } from './tournamentDisplay';
 
 export const calendarFx = function() {
@@ -29,10 +31,12 @@ export const calendarFx = function() {
    
    fx.displayCalendar = displayCalendar;
    function displayCalendar() {
+      searchBox.focus();
+      searchBox.nextSearchCategory('tournaments');
       let category = env.calendar.category;
 
       let start = dateFx.offsetDate(env.calendar.start);
-      let end = env.calendar.end ? dateFx.offsetDate(env.calendar.end) : new Date(new Date(start).setMonth(new Date(start).getMonth()+2));
+      let end = env.calendar.end ? dateFx.offsetDate(env.calendar.end) : new Date(new Date(start).setMonth(new Date(start).getMonth()+6));
 
       let calendar_container = displayGen.calendarContainer();
       tmxTour.calendarContainer(calendar_container);
@@ -95,22 +99,28 @@ export const calendarFx = function() {
       calendar_container.category.ddlb.selectionBackground('white');
       category = staging.legacyCategory(category, true);
 
-      calendar_container.add.element.addEventListener('click', () => {
-         let t_menu = displayGen.newTournamentMenu();
-         t_menu.create.element.addEventListener('click', () => {
-            displayGen.closeModal();
-            createNewTournament({ title: lang.tr('tournaments.new'), callback: modifyTournament });
-         });
-         t_menu.fetchbyid.element.addEventListener('click', () => {
-            displayGen.closeModal();
-            fetchFx.fetchTournament();
-         });
-         t_menu.import.element.addEventListener('click', () => {
-            displayGen.closeModal();
-            importFx.importTournamentRecord().then(done, util.logError);
-            function done() { fx.displayCalendar(); }
-         });
-      });
+      eventManager
+         .register('newTournament', 'tap', newTournament)
+         .register('fetchTournamentByID', 'tap', fetchTournamentByID)
+         .register('importTournamentRecord', 'tap', importTournamentRecord);
+
+      function newTournament() {
+         modalViews.closeModal();
+         createNewTournament({ title: lang.tr('tournaments.new'), callback: modifyTournament });
+      }
+
+      function fetchTournamentByID() {
+         modalViews.closeModal();
+         fetchFx.fetchTournament();
+      }
+
+      function importTournamentRecord() {
+         modalViews.closeModal();
+         importFx.importTournamentRecord().then(done, util.logError);
+         function done() { fx.displayCalendar(); }
+      }
+
+      calendar_container.add.element.addEventListener('click', () => { displayGen.newTournamentMenu(); });
       calendar_container.add.element.addEventListener('contextmenu', () => fetchFx.fetchTournament());
 
       function modifyTournament(tournament) {
@@ -251,9 +261,9 @@ export const calendarFx = function() {
       }
 
       function setTournamentType(value) {
-         if (trny && trny.events && trny.events.length) {
+         if ((trny.events && trny.events.length) || (trny.teams && trny.teams.length)) {
             container.tournament_type.ddlb.setValue(trny.type || '', 'white');
-            return displayGen.popUpMessage('Cannot change type after events have been created.');
+            return displayGen.popUpMessage('Cannot change type after events/teams created.');
          } else {
             trny.type = value;
          }
@@ -333,6 +343,7 @@ export const calendarFx = function() {
          let valid_start = !trny.start ? false : typeof trny.start == 'string' ? dateFx.validDate(trny.start) : true;
          let valid_end   = !trny.end   ? false : typeof trny.end   == 'string' ? dateFx.validDate(trny.end) : true;
          if (!valid_start || !valid_end || !trny.name || !trny.category) return;
+         if (trny.type == 'standard') { trny.teams = undefined; }
          if (typeof callback == 'function') callback(trny); 
          displayGen.closeModal();
       };

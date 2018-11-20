@@ -22,12 +22,16 @@
 
 .match_block .cell_singles { 
    height: 1.5em; 
+   padding-left: .3em;
+   padding-right: .3em;
 }
 .match_block .cell_doubles { 
    height: 3em; 
+   padding-left: .3em;
+   padding-right: .3em;
 }
 
-.match_block .column {
+.match_block .mcolumn {
    display: flex;
    -webkit-flex-direction: column;
    flex-direction: column;
@@ -76,7 +80,7 @@
 */
 
 .match_block .teamcolumn {
-   width: auto;
+   width: 100%;
    white-space: nowrap;
 }
 
@@ -94,8 +98,8 @@
    padding-right: .5em;
 }
 
-.match_block .padleft { padding-left: 1.5em; }
-.match_block .padright { padding-right: 1.5em; }
+.match_block .padleft { padding-left: 1.0em; }
+.match_block .padright { padding-right: 1.0em; }
 
 .match_block .duration, .match_block .time, .match_block .status {
    white-space: nowrap;
@@ -111,6 +115,7 @@
 }
 .match_block .round { 
    text-align: left; 
+   white-space: nowrap;
 }
 .match_block .court { 
    white-space: nowrap;

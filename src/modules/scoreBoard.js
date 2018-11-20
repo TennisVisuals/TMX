@@ -6,6 +6,7 @@ import { domFx } from './domFx';
 import { dateFx } from './dateFx';
 import { lang } from './translator';
 import { displayFx } from './displayFx';
+import { displayGen } from './displayGen';
 import { eventManager } from './eventManager';
 import { floatingEntry } from './floatingEntry';
 
@@ -173,6 +174,14 @@ export const scoreBoard = function() {
                sobj.p2action.ddlb.lock();
                displayActions(false);
                setWinner(1 - retired);
+            } else if (set_scores.time) {
+               let time = existing_scores.winner_index != undefined ? 1 - existing_scores.winner_index : undefined;
+               sobj.p1action.ddlb.setValue(time == 0 ? 'time' : 'winner');
+               sobj.p2action.ddlb.setValue(time == 1 ? 'time' : 'winner');
+               sobj.p1action.ddlb.lock();
+               sobj.p2action.ddlb.lock();
+               displayActions(false);
+               setWinner(1 - time);
             } else if (set_scores.default) {
                let defaulted = existing_scores.winner_index != undefined ? 1 - existing_scores.winner_index : undefined;
                sobj.p1action.ddlb.setValue(defaulted == 0 ? 'defaulted' : 'winner');
@@ -198,7 +207,7 @@ export const scoreBoard = function() {
          }
 
          // now populate with any existing score
-         if (set_scores.retired || set_scores.default || set_scores.walkover) { set_number = undefined; }
+         if (set_scores.time || set_scores.retired || set_scores.default || set_scores.walkover) { set_number = undefined; }
          setScoreDisplay({ selected_set: set_number, actions: !grouped });
       }
 
@@ -237,6 +246,7 @@ export const scoreBoard = function() {
          }
          if (typeof callback == 'function') { callback(outcome); }
          if (floating) {
+            displayGen.numericFx = undefined;
             document.body.style.overflow = null;
             d3.select(sobj.scoreboard.element).remove();
          } else {
@@ -271,6 +281,7 @@ export const scoreBoard = function() {
             } 
          }
          function acceptScores() {
+            displayGen.numericFx = undefined;
             if (sobj.p1tiebreak.element.style.display != 'none') {
                console.log('tiebreak element still visible');
             }
@@ -332,6 +343,19 @@ export const scoreBoard = function() {
          }
          sobj.p1selector.ddlb.selectionBackground();
          sobj.p2selector.ddlb.selectionBackground();
+
+         displayGen.numericFx = (key) => {
+            if (sobj.p1tiebreak.element.style.display == 'none' && key < upper_range) {
+               if (key == sf.tiebreaks_at) {
+                  let value = sf.games_for_set == sf.tiebreaks_at ? sf.games_for_set - 2 : sf.games_for_set - 1;
+                  sobj.p2selector.ddlb.setValue(value);
+                  scoreChange(1, value);
+               } else {
+                  sobj.p1selector.ddlb.setValue(key);
+                  scoreChange(0, key);
+               }
+            }
+         };
       }
 
       function configureOutcomeSelectors() {
@@ -339,6 +363,7 @@ export const scoreBoard = function() {
             { key: ' ', value: '' },
             { key: '-', value: ' ' },
             { key: 'RET.', value: 'retired' },
+            { key: 'TIME', value: 'time' },
             { key: 'W.O.', value: 'walkover' },
             { key: 'DEF.', value: 'defaulted' },
             { key: 'INT.', value: 'interrupted' },
@@ -572,8 +597,8 @@ export const scoreBoard = function() {
          let s1 = sobj.p1action.ddlb.getValue();
          let s2 = sobj.p2action.ddlb.getValue();
 
-         if (['retired', 'defaulted', 'walkover'].indexOf(s1) >= 0) return 0;
-         if (['retired', 'defaulted', 'walkover'].indexOf(s2) >= 0) return 1;
+         if (['time', 'retired', 'defaulted', 'walkover'].indexOf(s1) >= 0) return 0;
+         if (['time', 'retired', 'defaulted', 'walkover'].indexOf(s2) >= 0) return 1;
          return undefined;
       }
 
@@ -663,9 +688,7 @@ export const scoreBoard = function() {
             return;
          }
 
-         if (sobj.p1tiebreak.element.style.display != 'inline' && actions) {
-            displayActions(true);
-         }
+         if (sobj.p1tiebreak.element.style.display != 'inline' && actions) { displayActions(true); }
          sobj[winner == 0 ? 'p1action' : 'p2action'].ddlb.setValue('winner');
          sobj[winner == 1 ? 'p1action' : 'p2action'].ddlb.setValue('');
          sobj[winner == 1 ? 'p1action' : 'p2action'].ddlb.lock();
@@ -793,6 +816,7 @@ export const scoreBoard = function() {
          let positions = teams.map(team => team[0].draw_position);
 
          if (s1 == 'retired' || s2 == 'retired') score += ' RET.';
+         if (s1 == 'time' || s2 == 'time') score += ' TIME';
          if (s1 == 'walkover' || s2 == 'walkover') score = 'W.O.';
          if (s1 == 'defaulted' || s2 == 'defaulted') score += ' DEF.';
          if (s1 == 'abandoned' || s2 == 'abandoned') {
@@ -879,7 +903,8 @@ export const scoreBoard = function() {
             }
             setScoreDisplay({ selected_set: set_number });
             displayActions(true);
-         } else if (value == 'retired' || value == 'walkover' || value == 'defaulted') {
+         // } else if (value == 'time' || value == 'retired' || value == 'walkover' || value == 'defaulted') {
+         } else if (['time', 'retired', 'walkover', 'defaulted'].indexOf(value) >= 0) {
             displayActions(true);
             if (winner != undefined) {
                // score-based winner, so disallow setting opponent as ret, def, w.o.
@@ -900,11 +925,11 @@ export const scoreBoard = function() {
                // sobj.p1selector.ddlb.lock();
                // sobj.p2selector.ddlb.lock();
 
-               if (value == 'retired' || value == 'defaulted') {
+               if (value == 'time' || value == 'retired' || value == 'defaulted') {
                   if (winner != undefined) sobj[which ? 'p2action' : 'p1action'].ddlb.setValue(' '); 
                   set_number = set_scores.length;
                }
-               if (value == 'retired' && !set_scores.length) sobj[which ? 'p2action' : 'p1action'].ddlb.setValue('walkover');
+               if ((value == 'time' || value == 'retired') && !set_scores.length) sobj[which ? 'p2action' : 'p1action'].ddlb.setValue('walkover');
                if (value == 'walkover') {
                   set_scores = [];
                   set_number = 0;
@@ -994,7 +1019,7 @@ export const scoreBoard = function() {
          if (outcome == 'INC.') sets.incomplete = true;
          if (outcome == 'INT.') sets.interrupted = true;
          if (outcome == 'LIVE') sets.live = true;
-         if (outcome == 'RET.') sets.retired = true;
+         if (outcome == 'TIME') sets.time = true;
          if (outcome == 'DEF.') sets.default = true;
          if (outcome == 'W.O.') sets.walkover = true;
 
@@ -1212,7 +1237,10 @@ export const scoreBoard = function() {
 
       entry(window.innerWidth * .3, window.innerHeight * .4, html);
 
-      scoreboard.on('click', () => d3.select(`#${sb_ids.scoreboard}`).remove());
+      scoreboard.on('click', () => {
+         displayGen.numericFx = undefined;
+         d3.select(`#${sb_ids.scoreboard}`).remove();
+      });
 
       Object.assign(ids, sb_ids);
       let id_obj = displayFx.idObj(ids);

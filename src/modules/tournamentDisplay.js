@@ -4,18 +4,17 @@ import { UUID } from './UUID';
 import { util } from './util';
 import { coms } from './coms';
 import { dd } from './dropdown';
+import { geoFx } from './geoFx';
 import { domFx } from './domFx';
 import { dateFx } from './dateFx';
 import { fetchFx } from './fetchFx';
 import { lang } from './translator';
-import { matchFx } from './matchFx';
 import { courtFx } from './courtFx';
 import { staging } from './staging';
 import { tmxTour } from './tmxTour';
 import { stringFx } from './stringFx';
 import { tmxStats } from './tmxStats';
 import { pointsFx } from './pointsFx';
-import { playerFx } from './playerFx';
 import { exportFx } from './exportFx';
 import { importFx } from './importFx';
 import { rankCalc } from './rankCalc';
@@ -23,24 +22,24 @@ import { sharedFx } from './sharedFx';
 import { publishFx } from './publishFx';
 import { displayFx } from './displayFx';
 import { searchBox } from './searchBox';
+import { settingsFx } from './settingsFx';
 import { displayGen } from './displayGen';
 import { calendarFx } from './calendarFx';
-import { scheduleFx } from './scheduleFx';
 import { scoreBoard } from './scoreBoard';
+import { modalViews } from './modalViews';
+import { matchFx as mfx } from './matchFx';
 import { contextMenu } from './contextMenu';
-import { tournamentFx } from './tournamentFx';
+import { playerFx as pfx } from './playerFx';
 import { eventManager } from './eventManager';
 import { legacyProcess } from './legacyProcess';
+import { scheduleFx as sfx } from './scheduleFx';
 import { rrDraw, treeDraw, drawFx } from './drawFx';
+import { tournamentFx as tfx } from './tournamentFx';
 
 export const tournamentDisplay = function() {
    let fx = {};
 
    let ccTime = 0;         // contextClick time; used to prevent Safari event propagation to click
-   let mfx = matchFx;
-   let pfx = playerFx;
-   let sfx = scheduleFx;
-   let tfx = tournamentFx;
    let dfx = drawFx();
 
    let o = {
@@ -55,14 +54,20 @@ export const tournamentDisplay = function() {
    db.addDev({tfx});
    db.addDev({mfx});
    db.addDev({util});
+   db.addDev({domFx});
    db.addDev({UUID});
+   db.addDev({searchBox});
 
-   fx.settingsLoaded = () => {
+   function settingsLoaded() {
       dfx.options(env.drawFx);
       scoreBoard.options(env.scoreboard.options);
       let score_format = tfx.getScoreboardSettings({ format: 'singles' });
       scoreBoard.settings(score_format);
-   };
+   }
+
+   if (settingsFx) {
+      settingsFx.register('tournamentDisplay', settingsLoaded);
+   }
 
    fx.options = (values) => {
       if (!values) return o;
@@ -123,6 +128,7 @@ export const tournamentDisplay = function() {
    function displayTournament({tuid, selected_tab, editing} = {}) {
       displayGen.homeIcon('home');
       tuid = tuid || searchBox.active.tournament && searchBox.active.tournament.tuid;
+
       db.findTournament(tuid).then(tournament => {
          db.findTournamentMatches(tuid).then(matches => go(tournament, matches), util.logError);
       });
@@ -140,6 +146,7 @@ export const tournamentDisplay = function() {
       }
    }
 
+   fx.createTournamentContainer = createTournamentContainer;
    function createTournamentContainer({tournament, dbmatches, selected_tab, editing}) {
       eventManager.holdActions.requestTournamentEvents = () => coms.requestTournamentEvents(tournament.tuid);
       eventManager.holdActions.tournamentPlayers = tournamentPlayers;
@@ -149,6 +156,7 @@ export const tournamentDisplay = function() {
       let state = {
          edit: editing,
          manual_ranking: false,
+         lastpush2cloud: false,
          admin: false
       };
 
@@ -209,6 +217,12 @@ export const tournamentDisplay = function() {
 
       function setUserAuth(result) { displayGen.authState(container.authorize.element, result.authorized || false); }
 
+      if (tfx.sameOrg(tournament) && !tournament.delegated) {
+         displayGen.enterFx = () => {
+            if (!state.edit) { activateEdit(); }
+            displayGen.enterFx = undefined;
+         };
+      }
       container.edit.element.style.display = tfx.sameOrg(tournament) && !tournament.delegated ? 'inline' : 'none';
       if (tournament.delegated && tfx.sameOrg(tournament)) displayGen.delegated(container, true);
 
@@ -257,7 +271,7 @@ export const tournamentDisplay = function() {
       domFx.addEventToClass(classes.refresh_registrations, () => replaceRegisteredPlayers(true), undefined, 'contextmenu');
 
       // set up printing events
-      domFx.addEventToClass(classes.print_sign_in, playersTabPrinting);
+      domFx.addEventToClass(classes.print_sign_in, playersTabPDFs);
       domFx.addEventToClass(classes.print_draw, printDraw);
       domFx.addEventToClass(classes.print_draw, () => console.log('context menu print'), document, 'contextmenu');
 
@@ -276,7 +290,7 @@ export const tournamentDisplay = function() {
             // find and remove awesomplete in schedule_scroll_container
             let search_field = container.schedule.element.querySelector('.awesomplete');
             let search_box = search_field && domFx.getParent(search_field, 'schedule_box');
-            if (search_box) search_box.innerHTML = scheduleFx.opponentSearch();
+            if (search_box) search_box.innerHTML = sfx.opponentSearch();
          }
 
          let schedule_matches = document.querySelector(`.${classes.schedule_matches}`);
@@ -420,7 +434,7 @@ export const tournamentDisplay = function() {
                year: publist.year.element.checked,
                club: publist.club.element.checked,
                school: publist.school.element.checked,
-               gender: publist.gender.element.checked,
+               sex: publist.sex.element.checked,
                ioc: publist.ioc.element.checked && env.assets.flags,
                sort: publist.sort.ddlb.getValue(),
                up_to_date: true
@@ -530,25 +544,30 @@ export const tournamentDisplay = function() {
          }
       });
 
-      container.pub_link.element.addEventListener('click', () => {
-         // let message = `${location.origin}/Live/?ouid=${tournament.org.ouid}&tuid=${tournament.tuid}`;
+      function tournamentLinkAuth() {
+         modalViews.closeModal();
+         let url = `${location.origin}/Live/${tournament.org.abbr}`;
+         window.open(url, '_blank');
+      }
+      function tournamentLinkNoAuth() {
+         modalViews.closeModal();
+         let url = `${location.origin}/Live/${tournament.org.abbr}?test`;
+         window.open(url, '_blank');
+      }
+
+      function downloadQRcode() { displayQRdialogue(tournament); }
+      function displayQRdialogue(tournament) {
+         modalViews.closeModal();
          let message = `${location.origin}/Live/${tournament.org.abbr}`;
          let ctext = `
             <div class='flexcenter flexrow' style='width: 100%; margin-top: .5em; margin-bottom: .5em;'>
                <div class='pdf action_icon' style='display: none'></div>
                <a id='dl' download='tournamenturl'><div class='png action_icon'></div></a>
-               <div id='cb' class='clipboard action_icon'></div>
             </div>
             <div><canvas id='qr'></canvas></div>
-            <div id='msg' style='display: none;'>${lang.tr('phrases.linkcopied')}</div>
             `;
          displayGen.okCancelMessage(ctext, () => displayGen.closeModal());
          genQUR(message);
-
-         document.getElementById('cb').addEventListener('click', function() {
-            copyClick(message);
-            document.getElementById('msg').style.display = 'inline';
-         });
 
          document.getElementById('dl').addEventListener('click', function() {
             downloadCanvas(this, 'qr', 'tournament_url.png');
@@ -557,8 +576,7 @@ export const tournamentDisplay = function() {
                 link.download = filename;
             }
          }, false);
-
-      });
+      }
 
       function genQUR(message) {
          new QRious({
@@ -641,7 +659,9 @@ export const tournamentDisplay = function() {
       playersPublishState();
       displayGen.pubStateTrnyInfo(container.pubStateTrnyInfo.element, tournament.infoPublished);
       displayGen.tournamentPublishState(container.push2cloud_state.element, tournament.pushed2cloud);
-      displayGen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
+      if (container.localdownload_state && container.localdownload_state.element) {
+         displayGen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
+      }
 
       /*
       function replaceNewLines(str) {
@@ -679,7 +699,11 @@ export const tournamentDisplay = function() {
       container.stats.element.addEventListener('click', () => {
          let visible = container.stat_charts.element.style.display != 'none';
          container.stat_charts.element.style.display = (visible ? 'none' : 'flex');
-         if (!visible) tmxStats.processMatches(tournament, container);
+         if (!visible) {
+            let target_element = container.stat_charts.element;
+            let { completed_matches } = mfx.tournamentEventMatches({ tournament });
+            tmxStats.processMatches(completed_matches, target_element);
+         }
       });
 
       container.social.element.addEventListener('click', () => {
@@ -765,6 +789,7 @@ export const tournamentDisplay = function() {
 
       function parseSocialLinks() {
          let supported = {
+            'youtu.be': 'youtube', 
             'youtube.com': 'youtube', 
             'facebook.com': 'facebook',
             'instagram.com': 'instagram',
@@ -799,15 +824,17 @@ export const tournamentDisplay = function() {
       });
       container.pubTrnyInfo.element.addEventListener('contextmenu', () => unpublishTournamentInfo(tournament));
 
-      container.localdownload.element.addEventListener('click', () => {
-         if (!tournament.org) tournament.org = env.org;
+      if (container.localdownload && container.localdownload.element) {
+         container.localdownload.element.addEventListener('click', () => {
+            if (!tournament.org) tournament.org = env.org;
 
-         exportFx.downloadCircularJSON(`${tournament.tuid}.circular.json`, tournament);
-         tournament.saved_locally = true;
+            exportFx.downloadCircularJSON(`${tournament.tuid}.circular.json`, tournament);
+            tournament.saved_locally = true;
 
-         displayGen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
-         saveTournament(tournament, false);
-      });
+            displayGen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
+            saveTournament(tournament, false);
+         });
+      }
 
       container.export_points.element.addEventListener('click', () => {
          if (container.export_points.element.firstChild.classList.contains('download')) {
@@ -999,7 +1026,6 @@ export const tournamentDisplay = function() {
       container.clearschedule.element.addEventListener('contextmenu', resetSchedule);
       container.autoschedule.element.addEventListener('click', autoSchedule);
       container.autoschedule.element.addEventListener('contextmenu', autoSchedule);
-      // container.schedulelimit.element.addEventListener('click', limitAutoSchedule);
       container.events_add.element.addEventListener('click', newTournamentEvent);
       container.locations_actions.element.addEventListener('click', newLocation);
       container.add_team.element.addEventListener('click', addTeam);
@@ -1066,7 +1092,6 @@ export const tournamentDisplay = function() {
             match.source.schedule = {};
             matchEventOutOfDate(match);
          });
-         console.log('current:', displayed.schedule_day);
          scheduleTab();
          scheduleActions({ changed: true });
          saveTournament(tournament);
@@ -1091,14 +1116,6 @@ export const tournamentDisplay = function() {
          return hashes;
          function scheduleHash(schedule) { return `${schedule.oop_round}|${schedule.luid}|${schedule.index}`; }
       }
-
-      /*
-      function limitAutoSchedule() {
-         console.log('limit Auto Schedule')
-         // TODO: Only show the button when the selected event is a Round Robin
-         // TODO: change the button to show the limit that has been set
-      }
-      */
 
       function autoSchedule() {
          let order_priority = false;
@@ -1158,21 +1175,33 @@ export const tournamentDisplay = function() {
             displayGen.escapeModal();
             let config = displayGen.autoScheduleConfig();
             let getRound = () => config.at_row.ddlb.getValue();
-            config.order.element.addEventListener('click', () => { order_priority = true; displayGen.closeModal(); doIt(getRound()); });
-            config.round.element.addEventListener('click', () => { displayGen.closeModal(); doIt(getRound()); });
+            let getCourt = () => config.column.ddlb.getValue();
+            config.order.element.addEventListener('click', () => { order_priority = true; displayGen.closeModal(); doIt(getRound(), getCourt()); });
+            config.round.element.addEventListener('click', () => { displayGen.closeModal(); doIt(getRound(), getCourt()); });
+
             let oop_rows = util.unique(available_oop);
             let range = util.range(Math.min(...oop_rows), Math.max(...oop_rows) + 1);
             let options = range.map(c => ({ key: c, value: c }));
             config.at_row.ddlb.setOptions(options);
             config.at_row.ddlb.setValue(options[0].value, 'white');
+
+            // filter courts so that unavilable courts are not included
+            let available_courts = util.unique(available_cells.map(c=>c.court));
+            let court_options = courts
+               .filter(c=>available_courts.indexOf(c.name) >= 0)
+               .map(c=>({ key: c.name, value: c.name }));
+            court_options.unshift({ key: '-', value: '' });
+            config.column.ddlb.setOptions(court_options);
+            config.column.ddlb.setValue(court_options[0].value, 'white');
          } else {
             doIt();
          }
 
-         function doIt(at_row=1) {
+         function doIt(at_row=1, court) {
             available_cells = available_cells.filter(cell => cell.oop_round >= at_row);
+            if (court) { available_cells = available_cells.filter(cell => cell.court == court); }
 
-            let to_be_scheduled = scheduleFx.sortedUnscheduled(tournament, filtered_unscheduled, order_priority);
+            let to_be_scheduled = sfx.sortedUnscheduled(tournament, filtered_unscheduled, order_priority);
 
             // now assign oop cells to matches
             to_be_scheduled.forEach(match => {
@@ -1202,13 +1231,13 @@ export const tournamentDisplay = function() {
 
       function checkConflicts(day_matches) {
          if (!day_matches || !day_matches.length) return;
-         let issues = scheduleFx.schedulingIssues(day_matches);
+         let issues = sfx.schedulingIssues(day_matches);
          let status_map = Object.assign(...day_matches.map(match=>({ [match.muid]: matchStatus(match) })));
 
          issues.warnings.forEach(muid => { if (status_map[muid] != 'complete' && status_map[muid] != 'inprogress') status_map[muid] = 'warning'; });
          issues.conflicts.forEach(muid => { if (status_map[muid] != 'complete' && status_map[muid] != 'inprogress') status_map[muid] = 'conflict'; });
 
-         Object.keys(status_map).forEach(muid => scheduleFx.colorCell(container.schedule.element, muid, status_map[muid]));
+         Object.keys(status_map).forEach(muid => sfx.colorCell(container.schedule.element, muid, status_map[muid]));
 
          function matchStatus(match) {
             let complete = match.winner_index != undefined;
@@ -1304,6 +1333,7 @@ export const tournamentDisplay = function() {
          assignment.signout.element.style.display = existing.length && existing[0].signed_in ? 'inline' : 'none';
 
          let cleanUp = () => {
+            modalViews.closeModal();
             displayGen.closeModal();
 
             // TODO: any draws which have been created need to be re-validated
@@ -1878,11 +1908,14 @@ export const tournamentDisplay = function() {
          document.querySelector('.ranking_order').style.opacity = 0;
          saveTournament(tournament);
          setEditState();
+         if (env.actions.finish2calendar) calendarFx.displayCalendar();
       }
 
       // authorization to publish tournament
       function revokeAuthorization() {
          if (!state.admin) return;
+         modalViews.closeModal();
+
          displayGen.escapeModal();
          displayGen.okCancelMessage(lang.tr('phrases.revokeauth'), revokeAuthorization, () => displayGen.closeModal());
          function revokeAuthorization() {
@@ -1909,12 +1942,13 @@ export const tournamentDisplay = function() {
          coms.emitTmx({ pushKey });
          displayGen.escapeModal();
          displayGen.okCancelMessage(ctext, () => displayGen.closeModal());
-         copyClick(key_uuid);
+         domFx.copyClick(key_uuid);
       }
       */
 
       function authorizeUser() {
-         if (!state.admin) return;
+         modalViews.closeModal();
+
          let key_uuid = (+new Date).toString(36).slice(-6).toUpperCase();
          tournament.pushed2cloud = new Date().getTime();
          let pushKey = {
@@ -1929,12 +1963,12 @@ export const tournamentDisplay = function() {
                }
          };
 
-         let ctext = (!env.isMobile) ? `<h2>${key_uuid}</h2><h2>${lang.tr('phrases.keycopied')}</h2>` : `<h2>${lang.tr('tournaments.key')}</h2>${key_uuid}`;
+         let ctext = (!env.device.isMobile) ? `<h2>${key_uuid}</h2><h2>${lang.tr('phrases.keycopied')}</h2>` : `<h2>${lang.tr('tournaments.key')}</h2>${key_uuid}`;
 
          coms.requestAcknowledgement({ uuid: key_uuid, callback: displayKey });
          // TODO: server won't accept pushKey unless user uuuid in superuser cache on server
          coms.emitTmx({ pushKey });
-         copyClick(key_uuid);
+         domFx.copyClick(key_uuid);
 
          function displayKey() {
             displayGen.escapeModal();
@@ -1943,7 +1977,8 @@ export const tournamentDisplay = function() {
       }
 
       function delegateMatch(match, teams, score_format) {
-         let evt = tfx.findEventByID(tournament, match.euid || match.event.euid);
+         let evt = tfx.findEventByID(tournament, match.euid || (match.event && match.event.euid));
+         if (!evt) { return console.log('error: no event'); }
          let key_uuid = (+new Date).toString(36).slice(-6).toUpperCase();
 
          let coords;
@@ -1985,12 +2020,12 @@ export const tournamentDisplay = function() {
 
          console.log('content:', content);
 
-         let ctext = (!env.isMobile) ? `<h2>${key_uuid}</h2><h2>${lang.tr('phrases.keycopied')}</h2>` : `<h2>${lang.tr('tournaments.key')}</h2>${key_uuid}`;
+         let ctext = (!env.device.isMobile) ? `<h2 class='title is-4'>${key_uuid}</h2><h2 class='subtitle is6'>${lang.tr('phrases.keycopied')}</h2>` : `<h2>${lang.tr('tournaments.key')}</h2>${key_uuid}`;
 
          coms.requestAcknowledgement({ uuid: key_uuid, callback: displayKey });
 
          coms.emitTmx({ pushKey });
-         copyClick(key_uuid);
+         domFx.copyClick(key_uuid);
 
          function displayKey() {
             displayGen.escapeModal();
@@ -2022,63 +2057,83 @@ export const tournamentDisplay = function() {
          
          container.edit.element.addEventListener('click', () => { if (!state.edit) activateEdit(); });
          container.finish.element.addEventListener('click', () => { deactivateEdit(); });
-         container.cloudfetch.element.addEventListener('contextmenu', () => {
-            coms.requestTournamentEvents(tournament.tuid);
-         });
-         container.cloudfetch.element.addEventListener('click', () => {
-            let cloudfetch = displayGen.cloudFetchMenu();
-            cloudfetch.tournament.element.addEventListener('click', () => {
-               coms.requestTournament(tournament.tuid);
-            });
-            cloudfetch.events.element.addEventListener('click', () => {
-               coms.requestTournamentEvents(tournament.tuid);
-            });
-
-            /*
-            if (evt.ctrlKey || evt.shiftKey) return coms.requestTournamentEvents(tournament.tuid);
-            coms.requestTournament(tournament.tuid);
-            */
-
-         });
-         container.authorize.element.addEventListener('contextmenu', revokeAuthorization);
-         container.authorize.element.addEventListener('click', (evt) => {
-            if (evt.ctrlKey || evt.shiftKey) return revokeAuthorization();
-            authorizeUser();
-         });
+         container.cloudfetch.element.addEventListener('contextmenu', () => { coms.requestTournamentEvents(tournament.tuid); });
+         container.cloudfetch.element.addEventListener('click', displayGen.cloudFetchMenu);
       }
 
-      function copyClick(message) {
-         let c = document.createElement('input');
-         c.style.opacity = 0;
-         c.setAttribute('id', 'c2c');
-         c.setAttribute('type', 'text');
-         c.setAttribute('value', message);
-         let inp = document.body.appendChild(c);
+      function mergeEvents() { modalViews.closeModal(); coms.requestTournamentEvents(tournament.tuid); }
+      function fetchTournamentRecord() { modalViews.closeModal(); coms.requestTournament(tournament.tuid); }
 
-         let b = document.createElement('button');
-         b.style.display = 'none';
-         b.setAttribute('data-copytarget', '#c2c');
-         b.addEventListener('click', elementCopy, true);
-         let elem = document.body.appendChild(b);
-         elem.click();
-         elem.remove();
-         inp.remove();
-      }
+      eventManager
+         .register('eventPubState', 'tap', eventPubState)
+         .register('closeOldModal', 'tap', ()=>displayGen.closeModal())
+         .register('authorizeActions', 'tap', authorizeActions)
+         .register('generateKey', 'tap', authorizeUser)
+         .register('authorizeAdmin', 'tap', authorizeAdmin)
+         .register('revokeAuthorization', 'tap', revokeAuthorization)
+         .register('downloadQRcode', 'tap', downloadQRcode)
+         .register('tournamentLinkAuth', 'tap', tournamentLinkAuth)
+         .register('tournamentLinkNoAuth', 'tap', tournamentLinkNoAuth)
+         .register('tournamentLinks', 'tap', displayGen.tournamentLinks)
+         .register('googleTournamentLocation', 'tap', googleTournamentLocation)
+         .register('currentTournamentLocation', 'tap', currentTournamentLocation)
+         .register('singlesSignInPDF', 'tap', singlesSignInPDF)
+         .register('doublesSignInPDF', 'tap', doublesSignInPDF)
+         .register('playersListPDF', 'tap', playersListPDF)
+         .register('mergeEvents', 'tap', mergeEvents)
+         .register('fetchTournamentRecord', 'tap', fetchTournamentRecord);
 
-      function elementCopy(e) {
-         let t = e.target;
-         let c = t.dataset.copytarget;
-         let inp = (c ? document.querySelector(c) : null);
-
-         if (inp && inp.select) {
-            inp.select();
-
-            try {
-               document.execCommand('copy');
-               inp.blur();
-            }
-            catch (err) { alert('please press Ctrl/Cmd+C to copy'); }
+      function authorizeActions() {
+         if (state.admin) {
+            displayGen.authorizeActions();
+         } else {
+            console.log('offer to enter key');
          }
+      }
+
+      function authorizeAdmin() {
+         modalViews.closeModal();
+
+         let key_uuid = (+new Date).toString(36).slice(-6).toUpperCase();
+         tournament.pushed2cloud = new Date().getTime();
+         let pushKey = {
+            key_uuid,
+            content: {
+                  "onetime": true,
+                  "directive": "authorize",
+                  "content": {
+                     "tuid": tournament.tuid,
+                     "tournament": CircularJSON.stringify(tournament)
+                  }
+               }
+         };
+
+         coms.requestAcknowledgement({ uuid: key_uuid, callback: submitKey });
+         coms.emitTmx({ pushKey });
+         domFx.copyClick(key_uuid);
+
+         function submitKey() {
+            coms.sendKey(key_uuid);
+            eventManager.register('tournamentAuthorization', 'tap', receiveAuth);
+            displayGen.tournamentPublishState(container.push2cloud_state.element, tournament.pushed2cloud);
+         }
+
+         function receiveAuth(t) {
+            let a4t = t.tuid == tournament.tuid;
+            displayGen.authState(container.authorize.element, a4t);
+         }
+      }
+
+      function googleTournamentLocation() { geoFx.getLatLng({ successFx: setTournamentLatLng }); }
+      function currentTournamentLocation() { geoFx.getUserPosition({ successFx: setTournamentLatLng }); }
+
+      function setTournamentLatLng({ latitude, longitude }) {
+         if (!tournament.address) tournament.address = {};
+         tournament.address.latitude = latitude;
+         tournament.address.longitude = longitude;
+         container.latitude.element.value = latitude;
+         container.longitude.element.value = longitude;
+         saveTournament(tournament);
       }
 
       function setEditState() {
@@ -2086,7 +2141,10 @@ export const tournamentDisplay = function() {
          let same_org = tfx.sameOrg(tournament);
 
          container.authorize.element.style.display = ouid && state.edit ? 'inline' : 'none';
+
          container.edit.element.style.display = state.edit ? 'none' : 'inline';
+         container.x.element.style.display = state.edit ? 'none' : 'inline';
+
          container.finish.element.style.display = state.edit ? 'inline' : 'none';
          container.cloudfetch.element.style.display = state.edit && ouid && same_org ? 'inline' : 'none';
          container.export_points.element.firstChild.className = 'action_icon';
@@ -2097,7 +2155,9 @@ export const tournamentDisplay = function() {
          container.points_valid.element.disabled = !state.edit;
 
          Array.from(document.querySelectorAll('.refresh_icon')).forEach(i=>i.style.opacity = state.edit ? 1 : 0);
-         document.querySelector('.' + classes.refresh_registrations).classList[state.edit ? 'add' : 'remove']('info');
+         if (env.documentation.hoverhelp) {
+            document.querySelector('.' + classes.refresh_registrations).classList[state.edit ? 'add' : 'remove'](displayGen.info || 'stub');
+         }
 
          document.querySelector('.roster_link').style.opacity = state.edit ? 1 : 0;
          document.querySelector('.reg_link').style.opacity = state.edit ? 1 : 0;
@@ -2120,7 +2180,7 @@ export const tournamentDisplay = function() {
             delbutton.style.display = state.edit ? 'inline' : 'none';
          }
 
-         let view_icon = state.edit && env.documentation ? 'flex' : 'none';
+         let view_icon = state.edit && env.documentation.links ? 'flex' : 'none';
          domFx.eachElementClass(document, 'tiny_docs_icon', (el) => el.style.display=view_icon);
          domFx.eachElementClass(document, 'tiny_tour_icon', (el) => el.style.display=view_icon);
          domFx.eachElementClass(document, 'hints_icon', (el) => el.style.display=view_icon);
@@ -2169,13 +2229,16 @@ export const tournamentDisplay = function() {
          let same_org = tfx.sameOrg(tournament);
          let ouid = env.org && env.org.ouid;
 
-         [ 'start_date', 'end_date', 'organization', 'organizers', 'location', 'judge' ].forEach(field=>container[field].element.disabled = !bool);
+         [ 'start_date', 'end_date', 'organization', 'organizers', 'location', 'judge', 'latitude', 'longitude' ]
+            .forEach(field=>container[field].element.disabled = !bool);
          let publications = !tournament.events || !tournament.events.length ? false : tournament.events.reduce((p, c) => c.published || p, false);
          let delegation = publications && tournament.events && tournament.events.length && tournament.events.reduce((p, c) => p || c.draw_created || c.active, false);
          container.delegate.element.style.display = (bool || tournament.delegated) && delegation && same_org ? 'inline' : 'none';
 
          container.pubTrnyInfo.element.style.display = bool && same_org && ouid ? 'inline' : 'none';
-         container.localdownload.element.style.display = bool && same_org ? 'inline' : 'none';
+         if (container.localdownload && container.localdownload.element) {
+            container.localdownload.element.style.display = bool && same_org ? 'inline' : 'none';
+         }
 
          // require ouid
          container.edit_notes.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
@@ -2334,54 +2397,56 @@ export const tournamentDisplay = function() {
          }
       }
 
-      function playersTabPrinting() {
+      // PLAYERS TAB PRINTING
+      function playersTabPDFs() {
          if (!tournament.players || !tournament.players.length) return;
+         displayGen.playersTabPDFs();
+      }
+      
+      function singlesSignInPDF() {
+         modalViews.closeModal();
+         let t_players = tournament.players
+            .filter(player=>filters.indexOf(player.sex) < 0)
+            .filter(player=>(player.withdrawn == 'N' || !player.withdrawn) && !player.signed_in);
 
-         let ptp_obj = displayGen.playersTabPrinting();
+         if (!t_players) return;      
 
-         displayGen.escapeModal();
-         ptp_obj.singles.element.addEventListener('click', () => {
-            displayGen.closeModal();
-            let t_players = tournament.players
-               .filter(player=>filters.indexOf(player.sex) < 0)
-               .filter(player=>(player.withdrawn == 'N' || !player.withdrawn) && !player.signed_in);
-
-            if (!t_players) return;      
-
-            t_players = tfx.orderPlayersByRank(t_players, tournament.category);
-            exportFx.orderedPlayersPDF({
-               tournament,
-               players: t_players,
-               save: env.printing.save_pdfs,
-               doc_name: `${lang.tr('sgl')} ${lang.tr('print.signin')}`
-            });
-         });
-         ptp_obj.doubles.element.addEventListener('click', () => {
-            displayGen.closeModal();
-            exportFx.doublesSignInPDF({
-               tournament,
-               save: env.printing.save_pdfs,
-               doc_name: `${lang.tr('dbl')} ${lang.tr('print.signin')}`
-            });
-         });
-         ptp_obj.playerlist.element.addEventListener('click', () => {
-            displayGen.closeModal();
-
-            let t_players = tournament.players
-               .filter(player=>filters.indexOf(player.sex) < 0)
-               .filter(player=>(player.withdrawn == 'N' || !player.withdrawn));
-
-            if (!t_players) return;      
-
-            exportFx.playerList({
-               tournament,
-               players: t_players,
-               save: env.printing.save_pdfs,
-               attributes: { club: true, rank: true, rating: true, ioc: true, school: true, year: true, gender: true  },
-               doc_name: `${lang.tr('print.playerlist')}`
-            });
+         t_players = tfx.orderPlayersByRank(t_players, tournament.category);
+         exportFx.orderedPlayersPDF({
+            tournament,
+            players: t_players,
+            save: env.printing.save_pdfs,
+            doc_name: `${lang.tr('sgl')} ${lang.tr('print.signin')}`
          });
       }
+
+      function doublesSignInPDF() {
+         modalViews.closeModal();
+         exportFx.doublesSignInPDF({
+            tournament,
+            save: env.printing.save_pdfs,
+            doc_name: `${lang.tr('dbl')} ${lang.tr('print.signin')}`
+         });
+      }
+
+      function playersListPDF() {
+         displayGen.closeModal();
+
+         let t_players = tournament.players
+            .filter(player=>filters.indexOf(player.sex) < 0)
+            .filter(player=>(player.withdrawn == 'N' || !player.withdrawn));
+
+         if (!t_players) return;      
+
+         exportFx.playerList({
+            tournament,
+            players: t_players,
+            save: env.printing.save_pdfs,
+            attributes: { club: true, rank: true, rating: true, ioc: true, school: true, year: true, gender: true  },
+            doc_name: `${lang.tr('print.playerlist')}`
+         });
+      }
+      // END PLAYERS TAB PRINTING
 
       function teamsTab() {
          let visible = (tfx.isTeam(tournament) && (state.edit || (tournament.teams && tournament.teams.length))) || false;
@@ -2821,7 +2886,9 @@ export const tournamentDisplay = function() {
 
             let opacity = (state.edit && teams.length) ? 1 : 0;
             container.team_details.element.querySelector('.ranking_order').style.opacity = opacity;
-            container.team_details.element.querySelector('.' + classes.team_rankings).classList[opacity ? 'add' : 'remove']('infoleft');
+            if (env.documentation.hoverhelp) {
+               container.team_details.element.querySelector('.' + classes.team_rankings).classList[opacity ? 'add' : 'remove'](displayGen.infoleft || 'stub');
+            }
 
             let teamDetails = (target) => {
                let clicked_team = domFx.getParent(target, 'teamid');
@@ -2898,9 +2965,11 @@ export const tournamentDisplay = function() {
          displayGen.eventList(container, events, highlight_euid);
 
          function totalOpponents(evt) { return !evt ? 0 : (evt.approved.length + (['E', 'S'].indexOf(evt.draw_type) >= 0 ? (evt.qualifiers || 0) : 0)); }
-         function eventDetails(evt) {
+         eventManager.register('displayEventDetails', 'tap', displayEventDetails);
+
+         function displayEventDetails(target) {
             tmxTour.clear();
-            let clicked_event = domFx.getParent(evt.target, 'event');
+            let clicked_event = domFx.getParent(target, 'event');
             let class_list = clicked_event.classList;
             if (class_list.contains('highlight_listitem')) {
                closeEventDetails();
@@ -2913,10 +2982,10 @@ export const tournamentDisplay = function() {
                displayEvent({e});
             }
          }
-         // attach action to display event_details when clicking each event
-         domFx.addEventToClass('event', eventDetails, container.events.element);
+
          domFx.addEventToClass('event', customEventCategory, container.events.element, 'contextmenu');
-         domFx.addEventToClass('pubstate', eventPubState, container.events.element);
+
+         domFx.addEventToClass('published_header', unpublishAllEvents, document);
          domFx.addEventToClass('published_header', unpublishAllEvents, document, 'contextmenu');
          domFx.addEventToClass('published_header', (evt) => { if (evt.ctrlKey || evt.shiftKey) return unpublishAllEvents(); });
          if (regen_drawstab) drawsTab();
@@ -2959,10 +3028,12 @@ export const tournamentDisplay = function() {
          }
       }
 
-      function eventPubState(evt) {
+      // function eventPubState(evt) {
+      function eventPubState(target) {
          if (!state.edit) return;
-         evt.stopPropagation();
-         let clicked_event = domFx.getParent(evt.target, 'event');
+         // evt.stopPropagation();
+         // let clicked_event = domFx.getParent(evt.target, 'event');
+         let clicked_event = domFx.getParent(target, 'event');
          let index = clicked_event.getAttribute('index');
          let event_data = tournament.events[index];
 
@@ -3109,7 +3180,8 @@ export const tournamentDisplay = function() {
             gender = genders_signed_in.filter(g=>existing_gendered_singles.indexOf(g) < 0)[0];
          }
 
-         let scoreboard = env.scoreboard.settings;
+         let score_format = tfx.getScoreboardSettings({ format: 'singles' });
+         let scoring = scoreBoard.getScoring(score_format);
          let presets = {
             gender,
             format: 'S',
@@ -3118,20 +3190,22 @@ export const tournamentDisplay = function() {
             rank: tournament.rank || '',
             surface: tournament.surface || 'C',
             inout: tournament.inout || '',
-            scoring_format: {
-               singles: scoreboard.singles,
-               doubles: scoreboard.doubles
-            }
+            scoring_format: {},
+            score_format,
+            scoring
          };
 
          if (tfx.isTeam(tournament)) {
+            let singles = tfx.getScoreboardSettings({ format: 'singles' });
+            let doubles = tfx.getScoreboardSettings({ format: 'doubles' });
             presets = {
                draw_type: 'E',
                format: '',
                category: tournament.category || '',
                rank: tournament.rank || '',
                surface: tournament.surface || '',
-               inout: tournament.inout || ''
+               inout: tournament.inout || '',
+               scoring_format: { singles, doubles }
             };
          }
 
@@ -3428,7 +3502,7 @@ export const tournamentDisplay = function() {
          }
 
          function deleteTeam() {
-            console.log('delete team... delete players from tournament players??');
+            console.log('delete team... delete players from tournament IF team is sheet sync?');
             closeTeamDetails();
             displayGen.closeModal();
 
@@ -3482,8 +3556,7 @@ export const tournamentDisplay = function() {
          }
       }
 
-      container.event_edit_name.element.addEventListener('keyup', function(k) { 
-         if (k.which == 13) {
+      function submitEventName() {
             container.event_edit_name.element.style.display = 'none';
             let value = container.event_edit_name.element.value;
             let euid = container.event_details.element.getAttribute('euid');
@@ -3497,10 +3570,7 @@ export const tournamentDisplay = function() {
             eventName(evt);
             saveTournament(tournament);
             container.event_display_name.element.style.display = 'flex';
-         }
-      });
-
-      container.event_display_name.element.addEventListener('click', editEventName);
+      }
 
       function editEventName() {
          let euid = container.event_details.element.getAttribute('euid');
@@ -3511,6 +3581,10 @@ export const tournamentDisplay = function() {
             container.event_edit_name.element.focus();
          }
       }
+
+      container.event_display_name.element.addEventListener('click', editEventName);
+      container.event_edit_name.element.addEventListener('focusout', submitEventName);
+      container.event_edit_name.element.addEventListener('keyup', function(k) { if (k.which == 13) { submitEventName(); } });
 
       function displayEvent({ e, index } = {}) {
          e = e || (displayed.euid ? tfx.findEventByID(tournament, displayed.euid) : undefined);
@@ -4249,7 +4323,7 @@ export const tournamentDisplay = function() {
                let newLatLng = new L.LatLng(lat, lng);
                marker.setLatLng(newLatLng);
                let message = lang.tr('phrases.updatelatlng');
-               displayGen.okCancelMessage(message, () => setLatLng(lat, lng), ()=>displayGen.closeModal());
+               displayGen.okCancelMessage(message, () => setLatLng({ latitude: lat, longitude: lng }), ()=>displayGen.closeModal());
             });
 
             map.on("contextmenu", function (event) {
@@ -4259,71 +4333,28 @@ export const tournamentDisplay = function() {
 
          function promptGetUserPosition() {
             if (!state.edit) return;
-            let message = lang.tr('phrases.usecurrentlocation');
-            displayGen.okCancelMessage(message, getUserPosition, ()=>displayGen.closeModal());
-         }
-
-         function getUserPosition() {
-            displayGen.closeModal();
-            var options = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
-
-            if (navigator && navigator.permissions && navigator.permissions.query) {
-               navigator.permissions.query({
-                    name: 'geolocation'
-                }).then(function(result) {
-                    if (result.state == 'granted') {
-                       navigator.geolocation.getCurrentPosition(success, coms.notShared, options);
-                    } else if (result.state == 'prompt') {
-                       navigator.geolocation.getCurrentPosition(success, coms.notShared, options);
-                    } else if (result.state == 'denied') {
-                       geolocationDenied();
-                    }
-                    result.onchange = function() { if (result.state == 'granted') navigator.geolocation.getCurrentPosition(success, coms.notShared, options); };
-                }, util.logError);
-            } else if (navigator && navigator.geolocation && navigator.geolocation.getCurrentPosition) {
-                navigator.geolocation.getCurrentPosition(success, coms.notShared, options);
-            }
-
-            function success(pos) {
-               coms.locationShared(pos);
-               setLatLng(pos.coords.latitude, pos.coords.longitude);
-            }
+            geoFx.getUserPosition({ successFx: setLatLng });
          }
 
          function getLatLng() {
             if (!state.edit) return;
-            displayGen.enterLink('', lang.tr('phrases.entergooglemapsurl'), processLink);
-            function processLink(link) {
-               displayGen.closeModal();
-               if (!link) { return; }
-               let parts = link.split('/');
-               let ll = parts.reduce((p, c) => c && c[0] == '@' ? c : p, undefined);
-               let lparts = ll && ll.split(',');
-               let latitude = lparts && lparts[0].slice(1);
-               let longitude = lparts && lparts[1];
-
-               if (latitude && longitude) {
-                  setLatLng(latitude, longitude);
-               } else {
-                  invalidURL('invalidgooglemapsurl');
-               }
-            }
+            geoFx.getLatLng({ successFx: setLatLng });
          }
 
-         function setLatLng(lat, lng) {
-            l.latitude = lat;
-            l.longitude = lng;
-            attributes.latitude.element.value = lat;
-            attributes.longitude.element.value = lng;
+         function setLatLng({ latitude, longitude }) {
+            l.latitude = latitude;
+            l.longitude = longitude;
+            attributes.latitude.element.value = latitude;
+            attributes.longitude.element.value = longitude;
             attributes.latitude.element.style.background = 'white';
             attributes.longitude.element.style.background = 'white';
             map.setView(new L.LatLng(+l.latitude, +l.longitude), 16);
             saveTournament(tournament);
             displayGen.closeModal();
 
-            let newLatLng = new L.LatLng(lat, lng);
+            let newLatLng = new L.LatLng(latitude, longitude);
             marker.setLatLng(newLatLng);
-            coms.emitTmx({ notice: `Setting Location: ${lat}/${lng}`, version: env.version }); 
+            coms.emitTmx({ notice: `Setting Location: ${latitude},${longitude}`, version: env.version }); 
          }
 
          function nextFieldFocus(field, increment=1, delay=50) {
@@ -4535,6 +4566,28 @@ export const tournamentDisplay = function() {
          });
 
          updateDualMatchDetails();
+
+         // set up scoring options
+         let scoring_options = [
+            { key: 'Match', value: 'match' },
+            { key: 'Set', value: 'set' }
+         ];
+         dd.attachDropDown({ 
+            id: details.points_per.id, 
+            options: scoring_options,
+            label: ''
+         });
+         let per = (e.dual_points && e.dual_points.per) || 'match';
+         details.points_per.ddlb = new dd.DropDown({ element: details.points_per.element, onChange: setDualMatchScoring });
+         details.points_per.ddlb.setValue(per, 'white');
+
+         function setDualMatchScoring(value) {
+            if (!e.dual_points) e.dual_points = {};
+            e.dual_points.per = value;
+            displayDualMatches(displayed.dual_match);
+            saveTournament(tournament);
+         }
+         // end scoring options
 
          details.category.ddlb = new dd.DropDown({ element: details.category.element, onChange: filterCategory, locked: true });
          details.category.ddlb.selectionBackground('white');
@@ -5893,21 +5946,6 @@ export const tournamentDisplay = function() {
          if (display) { displaySchedule(display_day); }
       }
 
-      function teamName(match, team, remove_diacritics) {
-         if (team.length == 1) {
-            let p = match.players[team[0]];
-            if (!p) return '';
-            if (!p.last_name || !p.first_name) return p.qualifier ? lang.tr('qualifier') : '';
-            let club = p.club_code ? ` (${p.club_code})` : '';
-            let full_name = `${stringFx.normalizeName(p.first_name, remove_diacritics)} ${stringFx.normalizeName(p.last_name, remove_diacritics).toUpperCase()}`; 
-            return `${full_name}${club}`;
-         } else {
-            return team
-               .map(t => !match.players[t] ? lang.tr('opnt') : stringFx.normalizeName(match.players[t].last_name, remove_diacritics).toUpperCase())
-               .join('/');
-         }
-      }
-
       function updateScheduleStatus(obj) {
          if (!tournament.events.length) return unPublishOOP(tournament);
 
@@ -5994,7 +6032,7 @@ export const tournamentDisplay = function() {
             return { key: `${category}${evt.name}${type}`, value: evt.euid };
          }
 
-         let event_filters = [].concat({ key: lang.tr('schedule.allevents'), value: '' }, ...tournament.events.map(eventOption));
+         let event_filters = [].concat({ key: `${lang.tr('schedule.allevents')} &#9661;`, value: '' }, ...tournament.events.map(eventOption));
          dd.attachDropDown({ 
             id: container.event_filter.id, 
             options: event_filters,
@@ -6006,7 +6044,7 @@ export const tournamentDisplay = function() {
          // Round Filter
          // if scheduling upcoming matches need to add them to round filter too...
          let round_names = util.unique(upcoming_matches.concat(...pending_matches).map(m=>m.round_name)).reverse();
-         let round_filters = [].concat({ key: lang.tr('schedule.allrounds'), value: '' }, ...round_names.map(round => ({ key: round, value: round })));
+         let round_filters = [].concat({ key: `${lang.tr('schedule.allrounds')} &#9661;`, value: '' }, ...round_names.map(round => ({ key: round, value: round })));
          dd.attachDropDown({ 
             id: container.round_filter.id, 
             options: round_filters,
@@ -6104,7 +6142,38 @@ export const tournamentDisplay = function() {
             let include_completed = env.schedule.completed_matches_in_search;
             search_list = all_matches
                .filter(match => match.winner == undefined || include_completed)
-               .map(match => ({ value: match.muid, label: match.team_players.map(team=>teamName(match, team, true)).join(' v. ') }) );
+               .map(match => ({ value: match.muid, label: getOpponents(match) }) );
+         }
+
+         function getOpponents(match) {
+            let team_players = match.team_players.map(team=>teamName(match, team, true));
+            let potentials = match.potentials && match.potentials.map(potential=>teamName(match, potential, true, true)) || [];
+            let possible = [].concat(...team_players, ...potentials, lang.tr('unk'), lang.tr('unk'));
+            return possible.slice(0, 2).join(' - ');
+         }
+
+         function teamName(match, team, remove_diacritics, potentials) {
+            if (potentials && match.potentials && match.potentials.length) {
+               return match.potentials.map(p=>p && joinPotentials(p.map(o=>o && determine(o, Object.keys(o)) || lang.tr('unk')))).filter(f=>f);
+            } else {
+               return determine(match.players, team);
+            }
+
+            function joinPotentials(potentials) { return bothUnknown(potentials) ? lang.tr('unk') : potentials.join(` ${lang.tr('or')} `); }
+            function bothUnknown(opponents) { return opponents && opponents.length == 2 && opponents[0] == lang.tr('unk') && opponents[1] == lang.tr('unk'); }
+            function determine(players, team) { return (team.length == 1) ? singles(players, team) : doubles(players, team); }
+            function singles(players, team) {
+               let p = players[team[0]];
+               if (!p) return '';
+               if (!p.last_name || !p.first_name) return p.qualifier ? lang.tr('qualifier') : '';
+               let club = p.club_code ? ` (${p.club_code})` : '';
+               let full_name = `${stringFx.normalizeName(p.first_name, remove_diacritics)} ${stringFx.normalizeName(p.last_name, remove_diacritics).toUpperCase()}`; 
+               return `${full_name}${club}`;
+            }
+            function doubles(players, team) {
+               return team
+                  .map(t => !players[t] ? lang.tr('unk') : stringFx.normalizeName(players[t].last_name, remove_diacritics).toUpperCase()).join('/');
+            }
          }
 
          function displayCourts() {
@@ -6138,7 +6207,7 @@ export const tournamentDisplay = function() {
             let round_filtered = !round_name ? order_filtered : order_filtered.filter(m=>m.round_name == round_name);
 
             let unscheduled = round_filtered.filter(m=>!m.schedule || !m.schedule.court);
-            let srtd_unscheduled = scheduleFx.sortedUnscheduled(tournament, unscheduled, false);
+            let srtd_unscheduled = sfx.sortedUnscheduled(tournament, unscheduled, false);
             displayGen.scheduleTeams({ unscheduled: srtd_unscheduled, element: container.unscheduled.element });
 
             domFx.addEventToClass('dragUnscheduled', dragUnscheduled, container.unscheduled.element, 'dragstart');
@@ -6155,7 +6224,7 @@ export const tournamentDisplay = function() {
             let upper_range = Math.max(min_rows, util.parseInt(env.schedule.max_matches_per_court) || 16);
             let oop_rounds = util.range(1, upper_range + 1);
 
-            scheduleFx.scheduleGrid({
+            sfx.scheduleGrid({
                courts,
                oop_rounds,
                editable: state.edit,
@@ -6186,14 +6255,14 @@ export const tournamentDisplay = function() {
             if (muid) {
                target.setAttribute('muid', muid);
                target.setAttribute('draggable', 'true');
-               let sb = scheduleFx.scheduleBox({ match, editable: true, options: env.schedule });
+               let sb = sfx.scheduleBox({ match, editable: true, options: env.schedule });
                target.innerHTML = sb.innerHTML;
                target.style.background = sb.background;
-               scheduleFx.scaleTeams(target);
+               sfx.scaleTeams(target);
             } else {
                target.setAttribute('muid', '');
                target.setAttribute('draggable', 'false');
-               target.innerHTML = scheduleFx.emptyOOPround(true);
+               target.innerHTML = sfx.emptyOOPround(true);
                domFx.addEventToClass('findmatch', showSearch, target, 'click');
                domFx.addEventToClass('opponentsearch', (e)=>e.stopPropagation(), target, 'click');
             }
@@ -6218,7 +6287,7 @@ export const tournamentDisplay = function() {
             element.setAttribute('oop_round', match.schedule.oop_round);
             element.style.background = 'white';
 
-            element.innerHTML = scheduleFx.emptyOOPround(true);
+            element.innerHTML = sfx.emptyOOPround(true);
             domFx.addEventToClass('findmatch', showSearch, element, 'click');
             domFx.addEventToClass('opponentsearch', (e)=>e.stopPropagation(), element, 'click');
 
@@ -6275,7 +6344,7 @@ export const tournamentDisplay = function() {
                });
                opponent_search.focus();
             } else {
-               evt.target.innerHTML = scheduleFx.opponentSearch();
+               evt.target.innerHTML = sfx.opponentSearch();
             }
 
             // wrapper for scheduleMatch(muid, interrupted);
@@ -6327,7 +6396,7 @@ export const tournamentDisplay = function() {
                   });
 
                   let findmatch = target.querySelector('.findmatch'); 
-                  findmatch.innerHTML = scheduleFx.opponentSearch();
+                  findmatch.innerHTML = sfx.opponentSearch();
 
                   source_match.schedule = Object.assign({}, target_schedule);
                   source_match.source.schedule = Object.assign({}, target_schedule);
@@ -6633,6 +6702,8 @@ export const tournamentDisplay = function() {
             function timeHeading(selection, index) {
                if (index == 0) {
                   modifyMatchSchedule([{ attr: 'time_prefix', value: `${lang.tr('schedule.nb')} ` }]);
+                  let time_string = match.schedule && match.schedule.time;
+                  displayGen.timePicker({ value: time_string, hour_range: { start: 8 }, minute_increment: 5, callback: setTime });
                } else if (index == 1) {
                   let pairs = [
                      { attr: 'time_prefix', value: lang.tr('schedule.followedby') },
@@ -6857,22 +6928,23 @@ export const tournamentDisplay = function() {
 
          displayGen.locationList(container, locations, highlight_listitem);
 
-         let locationDetails = (evt) => {
-            let clicked_location = domFx.getParent(evt.target, 'location');
-            let class_list = clicked_location.classList;
-            if (class_list.contains('highlight_listitem')) {
+         eventManager.register('displayLocationDetails', 'tap', displayLocationDetails);
+
+         function displayLocationDetails(target) {
+            let clicked_location = domFx.getParent(target, 'location');
+            let class_list = clicked_location && clicked_location.classList;
+            let index = clicked_location && clicked_location.getAttribute('index');
+            if (class_list && class_list.contains('highlight_listitem')) {
                closeLocationDetails();
                locationList();
             } else {
                Array.from(container.locations.element.querySelectorAll('.highlight_listitem'))
                   .forEach(elem => elem.classList.remove('highlight_listitem'));
+               if (!class_list) return;
                class_list.add('highlight_listitem');
-               let index = clicked_location.getAttribute('index');
-               displayLocation({ location: tournament.locations[index], index });
+               if (index) displayLocation({ location: tournament.locations[index], index });
             }
-         };
-         // attach action to display location_details when clicking each location
-         domFx.addEventToClass('location', locationDetails, container.locations.element);
+         }
 
          scheduleTab();
       }
@@ -7183,7 +7255,7 @@ export const tournamentDisplay = function() {
          // now add event to all players to display player profile
          let signInState = (evt) => {
             // if modifying rankings, disable!
-            if (state.manual_ranking) return;
+            if (!state.edit || state.manual_ranking) return;
             if (evt.ctrlKey || evt.shiftKey) return tournamentPlayerContext(evt);
 
             let element = domFx.getParent(evt.target, 'player_click');
@@ -7403,12 +7475,10 @@ export const tournamentDisplay = function() {
          signInSheet();
       }
 
-      // function tournamentPlayersClick(evt) { if (evt.ctrlKey || evt.shiftKey) return tournamentPlayers(); }
-
       function tournamentPlayers() {
          if (state.edit && tournament.players && tournament.players.length) {
             let message = 'Add Tournament Players to Database?';
-            displayGen.okCancelMessage(message, addPlayers, () => displayGen.closeModal());
+            displayGen.okCancelMessage(message, addPlayers, () => { displayGen.closeModal(); modalViews.closeModal(); });
          }
          function addPlayers() {
             tournament.players.forEach(p => db.addPlayer(p).then(()=>{}, util.logError));
@@ -7422,7 +7492,9 @@ export const tournamentDisplay = function() {
          if (filters.indexOf('W') >= 0) displayed_players = displayed_players.filter(f=>f.sex != 'W');
          let opacity = (state.edit && displayed_players.length) ? 1 : 0;
          document.querySelector('.ranking_order').style.opacity = opacity;
-         document.querySelector('.' + classes.ranking_order).classList[opacity ? 'add' : 'remove']('infoleft');
+         if (env.documentation.hoverhelp) {
+            document.querySelector('.' + classes.ranking_order).classList[opacity ? 'add' : 'remove'](displayGen.infoleft || 'stub');
+         }
          return displayed_players;
       }
 
@@ -7581,7 +7653,11 @@ export const tournamentDisplay = function() {
          if (!total_matches) return;
 
          let visible = container.stat_charts.element.style.display != 'none';
-         if (visible && completed_matches.length) tmxStats.processMatches(tournament, container);
+         if (visible && completed_matches.length) {
+            let target_element = container.stat_charts.element;
+            let { completed_matches } = mfx.tournamentEventMatches({ tournament });
+            tmxStats.processMatches(completed_matches, target_element);
+         }
 
          pointsTab(tournament, container, filters);
 
@@ -7952,6 +8028,8 @@ export const tournamentDisplay = function() {
 
       function displayDualMatches(dual_match, dual_teams) {
          if (!dual_teams) dual_teams = getDualTeams(dual_match);
+         if (!dual_teams || !dual_teams.length || dual_teams.length != 2) return;
+
          let dual = container.dual.element;
          dual.style.display = 'flex';
 
@@ -8124,7 +8202,7 @@ export const tournamentDisplay = function() {
             if (state.edit && all_players) {
                let existing_scores = mfx.getExistingScores({match: match && match.match});
                let scoreSubmitted = (outcome) => {
-                  if (outcome && outcome.delegate) return delegateMatch(match, outcome.teams, outcome.score_format);
+                  if (outcome && outcome.delegate) return delegateMatch(match.match, outcome.teams, outcome.score_format);
                   if (outcome) { scoreDualDraw({ tournament, e, dual_match, dual_teams, muid: match.match.muid, outcome }); }
                };
 
@@ -8138,7 +8216,7 @@ export const tournamentDisplay = function() {
                   callback: scoreSubmitted,
                   round_name: match.round_name,
                   delegation: env.scoring.delegation,
-                  score_format: mfx.getScoringFormat({ e: evt, match })
+                  score_format: mfx.getScoringFormat({ e, match })
                });
             }
          }
@@ -8249,6 +8327,13 @@ export const tournamentDisplay = function() {
          }
       }
 
+      function teamTournamentScore(d) {
+         let dual_match = d && d.data;
+         displayed.dual_match = dual_match;
+         let dual_teams = getDualTeams(dual_match);
+         displayDualMatches(dual_match, dual_teams);
+      }
+
       // for generating draws when there are events which have been created by CourtHive Tournaments
       function genEventDraw(value) {
          let draw_width = +d3.select('#main').style('width').match(/\d+/)[0] * .9;
@@ -8338,8 +8423,6 @@ export const tournamentDisplay = function() {
          if (displayed.draw_event && e.euid == displayed.draw_event.euid) {
             displayGen.drawBroadcastState(container.publish_state.element, e);
          }
-
-         if (tfx.isTeam(tournament) && e.draw && e.draw.opponents && e.draw.opponents.length == 2) { teamTournamentScore({ data: e.draw }); }
 
          eventList();
          return;
@@ -8590,13 +8673,6 @@ export const tournamentDisplay = function() {
                displayGen.escapeModal();
                scoreBoard.setMatchScore(submission);
             }
-         }
-
-         function teamTournamentScore(d) {
-            let dual_match = d && d.data;
-            displayed.dual_match = dual_match;
-            let dual_teams = getDualTeams(dual_match);
-            if (dual_teams && dual_teams.length && dual_teams.length == 2) { displayDualMatches(dual_match, dual_teams); }
          }
 
          function highlightCell(node) {
@@ -9843,10 +9919,10 @@ export const tournamentDisplay = function() {
                return s;
             });
 
-         let sb = scheduleFx.scheduleBox({ match, editable: true, options: env.schedule });
+         let sb = sfx.scheduleBox({ match, editable: true, options: env.schedule });
          if (schedule_box) {
             schedule_box.innerHTML = sb.innerHTML;
-            scheduleFx.scaleTeams(schedule_box);
+            sfx.scaleTeams(schedule_box);
             schedule_box.style.background = sb.background;
 
             schedule_box.setAttribute('draggable', true);
@@ -9999,7 +10075,7 @@ export const tournamentDisplay = function() {
       function legacyTournamentOptions() {
          let legacy = displayGen.legacyTournamentTab(container.tournament.element, tournament);
          Object.assign(container, legacy.container);
-         tfx.legacyTournament(tournament, container);
+         legacyProcess.legacyTournament(tournament, container);
       }
 
       function tournamentOptions(days) {
@@ -10029,6 +10105,9 @@ export const tournamentDisplay = function() {
             container[field].element.addEventListener('keyup', (evt) => defineAttr(field, evt));
             container[field].element.value = tournament[field] || '';
          });
+
+         container.latitude.element.value = (tournament.address && tournament.address.latitude) || '';
+         container.longitude.element.value = (tournament.address && tournament.address.longitude) || '';
 
          let day_times = days.map(d=>dateFx.offsetTime(d));
          let max_start = Math.min(...day_times);
@@ -10199,10 +10278,17 @@ export const tournamentDisplay = function() {
          function eventChange(value) {
             if (event_draws) {
                genEventDraw(value);
+
                container.compass_direction.element.style.display = (displayed.draw_event.draw && displayed.draw_event.draw.compass) ? 'flex' : 'none';
                if (displayed.draw_event && displayed.draw_event.draw && displayed.draw_event.draw.compass) compassChange(displayed.draw_event.draw.compass, false);
                container.dual.element.style.display = 'none';
                displayed.dual_match = null;
+
+               let draw = displayed.draw_event && displayed.draw_event.draw;
+               if (tfx.isTeam(tournament) && draw && draw.opponents && draw.opponents.length == 2) {
+                  teamTournamentScore({ data: draw });
+               }
+
             } else if (group_draws.length) {
                genGroupDraw(value);
             }
@@ -10292,12 +10378,13 @@ export const tournamentDisplay = function() {
 
       function getDualTeams(dual_match) {
          let dual_teams = dual_match && dual_match.children && dual_match.children.map(c=>c && c.team && pfx.dualCopy(c.team[0])).filter(f=>f);
-         dual_teams.forEach(dt => {
-            dt.full_name = dt.name;
-            let team = tfx.findTeamByID(tournament, dt.id);
-            dt.players = Object.assign({}, ...Object.keys(team.players).map(k => ({ [k]: team.players[k] }) ));
-         });
-         return dual_teams;
+         dual_teams
+            .forEach(dt => {
+               dt.full_name = dt.name;
+               let team = tfx.findTeamByID(tournament, dt.id);
+               dt.players = team && team.players && Object.assign({}, ...Object.keys(team.players).map(k => ({ [k]: team.players[k] }) ));
+            });
+         return dual_teams.filter(dt => dt.players);
       }
 
       function updateRegisteredPlayers(show_notice) {
@@ -10326,6 +10413,7 @@ export const tournamentDisplay = function() {
       }
 
       function saveTournament(tournament, changed=true) {
+         state.lastpush2cloud = tournament.pushed2cloud || state.lastpush2cloud;
          if (changed) {
             if (tournament.saved_locally) tournament.saved_locally = false;
             if (tournament.pushed2cloud) tournament.pushed2cloud = false;
@@ -10335,6 +10423,8 @@ export const tournamentDisplay = function() {
             displayGen.pubStateTrnyInfo(container.pubStateTrnyInfo.element, tournament.infoPublished);
          }
          tournament.saved = new Date().getTime();
+         let diff = Math.abs((state.lastpush2cloud || 0) - tournament.saved);
+         if (diff > 300000) { pushTournament2Cloud(tournament); }
          db.addTournament(tournament);
       }
 
@@ -10347,9 +10437,6 @@ export const tournamentDisplay = function() {
    }
 
    function eventTemplate(presets) {
-      let score_format = tfx.getScoreboardSettings({ format: 'singles' });
-      let scoring = scoreBoard.getScoring(score_format);
-
       let template = {
          log: [],
          links: {},
@@ -10365,9 +10452,7 @@ export const tournamentDisplay = function() {
          category: '',
          rank: '',
          surface: '',
-         inout: '',
-         scoring,
-         score_format
+         inout: ''
       };
 
       return Object.assign(template, presets);
@@ -10398,7 +10483,7 @@ export const tournamentDisplay = function() {
       // let dbl_matches = mz.filter(f=>f.format == 'doubles').length;
 
       // retrieve options from container
-      let rankings = mz.length ? tfx.legacyTournamentOpts(undefined, container) : {};
+      let rankings = mz.length ? legacyProcess.legacyTournamentOpts(undefined, container) : {};
       let category = rankings.category;
 
       if (!rankings.category || !points_date) {
@@ -10424,7 +10509,7 @@ export const tournamentDisplay = function() {
 
    function addAcceptedRankings(container, tournament, matches, category) {
       let tuid = tournament.tuid;
-      let rankings = matches.length ? tfx.legacyTournamentOpts(undefined, container) : {};
+      let rankings = matches.length ? legacyProcess.legacyTournamentOpts(undefined, container) : {};
       if (tuid) rankCalc.addAcceptedRanking({tuid, category, rankings});
    }
 
@@ -10546,13 +10631,6 @@ export const tournamentDisplay = function() {
    function clearSelection() { if (window.getSelection) window.getSelection().removeAllRanges(); }
    function puidHash(team) { return team.map(p=>p && p.puid).sort().join('|'); }
    function teamHash(team) { return team.map(p=>p && p.id).join('|'); }
-   function geolocationDenied() {
-      let message = `
-         <div>${lang.tr('phrases.geolocationdenied')}</div>
-         <p>${lang.tr('phrases.unblockgeo')}</p>
-      `;
-      displayGen.popUpMessage(message);
-   }
    function invalidURL(phrase='invalidsheeturl') {
       let message = lang.tr(`phrases.${phrase}`);
       displayGen.popUpMessage(`<div>${message}</div>`);

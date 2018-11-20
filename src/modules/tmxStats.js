@@ -1,4 +1,3 @@
-import { matchFx } from './matchFx';
 import { barChart } from './barChart';
 import { donutChart } from './donutChart';
 import { scoreBoard } from './scoreBoard';
@@ -14,8 +13,7 @@ export const tmxStats = function() {
 
    let margin = {top: 20, right: 20, bottom: 20, left: 40};
 
-   fx.processMatches = (tournament, container) => {
-      let { completed_matches } = matchFx.tournamentEventMatches({ tournament });
+   fx.processMatches = (completed_matches, target_element) => {
       let match_sets = completed_matches.map(match => {
          let sets = scoreBoard.convertStringScore({ string_score: match.score, score_format: match.score_format || {}, winner_index: match.winner_index });
          let games = sets.reduce((p, c) => { p[0] += c[0].games || 0; p[1] += c[1].games || 0; return p; }, [0, 0]);
@@ -37,8 +35,8 @@ export const tmxStats = function() {
       let dt = Object.keys(dd).map(k => ({ Percentage: dd[k] / total, Category: categories[k] })); 
 
       setTimeout(function() {
-         fx.pctDonut(container, dt, true);
-         fx.competitiveMatchIndices(container, data);
+         fx.pctDonut(target_element, dt, true);
+         fx.competitiveMatchIndices(target_element, data);
       }, 400);
    };
 
@@ -51,13 +49,12 @@ export const tmxStats = function() {
    }
    function pctSpread(pcts) { return pcts.map(gamesPct).sort().map(p=>p.toFixed(2)); }
 
-   fx.pctDonut = (container, data, clean) => {
-      let chart_div = container.stat_charts.element;
-      let root = d3.select(chart_div);
+   fx.pctDonut = (target_element, data, clean) => {
+      let root = d3.select(target_element);
 
       if (clean) root.selectAll("svg").remove();
 
-      let computed_style = window.getComputedStyle(chart_div);
+      let computed_style = window.getComputedStyle(target_element);
       let width_value = computed_style.width.match(/\d+/);
       let width = (width_value && width_value.length && width_value[0] * .9) || (window.innerWidth - margin.left - margin.right);
 
@@ -73,12 +70,10 @@ export const tmxStats = function() {
       root.datum(data).call(donut);
    };
 
-   fx.competitiveMatchIndices = (container, data, clean) => {
+   fx.competitiveMatchIndices = (target_element, data, clean) => {
+      let root = d3.select(target_element);
 
-      var chart_div = container.stat_charts.element;
-      let root = d3.select(chart_div);
-
-      let computed_style = window.getComputedStyle(chart_div);
+      let computed_style = window.getComputedStyle(target_element);
       let width_value = computed_style.width.match(/\d+/);
       let width = (width_value && width_value.length && width_value[0] * .9) || (window.innerWidth - margin.left - margin.right);
 

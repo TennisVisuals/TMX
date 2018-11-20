@@ -306,6 +306,7 @@ export const playerFx = function() {
          rank: p.rank,
          school: p.school,
          profile: p.profile,
+         acceptance: p.acceptance,
          ratings: p.ratings && JSON.parse(JSON.stringify(p.ratings)),
          rankings: p.rankings && JSON.parse(JSON.stringify(p.rankings)),
          club_code: p.club_code,

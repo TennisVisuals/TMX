@@ -4,12 +4,12 @@ import { lang } from './translator';
 import { stringFx } from './stringFx';
 import { sharedFx } from './sharedFx';
 import { displayGen } from './displayGen';
+import { fxRegister } from './fxRegister';
 
 let funcs = {
    tmxMessage: () => console.log('tmxMessage'),
    receiveEvent: () => console.log('receiveEvent'),
    processDirective: () => console.log('process directive'),
-   receiveIdiomList: () => console.log('receive Idiom List'),
    receiveTournament: () => console.log('receive Tournament'),
    receiveTournaments: () => console.log('receive Tournaments.'),
    receiveTournamentEvents: () => console.log('receive Tournament Events'),
@@ -130,7 +130,7 @@ export const coms = function() {
          oi.socket.on('tmx tournament events', mod.fx.receiveTournamentEvents);
          oi.socket.on('tmx_event', e => mod.fx.receiveEvent(e, true));
          oi.socket.on('noauth_event', e => mod.fx.receiveEvent(e, false));
-         oi.socket.on('idioms available', mod.fx.receiveIdiomList);
+         oi.socket.on('idioms available', list => fxRegister.invoke('receiveIdiomList', list));
          oi.socket.on('auth_org_trnys', t => mod.fx.receiveTournaments(t, true));
          oi.socket.on('noauth_org_trnys', mod.fx.receiveTournaments);
 

@@ -212,7 +212,7 @@ export const scheduleFx = function() {
          return html;
       }).join('');
 
-      let displaydocs = editable && env.documentation ? 'flex' : 'none';
+      let displaydocs = editable && env.documentation.links ? 'flex' : 'none';
       let html = `
          <div class='schedule_scroll_container'>
             <div class='schedule_grid'>

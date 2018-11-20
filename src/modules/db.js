@@ -151,7 +151,15 @@ export const db = function() {
    db.findClub = (cuid) => db.findUnique('clubs', 'id', cuid);
    db.findTournament = (tuid) => db.findUnique('tournaments', 'tuid', tuid);
    db.findTournamentByOldID = (old_id) => db.findUnique('tournaments', 'old_id', old_id);
-   db.findTournamentsBetween = (start, end) => new Promise ((resolve, reject) => db.db.tournaments.where('end').between(start, end).toArray(resolve, reject));
+   db.findTournamentsBetween = (start, end, limit=50) => {
+      return new Promise ((resolve, reject) => {
+         db.db.tournaments
+            .where('end')
+            .between(start, end)
+            .limit(limit)
+            .toArray(resolve, reject);
+      });
+   };
 
    db.addItem = (tbl, item) => new Promise ((resolve, reject) => db.db[tbl].add(item).then(resolve, reject).catch((err) => { alert('try again:', err); reject(err); }));
 

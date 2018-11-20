@@ -439,7 +439,7 @@ export const ladderChart = function() {
     // allows updating individual options and suboptions
     // while preserving state of other options
     chart.options = (values) => {
-        if (!arguments.length) return options;
+        if (!values) return options;
         keyWalk(values, options);
         return chart;
     };
@@ -462,25 +462,25 @@ export const ladderChart = function() {
     }
 
     chart.events = (functions) => {
-         if (!arguments.length) return events;
+         if (!functions) return events;
          keyWalk(functions, events);
          return chart;
     };
 
     chart.width = (value) => {
-        if (!arguments.length) return options.width;
+        if (!value) return options.width;
         options.width = value;
         return chart;
     };
 
     chart.height = (value) => {
-        if (!arguments.length) return options.height;
+        if (!value) return options.height;
         options.height = value;
         return chart;
     };
 
     chart.data = (value) => {
-        if (!arguments.length) return data;
+        if (!value) return data;
         data = value;
         return chart;
     };
@@ -494,7 +494,7 @@ export const ladderChart = function() {
     };
 
     chart.colors = (color3s) => {
-        if (!arguments.length) return colors;
+        if (!color3s) return colors;
         if (typeof color3s !== 'object') return false;
         var keys = Object.keys(color3s);        
         if (!keys.length) return false;

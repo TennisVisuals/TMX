@@ -587,7 +587,7 @@ export const importFx = function() {
          .on('click', (d, i, elem) => { 
             d3.event.stopPropagation(); 
             let row = domFx.getParent(elem[i], 'section_row');
-            tournamentDisplay.ignorePlayer(row);
+            ignorePlayer(row);
          });
 
       actions_element

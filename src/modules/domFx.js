@@ -1,6 +1,30 @@
 export const domFx = function() {
    let fx = {};
 
+   let noscroll = undefined;
+   let allow_in = undefined;
+   let noscroll_enabled = undefined;
+
+   fx.enableNoScroll = () => {
+      if (noscroll_enabled) return;
+      document.body.addEventListener('wheel', evt => {
+         if (noscroll) {
+            if (!allow_in) {
+               evt.preventDefault();
+            } else {
+               let allowed = fx.findUpClass(evt.target, allow_in);
+               if (!allowed) evt.preventDefault();
+            }
+         }
+      });
+      noscroll_enabled = true;
+   };
+
+   fx.noScroll = (_boolean, allow_class) => {
+      noscroll = _boolean;
+      allow_in = allow_class;
+   };
+
    fx.addEventToClass = (cls, fx, node = document, e = 'click') => {
       Array.from(node.querySelectorAll('.' + cls)).forEach(elem => elem.addEventListener(e, fx)); 
    };
@@ -12,6 +36,42 @@ export const domFx = function() {
       destination.innerHTML = '';
       destination.append(target);
    };
+
+   fx.freezeBody = (_boolean) => { document.body.style.overflow = _boolean ? 'hidden' : null; };
+
+   fx.copyClick = (message) => {
+      let c = document.createElement('input');
+      c.style.opacity = 0;
+      c.setAttribute('id', 'c2c');
+      c.setAttribute('type', 'text');
+      c.setAttribute('value', message);
+      let inp = document.body.appendChild(c);
+
+      let b = document.createElement('button');
+      b.style.display = 'none';
+      b.setAttribute('data-copytarget', '#c2c');
+      b.addEventListener('click', elementCopy, true);
+      let elem = document.body.appendChild(b);
+      elem.click();
+      elem.remove();
+      inp.remove();
+   };
+
+   function elementCopy(e) {
+      let t = e.target;
+      let c = t.dataset.copytarget;
+      let inp = (c ? document.querySelector(c) : null);
+
+      if (inp && inp.select) {
+         inp.select();
+
+         try {
+            document.execCommand('copy');
+            inp.blur();
+         }
+         catch (err) { alert('please press Ctrl/Cmd+C to copy'); }
+      }
+   }
 
    // https://gist.github.com/cms/369133
    fx.getStyle = (el, styleProp) => {

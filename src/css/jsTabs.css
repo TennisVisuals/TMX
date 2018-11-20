@@ -1,5 +1,3 @@
-.jstabs { width: inherit; }
-
 .jstabs.shadow { box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19); }
 
 .jstabs .hscroll {
@@ -9,30 +7,25 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.jstabs .tabs {
+.jstabs .jst {
     display: flex;
     flex: 0 0 auto;
     -webkit-flex-direction: row;
     flex-direction: row;
     background-color: white;
 }
-.jstabs .tabs span {
+.jstabs .jst li {
     padding: 1em;
     display: inline;
     text-align: center;
     background-color: white;
 }
-.jstabs .tabs span:hover {
+.jstabs .jst li:hover {
     background-color: #DFE4FC;
 }
-.jstabs .tabs span.selected {
+.jstabs .jst li.is-active {
     display: inline;
-    background: #F9FAFD;
     transition: 0.3s;
 }
-.jstabs .tab:not(.selected) { display: none; }
-.jstabs .tab.selected {
-    background-color: #F9FAFD;
-    display: block;
-    padding: 1em;
-}
+.jstabs .jstab:not(.is-active) { display: none; }
+.jstabs .jstab.is-active { display: block; }
