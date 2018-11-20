@@ -69,7 +69,7 @@ export const staging = function() {
          }
          if (json_data.directive == 'team data') {
             console.log('team data received;', json_data);
-            db.addDev({json_data});
+            util.addDev({json_data});
          }
          if (json_data.directive == 'load data' && json_data.content) { importFx.loadJSON(json_data.content); }
          if (json_data.directive == 'reset db' && json_data.content) { resetDB(); }
@@ -244,7 +244,7 @@ export const staging = function() {
             if (!trny.events) trny.events = [];
             let existing_euids = trny.events.map(e=>e.euid);
             let new_euids = received_euids.filter(e=>existing_euids.indexOf(e)<0);
-            db.addDev({events});
+            util.addDev({events});
             trny.events.forEach(e => {
                if (received[e.euid]) {
                   Object.assign(e, received[e.euid].event);
