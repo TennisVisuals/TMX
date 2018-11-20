@@ -13,24 +13,30 @@ export const tmxStats = function() {
 
    let margin = {top: 20, right: 20, bottom: 20, left: 40};
 
-   fx.processMatches = (completed_matches, target_element) => {
-      let match_sets = completed_matches.map(match => {
+   fx.matchProfile = (match) => {
+      if (!match || !match.match) return;
+      let mdata = processMatch(match.match);
+      let pct = mdata && mdata.score && pctSpread([mdata])[0];
+      if (!pct) return;
+      let profile = isNaN(pct) ? categories['w'] : pct <= bands.decisive ? categories['d'] : pct <= bands.routine ? categories['r'] : categories['c'];
+      return { profile, color: colours[profile.toLowerCase()] };
+   };
+
+   fx.processMatch = processMatch;
+   function processMatch(match) {
          let sets = scoreBoard.convertStringScore({ string_score: match.score, score_format: match.score_format || {}, winner_index: match.winner_index });
          let games = sets.reduce((p, c) => { p[0] += c[0].games || 0; p[1] += c[1].games || 0; return p; }, [0, 0]);
          let stb = sets.reduce((p, c) => { p[0] += c[0].supertiebreak || 0; p[1] += c[1].supertiebreak || 0; return p; }, [0, 0]);
          if (stb.reduce(add)) { games[(stb[0] > stb[1]) ? 0 : 1] += 1; }
          return { sets, games, score: match.score };
-      });
+   }
 
+   fx.processMatches = (completed_matches, target_element) => {
+      let match_sets = completed_matches.map(processMatch);
       let buckets = pctSpread(match_sets).reduce((b, a) => { if (b[a]) { b[a] += 1; } else { b[a] = 1; } return b; }, {});
       let data = Object.keys(buckets).map(key => isNaN(key) ? undefined : { pct: key, value: buckets[key] }).filter(f=>f);
 
-      let sortem = (p, c) => {
-         let band = isNaN(c) ? 'w' : c <= bands.decisive ? 'd' : c <= bands.routine ? 'r' : 'c';
-         p[band] += 1;
-         return p;
-      };
-      let dd = pctSpread(match_sets).reduce((p, c) => sortem(p, c), { w: 0, d: 0, r: 0, c: 0 }); 
+      let dd = pctSpread(match_sets).reduce((p, c) => bandSort(p, c), { w: 0, d: 0, r: 0, c: 0 }); 
       let total = Object.keys(dd).reduce((a, k) => (dd[k] || 0) + a, 0);
       let dt = Object.keys(dd).map(k => ({ Percentage: dd[k] / total, Category: categories[k] })); 
 
@@ -40,6 +46,13 @@ export const tmxStats = function() {
       }, 400);
    };
 
+   fx.bandSort = bandSort;
+   function bandSort(p, c) {
+      let band = isNaN(c) ? 'w' : c <= bands.decisive ? 'd' : c <= bands.routine ? 'r' : 'c';
+      p[band] += 1;
+      return p;
+   }
+
    function gamesPct(match_results) {
       let loser_games = Math.min(...match_results.games);
       let winner_games = Math.max(...match_results.games);
@@ -47,7 +60,9 @@ export const tmxStats = function() {
       let pct = Math.round((loser_games/winner_games) * 100);
       return pct;
    }
-   function pctSpread(pcts) { return pcts.map(gamesPct).sort().map(p=>p.toFixed(2)); }
+
+   fx.pctSpread = pctSpread;
+   function pctSpread(mdata) { return mdata.map(gamesPct).sort().map(p=>p.toFixed(2)); }
 
    fx.pctDonut = (target_element, data, clean) => {
       let root = d3.select(target_element);
