@@ -9,9 +9,9 @@ export const util = function() {
 
    util.clearHistory = () => { history.pushState('', document.title, window.location.pathname); };
 
-   util.parseInt = (value) => {
+   util.parseInt = (value, invalid) => {
       let result = parseInt(value);
-      return isNaN(result) ? undefined : result;
+      return isNaN(result) ? invalid : result;
    };
 
    util.performTask = (fx, data, bulkResults = true) => {

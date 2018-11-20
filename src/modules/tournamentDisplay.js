@@ -49,14 +49,14 @@ export const tournamentDisplay = function() {
       focus: { place_player: undefined }
    };
 
-   db.addDev({db});
-   db.addDev({dfx});
-   db.addDev({tfx});
-   db.addDev({mfx});
-   db.addDev({util});
-   db.addDev({domFx});
-   db.addDev({UUID});
-   db.addDev({searchBox});
+   util.addDev({db});
+   util.addDev({dfx});
+   util.addDev({tfx});
+   util.addDev({mfx});
+   util.addDev({util});
+   util.addDev({domFx});
+   util.addDev({UUID});
+   util.addDev({tmxStats});
 
    function settingsLoaded() {
       dfx.options(env.drawFx);
@@ -181,12 +181,12 @@ export const tournamentDisplay = function() {
       let { groups: match_groups, group_draws } = legacyProcess.groupMatches(dbmatches);
       let { container, classes, displayTab, display_context, tab_ref } = displayGen.tournamentContainer({ tournament, tabCallback });
 
-      db.addDev({tournament});
-      db.addDev({container});
-      db.addDev({env});
+      util.addDev({tournament});
+      util.addDev({container});
+      util.addDev({env});
 
       tmxTour.tournamentContainer(container, classes);
-      db.addDev({tmxTour});
+      util.addDev({tmxTour});
 
       let ouid = env.org && env.org.ouid;
       if (ouid && tournament.tuid) {
@@ -770,8 +770,9 @@ export const tournamentDisplay = function() {
          tournament.notes = sanitizeHtml(container.notes.element.innerHTML, {
            allowedTags: [
               'font', 'b', 'i', 'em', 'strong', 'ol', 'li', 'blockquote',
-              'h1', 'h2', 'h3', 'p', 'br', 'center', 'div', 'span', 'pre'
-//              'table', 'tbody', 'tr', 'td', 'th', 'thead'
+              'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+              'p', 'br', 'center', 'div', 'span', 'pre',
+              'table', 'tbody', 'tr', 'td', 'th', 'thead'
            ],
            allowedAttributes: false
          });
@@ -4264,12 +4265,13 @@ export const tournamentDisplay = function() {
       }
 
       // TODO: break this out into tmxMaps.js and hide all fx specific to google or leaflet
-      function locationMap({ element_id, coords, zoom }) {
+      function locationMap({ success_element, element_id, coords, zoom }) {
          if (!window.navigator.onLine) return {};
 
          zoom = (zoom == undefined) ? 16 : zoom;
          if (coords.latitude != undefined && coords.longitude != undefined) {
-            container.location_map.element.style.display = 'inline';
+            if (success_element) success_element.style.display = 'inline';
+            // container.location_map.element.style.display = 'inline';
             return gpsLocation(coords.latitude, coords.longitude, zoom);
          } else {
             return {};
@@ -4301,7 +4303,7 @@ export const tournamentDisplay = function() {
             zoom = 2;
             coords = { latitude: 0, longitude: 0 };
          }
-         let { map, marker } = locationMap({ element_id: attributes.map.id, coords, zoom });
+         let { map, marker } = locationMap({ element_id: attributes.map.id, success_element: container.location_map.element, coords, zoom });
 
          let field_order = [ 'abbreviation', 'courts', 'identifiers', 'name', 'address', 'latitude', 'longitude' ];
          let constraints = { 'abbreviation': { length: 3}, 'name': { length: 4 }, 'address': { length: 5 }, 'courts': { number: true } };

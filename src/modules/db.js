@@ -1,12 +1,6 @@
 export const db = function() {
    var db = {};
 
-   var ad_errors = 0;
-   db.addDev = (variable) => {
-      try { Object.keys(variable).forEach(key => dev[key] = variable[key]); }
-      catch(err) { if (!ad_errors) { console.log('production environment'); ad_errors += 1; } }
-   };
-
    db.initDB = () => {
       return new Promise ((resolve, reject) => {
          db.db = new Dexie("CourtHiveTournaments", {autoOpen: false});
