@@ -30,6 +30,7 @@
    background-size: 100%;
 }
 
+.image_icon { background-image: url("img/image.png"); }
 .score_header { background-image: url("img/scoreboard.png"); }
 .duration_header { background-image: url("img/duration.png"); }
 .cal_header { background-image: url("img/calendar.png"); }

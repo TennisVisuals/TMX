@@ -665,38 +665,8 @@ export const tournamentDisplay = function() {
          displayGen.localSaveState(container.localdownload_state.element, tournament.saved_locally);
       }
 
-      /*
-      function replaceNewLines(str) {
-         return str
-                  .split('>')
-                  .map(s =>  s.replace(/^\n/, ''))
-                  .join('>')
-                  .replace(/\n/g, "<br />");
-      }
-      */
-
       container.notes_display.element.innerHTML = tournament.notes || '';
       container.notes_container.element.style.display = tournament.notes ? 'inline' : 'none';
-
-      new Quill(`#${container.notes.id}`, {
-        modules: {
-          toolbar: [
-            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-            [{ 'font': [] }],
-            ['bold', 'italic'],
-            [{ 'color': [] }, { 'background': [] }],
-            [{ list: 'ordered' }, { list: 'bullet' }],
-            [{ 'align': [] }],
-
-            ['blockquote', 'code-block'],
-            ['clean'] 
-          ]
-        },
-        placeholder: 'Tournament Notes...',
-        theme: 'snow'
-      });
-
-      container.notes.element.querySelector('.ql-editor').innerHTML = tournament.notes || '';
 
       container.stats.element.addEventListener('click', () => {
          let visible = container.stat_charts.element.style.display != 'none';
@@ -708,27 +678,8 @@ export const tournamentDisplay = function() {
          }
       });
 
-      container.social.element.addEventListener('click', () => {
-         let visible = container.social_media.element.style.display == 'inline';
-         if (!visible) {
-            container.notes_entry.element.style.display = 'none';
-            container.notes_container.element.style.display = 'none';
-            container.stat_charts.element.style.display = 'none';
-         }
-         container.social_media.element.style.display = (visible ? 'none' : 'inline');
-         container.tournament_attrs.element.style.display = (visible ? 'flex' : 'none');
-         if (visible) {
-            parseSocialLinks();
-            saveTournament(tournament);
-         }
-         fillNotes();
-      });
 
       if (!tournament.media) tournament.media = { social: {} };
-      let social_links = (!tournament.media || !tournament.media.social) ? '' :
-         Object.keys(tournament.media.social).map(k=>tournament.media.social[k]).join('\n');
-
-      container.social_links.element.value = social_links;
 
       container.register.element.addEventListener('click', tournamentRegistration);
       function tournamentRegistration() {
@@ -754,41 +705,14 @@ export const tournamentDisplay = function() {
             return parts.length >= 4 && http;
          }
       }
-      container.edit_notes.element.addEventListener('click', () => {
-         let visible = container.notes_entry.element.style.display == 'inline';
-         if (!visible) {
-            container.social_media.element.style.display = 'none';
-            container.stat_charts.element.style.display = 'none';
-         }
-         container.notes_entry.element.style.display = (visible ? 'none' : 'inline');
-         container.notes_container.element.style.display = (visible ? 'inline' : 'none');
-         container.tournament_attrs.element.style.display = (visible ? 'flex' : 'none');
-         if (visible) saveTournament(tournament);
-         fillNotes();
+
+      container.social.element.addEventListener('click', () => {
+         let id_obj = displayGen.socialMediaLinks();
+         Object.assign(container, id_obj);
+         let social_links = (!tournament.media || !tournament.media.social) ? '' :
+            Object.keys(tournament.media.social).map(k=>tournament.media.social[k]).join('\n');
+         container.social_links.element.innerHTML = social_links;
       });
-
-      container.notes.element.addEventListener('keyup', () => {
-         // strip html of unwanted content
-         tournament.notes = sanitizeHtml(container.notes.element.innerHTML, {
-           allowedTags: [
-              'font', 'b', 'i', 'em', 'strong', 'ol', 'li', 'blockquote',
-              'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-              'p', 'br', 'center', 'div', 'span', 'pre',
-              'table', 'tbody', 'tr', 'td', 'th', 'thead'
-           ],
-           allowedAttributes: false
-         });
-         fillNotes();
-      });
-
-      function fillNotes() {
-         let editor = container.notes.element.querySelector('.ql-editor');
-         tournament.notes = editor && editor.innerText.trim() ? editor.innerHTML : '';
-         container.notes_display.element.innerHTML = tournament.notes;
-         if (!tournament.notes) container.notes_container.element.style.display = 'none';
-      }
-
-      function isImage(url) { return url && ['jpeg', 'jpg', 'png'].indexOf(url.split('.').reverse()[0]) >= 0; }
 
       function parseSocialLinks() {
          let supported = {
@@ -818,6 +742,44 @@ export const tournamentDisplay = function() {
          }
       
          tournament.media.social = valid;
+      }
+
+      function isImage(url) { return url && ['jpeg', 'jpg', 'png'].indexOf(url.split('.').reverse()[0]) >= 0; }
+
+      function saveSocialLinks() {
+         modalViews.closeModal();
+         parseSocialLinks();
+         saveTournament(tournament);
+      }
+
+      container.edit_notes.element.addEventListener('click', () => {
+         let id_obj = displayGen.notesEntry(tournament.notes);
+         Object.assign(container, id_obj);
+         let notes_element = container.notes.element;
+         if (tournament.notes) notes_element.querySelector('.ql-editor').innerHTML = tournament.notes;
+      });
+
+      function saveTournamentNotes() {
+         modalViews.closeModal();
+         // strip html of unwanted content
+         let notes_element = container.notes.element && container.notes.element.querySelector('.ql-editor');
+         let notes = notes_element && notes_element.innerText.trim() && notes_element.innerHTML || '';
+         tournament.notes = sanitizeHtml(notes, {
+           allowedTags: [
+              'font', 'b', 'i', 'em', 'strong', 'ol', 'li', 'blockquote',
+              'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+              'p', 'br', 'center', 'div', 'span', 'pre',
+              'table', 'tbody', 'tr', 'td', 'th', 'thead'
+           ],
+           allowedAttributes: false
+         });
+         fillNotes();
+         saveTournament(tournament);
+      }
+
+      function fillNotes() {
+         container.notes_display.element.innerHTML = tournament.notes;
+         container.notes_container.element.style.display = tournament.notes ? 'inline' : 'none';
       }
 
       container.push2cloud.element.addEventListener('click', () => { if (!tournament.pushed2cloud) pushTournament2Cloud(tournament); });
@@ -2068,6 +2030,8 @@ export const tournamentDisplay = function() {
       function fetchTournamentRecord() { modalViews.closeModal(); coms.requestTournament(tournament.tuid); }
 
       eventManager
+         .register('saveTournamentNotes', 'tap', saveTournamentNotes)
+         .register('saveSocialLinks', 'tap', saveSocialLinks)
          .register('eventPubState', 'tap', eventPubState)
          .register('closeOldModal', 'tap', ()=>displayGen.closeModal())
          .register('authorizeActions', 'tap', authorizeActions)
@@ -2194,9 +2158,7 @@ export const tournamentDisplay = function() {
          enableDrawActions();
          enableTournamentOptions();
 
-         container.notes_entry.element.style.display = 'none';
-         container.notes_container.element.style.display = 'inline';
-         container.tournament_attrs.element.style.display = 'flex';
+         container.notes_container.element.style.display = !tournament.notes ? 'none' : 'inline';
          fillNotes();
 
          teamsTab();
@@ -2244,11 +2206,15 @@ export const tournamentDisplay = function() {
          }
 
          // require ouid
+         /*
          container.edit_notes.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
          container.register.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
          container.social.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
+         */
          container.pub_link.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
          container.push2cloud.element.style.display = ouid && bool && same_org ? 'inline' : 'none';
+         Array.from(container.tournament.element.querySelectorAll('.editAction'))
+            .forEach(el => el.style.display = ouid && bool && same_org ? 'inline' : 'none');
       }
 
       function addRegistered(registered_players) {
@@ -5883,7 +5849,7 @@ export const tournamentDisplay = function() {
             var options = [
                { label: lang.tr('search.approve'), key: 'approve' },
                { label: lang.tr('events.wildcard'), key: 'wc' },
-               { label: lang.tr('ccl'), key: 'ccl' }
+               { label: lang.tr('actions.cancel'), key: 'ccl' }
             ];
             function pOpts(c) {
                if (c.key == 'wc') {
@@ -7147,7 +7113,7 @@ export const tournamentDisplay = function() {
             if (identify) options.push({ label: lang.tr('idp'), key: 'identify' });
             if (merge) options.push({ label: `${lang.tr('idp')} & ${lang.tr('merge')}`, key: 'merge' });
             if (!approved && !active) options.push({ label: lang.tr('dlp'), key: 'delete' });
-            options.push({ label: lang.tr('ccl'), key: 'cancel' });
+            options.push({ label: lang.tr('actions.cancel'), key: 'cancel' });
 
             if (options.length == 1) {
                selectionMade({ key: options[0].key });
@@ -9355,7 +9321,7 @@ export const tournamentDisplay = function() {
             if (!displayed.draw_event.active && !position_active && swap_positions.length) finished_options.push({ option: lang.tr('draws.swap'), key: 'swap' });
             if (!position_active && alternates.length) finished_options.push({ option: lang.tr('draws.alternate'), key: 'alt' });
             if (!position_active && losers.length) finished_options.push({ option: lang.tr('draws.luckyloser'), key: 'lucky' });
-            finished_options.push({ option: lang.tr('ccl'), key: 'cancel' });
+            finished_options.push({ option: lang.tr('actions.cancel'), key: 'cancel' });
 
             if (!unfinished && !finished_options.length) return;
 

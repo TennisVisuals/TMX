@@ -76,8 +76,8 @@
    align-items: center;
 }
 .calabel {
+   text-align: right;
    margin-right: 1em;
-   text-align: left;
 }
 .calinput {
    width: 7em;

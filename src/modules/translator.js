@@ -162,6 +162,7 @@ export const lang = function() {
       asn:     'Association',
       start:   'Start',
       end:     'End',
+      dates:   'Dates',
       ref:     'Referee',
 
       // this elment is duplicated/overloaded, but it works...

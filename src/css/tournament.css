@@ -256,10 +256,6 @@
    margin-bottom: 1em;
 }
 
-.tournament_notes_display {
-   width: 100%;
-}
-
 .tournament_attrs {
    display: flex;
    flex-wrap: wrap;
@@ -1447,8 +1443,10 @@ button.ratings-submit:hover { background: #68FF33; }
 }
 
 .social_links {
-   width: 100%;
+   width: auto;
    min-height: 10em;
+   min-width: 25em;
+   margin-bottom: 1em;
    resize: none;
 }
 

@@ -285,6 +285,62 @@ export const displayGen = function() {
 
    // NEW MODALS
 
+   gen.socialMediaLinks = () => {
+      let ids = { social_links: displayFx.uuid() };
+      let html = `
+         <div class='box'>
+            <div class='flexcol flexcenter'>
+               <textarea id='${ids.social_links}' class='social_links' wrap='soft' placeholder='Enter a list of all social media links'></textarea>
+               <div class="field is-grouped">
+                 <p class="control"> <a class="button is-outlined is-warning closeModal">${lang.tr('actions.cancel')}</a> </p>
+                 <p class="control"> <a class="button is-outlined is-success saveSocialLinks">${lang.tr('actions.done')}</a> </p>
+               </div>
+            </div>
+         </div>
+      `;
+      modalViews.modalWindow({ html });
+      return displayFx.idObj(ids);
+   };
+
+   gen.notesEntry = () => {
+      let ids = { notes: displayFx.uuid() };
+
+      let html = `
+         <div class='box'>
+            <div class='flexcol flexcenter'>
+               <div id='${ids.notes}' class='tournament_notes_entry'></div>
+               <div class='flexrow flexcenter'>
+                  <div class="field is-grouped">
+                    <p class="control"> <a class="button is-outlined is-warning closeModal">${lang.tr('actions.cancel')}</a> </p>
+                    <p class="control"> <a class="button is-outlined is-success saveTournamentNotes">${lang.tr('actions.done')}</a> </p>
+                  </div>
+               </div>
+            </div>
+         </div>
+      `;
+      modalViews.modalWindow({ html });
+
+      new Quill(`#${ids.notes}`, {
+        modules: {
+          toolbar: [
+            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+            [{ 'font': [] }],
+            ['bold', 'italic'],
+            [{ 'color': [] }, { 'background': [] }],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            [{ 'align': [] }],
+
+            ['blockquote', 'code-block'],
+            ['clean'] 
+          ]
+        },
+        placeholder: lang.tr('phrases.tournamentnotes'),
+        theme: 'snow'
+      });
+
+      return displayFx.idObj(ids);
+   };
+
    gen.tournamentLinks = () => {
       let auth_keys = `<div class='action_icon_1_5 keys_green' style='margin-right: 1em;'></div>`;
       let noauth_keys = `<div class='action_icon_1_5 keys_blue' style='margin-right: 1em;'></div>`;
@@ -351,7 +407,7 @@ export const displayGen = function() {
            <label class="panel-block authorizeAdmin">${lang.tr('admin')}</label>
            <label class="panel-block revokeAuthorization">${lang.tr('revoke')}</label>
            <div class="panel-block">
-              <button class="button is-warning is-outlined is-fullwidth closeModal"> ${lang.tr('ccl')} </button>
+              <button class="button is-warning is-outlined is-fullwidth closeModal"> ${lang.tr('actions.cancel')} </button>
            </div>
          </nav>
       `;
@@ -368,7 +424,7 @@ export const displayGen = function() {
             <label class='panel-block doublesSignInPDF'>${lang.tr('dbl')} ${lang.tr('print.signin')}</label>
             <label class='panel-block playersListPDF'>${lang.tr('print.playerlist')}</label>
             <div class="panel-block flexcenter">
-               <button class="button is-warning is-outlined closeModal"> ${lang.tr('ccl')} </button>
+               <button class="button is-warning is-outlined closeModal"> ${lang.tr('actions.cancel')} </button>
             </div>
          </nav>
       `;
@@ -855,7 +911,7 @@ export const displayGen = function() {
       // TODO: lang.tr Approve/Remove
       let html = `
          <div class="assignment-actions flexcenter">
-            <button id='${ids.cancel}' class='btn btn-medium dismiss'>${lang.tr('ccl')}</button>
+            <button id='${ids.cancel}' class='btn btn-medium dismiss'>${lang.tr('actions.cancel')}</button>
             <button id='${ids.promote}' class='btn btn-medium accept' style='margin-left: 1em; display: none'>Approve</button>
             <button id='${ids.demote}' class='btn btn-medium undo' style='margin-left: 1em; display: none'>Remove</button>
          </div>
@@ -878,7 +934,7 @@ export const displayGen = function() {
       let html = `
          <div class="assignment-actions flexcenter">
             <button id='${ids.new_player}' class='btn btn-medium accept' style='display: none'>${lang.tr('signin.create_new_player')}</button>
-            <button id='${ids.cancel}' class='btn btn-medium dismiss' style='margin-left: 1em;'>${lang.tr('ccl')}</button>
+            <button id='${ids.cancel}' class='btn btn-medium dismiss' style='margin-left: 1em;'>${lang.tr('actions.cancel')}</button>
             <button id='${ids.add}' class='btn btn-medium accept' style='margin-left: 1em; display: none'>${lang.tr('add')}</button>
             <button id='${ids.signin}' class='btn btn-medium accept' style='margin-left: 1em; display: none'>${lang.tr('sgi')}</button>
             <button id='${ids.signout}' class='btn btn-medium undo' style='margin-left: 1em; display: none'>${lang.tr('sgo')}</button>
@@ -1892,7 +1948,7 @@ export const displayGen = function() {
                   </div>
                </div>
                <div class='edit_actions'>
-                  <button id="${ids.cancel}" class="btn btn-medium edit-cancel" alt="${lang.tr('actions.cancel')}">${lang.tr('ccl')}</button> 
+                  <button id="${ids.cancel}" class="btn btn-medium edit-cancel" alt="${lang.tr('actions.cancel')}">${lang.tr('actions.cancel')}</button> 
                   <button id="${ids.save}" class="btn btn-medium edit-submit" alt="${lang.tr('sbt')}">${lang.tr('sbt')}</button> 
                </div>
             </div>
@@ -1976,7 +2032,7 @@ export const displayGen = function() {
                   </div>
                </div>
                <div class='edit_actions'>
-                  <button id="${ids.cancel}" class="btn btn-medium edit-cancel" alt="${lang.tr('actions.cancel')}">${lang.tr('ccl')}</button> 
+                  <button id="${ids.cancel}" class="btn btn-medium edit-cancel" alt="${lang.tr('actions.cancel')}">${lang.tr('actions.cancel')}</button> 
                   <button id="${ids.save}" class="btn btn-medium edit-submit" alt="${lang.tr('sbt')}">${lang.tr('sbt')}</button> 
                </div>
             </div>
@@ -2038,7 +2094,7 @@ export const displayGen = function() {
                   </div>
                </div>
                <div class='edit_actions'>
-                  <button id="${ids.cancel}" class="btn btn-medium edit-cancel" alt="${lang.tr('actions.cancel')}">${lang.tr('ccl')}</button> 
+                  <button id="${ids.cancel}" class="btn btn-medium edit-cancel" alt="${lang.tr('actions.cancel')}">${lang.tr('actions.cancel')}</button> 
                   <button id="${ids.save}" class="btn btn-medium edit-submit" alt="${lang.tr('sbt')}">${lang.tr('sbt')}</button> 
                </div>
             </div>
@@ -2503,7 +2559,7 @@ export const displayGen = function() {
          </div>
          <div class='edit_actions'>
             <button id="${ids.save}" class="btn btn-large edit-submit" alt="${lang.tr('sbt')}">${lang.tr('sbt')}</button> 
-            <button id="${ids.cancel}" class="btn btn-large edit-cancel" alt="${lang.tr('actions.cancel')}">${lang.tr('ccl')}</button> 
+            <button id="${ids.cancel}" class="btn btn-large edit-cancel" alt="${lang.tr('actions.cancel')}">${lang.tr('actions.cancel')}</button> 
          </div>`;
 
       gen.showEdit(html, false);
@@ -2573,12 +2629,9 @@ export const displayGen = function() {
    gen.tournamentContainer = ({ tournament, tabCallback }) => {
       let ids = {
          name: displayFx.uuid(),
-         notes: displayFx.uuid(),
          social: displayFx.uuid(),
          register: displayFx.uuid(),
          stats: displayFx.uuid(),
-         social_links: displayFx.uuid(),
-         social_media: displayFx.uuid(),
          stat_charts: displayFx.uuid(),
          edit: displayFx.uuid(),
          x: displayFx.uuid(),
@@ -2623,6 +2676,7 @@ export const displayGen = function() {
          recycle: displayFx.uuid(),
          start_date: displayFx.uuid(),
          end_date: displayFx.uuid(),
+         trny_images: displayFx.uuid(),
          organizers: displayFx.uuid(),
          organization: displayFx.uuid(),
          judge: displayFx.uuid(),
@@ -2648,7 +2702,8 @@ export const displayGen = function() {
          edit_notes: displayFx.uuid(),
          notes_container: displayFx.uuid(),
          notes_display: displayFx.uuid(),
-         notes_entry: displayFx.uuid(),
+         // notes: displayFx.uuid(),
+         // notes_entry: displayFx.uuid(),
          pubTrnyInfo: displayFx.uuid(),
          pubStateTrnyInfo: displayFx.uuid(),
          tournament_attrs: displayFx.uuid(),
@@ -2704,11 +2759,12 @@ export const displayGen = function() {
             <div class='tournament_options'>
                <div class='options_left'>
                   <div id='${ids.penalty_report}' class='${hoverHelp('info')}' label='${lang.tr("ptz")}' style='display: none'> <div class='penalty action_icon'></div> </div>
-                  <div id='${ids.edit_notes}' class='${hoverHelp('info')}' label='${lang.tr("notes")}' style='display: none'> <div class='tnotes action_icon'></div> </div>
-                  <div id='${ids.register}' class='${hoverHelp('info')}' label='${lang.tr("tournaments.registration")}' style='display: none; margin-left: .5em;'>
+                  <div id='${ids.edit_notes}' class='editAction ${hoverHelp('info')}' label='${lang.tr("notes")}' style='display: none'> <div class='tnotes action_icon'></div> </div>
+                  <div id='${ids.register}' class='editAction ${hoverHelp('info')}' label='${lang.tr("tournaments.registration")}' style='display: none; margin-left: .5em;'>
                      <div class='register action_icon'></div>
                   </div>
-                  <div id='${ids.social}' class='${hoverHelp('info')}' label='${lang.tr("social")}' style='display: none; margin-left: .5em;'> <div class='social action_icon'></div> </div>
+                  <div id='${ids.social}' class='editAction ${hoverHelp('info')}' label='${lang.tr("social")}' style='display: none; margin-left: .5em;'> <div class='social action_icon'></div> </div>
+                  <div class='editAction addTournamentImages' style='display: none; margin-left: .5em;'> <div class='image_icon action_icon'></div> </div>
                </div>
                <div class='options_center'>
                </div>
@@ -2723,67 +2779,78 @@ export const displayGen = function() {
                </div>
             </div>
 
-            <div id='${ids.tournament_attrs}' class='tournament_attrs'>
-                <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                   <div class='tournament_attr'>
-                       <label class='calabel'>${lang.tr('start')}:</label>
-                       <input class='calinput' id="${ids.start_date}" disabled>
-                   </div>
-                   <div class='tournament_attr'>
-                       <label class='calabel'>${lang.tr('end')}:</label>
-                       <input class='calinput' id="${ids.end_date}" disabled>
-                   </div>
-                </div>
 
-                <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                   <div class='tournament_attr'>
-                       <label class='attr_label'>${lang.tr('signin.organization')}:</label>
-                       <input class='attr_input' id="${ids.organization}" disabled>
-                   </div>
-                   <div class='tournament_attr'>
-                       <label class='attr_label'>${lang.tr('draws.organizers')}:</label>
-                       <input class='attr_input' id="${ids.organizers}" disabled>
-                   </div>
-                   <div class='tournament_attr'>
-                       <label class='attr_label'>${lang.tr('signin.judge')}:</label>
-                       <input class='attr_input' id="${ids.judge}" disabled>
-                   </div>
-                </div>
+               <div id='${ids.tournament_attrs}' class="tile is-ancestor">
+                 <div class="tile is-4 is-vertical is-parent" style='width: auto;'>
+                   <div class="tile is-child">
 
-               <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                  <div class='location_attribute locaddress'>
-                     <div class='loclabel'>${lang.tr('locations.address')}:</div>
-                     <input id='${ids.location}' class='locvalue'> 
-                  </div>
-                  <div class='flexrow'>
-                     <div class='loclatlong flexcol'>
-                        <div class='location_attribute'>
-                           <div class='loclabel'>Latitude</div>
-                           <input id='${ids.latitude}' class='locvalue_short'> 
+                       <div class='box flexcol flexcenter'>
+                        <p class="title">Dates</p>
+                        <div class='flexcol'>
+                         <div class='flexjustifyend' style='width: 100%;'>
+                             <label class='calabel'>${lang.tr('start')}:</label>
+                             <input class='calinput' id="${ids.start_date}" disabled>
+                         </div>
+                         <div class='flexjustifyend' style='width: 100%;'>
+                             <label class='calabel'>${lang.tr('end')}:</label>
+                             <input class='calinput' id="${ids.end_date}" disabled>
+                         </div>
+                         </div>
+                      </div>
+
+                      <div id="${ids.trny_images}" class='flexcol'>
+                      </div>
+                   </div>
+
+                 </div>
+
+                 <div class="tile is-parent">
+                   <div class="tile is-child">
+                     <div class='box'>
+                         <div class='tournament_attr'>
+                             <label class='attr_label'>${lang.tr('signin.organization')}:</label>
+                             <input class='attr_input' id="${ids.organization}" disabled>
+                         </div>
+                         <div class='tournament_attr'>
+                             <label class='attr_label'>${lang.tr('draws.organizers')}:</label>
+                             <input class='attr_input' id="${ids.organizers}" disabled>
+                         </div>
+                         <div class='tournament_attr'>
+                             <label class='attr_label'>${lang.tr('signin.judge')}:</label>
+                             <input class='attr_input' id="${ids.judge}" disabled>
+                         </div>
+                     </div>
+
+                     <div class='box'>
+                        <div class='location_attribute locaddress'>
+                           <div class='loclabel'>${lang.tr('locations.address')}:</div>
+                           <input id='${ids.location}' class='locvalue' disabled>
                         </div>
-                        <div class='location_attribute'>
-                           <div class='loclabel'>Longitude</div>
-                           <input id='${ids.longitude}' class='locvalue_short'> 
+                        <div class='flexrow'>
+                           <div class='loclatlong flexcol'>
+                              <div class='location_attribute'>
+                                 <div class='loclabel'>Latitude</div>
+                                 <input id='${ids.latitude}' class='locvalue_short' disabled>
+                              </div>
+                              <div class='location_attribute'>
+                                 <div class='loclabel'>Longitude</div>
+                                 <input id='${ids.longitude}' class='locvalue_short' disabled>
+                              </div>
+                           </div>
+                           <div class='flexrow' style='margin-left: 1em;'>
+                              <div id='${ids.googlemap}' class='googlemaps action_icon_large googleTournamentLocation' ></div>
+                              <div id='${ids.geoloc}' class='geolocation action_icon_large currentTournamentLocation' ></div>
+                           </div>
                         </div>
                      </div>
-                     <div class='flexrow' style='margin-left: 1em;'>
-                        <div id='${ids.googlemap}' class='googlemaps action_icon_large googleTournamentLocation' ></div>
-                        <div id='${ids.geoloc}' class='geolocation action_icon_large currentTournamentLocation' ></div>
+
+                     <div id='${ids.notes_container}' class='ql-snow is-unselectable'>
+                        <div id='${ids.notes_display}' class='box ql-editor' style='height: auto !important;'></div>
                      </div>
-                  </div>
+
+                   </div>
+                 </div>
                </div>
-
-            </div>
-
-            <div id='${ids.notes_entry}' class='tournament_notes' style='display: none'>
-               <div id='${ids.notes}' class='tournament_notes_entry'></div>
-            </div>
-            <div id='${ids.notes_container}' class='tournament_notes ql-container ql-snow' style='display: none'>
-               <div id='${ids.notes_display}' class='tournament_notes ql-editor'></div>
-            </div>
-            <div id='${ids.social_media}' class='flexcenter' style='display: none; width: 100%;'>
-               <textarea id='${ids.social_links}' class='social_links' wrap='soft' placeholder='Enter a list of all social media links'></textarea>
-            </div>
 
          </div>
          <div class='section flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
@@ -5201,7 +5268,7 @@ export const displayGen = function() {
          <div class='flexcenter flexcol'>
             <input id='${ids.link}' value='' style='text-align: center; width: 25em; margin: 1em;'>
             <div class='flexrow' style='margin-top: 1em;'>
-               <button id="${ids.cancel}" class="btn btn-medium edit-cancel" style="margin-right: 1em;">${lang.tr('ccl')}</button> 
+               <button id="${ids.cancel}" class="btn btn-medium edit-cancel" style="margin-right: 1em;">${lang.tr('actions.cancel')}</button> 
                <button id="${ids.submitlink}" class="btn btn-medium edit-submit">${lang.tr('sbt')}</button> 
             </div>
          </div>
@@ -5663,6 +5730,14 @@ export const displayGen = function() {
       let match_penalties = penalty_players.filter(p=>p.penalties.filter(f=>f.muid == muid).length);
       return match_penalties.filter(p=>p.puid == puid).length;
    }
+
+   gen.replaceNewLines = (str) => {
+      return str
+               .split('>')
+               .map(s =>  s.replace(/^\n/, ''))
+               .join('>')
+               .replace(/\n/g, "<br />");
+   };
 
    return gen;
  

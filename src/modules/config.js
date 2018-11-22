@@ -191,7 +191,7 @@ export const config = function() {
             searchBox.searchCategory('search_tournament_total');
 
             searchBox.typeAhead.list = !arr.length ? [] : arr.map(tournament => { 
-               let category = tournament.category == 'S' ? 'S' : `${tournament.category}`;
+               let category = tournament.category == 'S' ? 'S' : `${tournament.category || ''}`;
                let start_date = dateFx.formatDate(new Date(tournament.start));
                let label = stringFx.normalizeName(`${category} ${tournament.name} [${start_date}]`);
                return { value: tournament.tuid, label };
