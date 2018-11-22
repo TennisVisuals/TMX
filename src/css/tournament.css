@@ -271,13 +271,14 @@
 
 .tournament_attr {
    display: flex;
+   margin-bottom: .5em;
+   white-space: nowrap;
    -webkit-justify-content: space-between;
    justify-content: space-between;
    -webkit-align-content: center;
    align-content: center;
    -webkit-align-items: center;
    align-items: center;
-   margin-bottom: 1px;
 }
 .attribute_box {
    display: flex;
@@ -310,7 +311,6 @@
 .attr_input {
    width: 14em;
    font-size: 1em;
-   border: none;
    text-align: center;
 }
 

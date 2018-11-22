@@ -1384,6 +1384,7 @@ export const displayGen = function() {
       }
    };
 
+   /*
    gen.orgSettings = () => {
       let ids = {};
       let ddlb = [];
@@ -1684,6 +1685,7 @@ export const displayGen = function() {
       `;
       return { ids, html, ddlb };
    };
+   */
 
    gen.serverDataStorage = () => {
       let ids = {

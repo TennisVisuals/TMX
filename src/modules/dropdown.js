@@ -184,6 +184,10 @@ export const dd = function() {
       if (!id && !element) return;
       // elements will not be visible until new DropDown()
       element = element || document.getElementById(id);
+      if (!element) {
+         console.log('invalid element id:', id);
+         return;
+      }
       element.style.display = display;
       element.classList.add(css_class || "dd");
       element.innerHTML = dropDownHTML(label, options, selected, border, style, floatleft);

@@ -199,6 +199,7 @@ export const tournamentDisplay = function() {
       coms.joinTournament(tournament.tuid);
       sharedFx.receiveScore = receiveScore;
       function receiveScore(data) {
+         console.log('receive score:', data);
          if (data.tournament.tuid != tournament.tuid) {
             console.log('leaving tournament:', data.tournament);
             return coms.leaveTournament(tournament.tuid);
@@ -208,7 +209,8 @@ export const tournamentDisplay = function() {
          let matches = mfx.eventMatches(target_event, tournament);
          let match = matches && matches.reduce((p, c) => c.match.muid == data.match.muid ? c : p, undefined);
          if (!match) { console.log('match not found!', data.match.muid); }
-         let scoreboard = data.score.components.sets.map(set => set.games.join('-')).join(' ');
+         let sets = data.score.components.sets;
+         let scoreboard = sets && sets.map(set => set.games && set.games.join('-')).filter(f=>f).join(' ');
          match.match.delegated_score = scoreboard;
          if (target_event.euid == displayed.draw_event.euid) drawsTab();
          if (displayed.schedule_day && match.match.schedule && match.match.schedule.day == displayed.schedule_day) scheduleTab();
@@ -4425,7 +4427,7 @@ export const tournamentDisplay = function() {
       function eligibleOptions(evt, e) {
          if (!e || !e.draw) return;
          if (e.draw_type == 'C') return consolationWildcards(evt, e);
-         let competitors = [].concat(...e.draw.opponents.map(team=>team.map(p=>p.id)));
+         let competitors = e.draw.opponents && [].concat(...e.draw.opponents.map(team=>team.map(p=>p.id))) || [];
          let linkedQ = tfx.findEventByID(tournament, e.links['Q']) || tfx.findEventByID(tournament, e.links['R']);
          let linked_info = linkedQ && linkedQ.draw ? dfx.drawInfo(linkedQ.draw) : undefined;
 
@@ -10098,7 +10100,11 @@ export const tournamentDisplay = function() {
          function defineAttr(attr, evt, required, element) {
             if (evt) element = evt.target;
             let value = element.value.trim();
+
+            // TODO:  tournament attributes shouldn't always be assigned as
+            // keys to tournament... e.g. lattitude/longitude are now part of address
             tournament[attr] = value;
+
             if (!evt || evt.which == 13 || evt.which == 9) nextFieldFocus(attr);
          }
 
@@ -10107,6 +10113,21 @@ export const tournamentDisplay = function() {
             container[field].element.addEventListener('keyup', (evt) => defineAttr(field, evt));
             container[field].element.value = tournament[field] || '';
          });
+
+         container.latitude.element.addEventListener('keydown', catchTab, false);
+         container.longitude.element.addEventListener('keydown', catchTab, false);
+         container.latitude.element.addEventListener('keyup', evt => defineAddress(evt));
+         container.longitude.element.addEventListener('keyup', evt => defineAddress(evt));
+
+         function defineAddress(evt) {
+            if (!tournament.address) tournament.address = {};
+            if (evt.which == 13 || evt.which == 9) {
+               tournament.address.latitude = container.latitude.element.value;
+               tournament.address.longitude = container.longitude.element.value;
+               if (tournament.pushed2cloud) tournament.pushed2cloud = false;
+               displayGen.tournamentPublishState(container.push2cloud_state.element, tournament.pushed2cloud);
+            }
+         }
 
          container.latitude.element.value = (tournament.address && tournament.address.latitude) || '';
          container.longitude.element.value = (tournament.address && tournament.address.longitude) || '';

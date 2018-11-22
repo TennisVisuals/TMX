@@ -38,7 +38,7 @@ export const config = function() {
          title: 'warn',
          notice: `Error Detected: Development has been notified!<p><a href='${tmx}'>Try CourtHive.com/tmx-</a>`
       });
-      displayGen.homeIconState('update');
+      displayGen.homeIconState('messages');
    };
 
    // module container
