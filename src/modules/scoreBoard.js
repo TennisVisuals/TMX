@@ -6,6 +6,7 @@ import { domFx } from './domFx';
 import { dateFx } from './dateFx';
 import { lang } from './translator';
 import { displayFx } from './displayFx';
+import { modalViews } from './modalViews';
 import { displayGen } from './displayGen';
 import { eventManager } from './eventManager';
 import { floatingEntry } from './floatingEntry';
@@ -249,6 +250,7 @@ export const scoreBoard = function() {
             displayGen.numericFx = undefined;
             document.body.style.overflow = null;
             d3.select(sobj.scoreboard.element).remove();
+            modalViews.closeModal();
          } else {
             displayActions(false);
          }
@@ -1089,7 +1091,6 @@ export const scoreBoard = function() {
          options: numericOptions(options.bestof)
       });
       sobj.bestof.ddlb = new dd.DropDown({ element: sobj.bestof.element, id: sobj.bestof.id, onChange: setBestOf });
-      sobj.bestof.ddlb.selectionBackground();
       sobj.bestof.ddlb.setValue(stg.max_sets, 'white');
 
       dd.attachDropDown({ 
@@ -1097,7 +1098,6 @@ export const scoreBoard = function() {
          options: numericOptions(options.setsto)
       });
       sobj.setsto.ddlb = new dd.DropDown({ element: sobj.setsto.element, id: sobj.setsto.id, onChange: setsTo });
-      sobj.setsto.ddlb.selectionBackground();
       sobj.setsto.ddlb.setValue(stg.games_for_set, 'white');
 
       let gfs = stg.games_for_set;
@@ -1107,15 +1107,14 @@ export const scoreBoard = function() {
          options: tbat_options
       });
       sobj.tiebreaksat.ddlb = new dd.DropDown({ element: sobj.tiebreaksat.element, id: sobj.tiebreaksat.id, onChange: setTiebreakAt });
-      sobj.tiebreaksat.ddlb.selectionBackground();
       sobj.tiebreaksat.ddlb.setValue(stg.tiebreaks_at && stg.tiebreaks_at < gfs ? stg.tiebreaks_at : gfs, 'white');
+      sobj.tiebreaksat.ddlb.setValue(stg.tiebreaks_at || '', 'white');
 
       dd.attachDropDown({ 
          id: sobj.tiebreaksto.id, 
          options: numericOptions(options.tiebreaksto)
       });
       sobj.tiebreaksto.ddlb = new dd.DropDown({ element: sobj.tiebreaksto.element, id: sobj.tiebreaksto.id });
-      sobj.tiebreaksto.ddlb.selectionBackground();
       sobj.tiebreaksto.ddlb.setValue(stg.tiebreak_to, 'white');
 
       dd.attachDropDown({ 
@@ -1152,7 +1151,7 @@ export const scoreBoard = function() {
 
       function tiebreakAtOptions(gfs) {
          return [
-            { key: lang.tr('none'), value: undefined },
+            { key: lang.tr('none'), value: '' },
             { key: `${gfs-1}-${gfs-1}`, value: gfs - 1 },
             { key: `${gfs}-${gfs}`, value: gfs }
          ];
@@ -1220,27 +1219,8 @@ export const scoreBoard = function() {
    fx.floatingScoreBoard = ({ muid, teams, flags }) => {
       let sb_ids = { scoreboard: displayFx.uuid() };
 
-      let scoreboard = d3.select('body')
-         .append('div')
-         .attr('class', 'tmx-modal')
-         .attr('id', sb_ids.scoreboard);
-
       let { ids, html } = generateScoreBoard({ muid, teams, flags });
-
-      let entry = floatingEntry()
-         .selector('#' + sb_ids.scoreboard)
-         .events( {'click': () => {
-            setClick(d3.event.target);
-            let elems = document.querySelectorAll('li.dd_state');
-            Array.from(elems).forEach(elem => { elem.classList.remove("active"); });
-         }});
-
-      entry(window.innerWidth * .3, window.innerHeight * .4, html);
-
-      scoreboard.on('click', () => {
-         displayGen.numericFx = undefined;
-         d3.select(`#${sb_ids.scoreboard}`).remove();
-      });
+      modalViews.modalWindow({ html, overflow: 'visible' });
 
       Object.assign(ids, sb_ids);
       let id_obj = displayFx.idObj(ids);
