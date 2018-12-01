@@ -45,7 +45,7 @@ export const modalViews = function() {
    }
 
    fx.modalWindow = modalWindow;
-   function modalWindow({ html, x=true, background=true, backgroundClose=true }) {
+   function modalWindow({ html, x=true, background=true, backgroundClose=true, overflow }) {
       let modal_window = document.getElementById('modalwindow');
       let close_button = `
          <button class="modal-close is-large closeModal" aria-label="close"></button>
@@ -53,9 +53,10 @@ export const modalViews = function() {
       let modal_background = `
         <div class="modal-background fadeback ${backgroundClose ? 'backgroundClose' : ''}" style="height: 100%"></div>
       `;
+      let style = overflow ? `overflow: ${overflow}` : '';
       let modal_html = `
          ${background ? modal_background : ''}
-         <div id="modalcontent" class="min-modal modal-content">${html}</div>
+         <div id="modalcontent" class="min-modal modal-content" style="${style}">${html}</div>
          ${x ? close_button : ''}
      `;
       modal_window.innerHTML = modal_html;
