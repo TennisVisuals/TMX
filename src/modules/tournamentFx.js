@@ -252,7 +252,7 @@ export const tournamentFx = function() {
                   tally.forEach((t, i) => score[i] += t * result.value);
                }
             } else {
-               score[result.winner] += parseInt(result.value || 1);
+               score[result.winner] += util.parseInt(result.value || 1);
             }
          });
       let max_score = Math.max(...score);
@@ -273,7 +273,7 @@ export const tournamentFx = function() {
             // eslint-disable-next-line no-useless-escape
             let scores = (/\d+[\(\)\-\/]*/.test(set_score)) && divider ? set_score.split(divider).map(s => /\d+/.exec(s)[0]) : undefined;
             if (scores) {
-               sets_tally[parseInt(scores[0]) > parseInt(scores[1]) ? 0 : 1] += 1;
+               sets_tally[util.parseInt(scores[0]) > util.parseInt(scores[1]) ? 0 : 1] += 1;
             }
          });
       }
@@ -777,7 +777,7 @@ export const tournamentFx = function() {
       } else if (teams.length || eligible_players.length) {
          let pids = [].concat(...(e.teams || []), ...eligible_players.map(p=>p.id));
          let possible = players.filter(p=>pids.indexOf(p.id)>=0);
-         let int_ranks = possible.map(o=>parseInt(o.int, 0)).filter(i=>parseInt(i || 0)).sort();
+         let int_ranks = possible.map(o=>parseInt(o.int || 0)).filter(i=>parseInt(i || 0)).sort();
          offset = int_ranks.length ? Math.max(...int_ranks) + 1 : 0;
       }
 
@@ -896,15 +896,15 @@ export const tournamentFx = function() {
 
    fx.modifyEventScoring = ({ cfg_obj, evt, callback, format }) => {
       let bestof = cfg_obj.bestof.ddlb.getValue();
-      let max_sets = parseInt(bestof);
+      let max_sets = util.parseInt(bestof);
       let sets_to_win = Math.ceil(max_sets/2);
       let sf = {
          max_sets,
          sets_to_win,
-         games_for_set: parseInt(cfg_obj.setsto.ddlb.getValue()),
-         tiebreaks_at: parseInt(cfg_obj.tiebreaksat.ddlb.getValue()),
-         tiebreak_to: parseInt(cfg_obj.tiebreaksto.ddlb.getValue()),
-         supertiebreak_to: parseInt(cfg_obj.supertiebreakto.ddlb.getValue()),
+         games_for_set: util.parseInt(cfg_obj.setsto.ddlb.getValue()),
+         tiebreaks_at: util.parseInt(cfg_obj.tiebreaksat.ddlb.getValue()) || '', // only option that can be 'none'
+         tiebreak_to: util.parseInt(cfg_obj.tiebreaksto.ddlb.getValue()),
+         supertiebreak_to: util.parseInt(cfg_obj.supertiebreakto.ddlb.getValue()),
          final_set_supertiebreak: cfg_obj.finalset.ddlb.getValue() == 'N' ? false : true
       };
       if (format) {
