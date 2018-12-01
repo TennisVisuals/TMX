@@ -5,6 +5,28 @@ export const domFx = function() {
    let allow_in = undefined;
    let noscroll_enabled = undefined;
 
+   fx.testImage = (url) => {
+      return new Promise(resolve => {
+         const imgElement = new Image();
+         imgElement.addEventListener('load', () => resolve({ valid: true, url }));
+         imgElement.addEventListener('error', () => resolve({ valid: false, url }));
+         imgElement.src = url;
+      });
+   };
+
+   fx.testImages = (url_list) => {
+      return new Promise((resolve, reject) => {
+         Promise.all(url_list.map(fx.testImage)).then(results => {
+            let pass = [];
+            let fail = [];
+            results.forEach(result => {
+               if (result.valid) { pass.push(result.url); } else { fail.push(result.url); }
+            }, reject);
+            resolve({ pass, fail });
+         });
+      });
+   };
+
    fx.enableNoScroll = () => {
       if (noscroll_enabled) return;
       document.body.addEventListener('wheel', evt => {
