@@ -5,7 +5,7 @@ export const env = {
    first_time_user: false,
 
    // version is Major.minor.added.changed.fixed
-   version: '1.5.23.55.33',
+   version: '1.5.27.69.45',
    version_check: undefined,
    reset_new_versions: false,
 
@@ -226,7 +226,7 @@ export const env = {
          brackets: {
             min_bracket_size: 3,
             default_bracket_size: 4,
-            max_bracket_size: 6
+            max_bracket_size: 8
          }
       }
    },
@@ -257,6 +257,9 @@ export const env = {
    storage: undefined,
    notifications: undefined,
    server: {
+      push: {
+         auto: false
+      },
       requests: {
          externalRequest: [ 'fetchClubs', 'fetchNewPlayers', 'fetchNewTournaments', 'fetchRankList', 'fetchRegisteredPlayers' ],
          sheetDataStorage: [ 'syncClubs', 'syncPlayers', 'syncTournaments' ],
