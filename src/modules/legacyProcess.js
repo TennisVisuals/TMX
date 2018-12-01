@@ -18,6 +18,7 @@ export const legacyProcess = function() {
       let groups = {};
       if (!matches) return groups;
 
+      matches = matches.filter(m=>m);
       groups.ms = matches.filter(match => match.format == 'singles' && match.gender == 'M' && match.consolation == false);
       groups.msq = groups.ms.filter(match => match.round_name && match.round_name.indexOf('Q') == 0 && match.round_name.indexOf('QF') != 0);
       groups.msm = groups.ms.filter(match => match.round_name && match.round_name.indexOf('RR') < 0 && (match.round_name.indexOf('QF') == 0 || match.round_name.indexOf('Q') < 0));
