@@ -1,5 +1,11 @@
 /* new css */
 
+.mobile-hide { display: flex; }
+.mobile-show { display: none; }
+@media screen and (max-width: 768px) {
+   .mobile-hide { display: none !important; }
+   .mobile-show { display: flex; }
+}
 .acceptance_main { background-color: #E4FCE4; }
 .acceptance_qualifying { background-color: #FFFFE6; }
 .acceptance_alternate { background-color: #FDF5DD; }
@@ -11,6 +17,9 @@
    width: 100%;
    box-shadow: 0 2px 4px 0 gray;
    margin-bottom: .5em !important;
+}
+.eventlist_entry {
+   border-bottom: 1px solid #F5F5F5;
 }
 .eventdata_large { display: flex; }
 .eventdata_small {
@@ -28,7 +37,9 @@
    .eventlist_header { display: none; }
    .eventdata_large { display: none; }
    .eventdata_small { display: flex; }
-   .eventlist_entry { padding-left: .5em !important; }
+   .eventlist_entry {
+      padding-left: .5em !important;
+   }
    /* .eventdata_title { background-color: hsl(0, 0%, 98%); } */
    .location_address { display: none; }
    .location_court_count { display: none; }
@@ -915,6 +926,7 @@ button.ratings-submit:hover { background: #68FF33; }
    flex-direction: row;
    flex-wrap: nowrap;
    min-width: 15em;
+   margin-bottom: .5em;
 }
 .event_details .detail_body .detail_column {
    display: flex;
@@ -1321,6 +1333,7 @@ button.ratings-submit:hover { background: #68FF33; }
 .ordered_dual_matches {
    width: 100%;
    display: flex;
+   margin-top: 2em;
    -webkit-flex-direction: column;
    flex-direction: column;
    -webkit-justify-content: center;
@@ -1363,9 +1376,7 @@ button.ratings-submit:hover { background: #68FF33; }
 
 .dual_match_identifier {
    width: 100%;
-   color: white;
-   background-color: gray;
-   padding: 3px;
+   background-color: lightgray;
    font-weight: bold;
    font-style: italic;
 }
