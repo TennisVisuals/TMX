@@ -36,7 +36,8 @@ export const tmxStats = function() {
       let buckets = pctSpread(match_sets).reduce((b, a) => { if (b[a]) { b[a] += 1; } else { b[a] = 1; } return b; }, {});
       let data = Object.keys(buckets).map(key => isNaN(key) ? undefined : { pct: key, value: buckets[key] }).filter(f=>f);
 
-      let dd = pctSpread(match_sets).reduce((p, c) => bandSort(p, c), { w: 0, d: 0, r: 0, c: 0 }); 
+      // let dd = pctSpread(match_sets).reduce((p, c) => bandSort(p, c), { w: 0, d: 0, r: 0, c: 0 }); 
+      let dd = pctSpread(match_sets).reduce((p, c) => bandSort(p, c), { c: 0, r: 0, d: 0, w: 0 }); 
       let total = Object.keys(dd).reduce((a, k) => (dd[k] || 0) + a, 0);
       let dt = Object.keys(dd).map(k => ({ Percentage: dd[k] / total, Category: categories[k] })); 
 
@@ -78,7 +79,8 @@ export const tmxStats = function() {
          .height(300)
          .cornerRadius(3) // sets how rounded the corners are on each slice
          .padAngle(0.015) // effectively dictates the gap between slices
-         .colour(d3.scaleOrdinal([colours.walkover, colours.decisive, colours.routine, colours.competitive]))
+         // .colour(d3.scaleOrdinal([colours.walkover, colours.decisive, colours.routine, colours.competitive]))
+         .colour(d3.scaleOrdinal([colours.competitive, colours.routine, colours.decisive, colours.walkover]))
          .variable('Percentage')
          .category('Category');
 
