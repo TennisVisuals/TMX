@@ -287,7 +287,8 @@ export const playerFx = function() {
          entry: d.entry,
          draw_position: d.draw_position,
          school: d.school,
-         school_abbr: d.school_abbr,
+         // school_abbr: d.school_abbr,
+         school_abbr: fx.schoolAbbr(d),
          ioc: d.ioc,
          id: d.id
       };
@@ -313,7 +314,8 @@ export const playerFx = function() {
          full_name: p.full_name,
          last_name: p.last_name,
          first_name: p.first_name,
-         school_abbr: p.school_abbr,
+         // school_abbr: p.school_abbr,
+         school_abbr: fx.schoolAbbr(p),
          draw_position: p.draw_position,
          category_dbls: p.category_dbls,
          category_ranking: p.category_ranking,
@@ -599,7 +601,8 @@ export const playerFx = function() {
          first_name: player_data.first_name,
          last_name: player_data.last_name,
          school: player_data.school,
-         school_abbr: player_data.school_abbr,
+         // school_abbr: player_data.school_abbr,
+         school_abbr: fx.schoolAbbr(player_data),
          birth: player_data.birth,
          ioc: player_data.ioc,
          sex: player_data.sex || 'M'
@@ -696,10 +699,13 @@ export const playerFx = function() {
          if (!player.first_name || !player.last_name || (require_ioc && !player.ioc)) return;
          player.full_name = `${player.last_name.toUpperCase()}, ${stringFx.normalizeName(player.first_name, false)}`;
 
+         player.school_abbr = fx.schoolAbbr(player);
+         /*
          let parenthetical = /\((.*)\)/;
          if (player.school && player.school.match(parenthetical)) {
             player.school_abbr = player.school.match(parenthetical)[1];
          }
+         */
 
          if (typeof callback == 'function') callback(player); 
          displayGen.closeModal();
@@ -759,6 +765,12 @@ export const playerFx = function() {
          
       });
    }
+
+   fx.schoolAbbr = (player) => {
+      let parenthetical = /\((.*)\)/;
+      let extracted = (player.school && player.school.match(parenthetical)) ? player.school.match(parenthetical)[1] : undefined;
+      return player.school_abbr || extracted;
+   };
 
    fx.opponentName = opponentName;
    function opponentName({ opponent, designator, length_threshold }) {
