@@ -28,6 +28,7 @@ import { calendarFx } from './calendarFx';
 import { scoreBoard } from './scoreBoard';
 import { modalViews } from './modalViews';
 import { matchFx as mfx } from './matchFx';
+import { transformFx } from './transformFx';
 import { contextMenu } from './contextMenu';
 import { playerFx as pfx } from './playerFx';
 import { eventManager } from './eventManager';
@@ -49,15 +50,6 @@ export const tournamentDisplay = function() {
       focus: { place_player: undefined }
    };
 
-   util.addDev({db});
-   util.addDev({dfx});
-   util.addDev({tfx});
-   util.addDev({mfx});
-   util.addDev({util});
-   util.addDev({domFx});
-   util.addDev({UUID});
-   util.addDev({tmxStats});
-
    function settingsLoaded() {
       dfx.options(env.drawFx);
       scoreBoard.options(env.scoreboard.options);
@@ -65,9 +57,7 @@ export const tournamentDisplay = function() {
       scoreBoard.settings(score_format);
    }
 
-   if (settingsFx) {
-      settingsFx.register('tournamentDisplay', settingsLoaded);
-   }
+   if (settingsFx) { settingsFx.register('tournamentDisplay', settingsLoaded); }
 
    fx.options = (values) => {
       if (!values) return o;
@@ -182,11 +172,13 @@ export const tournamentDisplay = function() {
       let { container, classes, displayTab, display_context, tab_ref } = displayGen.tournamentContainer({ tournament, tabCallback });
 
       util.addDev({tournament});
-      util.addDev({container});
       util.addDev({env});
+      util.addDev({db});
+      util.addDev({util});
+      util.addDev({dateFx});
+      util.addDev({domFx});
 
       tmxTour.tournamentContainer(container, classes);
-      util.addDev({tmxTour});
 
       let ouid = env.org && env.org.ouid;
       if (ouid && tournament.tuid) {
@@ -680,6 +672,7 @@ export const tournamentDisplay = function() {
 
 
       if (!tournament.media) tournament.media = { social: {} };
+      tournamentImages();
 
       container.register.element.addEventListener('click', tournamentRegistration);
       function tournamentRegistration() {
@@ -706,6 +699,19 @@ export const tournamentDisplay = function() {
          }
       }
 
+      function tournamentImages() {
+         let images = [];
+         if (tournament.publishing) {
+            if (tournament.publishing.logo) { images.push(tournament.publishing.logo); }
+            if (tournament.publishing.sponsors && tournament.publishing.sponsors.length) {
+               tournament.publishing.sponsors.forEach(sponsor => images.push(sponsor));
+            }
+         }
+
+         container.trny_images.element.innerHTML = images.length ? displayGen.tournamentImages(images) : '';
+         container.mobile_trny_images.element.innerHTML = images.length ? displayGen.tournamentImages(images) : '';
+      }
+
       container.social.element.addEventListener('click', () => {
          let id_obj = displayGen.socialMediaLinks();
          Object.assign(container, id_obj);
@@ -714,42 +720,76 @@ export const tournamentDisplay = function() {
          container.social_links.element.innerHTML = social_links;
       });
 
-      function parseSocialLinks() {
-         let supported = {
-            'youtu.be': 'youtube', 
-            'youtube.com': 'youtube', 
-            'facebook.com': 'facebook',
-            'instagram.com': 'instagram',
-            'twitter.com': 'twitter',
-            'linkedin.com': 'linkedin'
-         };
-         let supported_urls = Object.keys(supported);
-         let text = container.social_links.element.value;
-         let urls = text.split('\n');
-         let images = [];
-         let valid = Object.assign({}, ...urls.map(url => {
-            let found = supported_urls.reduce((p, c) => url.toLowerCase().indexOf(c) >=0 ? c : p, undefined);
-            if (found) {
-               return { [supported[found]]: url };
-            } else {
-               if (isImage(url) && url.indexOf('http') == 0) { images.push(url); }
-            }
-         }).filter(f=>f));
-         
-         if (images.length) {
-            if (!tournament.publishing) tournament.publishing = {};
-            tournament.publishing.logo = images[0];
+      function addTournamentLogo() {
+         if (!tournament.publishing) tournament.publishing = {};
+         modalViews.closeModal();
+         let existing_link = tournament.publishing.logo;
+         displayGen.enterLink(existing_link, lang.tr('tournament.logo'), processLink);
+
+         function processLink(value) {
+            displayGen.closeModal();
+            if (!value) { return submitValue(); }
+            domFx.testImage(value).then(result => update(value, result));
          }
-      
-         tournament.media.social = valid;
+
+         function update(value, result) {
+            if (result.valid) { return submitValue(value); }
+            let message = `
+               <h1 class='title is-4'>${lang.tr('phrases.invalidurl')}</h1>
+               <p>${result.url}</p>
+            `;
+            displayGen.okCancelMessage(message, () => displayGen.closeModal());
+         }
+
+         function submitValue(logo) {
+            if (logo != existing_link) {
+               tournament.publishing.logo = logo;
+               tournamentImages();
+               saveTournament(tournament);
+            }
+         }
       }
 
-      function isImage(url) { return url && ['jpeg', 'jpg', 'png'].indexOf(url.split('.').reverse()[0]) >= 0; }
+      function addTournamentSponsors() {
+         let id_obj = displayGen.addTournamentSponsors();
+         Object.assign(container, id_obj);
+         let sponsor_images = (!tournament.publishing || !tournament.publishing.sponsors) ? '' :
+            Object.keys(tournament.publishing.sponsors).map(k=>tournament.publishing.sponsors[k]).join('\n');
+         container.sponsor_urls.element.innerHTML = sponsor_images;
+      }
 
       function saveSocialLinks() {
+         let content = transformFx.parseURLs(container.social_links.element.value);
+         tournament.media.social = content.social;
+         // displaySocialIcons();
          modalViews.closeModal();
-         parseSocialLinks();
          saveTournament(tournament);
+      }
+
+      function saveSponsors() {
+         modalViews.closeModal();
+         if (!tournament.publishing) tournament.publishing = {};
+         let content = transformFx.parseURLs(container.sponsor_urls.element.value);
+
+         if (!content.images || !content.images.length) { return submitSponsors(); }
+         domFx.testImages(content.images).then(update);
+
+         function update(result) {
+            if (result.fail && result.fail.length) {
+               let message = `
+                  <h1 class='title is-4'>${lang.tr('phrases.invalidurl')}</h1>
+                  ${result.fail.map(r => `<p>${r}</p>`)}
+               `;
+               displayGen.okCancelMessage(message, () => displayGen.closeModal());
+            }
+            if (result.pass && result.pass.length) { submitSponsors(result.pass); }
+         }
+
+         function submitSponsors(sponsors) {
+            tournament.publishing.sponsors = sponsors;
+            tournamentImages();
+            saveTournament(tournament);
+         }
       }
 
       container.edit_notes.element.addEventListener('click', () => {
@@ -2030,7 +2070,11 @@ export const tournamentDisplay = function() {
       function fetchTournamentRecord() { modalViews.closeModal(); coms.requestTournament(tournament.tuid); }
 
       eventManager
+         .register('addTournamentImages', 'tap', displayGen.addTournamentImages)
+         .register('addTournamentLogo', 'tap', addTournamentLogo)
+         .register('addTournamentSponsors', 'tap', addTournamentSponsors)
          .register('saveTournamentNotes', 'tap', saveTournamentNotes)
+         .register('saveSponsors', 'tap', saveSponsors)
          .register('saveSocialLinks', 'tap', saveSocialLinks)
          .register('eventPubState', 'tap', eventPubState)
          .register('closeOldModal', 'tap', ()=>displayGen.closeModal())
@@ -3869,9 +3913,6 @@ export const tournamentDisplay = function() {
 
          e.brackets = e.brackets || min_brackets;
 
-         // let below_player_threshold = opponents < lower_range;
-         // let below_maximum = e.bracket_size < upper_range;
-
          // don't allow more byes than brackets
          let byes = (e.brackets * e.bracket_size) - opponents;
 
@@ -4247,6 +4288,7 @@ export const tournamentDisplay = function() {
 
          function gpsLocation(lat, lng, zoom) {
             let view = 'satellite';
+            // let view = 'map';
             let layer = L.tileLayer(env.leaflet[view].tileLayer, { attribution: env.leaflet[view].attribution, maxZoom: env.leaflet[view].maxZoom });
             let map = L.map(element_id).setView([+lat, +lng], zoom).addLayer(layer);
             let marker = L.marker([+lat, +lng]).addTo(map);
@@ -6363,7 +6405,7 @@ export const tournamentDisplay = function() {
                      let el_muid = el.getAttribute('muid');
                      if (el_muid == source_muid) s = el;
                      return s;
-                  });
+                  }, undefined);
 
                   let findmatch = target.querySelector('.findmatch'); 
                   findmatch.innerHTML = sfx.opponentSearch();
@@ -6373,13 +6415,18 @@ export const tournamentDisplay = function() {
 
                   target.setAttribute('court', source_schedule.court);
                   target.setAttribute('oop_round', source_schedule.oop_round);
-                  source.setAttribute('court', target_schedule.court);
-                  source.setAttribute('oop_round', target_schedule.oop_round);
 
-                  domFx.swapElements(source, target);
+                  if (source) {
+                     source.setAttribute('court', target_schedule.court);
+                     source.setAttribute('oop_round', target_schedule.oop_round);
 
-                  // refresh HTML of source to remove time/time_prefix
-                  populateGridCell(source, source_muid, source_match);
+                     domFx.swapElements(source, target);
+
+                     // refresh HTML of source to remove time/time_prefix
+                     populateGridCell(source, source_muid, source_match);
+                  } else {
+                     console.log('error? no source object');
+                  }
                }
                matchEventOutOfDate(source_match);
 
@@ -6804,6 +6851,7 @@ export const tournamentDisplay = function() {
                         : scoreTreeDraw({ tournament, e, muid: match.muid, existing_scores, outcome });
                   }
 
+                  let schedule_was_current = tournament.schedule.up_to_date;
                   if (result && !result.error) {
                      match.winner_index = outcome.winner;
                      match.score = outcome.score;
@@ -6821,7 +6869,7 @@ export const tournamentDisplay = function() {
                      displayPending();
                      filterSearchList();
 
-                     outOfDate(e);
+                     outOfDate(e, undefined, schedule_was_current);
                   }
                };
 
@@ -6849,18 +6897,17 @@ export const tournamentDisplay = function() {
          }
       }
 
-      function outOfDate(e, draw_creation) {
+      function outOfDate(e, draw_creation, republish_schedule) {
          if (!e || !e.published) return;
          e.up_to_date = false;
-         if (e.euid != displayed.draw_event.euid) return;
-         displayGen.drawBroadcastState(container.publish_state.element, e);
+         if (e.euid == displayed.draw_event.euid) { displayGen.drawBroadcastState(container.publish_state.element, e); }
 
          let publishing = env.publishing;
-         let broadcast = (publishing.publish_on_score_entry && e.active) || (draw_creation && publishing.publish_draw_creation);
+         let broadcast = publishing.publish_on_score_entry || (draw_creation && publishing.publish_draw_creation);
 
          if (broadcast) {
             broadcastEvent(tournament, e);
-            if (tournament.schedule.published) publishSchedule(false);
+            if (tournament.schedule.published && republish_schedule) { publishSchedule(false); }
          }
       }
 
@@ -7008,6 +7055,7 @@ export const tournamentDisplay = function() {
       }
 
       function playersPublishState() {
+         if (!tournament.publishing) tournament.publishing = {};
          let published = tournament.publishing && tournament.publishing.players;
          let published_state = published ? (tournament.publishing.players.up_to_date ? 'publisheduptodate' : 'publishedoutofdate') : 'unpublished';
          let publish_class_name = `schedule_publish_state ${published_state} action_icon`;
@@ -7064,7 +7112,8 @@ export const tournamentDisplay = function() {
          let ratings = ctgs && ctgs[current_value] && ctgs[current_value].ratings;
          let ratings_type = ratings && ratings.type;
 
-         if ((!tournament.players || !tournament.players.length) && !state.edit) {
+         // if ((!tournament.players || !tournament.players.length) && !state.edit) {
+         if (!tournament.players && !state.edit) {
             d3.select('#YT' + container.container.id).style('display', 'none');
             return;
          }
@@ -8270,7 +8319,7 @@ export const tournamentDisplay = function() {
          if (!state.edit) return;
          let bracket = displayed.draw_event.draw.brackets[d.bracket];
          let team = bracket.teams.reduce((p, c) => c[0].draw_position == d.row ? c : p, undefined);
-         let tied = bracket.teams.filter(t=>t[0].qorder == team[0].qorder);
+         let tied = bracket.teams.filter(t=>t[0].qorder == (team && team[0] && team[0].qorder));
          if (tied.length > 1) {
             let draw_id = `rrDraw_${d.bracket}`;
             let selector = d3.select(`#${container.draws.id} #${draw_id} svg`).node();
@@ -8278,7 +8327,7 @@ export const tournamentDisplay = function() {
             let options = tied.map((p, i) => `${lang.tr('ord')}: ${i+1}`);
             let clickAction = (c, i) => {
                // first insure that no other team has the same sub_order
-               bracket.teams.filter(t=>t[0].qorder == team[0].qorder).forEach(t => { if (t[0].sub_order == i + 1) t[0].sub_order = 0; });
+               bracket.teams.filter(t=>t[0].qorder == (team && team[0] && team[0].qorder)).forEach(t => { if (t[0].sub_order == i + 1) t[0].sub_order = 0; });
 
                // assign sub_order to selected team
                team[0].sub_order = i + 1;
@@ -8306,6 +8355,7 @@ export const tournamentDisplay = function() {
 
       // for generating draws when there are events which have been created by CourtHive Tournaments
       function genEventDraw(value) {
+
          let draw_width = +d3.select('#main').style('width').match(/\d+/)[0] * .9;
          let e = tournament.events[value];
          displayed.draw_event = e;
@@ -10367,6 +10417,7 @@ export const tournamentDisplay = function() {
 
       function getDualTeams(dual_match) {
          let dual_teams = dual_match && dual_match.children && dual_match.children.map(c=>c && c.team && pfx.dualCopy(c.team[0])).filter(f=>f);
+         if (!dual_teams || !Array.isArray(dual_teams)) return [];
          dual_teams
             .forEach(dt => {
                dt.full_name = dt.name;
@@ -10381,7 +10432,15 @@ export const tournamentDisplay = function() {
          let id = show_notice ? displayGen.busy.message(`<p>${lang.tr("refresh.registered")}</p>`) : undefined;
          let done = (registered_players) => {
             displayGen.busy.done(id, true);
-            if (registered_players && registered_players.length) addRegistered(registered_players);
+            if (registered_players && registered_players.length) {
+               addRegistered(registered_players);
+            } else {
+               if (registered_players && !registered_players.length) {
+                  displayGen.okCancelMessage('Sheet Empty: No Player Rows', () => displayGen.closeModal());
+                  if (show_notice) tournament.players = [];
+                  playersTab();
+               }
+            }
          };
          let notConfigured = (err) => { displayGen.busy.done(id); displayGen.popUpMessage((err && err.error) || lang.tr('phrases.notconfigured')); };
 
@@ -10403,6 +10462,10 @@ export const tournamentDisplay = function() {
 
       function saveTournament(tournament, changed=true) {
          state.lastpush2cloud = tournament.pushed2cloud || state.lastpush2cloud;
+         if (changed && env.server.push.auto) {
+            let diff = Math.abs((state.lastpush2cloud || 0) - tournament.saved);
+            if (diff > 300000) { pushTournament2Cloud(tournament); }
+         }
          if (changed) {
             if (tournament.saved_locally) tournament.saved_locally = false;
             if (tournament.pushed2cloud) tournament.pushed2cloud = false;
@@ -10412,8 +10475,6 @@ export const tournamentDisplay = function() {
             displayGen.pubStateTrnyInfo(container.pubStateTrnyInfo.element, tournament.infoPublished);
          }
          tournament.saved = new Date().getTime();
-         let diff = Math.abs((state.lastpush2cloud || 0) - tournament.saved);
-         if (diff > 300000) { pushTournament2Cloud(tournament); }
          db.addTournament(tournament);
       }
 
