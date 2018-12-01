@@ -188,8 +188,8 @@ export const splashScreen = function() {
    }
 
    function displayClub(cuid) {
-      cuid = cuid || searchBox.active.club.cuid;
-      db.findClub(cuid).then(findClubPlayers);
+      cuid = cuid || (searchBox.active && searchBox.active.club && searchBox.active.club.cuid);
+      if (cuid) { db.findClub(cuid).then(findClubPlayers); }
 
       function findClubPlayers(club) {
          let id_obj = displayGen.displayClub(club);
