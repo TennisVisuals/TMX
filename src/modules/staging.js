@@ -112,7 +112,9 @@ export const staging = function() {
          published_tournament.received = new Date().getTime();
          db.addTournament(published_tournament).then(displayTournament, util.logError);
       }
-      function displayTournament() { tournamentDisplay.displayTournament({tuid: published_tournament.tuid}); }
+      function displayTournament() {
+         tournamentDisplay.displayTournament({ tuid: published_tournament.tuid, editing: true });
+      }
    }
 
    function receiveTournaments(tournaments) {
