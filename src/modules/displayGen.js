@@ -283,13 +283,43 @@ export const displayGen = function() {
    function closeOnClick() { if (gen.closeonclick) { gen.closeModal(); delete gen.closeonclick; } }
    function clickAway() { if (gen.clickaway) { gen.closeModal(); delete gen.clickaway; } }
 
+   gen.tournamentImages = (urls) => urls.map(imageCard).join('');
+   function imageCard(src) {
+      return !src ? '' : `
+         <div class="card">
+            <div class="card-image">
+               <figure class="image flexcenter"> <img style='max-width: 200px;' src="${src}"> </figure>
+            </div>
+         </div>
+      `;
+   }
+
    // NEW MODALS
+
+   gen.addTournamentSponsors = () => {
+      let ids = { sponsor_urls: displayFx.uuid() };
+      let html = `
+         <div class='box'>
+            <div class='flexcol flexcenter'>
+               <h1 class='title is-4'>${lang.tr('tournament.sponsor')}: URLs</h1>
+               <textarea id='${ids.sponsor_urls}' class='social_links' wrap='soft' placeholder='Enter a list of URLs for Sponsor Logos'></textarea>
+               <div class="field is-grouped">
+                 <p class="control"> <a class="button is-outlined is-warning closeModal">${lang.tr('actions.cancel')}</a> </p>
+                 <p class="control"> <a class="button is-outlined is-success saveSponsors">${lang.tr('actions.done')}</a> </p>
+               </div>
+            </div>
+         </div>
+      `;
+      modalViews.modalWindow({ html });
+      return displayFx.idObj(ids);
+   };
 
    gen.socialMediaLinks = () => {
       let ids = { social_links: displayFx.uuid() };
       let html = `
          <div class='box'>
             <div class='flexcol flexcenter'>
+               <h1 class='title is-4'>${lang.tr('social')}: URLs</h1>
                <textarea id='${ids.social_links}' class='social_links' wrap='soft' placeholder='Enter a list of all social media links'></textarea>
                <div class="field is-grouped">
                  <p class="control"> <a class="button is-outlined is-warning closeModal">${lang.tr('actions.cancel')}</a> </p>
@@ -339,6 +369,18 @@ export const displayGen = function() {
       });
 
       return displayFx.idObj(ids);
+   };
+
+   gen.addTournamentImages = () => {
+      let html = `
+         <nav class="panel">
+            <p class="panel-heading">${lang.tr('tournament.images')}</p>
+            <label class='panel-block addTournamentLogo'>${lang.tr('tournament.logo')}</label>
+            <label class='panel-block addTournamentSponsors'>${lang.tr('tournament.sponsor')}</label>
+         </nav>
+         </div>
+      `;
+      modalViews.modalWindow({ html });
    };
 
    gen.tournamentLinks = () => {
@@ -1017,8 +1059,8 @@ export const displayGen = function() {
          }
       }
 
-      let rr = (m) => m.round_name && m.round_name.indexOf('RR') >= 0 && m.round_name.indexOf('Q') < 0;
-      let qual = (m) => m.round_name && m.round_name.indexOf('Q') >= 0 && m.round_name.indexOf('QF') < 0;
+      let rr = (m) => m.round_name && m.round_name.toString().indexOf('RR') >= 0 && m.round_name.toString().indexOf('Q') < 0;
+      let qual = (m) => m.round_name && m.round_name.toString().indexOf('Q') >= 0 && m.round_name.toString().indexOf('QF') < 0;
       let singles = matchSort(completed_matches.filter(m => m.format == 'singles')).reverse();
       let doubles = matchSort(completed_matches.filter(m => m.format == 'doubles')).reverse();
 
@@ -1440,316 +1482,12 @@ export const displayGen = function() {
       }
    };
 
-   /*
-   gen.orgSettings = () => {
-      let ids = {};
-      let ddlb = [];
-      let html = `
-         <div class='flexcenter flexcol'>
-            <div>
-               <div>Logos:</div>
-               <div class='settings_images'>
-                  <div class='edit_org_image'>
-                     <input id="org_logo" type="file" style='display: none;' />
-                     <label class='flexcenter' for='org_logo'><img class='settings_icon' src='./icons/upload.png'></label>
-                     <div class='settings_image' id='org_logo_display'></div>
-                  </div>
-                  <div class='edit_org_image'>
-                     <input id="org_name" type="file" style='display: none;' />
-                     <label class='flexcenter' for='org_name'><img class='settings_icon' src='./icons/upload.png'></label>
-                     <div class='settings_image' id='org_name_display'></div>
-                  </div>
-               </div>
-            </div>
-         </div>
-
-      `;
-      return { ids, html, ddlb };
-   };
-
-   // Create categories
-   // Each category consists of minimum age, maximum age and gender
-   gen.categorySettings = () => {
-      let ids = {};
-      let ddlb = [];
-      let html = ``;
-      return { ids, html, ddlb };
-   };
-
-   gen.pointsSettings = () => {
-      let ids = {};
-      let ddlb = [];
-      let html = ``;
-      return { ids, html, ddlb };
-   };
-
-   gen.eventsSettings = () => {
-      let ids = {};
-      let ddlb = [];
-      let html = ``;
-      return { ids, html, ddlb };
-   };
-
-   gen.drawSettings = () => {
-      let separation = env.draws.settings.separation ? '' : 'disabled';
-      let ids = {
-         auto_byes: displayFx.uuid(),
-         compressed_draw_formats: displayFx.uuid(),
-         fixed_bye_order: displayFx.uuid(),
-         separate_by_ioc: displayFx.uuid(),
-         separate_by_club: displayFx.uuid(),
-         separate_by_school: displayFx.uuid(),
-         ll_all_rounds: displayFx.uuid(),
-         qualconsolation: displayFx.uuid(),
-         consolationalts: displayFx.uuid(),
-         consolationseeds: displayFx.uuid(),
-         restrictseeds: displayFx.uuid(),
-         display_flags: displayFx.uuid(),
-         match_time: displayFx.uuid(),
-         match_date: displayFx.uuid(),
-         court_detail: displayFx.uuid(),
-         after_matches: displayFx.uuid()
-      };
-      let ddlb = [];
-      let html = `
-         <div style='min-height: 150px'>
-         <h2 class='tmx-title'>&nbsp;</h2>
-         <div class='flexcenter' style='width: 100%;'>
-             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.compresseddraws')}:</label>
-                    <input type='checkbox' id="${ids.compressed_draw_formats}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.automatedbyes')}:</label>
-                    <input type='checkbox' id="${ids.auto_byes}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.fixedbyes')}:</label>
-                    <input type='checkbox' id="${ids.fixed_bye_order}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.separate_by_ioc')}:</label>
-                    <input type='checkbox' id="${ids.separate_by_ioc}" ${separation}>
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.separate_by_club')}:</label>
-                    <input type='checkbox' id="${ids.separate_by_club}" ${separation}>
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.separate_by_school')}:</label>
-                    <input type='checkbox' id="${ids.separate_by_school}" ${separation}>
-                </div>
-             </div>
-             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.llallrounds')}:</label>
-                    <input type='checkbox' id="${ids.ll_all_rounds}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.qualconsolation')}:</label>
-                    <input type='checkbox' id="${ids.qualconsolation}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.consolationalts')}:</label>
-                    <input type='checkbox' id="${ids.consolationalts}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.consolationseeds')}:</label>
-                    <input type='checkbox' id="${ids.consolationseeds}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.restrictseedplacement')}:</label>
-                    <input type='checkbox' id="${ids.restrictseeds}">
-                </div>
-             </div>
-             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.countryflags')}:</label>
-                    <input type='checkbox' id="${ids.display_flags}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.matchtimes')}:</label>
-                    <input type='checkbox' id="${ids.match_time}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.matchdates')}:</label>
-                    <input type='checkbox' id="${ids.match_date}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.courtdetail')}:</label>
-                    <input type='checkbox' id="${ids.court_detail}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.matchesbefore')}:</label>
-                    <input type='checkbox' id="${ids.after_matches}">
-                </div>
-             </div>
-         </div>
-
-         </div>
-      `;
-      return { ids, html, ddlb };
-   };
-
-   gen.generalSettings = () => {
-      let ids = {
-         first_day: displayFx.uuid(),
-         hoverhelp: displayFx.uuid(),
-         documentation: displayFx.uuid()
-      };
-      let ddlb = [];
-      let html = `
-         <div style='min-height: 150px'>
-         <h2 class='tmx-title'>&nbsp;</h2>
-         <div class='flexcenter' style='width: 100%;'>
-             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.firstday')}</label>
-                    <input type='checkbox' id="${ids.first_day}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.documentation')}</label>
-                    <input type='checkbox' id="${ids.documentation}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.hoverhelp')}</label>
-                    <input type='checkbox' id="${ids.hoverhelp}">
-                </div>
-             </div>
-         </div>
-
-         </div>
-      `;
-      return { ids, html, ddlb };
-   };
-
-   gen.scheduleSettings = () => {
-      let ids = {
-         time24: displayFx.uuid(),
-         scores_in_draw_order: displayFx.uuid(),
-         completed_matches_in_search: displayFx.uuid(),
-         schedule_rows: displayFx.uuid()
-      };
-      let ddlb = [];
-      let html = `
-         <div style='min-height: 150px'>
-         <h2 class='tmx-title'>&nbsp;</h2>
-         <div class='flexcenter' style='width: 100%;'>
-             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.time24')}</label>
-                    <input type='checkbox' id="${ids.time24}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.draworderscores')}</label>
-                    <input type='checkbox' id="${ids.scores_in_draw_order}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.schedulecompleted')}</label>
-                    <input type='checkbox' id="${ids.completed_matches_in_search}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>Schedule Rows</label>
-                   <div id='${ids.schedule_rows}' class='flexjustifystart settingddlb'> </div>
-                </div>
-             </div>
-         </div>
-
-         </div>
-      `;
-      return { ids, html, ddlb };
-   };
-
-   gen.searchSettings = () => {
-      let ids = {
-         lastfirst: displayFx.uuid(),
-         diacritics: displayFx.uuid()
-      };
-      let ddlb = [];
-      let html = `
-         <div style='min-height: 150px'>
-         <h2 class='tmx-title'>&nbsp;</h2>
-         <div class='flexcenter' style='width: 100%;'>
-             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.lastfirst')}</label>
-                    <input type='checkbox' id="${ids.lastfirst}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.diacritics')}</label>
-                    <input type='checkbox' id="${ids.diacritics}">
-                </div>
-             </div>
-         </div>
-
-         </div>
-      `;
-      return { ids, html, ddlb };
-   };
-
-   gen.publishingSettings = () => {
-      let ids = {
-         require_confirmation: displayFx.uuid(),
-         publish_on_score_entry: displayFx.uuid(),
-         publish_draw_creation: displayFx.uuid()
-      };
-      let ddlb = [];
-      let html = `
-         <div style='min-height: 150px'>
-         <h2 class='tmx-title'>&nbsp;</h2>
-         <div class='flexcenter' style='width: 100%;'>
-             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.requireconfirm')}</label>
-                    <input type='checkbox' id="${ids.require_confirmation}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.publishonscore')}</label>
-                    <input type='checkbox' id="${ids.publish_on_score_entry}">
-                </div>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.publishdrawcreation')}</label>
-                    <input type='checkbox' id="${ids.publish_draw_creation}">
-                </div>
-             </div>
-         </div>
-
-         </div>
-      `;
-      return { ids, html, ddlb };
-   };
-
-   gen.printingSettings = () => {
-      let ids = {
-         save_pdfs: displayFx.uuid()
-      };
-      let ddlb = [];
-      let html = `
-         <div style='min-height: 150px'>
-         <h2 class='tmx-title'>&nbsp;</h2>
-         <div class='flexcenter' style='width: 100%;'>
-             <div class='attribute_box' style='border: 1px solid gray; padding: .5em;'>
-                <div class='tournament_attr'>
-                    <label class='calabel'>${lang.tr('settings.savepdfs')}</label>
-                    <input type='checkbox' id="${ids.save_pdfs}">
-                </div>
-             </div>
-         </div>
-
-         </div>
-      `;
-      return { ids, html, ddlb };
-   };
-   */
-
    gen.serverDataStorage = () => {
       let ids = {
          server_players: displayFx.uuid(),
          server_clubs: displayFx.uuid()
       };
 
-//                  <div class='flexcol settings'><button class='btn btn-large edit-submit' id='${ids.server_clubs}'>Send Local Clubs</button></div>
       let html = `
                <div class='flexcenter'>
                   <div class='flexcol settings'><button class='btn btn-large edit-submit' id='${ids.server_players}'>Send Local Players</button></div>
@@ -2307,7 +2045,11 @@ export const displayGen = function() {
       }
       d3.select('#YT' + container.container.id).style('display', 'flex');
 
-      if (!players.length) {
+      let total_players = players.length;
+      let player_count = document.querySelector('.player_count');
+      if (player_count) player_count.innerText = total_players.toString();
+
+      if (!total_players) {
          if (container.players.element) container.players.element.style.display = 'none';
          return;
       }
@@ -2377,10 +2119,6 @@ export const displayGen = function() {
 
       container.players.element.innerHTML = html;
       container.players.element.style.display = 'flex';
-
-      let total_players = players.length;
-      let player_count = document.querySelector('.player_count');
-      if (player_count) player_count.innerText = total_players.toString();
 
       return display_order;
    };
@@ -2677,9 +2415,14 @@ export const displayGen = function() {
          start_date: displayFx.uuid(),
          end_date: displayFx.uuid(),
          trny_images: displayFx.uuid(),
+         mobile_trny_images: displayFx.uuid(),
          organizers: displayFx.uuid(),
+         organizer_email: displayFx.uuid(),
+         organizer_phone: displayFx.uuid(),
          organization: displayFx.uuid(),
          judge: displayFx.uuid(),
+         judge_email: displayFx.uuid(),
+         judge_phone: displayFx.uuid(),
          display_id: displayFx.uuid(),
          locations: displayFx.uuid(),
          locations_actions: displayFx.uuid(),
@@ -2764,7 +2507,7 @@ export const displayGen = function() {
                      <div class='register action_icon'></div>
                   </div>
                   <div id='${ids.social}' class='editAction ${hoverHelp('info')}' label='${lang.tr("social")}' style='display: none; margin-left: .5em;'> <div class='social action_icon'></div> </div>
-                  <div class='editAction addTournamentImages' style='display: none; margin-left: .5em;'> <div class='image_icon action_icon'></div> </div>
+                  <div class='editAction' style='display: none; margin-left: .5em;'> <div class='image_icon action_icon addTournamentImages'></div> </div>
                </div>
                <div class='options_center'>
                </div>
@@ -2781,25 +2524,24 @@ export const displayGen = function() {
 
 
                <div id='${ids.tournament_attrs}' class="tile is-ancestor">
-                 <div class="tile is-4 is-vertical is-parent" style='width: auto;'>
+                 <div class="tile is-4 is-vertical is-parent">
                    <div class="tile is-child">
 
                        <div class='box flexcol flexcenter'>
                         <p class="title">Dates</p>
                         <div class='flexcol'>
-                         <div class='flexjustifyend' style='width: 100%;'>
-                             <label class='calabel'>${lang.tr('start')}:</label>
-                             <input class='calinput' id="${ids.start_date}" disabled>
-                         </div>
-                         <div class='flexjustifyend' style='width: 100%;'>
-                             <label class='calabel'>${lang.tr('end')}:</label>
-                             <input class='calinput' id="${ids.end_date}" disabled>
-                         </div>
+                            <div class='flexjustifyend' style='width: 100%; margin-bottom: .3em;'>
+                                <label class='calabel'>${lang.tr('start')}:</label>
+                                <input class='calinput' id="${ids.start_date}" disabled>
+                            </div>
+                            <div class='flexjustifyend' style='width: 100%;'>
+                                <label class='calabel'>${lang.tr('end')}:</label>
+                                <input class='calinput' id="${ids.end_date}" disabled>
+                            </div>
                          </div>
                       </div>
 
-                      <div id="${ids.trny_images}" class='flexcol'>
-                      </div>
+                      <div id="${ids.trny_images}" class='flexcol mobile-hide'> </div>
                    </div>
 
                  </div>
@@ -2816,8 +2558,26 @@ export const displayGen = function() {
                              <input class='attr_input' id="${ids.organizers}" disabled>
                          </div>
                          <div class='tournament_attr'>
+                             <label class='attr_label'>${lang.tr('tournament.organizer_email')}:</label>
+                             <input class='attr_input' id="${ids.organizer_email}" disabled>
+                         </div>
+                         <div class='tournament_attr'>
+                             <label class='attr_label'>${lang.tr('tournament.organizer_phone')}:</label>
+                             <input class='attr_input' id="${ids.organizer_phone}" disabled>
+                         </div>
+                     </div>
+                     <div class='box'>
+                         <div class='tournament_attr'>
                              <label class='attr_label'>${lang.tr('signin.judge')}:</label>
                              <input class='attr_input' id="${ids.judge}" disabled>
+                         </div>
+                         <div class='tournament_attr'>
+                             <label class='attr_label'>${lang.tr('tournament.judge_email')}:</label>
+                             <input class='attr_input' id="${ids.judge_email}" disabled>
+                         </div>
+                         <div class='tournament_attr'>
+                             <label class='attr_label'>${lang.tr('tournament.judge_phone')}:</label>
+                             <input class='attr_input' id="${ids.judge_phone}" disabled>
                          </div>
                      </div>
 
@@ -2848,6 +2608,7 @@ export const displayGen = function() {
                         <div id='${ids.notes_display}' class='box ql-editor' style='height: auto !important;'></div>
                      </div>
 
+                      <div id="${ids.mobile_trny_images}" class='flexcol mobile-show'> </div>
                    </div>
                  </div>
                </div>
@@ -3124,9 +2885,7 @@ export const displayGen = function() {
                   <div class='team_divider' style='grid-area:d'>vs.</div>
                   <div class='team_score' style='grid-area:e'><div class='team_score_box team2'>0</div></div>
                </div>
-               <div class='dual_matches_container'>
-                  <div class='ordered_dual_matches'></div>
-               </div>
+               <div class='ordered_dual_matches'></div>
             </div>
          </div>
          <div class='section flexjustifyend' style='margin-top: 4px; margin-right: 2px;'>
@@ -3268,7 +3027,11 @@ export const displayGen = function() {
       function dualMatchRow(matches) {
          if (matches.length < 2) matches.push({});
          let rows = matches.map(dualMatch).join('');
-         let html = `<div class='dual_matches_row'>${rows} </div> `;
+         let html = `
+            <div class="tile is-ancestor" style="">
+               ${rows}
+            </div>
+         `;
          return html;
       }
 
@@ -3293,28 +3056,36 @@ export const displayGen = function() {
             let sets = ['&nbsp'].map(s => `<div class='nm emph'>${s}</div>`);
             let round_name = (match.round_name && lang.tr(`round_names.${match.round_name}`)) || lang.tr('mtc');
             html = `
-               <div class='dual_match flexcenter' muid='${match.match && match.match.muid}'>
-                  <div class='dual_match_identifier dx ${match.gender || ''} flexcenter'>${identifier}</div>
-                  <div class='dual_match_team flexcenter dx'>
-                     <div class='dual_match_round emph'>${round_name}</div>
-                     <div class='dual_match_score'>${sets}</div>
-                  </div>
-                  <div class='dual_match_team dx'>
-                     <div class='dual_match_team_name' team='0'>
-                        ${buildTeam(match, 0, winner_index == 0)}
+
+              <div class="tile is-parent flexcenter">
+                  <div class='tile card is-child dual_match' muid='${match.match && match.match.muid}'>
+                     <div class='card-header'>
+                        <div class='card-header-title is-centered dual_match_identifier ${match.gender || ''}'>${identifier}</div>
                      </div>
-                     <div class='dual_match_score'>${sets1}</div>
-                  </div>
-                  <div class='dual_match_team dx'>
-                     <div class='dual_match_team_name' team='1'>
-                        ${buildTeam(match, 1, winner_index == 1)}
-                     </div>
-                     <div class='dual_match_score'>${sets2} </div>
+
+                        <div class='dual_match_team flexcenter dx'>
+                           <div class='dual_match_round emph'>${round_name}</div>
+                           <div class='dual_match_score'>${sets}</div>
+                        </div>
+                        <div class='dual_match_team dx'>
+                           <div class='dual_match_team_name' team='0'>
+                              ${buildTeam(match, 0, winner_index == 0)}
+                           </div>
+                           <div class='dual_match_score'>${sets1}</div>
+                        </div>
+                        <div class='dual_match_team dx'>
+                           <div class='dual_match_team_name' team='1'>
+                              ${buildTeam(match, 1, winner_index == 1)}
+                           </div>
+                           <div class='dual_match_score'>${sets2} </div>
+                        </div>
+
                   </div>
                </div>
+
             `;
          }
-         return ` <div class='dual_match_container'>${html}</div> `;
+         return html;
 
          function cellWidths(existing) {
             return existing.map(set => {
@@ -3334,14 +3105,14 @@ export const displayGen = function() {
          let dbls = match.format == 'doubles';
          let players = match.teams && match.teams[index];
          let opponent1 = players && players[0] ? opponentDisplay({ index: 0, value: players[0].full_name, winner }) : opponentDisplay({index: 0});
-         let opponent2 = dbls && players && players[1] ? opponentDisplay({ index: 1, value: players[1].full_name }) : dbls ? opponentDisplay({index: 1}) : '';
+         let opponent2 = dbls && players && players[1] ? opponentDisplay({ index: 1, value: players[1].full_name, winner }) : dbls ? opponentDisplay({index: 1}) : '';
          return `${opponent1}${opponent2}`;
       }
 
       function opponentDisplay({ index, value, winner }) {
          let color = winner ? 'blue' : 'black';
          let html = `
-            <input style='color: ${color}' class='dual_opponent' opponent='${index}' value='${value || ''}' placeholder='${lang.tr("opnt")}' disabled>
+            <input style='color: ${color}' class='dual_opponent ellipsis' opponent='${index}' value='${value || ''}' placeholder='${lang.tr("opnt")}' disabled>
             <select class='dual_select' opponent='${index}' style='display: none'></select>
          `;
          return html;
@@ -3781,6 +3552,7 @@ export const displayGen = function() {
       // let background = ` style='color: ${created}'`;
 
       let publish_state = e.up_to_date ? 'publisheduptodate' : e.published && e.up_to_date == false ? 'publishedoutofdate' : e.published ? 'published' : 'unpublished';
+      /*
       let published = {
          'unpublished': lang.tr('draws.unpublished'),
          'publisheduptodate': lang.tr('draws.publisheduptodate'),
@@ -3788,6 +3560,7 @@ export const displayGen = function() {
          'published': lang.tr('draws.published')
       };
       let publish_label = published[publish_state];
+      */
 
       let created_labels = {
          'drawactive': lang.tr('phrases.drawactive'),
@@ -3815,7 +3588,7 @@ export const displayGen = function() {
                <div class='event_data flexcenter'><div class='event_icon ${inout_icons[e.inout]}'></div></div>
                <div class='event_data flexcenter'><div class='event_icon ${surface_icons[e.surface[0]]}'></div></div>
                <div class='event_data flexcenter ${hoverHelp('info')}' label='${created_label}'><div class='event_icon ${created_state}'></div></div>
-               <div class='event_data flexcenter ${hoverHelp('info')} pubstate eventPubState' label='${publish_label}'><div class='eventPubState event_icon ${publish_state}'></div></div>
+               <div class='event_data flexcenter pubstate eventPubState'><div class='eventPubState event_icon ${publish_state}'></div></div>
              </div>
              <div class="tile is-child displayEventDetails flexrow eventdata_small" style='padding-left: .5em !important'>
                 <div class="field is-grouped is-grouped-multiline">
@@ -4504,7 +4277,8 @@ export const displayGen = function() {
    function calendarRow(tournament) {
       let categories = staging.legacyCategory(tournament.category, true);
       if (tournament.categories && tournament.categories.length) categories = tournament.categories.join(',');
-      let background = new Date().getTime() > tournament.end ? 'calendar_past' : 'calendar_future';
+      let now = dateFx.timeUTC(new Date());
+      let background = now > tournament.end ? 'calendar_past' : 'calendar_future';
       let received = tournament.received ? 'tournament_received' : '';
 
       return `
