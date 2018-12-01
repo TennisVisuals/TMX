@@ -420,7 +420,7 @@ export const settingsFx = function() {
       }
       function setIdiom() { db.findSetting('defaultIdiom').then(checkIdiom, util.logError); }
       function checkIdiom(idiom) {
-         if (lang.set() != idiom.ioc) { idiomFx.changeIdiom(idiom.ioc); }
+         if (idiom && idiom.ioc && lang.set() != idiom.ioc) { idiomFx.changeIdiom(idiom.ioc); }
          if (displayGen.content == 'splash') fxRegister.invoke('showSplash');
       }
    }
