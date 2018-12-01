@@ -245,6 +245,7 @@ export const calendarFx = function() {
 
       if (!trny.org) trny.org = env.org;
       if (!trny.events) trny.events = [];
+      if (!trny.publishing) trny.publishing = {};
       if (!trny.metadata) trny.metadata = { format_version };
 
       var { container } = displayGen.createNewTournament(title, trny);
