@@ -924,7 +924,7 @@ export function treeDraw() {
 
       addByes: true,
       invert_first: false,
-      invert_threshold: 140,
+      invert_threshold: 0,
 
       draw: {
          feed_in: false
@@ -1737,13 +1737,21 @@ export function treeDraw() {
          if (d.height || !d.data.team || !d.data.team[which] || d.data.feed) return '';
          let ioc = d.data.team[which].ioc;
          let club_code = d.data.team[which].club_code;
-         let school_abbr = d.data.team[which].school_abbr;
+         let school_abbr = schoolAbbr(d.data.team[which]);
          if (!club_code && school_abbr &&  school_abbr.length < 5) return school_abbr;
          if ((!club_code || club_code.length > 3) && (!o.flags.display && ioc)) return ioc;
          if (!club_code || club_code.length > 3) return '';
          // reverse the display order of players if doubles
          if (d.data.team.length == 2) which = 1 - which;
          return d.data.team[which].club_code;
+      }
+
+      // TODO: this should not be part of drawFx
+      // ugly patch... but will probably not be replaced until refactoring/rewrite
+      function schoolAbbr(player) {
+         let parenthetical = /\((.*)\)/;
+         let extracted = (player.school && player.school.match(parenthetical)) ? player.school.match(parenthetical)[1] : undefined;
+         return player.school_abbr || extracted;
       }
 
       function opponentName(d, team=0) {
