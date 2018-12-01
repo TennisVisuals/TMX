@@ -336,6 +336,7 @@ export const fetchFx = function() {
    }
 
    /*
+   // MyUTR.com page parser...
    // Doesn't work because players are loaded asynchronously after initial page load
    fx.parseUTR = (doc) => {
       let utr_cards = Array.from(doc.querySelectorAll('.utr-card'));
@@ -602,7 +603,7 @@ export const fetchFx = function() {
          };
          let request = JSON.stringify(request_object);
          function responseHandler(data) {
-            if (data.result && data.result.rows && data.result.rows.length) {
+            if (data.result && data.result.rows) {
                let sheet_type = importFx.identifySheetType(data.result.rows);
                if (sheet_type == 'players') {
                   let players = importFx.processSheetPlayers(data.result.rows);
@@ -610,13 +611,11 @@ export const fetchFx = function() {
                   if (players.length == 0) console.log('No Players found... suggestions for sheet format/must be on first sheet');
                   resolve(players);
                } else {
-                  console.log('unknown sheet type');
-                  reject(data);
+                  resolve([]);
                }
             } else {
                reject(data);
             }
-            resolve([]);
          }
          ajax('/api/registrations/sheet', request, 'POST', responseHandler);
       });
