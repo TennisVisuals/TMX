@@ -379,6 +379,16 @@ export const lang = function() {
          abbreviation: 'Abbreviation'
       },
 
+      tournament: {
+         organizer_email: 'Organizer Email',
+         organizer_phone: 'Organizer Phone',
+         judge_email: 'Referee Email',
+         judge_phone: 'Referee Phone',
+         sponsor: 'Sponsor(s)',
+         logo: 'Tournament Logo',
+         images: 'Tournament Images'
+      },
+
       tournaments: {
          type: 'Type',
          standard: 'Standard',
@@ -426,6 +436,7 @@ export const lang = function() {
          playerimport: 'Player Import',
          entersheeturl: 'Enter Sheet URL',
          entergooglemapsurl: 'Enter Google Maps Link',
+         invalidurl: 'Invalid URL(s)',
          invalidsheeturl: 'Invalid Sheet URL',
          invalidgooglemapsurl: 'Invalid Google Maps Link',
          geolocationdenied: 'Geolocation has been denied',
