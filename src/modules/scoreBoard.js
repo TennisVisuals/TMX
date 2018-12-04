@@ -75,6 +75,7 @@ export const scoreBoard = function() {
 
       let floating = !sobj;
       settings.auto_score = auto_score;
+
       let sf = Object.assign({}, settings, score_format);
 
       // scoped variables need to be defined before configuration
@@ -106,6 +107,10 @@ export const scoreBoard = function() {
             setScoreDisplay({ selected_set: set });
             displayActions(true);
             removeWinner();
+
+            // must override settings of displayActions() so that format can be edited
+            sobj.scoring.element.style.display = 'inline';
+            sobj.edit_scoring.element.style.display = 'inline';
          };
       }
 
@@ -291,8 +296,8 @@ export const scoreBoard = function() {
             scoringComplete(getScore());
          }
          function toggleScoring() {
-            if (lock) return;
-            if (action_drawer) return;
+            // if (lock) return;
+            // if (action_drawer) return;
             let visible = sobj.scoring.element.innerHTML == '-' ? true : false;
 
             // hide overflow before toggle transition starts
@@ -1146,7 +1151,7 @@ export const scoreBoard = function() {
       function setBestOf(value) {
          stg.max_sets = parseInt(value);
          stg.sets_to_win = Math.ceil(value/2);
-         if (typeof changeFx == 'function') changeFx();
+         if (typeof changeFx == 'function') changeFx(stg);
       }
 
       function tiebreakAtOptions(gfs) {
@@ -1163,12 +1168,12 @@ export const scoreBoard = function() {
          let tbat_options = tiebreakAtOptions(value);
          sobj.tiebreaksat.ddlb.setOptions(tbat_options);
          sobj.tiebreaksat.ddlb.setValue(value, 'white');
-         if (typeof changeFx == 'function') changeFx();
+         if (typeof changeFx == 'function') changeFx(stg);
       }
 
       function setTiebreakAt(value) {
          stg.tiebreaks_at = parseInt(value);
-         if (typeof changeFx == 'function') changeFx();
+         if (typeof changeFx == 'function') changeFx(stg);
       }
 
       function finalSet(value) {
@@ -1176,12 +1181,12 @@ export const scoreBoard = function() {
          stg.final_set_tiebreak = (value == 'N') ? true : false;
          sobj.supertiebreakto.element.style.opacity = stg.final_set_supertiebreak ? 1 : 0;
          sobj.stb2.element.style.opacity = stg.final_set_supertiebreak ? 1 : 0;
-         if (typeof changeFx == 'function') changeFx();
+         if (typeof changeFx == 'function') changeFx(stg);
       }
 
       function superTiebreakTo(value) {
          stg.supertiebreak_to = parseInt(value);
-         if (typeof changeFx == 'function') changeFx();
+         if (typeof changeFx == 'function') changeFx(stg);
       }
    }
 
