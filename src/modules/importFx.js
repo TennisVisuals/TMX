@@ -155,8 +155,8 @@ export const importFx = function() {
          player.state = findAttr(row, ['State']);
 
          let school = findAttr(row, ['School', 'College']);
-         let contains_school = attrContains(row, ['School', 'College']);
-         player.school = school || contains_school;
+         // let contains_school = attrContains(row, ['School', 'College']);
+         player.school = school || '';
 
          player.profile = findAttr(row, ['Profile', 'UTR Profile', 'UTR Player Profile Link', "Player's UTR Profile Link"]);
          player.location = findAttr(row, ['Location']);
@@ -1122,7 +1122,7 @@ export const importFx = function() {
       if (['muid', 'puids', 'score'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'matches';
       if (['muid', 'puid', 'points'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'points';
 
-      if (['start', 'end', 'category'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'tournaments';
+      if (['start', 'end', 'tuid'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'tournaments';
       if (['sid', 'tuid', 'old_id'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'tournaments';
 
       if (['titles', 'draws', 'details'].filter(k=>keys.indexOf(k) >= 0).length == 3) return 'draws';
