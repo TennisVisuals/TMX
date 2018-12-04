@@ -484,7 +484,9 @@ export const tournamentFx = function() {
       match.score = outcome.score;
       match.winner_index = outcome.winner;
       match.set_scores = outcome.set_scores;
-      match.score_format = outcome.score_format;
+      // match.score_format = outcome.score_format;
+      Object.assign(match.score_format, outcome.score_format);
+
       match.status = (outcome.score) ? '' : match.status;
 
       match.muid = match.muid || UUID.idGen();
@@ -894,7 +896,7 @@ export const tournamentFx = function() {
       return approved_players;
    };
 
-   fx.modifyEventScoring = ({ cfg_obj, evt, callback, format }) => {
+   fx.modifyEventScoring = ({ cfg_obj, tournament, evt, callback, format }) => {
       let bestof = cfg_obj.bestof.ddlb.getValue();
       let max_sets = util.parseInt(bestof);
       let sets_to_win = Math.ceil(max_sets/2);
@@ -919,15 +921,21 @@ export const tournamentFx = function() {
 
       // TODO: once draw contains matches modify unscored depending on format
       function modifyUnscoredMatches(sf) {
-         let info = evt.draw && dfx.drawInfo(evt.draw);
-         if (info && info.match_nodes) {
-            // update scoring format for unfinished matches
-            info.match_nodes.forEach(node => modify(node.data.match));
-         } else if (info && info.matches) {
-            // update scoring format for unfinished RR matches
-            info.matches.forEach(modify);
+
+         let mtz = mfx.eventMatches(evt, tournament);
+         mtz.forEach(m => {
+            if (m && m.match) { modify(m.match); }
+            if (m && m.source && m.source.data && m.source.data.match) { modify(m.source.data.match); }
+         });
+
+         function modify(match) {
+            if (match && !match.winner) {
+               console.log('modifying:', match);
+               match.score_format = Object.assign({}, sf);
+            } else {
+               console.log('not modifying:', match);
+            }
          }
-         function modify(match) { if (match && !match.winner) { match.score_format = sf; } }
       }
    };
 
