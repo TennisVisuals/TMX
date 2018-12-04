@@ -1070,9 +1070,12 @@ button.ratings-submit:hover { background: #68FF33; }
 }
 
 .registered_player { width: 100%; }
-.registered_attr { width: 10%; }
+.registered_attr {
+   width: 10%;
+}
 .registered_club {
    width: 10%;
+   max-width: 20em;
    overflow: hidden;
    white-space: nowrap;
    text-overflow: ellipsis;
