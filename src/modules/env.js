@@ -5,7 +5,7 @@ export const env = {
    first_time_user: false,
 
    // version is Major.minor.added.changed.fixed
-   version: '1.5.28.78.48',
+   version: '1.5.28.80.48',
    version_check: undefined,
    reset_new_versions: false,
 
