@@ -22,11 +22,11 @@ import { sharedFx } from './sharedFx';
 import { publishFx } from './publishFx';
 import { displayFx } from './displayFx';
 import { searchBox } from './searchBox';
-import { settingsFx } from './settingsFx';
 import { displayGen } from './displayGen';
 import { calendarFx } from './calendarFx';
 import { scoreBoard } from './scoreBoard';
 import { modalViews } from './modalViews';
+import { fxRegister } from './fxRegister';
 import { matchFx as mfx } from './matchFx';
 import { transformFx } from './transformFx';
 import { contextMenu } from './contextMenu';
@@ -57,7 +57,7 @@ export const tournamentDisplay = function() {
       scoreBoard.settings(score_format);
    }
 
-   if (settingsFx) { settingsFx.register('tournamentDisplay', settingsLoaded); }
+   fxRegister.add('tournamentSettings', settingsLoaded);
 
    fx.options = (values) => {
       if (!values) return o;
@@ -177,6 +177,7 @@ export const tournamentDisplay = function() {
       util.addDev({util});
       util.addDev({dateFx});
       util.addDev({domFx});
+      util.addDev({dfx});
 
       tmxTour.tournamentContainer(container, classes);
 
@@ -5101,7 +5102,6 @@ export const tournamentDisplay = function() {
 
          let displayScoring = (scoring_format) => details.scoring.element.innerHTML = scoring_format;
          let setScoring = () => {
-
             if (state.edit) {
                document.body.style.overflow  = 'hidden';
                let cfg_obj = scoreBoard.scoreBoardConfig();
@@ -6877,6 +6877,7 @@ export const tournamentDisplay = function() {
                   if (match.teams.length != 2 || unQualified(match.teams)) {
                      console.log('not two teams');
                   } else {
+                     let score_format = mfx.getScoringFormat({ e, match });
                      displayGen.escapeModal();
                      scoreBoard.setMatchScore({
                         container,
@@ -6887,7 +6888,7 @@ export const tournamentDisplay = function() {
                         callback: scoreSubmitted,
                         round_name: match.round_name || '',
                         delegation: env.scoring.delegation,
-                        score_format: mfx.getScoringFormat({ e, match })
+                        score_format
                      });
                   }
                }
@@ -8226,6 +8227,7 @@ export const tournamentDisplay = function() {
                };
 
                displayGen.escapeModal();
+               let score_format = mfx.getScoringFormat({ e, match });
                scoreBoard.setMatchScore({
                   container,
                   existing_scores,
@@ -8235,7 +8237,7 @@ export const tournamentDisplay = function() {
                   callback: scoreSubmitted,
                   round_name: match.round_name,
                   delegation: env.scoring.delegation,
-                  score_format: mfx.getScoringFormat({ e, match })
+                  score_format
                });
             }
          }
@@ -8679,6 +8681,7 @@ export const tournamentDisplay = function() {
             let team_match = dfx.teamMatch(d);
 
             if (team_match) {
+               let score_format = mfx.getScoringFormat({ e, match: d.data.match });
                let submission = {
                   container,
                   existing_scores,
@@ -8688,7 +8691,7 @@ export const tournamentDisplay = function() {
                   callback: scoreSubmitted,
                   delegation: env.scoring.delegation,
                   round_name: (d.data.match && d.data.match.round_name) || '',
-                  score_format: mfx.getScoringFormat({ e, match: d.data.match })
+                  score_format
                };
                displayGen.escapeModal();
                scoreBoard.setMatchScore(submission);
