@@ -847,12 +847,13 @@ export const exportFx = function() {
    };
 
    exp.treeDrawPDF = ({ tournament, data, options, images=[], selected_event, info, event, child, save }) => {
-      var width = 3000;
-      var height = 3300;
-      var qr_dim = width / 6.7;
+      let width = 3000;
+      let height = 3300;
+      let qr_dim = width / 6.7;
+      let title = event && event.custom_category || '';
 
       return new Promise((resolve, reject) => {
-         let element = renderTreeDraw({ info, data, options, height, width, child });
+         let element = renderTreeDraw({ info, data, options, height, width, title, child });
 
          // if event published add QR code
          if (event && event.published && tournament.org && tournament.org.abbr) {
