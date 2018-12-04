@@ -29,7 +29,11 @@ export const settingsFx = function() {
    function getModalWindow() { return document.getElementById('modalwindow'); }
 
    fx.settingsLoaded = settingsLoaded;
-   function settingsLoaded() { Object.keys(loadFunctions).forEach(name=>loadFunctions[name]()); }
+   function settingsLoaded() {
+      Object.keys(loadFunctions).forEach(name=>loadFunctions[name]());
+      // this had to be done because settingsFx couldn't be included in tournamentDisplay
+      fxRegister.invoke('tournamentSettings');
+   }
 
    eventManager
       .register('submitSettings', 'tap', submitSettings);
