@@ -336,10 +336,10 @@ export const tournamentFx = function() {
 
    fx.scoreTreeDraw = ({ tournament, e, muid, existing_scores, outcome }) => {
       var result = {};
-      if (!outcome) return result;
+      if (!outcome) { return result; }
 
       let linked_info = null;
-      let current_direction;
+      let current_direction = e.draw && e.draw.direction;
       let current_draw = e.draw;
       let target_draw = null;
       let active_in_linked = null;
@@ -363,14 +363,17 @@ export const tournamentFx = function() {
       var score_removed = previous_winner && !current_winner;
       if (score_removed) result.deleted_muid = node.match.muid;
 
+      function drawMUIDs(d) {
+         let matches = dfx.matches(d);
+         return matches && matches.map(m=>m.match && m.match.muid).filter(f=>f) || [];
+      }
       if (compass) {
          // current draw should equal the draw within which the muid is found
-         current_direction = Object.keys(e.draw).reduce((p, c) => p || (typeof e.draw[c] == 'object' && e.draw[c].matches && e.draw[c].matches[muid] && c), undefined);
+         current_direction = Object.keys(e.draw).reduce((p, c) => p || (typeof e.draw[c] == 'object' && drawMUIDs(e.draw[c]).indexOf(muid) >= 0 && c), undefined);
          if (current_direction) current_draw = e.draw[current_direction];
          if (node) {
             // check whether player is active in target direction
-            current_draw = e.draw[current_direction];
-            let target_direction = fx.getTargetDirection(current_draw.direction, node.match.round);
+            let target_direction = fx.getTargetDirection(current_direction, node.match.round);
             target_draw = target_direction && e.draw[target_direction];
             if (target_draw && previous_loser) {
                linked_info = dfx.drawInfo(target_draw);
@@ -383,10 +386,8 @@ export const tournamentFx = function() {
             }
          }
       } else if (e.draw_type == 'Q') {
-         // active_in_linked = dlink && dlinkinfo && previous_winner && playerActiveInLinked(dlinkinfo, previous_winner);
          active_in_linked = dlink && dlinkinfo && previous_winner && fx.teamActiveInLinked(dlinkinfo, previous_winner);
       } else if (e.draw_type == 'E') {
-         // active_in_linked = dlink && dlinkinfo && previous_loser && playerActiveInLinked(dlinkinfo, previous_loser);
          active_in_linked = dlink && dlinkinfo && previous_loser && fx.teamActiveInLinked(dlinkinfo, previous_loser);
       }
 
@@ -394,7 +395,6 @@ export const tournamentFx = function() {
 
       if (active_in_linked && (winner_changed || (previous_winner && !current_winner))) {
          return { error: 'phrases.cannotchangewinner' };
-      // } else if (previous_winner && !current_winner) {
       } else if (score_removed) {
          if (compass) {
             fx.removeDirectionalPlayer(tournament, e, target_draw, previous_loser, linked_info);
@@ -412,7 +412,8 @@ export const tournamentFx = function() {
 
       if (!existing_scores) {
          // no existing scores so advance position
-         dfx.advancePosition({ node: current_draw, position: outcome.position });
+         let rez = dfx.advancePosition({ node: current_draw, position: outcome.position });
+         Object.assign(result, rez);
          if (fx.isConsolationFeedIn(elink)) { 
             // must get eligible players for consolation event because eligiblePlayers() adds exit profiles
             // eligiblePlayers has to retrieve all event matches to add exit profiles... there is no doubt an opportunity to simplify here
@@ -429,14 +430,14 @@ export const tournamentFx = function() {
          }
       } else if (!outcome.score) {
          var possible_to_remove = (!node || !node.ancestor || !node.ancestor.team);
-         if (!possible_to_remove) return { error: 'phrases.cannotchangewinner' };
+         if (!possible_to_remove) { return { error: 'phrases.cannotchangewinner' }; }
          if (node) {
             result.deleted_muid = node.match.muid;
             fx.pruneMatch(node.match);
             delete node.dp;
          }
       } else {
-         let result = dfx.advanceToNode({
+         let rez = dfx.advanceToNode({
             node,
             score: outcome.score,
             complete: outcome.complete,
@@ -445,7 +446,8 @@ export const tournamentFx = function() {
             score_format: outcome.score_format
          });
 
-         if (result && !result.advanced) return { error: 'phrases.cannotchangewinner' };
+         if (rez && !rez.advanced) { return { error: 'phrases.cannotchangewinner' }; }
+         Object.assign(result, rez);
       }
 
       let info = dfx.drawInfo(current_draw);
@@ -476,7 +478,10 @@ export const tournamentFx = function() {
       };
       let match_event = mfx.eventMatches(e, tournament).reduce(findMatch, undefined);
 
-      if (!match_event) return { exit: true };
+      if (!match_event) {
+         console.log('returning: no match event');
+         return { exit: true };
+      }
 
       let match = match_event.match;
       result.muid = match.muid;
@@ -514,7 +519,7 @@ export const tournamentFx = function() {
       function directLoser() {
          let target_direction = fx.getTargetDirection(current_direction, match.round);
          let target_draw = target_direction && e.draw[target_direction];
-         if (!target_draw) return;
+         if (!target_draw) { return; }
 
          if (!target_draw.opponents) target_draw.opponents = [];
          if (!target_draw.unseeded_teams) target_draw.unseeded_teams = [];
@@ -538,7 +543,8 @@ export const tournamentFx = function() {
          'north': ['northwest'],
          'south': ['southeast']
       };
-      return directions[current_direction] && directions[current_direction][match_round - 1];
+      let target_direction = directions[current_direction] && directions[current_direction][match_round - 1];
+      return target_direction;
    };
 
    function existingOpponents(target_draw, opponents) {
