@@ -9,13 +9,41 @@ export const matchFx = function() {
    let fx = {};
    let dfx = drawFx();
 
+   // attempts to find scoring format for a given match
+   // 1. preference given to match object
+   // 2. then match object which is child (match.match)
+   // 3. then event object scoring_format object
+   // 4. then event object score_format (legacy) object
+   // 5. and finally the defaults for the scoreboard
    fx.getScoringFormat = ({ e, match, format }) => {
       let scoreboard = env.scoreboard.settings;
       format = format || (match && match.format) || (e.format == 'D' ? 'doubles' : 'singles');
-      let score_format = (e.scoring_format && e.scoring_format[format]) || e.score_format || (match && match.score_format) || scoreboard[format];
-      if (score_format.final_set_supertiebreak == undefined) score_format.final_set_supertiebreak = format == 'doubles' ? true : false;
+
+      let score_format = assignKeys({ objects: [
+         match && match.score_format,
+         match && match.match && match.match.score_format,
+         e.scoring_format && e.scoring_format[format], 
+         e.score_format, 
+         format && scoreboard[format]
+      ] });
+
+      // if (score_format.final_set_supertiebreak == undefined) score_format.final_set_supertiebreak = format == 'doubles' ? true : false;
       return score_format;
    };
+
+   // target is an object which *must* have all keys defined.  
+   // preference is given to the *first* object processed
+   function assignKeys({ source={}, objects=[] }) {
+      let target = Object.assign({}, source);
+      if (objects && !Array.isArray(objects)) objects = [objects];
+      objects = objects.filter(f=>f);
+      objects.forEach(o => {
+         if (typeof o != 'object') return;
+         let keys = Object.keys(o);
+         keys.forEach(k => target[k] = target[k] || o[k]);
+      });
+      return target;
+   }
 
    fx.getExistingScores = ({ match }) => {
       if (!match || !match.score) return undefined;
