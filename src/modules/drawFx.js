@@ -1756,7 +1756,7 @@ export function treeDraw() {
 
       function opponentName(d, team=0) {
          if (!d.data.team && d.data.match && d.data.match.winner) {
-            // this is a situation when adding score doesn't add Team do node data
+            // this is a situation when adding score doesn't add Team to node data
             // TODO: track this down!
             console.log('NO TEAM!', d.data);
             d.data.team = d.data.match.winner;
@@ -3753,7 +3753,6 @@ export function drawFx(opts) {
          let matches = [].concat(...data.brackets.map(bracket => bracket.matches))
             .map(match => {
                return {
-                  // teams: match.players.map(p=>[p]),
                   teams: match.teams || match.players.map(p=>[p]),
                   round_name: match.round_name,
                   result_order: match.result_order,
