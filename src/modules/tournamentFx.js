@@ -934,14 +934,7 @@ export const tournamentFx = function() {
             if (m && m.source && m.source.data && m.source.data.match) { modify(m.source.data.match); }
          });
 
-         function modify(match) {
-            if (match && !match.winner) {
-               console.log('modifying:', match);
-               match.score_format = Object.assign({}, sf);
-            } else {
-               console.log('not modifying:', match);
-            }
-         }
+         function modify(match) { if (match && !match.winner) { match.score_format = Object.assign({}, sf); } }
       }
    };
 
