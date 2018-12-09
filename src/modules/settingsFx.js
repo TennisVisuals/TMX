@@ -52,6 +52,7 @@ export const settingsFx = function() {
       env.drawFx.separation.school = new_state.separate_by_club;
       env.drawFx.separation.club_code = new_state.separate_by_school;
       env.drawFx.ll_all_rounds = new_state.llallrounds;
+      env.drawFx.rr_h2h_priority = new_state.rrh2hpriority;
       env.drawFx.consolation_from_qualifying = new_state.qualconsolation;
       env.drawFx.consolation_alternates = new_state.consolationalts;
       env.drawFx.consolation_seeding = new_state.consolationseeds;
@@ -122,6 +123,7 @@ export const settingsFx = function() {
          separate_by_club: env.drawFx.separation.school,
          separate_by_school: env.drawFx.separation.club_code,
          llallrounds: env.drawFx.ll_all_rounds,
+         rrh2hpriority: env.drawFx.rr_h2h_priority,
          qualconsolation: env.drawFx.consolation_from_qualifying,
          consolationalts: env.drawFx.consolation_alternates,
          consolationseeds: env.drawFx.consolation_seeding,
@@ -179,8 +181,8 @@ export const settingsFx = function() {
       let checkBox = (item) => selectItem(item);
       let radioButton = (item, name) => selectItem(item, 'radio', name);
       let separate = settings_tabs.draws && ['separate_by_ioc', 'separate_by_club', 'separate_by_school'].map(item=>radioButton(item, 'separate')).join('') || '';
-      let draws1 = settings_tabs.draws && ['compresseddraws', 'automatedbyes', 'fixedbyes'].map(checkBox).join('') || '';
-      let draws2 = settings_tabs.draws && ['llallrounds', 'qualconsolation', 'consolationalts', 'consolationseeds', 'restrictseedplacement'].map(checkBox).join('') || '';
+      let draws1 = settings_tabs.draws && ['compresseddraws', 'automatedbyes', 'fixedbyes', 'restrictseedplacement'].map(checkBox).join('') || '';
+      let draws2 = settings_tabs.draws && ['rrh2hpriority', 'llallrounds', 'qualconsolation', 'consolationalts', 'consolationseeds'].map(checkBox).join('') || '';
       let draws3 = settings_tabs.draws && ['countryflags', 'matchtimes', 'matchdates', 'courtdetail', 'matchesbefore'].map(checkBox).join('') || '';
       let publishing1 = settings_tabs.publishing && ['requireconfirm', 'publishonscore'].map(item=>radioButton(item, 'publish')).join('') || '';
       let publishing2 = settings_tabs.publishing && ['publishdrawcreation'].map(checkBox).join('') || '';
