@@ -31,20 +31,24 @@ export const tmxStats = function() {
          return { sets, games, score: match.score };
    }
 
-   fx.processMatches = (completed_matches, target_element) => {
+   fx.processMatches = ({ completed_matches, target_element }) => {
       let match_sets = completed_matches.map(processMatch);
-      let buckets = pctSpread(match_sets).reduce((b, a) => { if (b[a]) { b[a] += 1; } else { b[a] = 1; } return b; }, {});
-      let data = Object.keys(buckets).map(key => isNaN(key) ? undefined : { pct: key, value: buckets[key] }).filter(f=>f);
+      let percentages = pctSpread(match_sets).reduce((b, a) => { if (b[a]) { b[a] += 1; } else { b[a] = 1; } return b; }, {});
+      let buckets = Object.keys(percentages).map(key => isNaN(key) ? undefined : { pct: key, value: percentages[key] }).filter(f=>f);
 
       // let dd = pctSpread(match_sets).reduce((p, c) => bandSort(p, c), { w: 0, d: 0, r: 0, c: 0 }); 
       let dd = pctSpread(match_sets).reduce((p, c) => bandSort(p, c), { c: 0, r: 0, d: 0, w: 0 }); 
       let total = Object.keys(dd).reduce((a, k) => (dd[k] || 0) + a, 0);
-      let dt = Object.keys(dd).map(k => ({ Percentage: dd[k] / total, Category: categories[k] })); 
+      let indices = Object.keys(dd).map(k => ({ Percentage: dd[k] / total, Category: categories[k] })); 
 
-      setTimeout(function() {
-         fx.pctDonut(target_element, dt, true);
-         fx.competitiveMatchIndices(target_element, data);
-      }, 400);
+      if (target_element) {
+         setTimeout(function() {
+            fx.pctDonut(target_element, indices, true);
+            fx.competitiveMatchIndices(target_element, buckets);
+         }, 400);
+      } else {
+         return { buckets, indices };
+      }
    };
 
    fx.bandSort = bandSort;
