@@ -3,7 +3,8 @@ export const releaseNotes = `
       <h2 class='title is-3'>Release Notes</h2>
       <div class='section' style='width: 100%; padding: 1em;'>
          <h3 class='subtitle is-5 is-marginless flexjustifystart'>Version: 1.5</h3>
-         <div style='text-align: left;'>"Major code restructuring in preparation for delivery of full mobile support</div>
+         <div style='text-align: left;'>Major code restructuring in preparation for delivery of full mobile support</div>
+         <div style='text-align: left;'>Head-to-Head priority in determing RR Player Order</div>
       </div>
 
       <div class='section' style='width: 100%; padding: 1em;'>
