@@ -1,5 +1,10 @@
 /* new css */
 
+.rr_results td {
+   padding-left: 1em;
+   padding-right: 1em;
+}
+
 .mobile-hide { display: flex; }
 .mobile-show { display: none; }
 @media screen and (max-width: 768px) {
