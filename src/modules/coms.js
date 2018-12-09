@@ -58,6 +58,7 @@ export const coms = function() {
    mod.connected = () => connected;
    function comsConnect() {
       connected = true;
+      sharedFx.connectionEvent();
       while (queue.length) {
          let message = queue.pop();
          oi.socket.emit(message.header, message.data);
@@ -136,6 +137,7 @@ export const coms = function() {
 
          oi.socket.on('match score', data => sharedFx.receiveScore(data));
          oi.socket.on('crowd score', data => console.log('crowd score:', data));
+         oi.socket.on('matches', data => sharedFx.receiveMatches(data));
       }
    };
 
@@ -150,7 +152,7 @@ export const coms = function() {
       ackRequests[uuid] = callback;
    };
 
-   mod.joinTournament = (tuid) => connected ?  oi.socket.emit('join tournament', tuid) : false;
+   mod.joinTournament = ({ tuid, authorized }) => connected ?  oi.socket.emit('join tournament', { tuid, authorized }) : false;
    mod.leaveTournament = (tuid) => connected ?  oi.socket.emit('leave tournament', tuid) : false;
 
    function tmxError(err) {
