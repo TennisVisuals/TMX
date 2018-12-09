@@ -114,12 +114,13 @@ export const importFx = function() {
       let keys = Object.keys(rows[0]).map(k=>k.toLowerCase());
       if (!keys.length) return;
 
+      let full_name = (['full name'].filter(k=>keys.indexOf(k) >= 1).length == 1);
       let player_name = (['first', 'last', 'first name', 'last name'].filter(k=>keys.indexOf(k) >= 0).length == 2);
       let player_gender = (['gender', 'sex'].filter(k=>keys.indexOf(k) >= 0).length);
       let player_profile = (['profile', 'utr profile', 'utr player profile link'].filter(k=>keys.indexOf(k) >= 0).length);
       let player_birth = (['birth', 'birthdate', 'birthday', 'birth date', 'date of birth'].filter(k=>keys.indexOf(k) >= 0).length);
 
-      if (player_name || player_gender || player_profile || player_birth) return 'players';
+      if (full_name || player_name || player_gender || player_profile || player_birth) return 'players';
    };
 
    load.processSheetPlayers = processSheetPlayers;
@@ -131,8 +132,15 @@ export const importFx = function() {
 
       rows.forEach(row => {
          let player = {};
+         let full_name = findAttr(row, ['Full Name']);
          player.first_name = findAttr(row, ['First', 'First Name']);
          player.last_name = findAttr(row, ['Last', 'Last Name']);
+         if (full_name && full_name.split(' ').length > 1 && (!player.first_name || !player.last_name)) {
+            let parts = full_name.split(' ');
+            let i = (parts.length <= 3) ? 1 : 2;
+            player.first_name = parts.slice(0, i).join(' ');
+            player.last_name = parts.slice(i).join(' ');
+         }
 
          let name = findAttr(row, ['Name']);
          if (name && (!player.first_name || !player.last_name)) {
