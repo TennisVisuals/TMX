@@ -3155,8 +3155,8 @@ export const displayGen = function() {
    gen.roundRobinResults = (results) => {
       let notInfinity = (value) => value == 'Infinity' ? '' : value;
       let html = `
-         <table>
-            <tr><th></th><th>Won</th><th>Lost</th><th>Ratio</th></tr>
+         <table class='rr_results'>
+            <tr><th></th><th style='color: white'>Won</th><th style='color: white'>Lost</th><th style='color: white'>Ratio</th></tr>
             <tr>
                <td>${lang.tr('emts')}</td>
                <td style='color: lightyellow' align='center'>${results.matches_won}</td>
