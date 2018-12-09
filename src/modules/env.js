@@ -5,7 +5,7 @@ export const env = {
    first_time_user: false,
 
    // version is Major.minor.added.changed.fixed
-   version: '1.5.28.80.48',
+   version: '1.5.31.91.53',
    version_check: undefined,
    reset_new_versions: false,
 
@@ -35,6 +35,7 @@ export const env = {
       }
    },
    exports: {
+      itf: false,
       utr: false
    },
    uploads: {
@@ -114,7 +115,8 @@ export const env = {
       consolation_from_elimination: true,
       consolation_from_qualifying: false,
       seed_limits: [ [0, 0], [4, 2], [11, 4], [21, 8], [41, 16], [97, 32] ],
-      "seedPositions": {
+      rr_h2h_priority: false,
+      seedPositions: {
          "1" : [["1", "0"]],
          "2" : [["0", "1"]],
          "3" : [["1", ".250"], ["0", ".750"]],
