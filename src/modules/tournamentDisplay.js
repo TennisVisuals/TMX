@@ -19,6 +19,7 @@ import { exportFx } from './exportFx';
 import { importFx } from './importFx';
 import { rankCalc } from './rankCalc';
 import { sharedFx } from './sharedFx';
+import { exportCSV } from './exportCSV';
 import { publishFx } from './publishFx';
 import { displayFx } from './displayFx';
 import { searchBox } from './searchBox';
@@ -145,6 +146,7 @@ export const tournamentDisplay = function() {
       // START setup
       let state = {
          edit: editing,
+         authorized: false,
          manual_ranking: false,
          lastpush2cloud: false,
          admin: false
@@ -171,12 +173,16 @@ export const tournamentDisplay = function() {
       let { groups: match_groups, group_draws } = legacyProcess.groupMatches(dbmatches);
       let { container, classes, displayTab, display_context, tab_ref } = displayGen.tournamentContainer({ tournament, tabCallback });
 
+      util.addDev({displayed});
       util.addDev({tournament});
+      util.addDev({exportCSV});
+      util.addDev({exportFx});
+      util.addDev({tmxStats});
       util.addDev({env});
       util.addDev({db});
       util.addDev({util});
       util.addDev({dateFx});
-      util.addDev({domFx});
+      util.addDev({mfx});
       util.addDev({dfx});
 
       tmxTour.tournamentContainer(container, classes);
@@ -184,33 +190,46 @@ export const tournamentDisplay = function() {
       let ouid = env.org && env.org.ouid;
       if (ouid && tournament.tuid) {
          let getUserAuth = { tuid: tournament.tuid };
-         coms.requestAcknowledgement({ uuid: tournament.tuid, callback: setUserAuth });
+         coms.requestAcknowledgement({ uuid: tournament.tuid, callback: (result) => setUserAuth(result, true) });
          coms.emitTmx({ getUserAuth });
       }
 
-      // set up to receive delegated scores
-      coms.joinTournament(tournament.tuid);
+      sharedFx.receiveMatches = receiveMatches;
       sharedFx.receiveScore = receiveScore;
-      function receiveScore(data) {
-         console.log('receive score:', data);
-         if (data.tournament.tuid != tournament.tuid) {
-            console.log('leaving tournament:', data.tournament);
+      sharedFx.connectionEvent = () => {
+         if (displayGen.content != 'tournament') {
             return coms.leaveTournament(tournament.tuid);
+         } else {
+            coms.joinTournament({ tuid: tournament.tuid, authorized: state.authorized });
          }
+      };
+
+      function receiveMatches(data) { if (data && Array.isArray(data)) data.forEach(receiveScore); }
+      function receiveScore(data) {
+         if (data.tournament.tuid != tournament.tuid) { return coms.leaveTournament(tournament.tuid); }
          let target_event = tfx.findEventByID(tournament, data.event.euid);
          if (!target_event) { console.log('event not found!', data); return; }
          let matches = mfx.eventMatches(target_event, tournament);
          let match = matches && matches.reduce((p, c) => c.match.muid == data.match.muid ? c : p, undefined);
-         if (!match) { console.log('match not found!', data.match.muid); }
-         let sets = data.score.components.sets;
-         let scoreboard = sets && sets.map(set => set.games && set.games.join('-')).filter(f=>f).join(' ');
-         match.match.delegated_score = scoreboard;
-         if (target_event.euid == displayed.draw_event.euid) drawsTab();
-         if (displayed.schedule_day && match.match.schedule && match.match.schedule.day == displayed.schedule_day) scheduleTab();
-         matchesTab();
+         if (match && match.match) {
+            let sets = data.score && data.score.components.sets; let scoreboard = sets && sets.map(set => set.games && set.games.join('-')).filter(f=>f).join(' ');
+            if (data.score && data.score.points) scoreboard += ` (${data.score.points})`;
+            match.match.delegated_score = scoreboard;
+            if (target_event.euid == displayed.draw_event.euid) { displayDraw({ evt: displayed.draw_event }); }
+            if (displayed.schedule_day && match.match.schedule && match.match.schedule.day == displayed.schedule_day) scheduleTab();
+            matchesTab();
+         }
       }
 
-      function setUserAuth(result) { displayGen.authState(container.authorize.element, result.authorized || false); }
+      function setUserAuth(result, initialize) {
+         let changed = state.authorized != result.authorized;
+         state.authorized = result.authorized || false;
+         displayGen.authState(container.authorize.element, result.authorized || false);
+         if (changed || initialize) {
+            // set up to receive delegated scores
+            coms.joinTournament({ tuid: tournament.tuid, authorized: state.authorized });
+         }
+      }
 
       if (tfx.sameOrg(tournament) && !tournament.delegated) {
          displayGen.enterFx = () => {
@@ -222,7 +241,7 @@ export const tournamentDisplay = function() {
       if (tournament.delegated && tfx.sameOrg(tournament)) displayGen.delegated(container, true);
 
       // create and initialize draw objects
-      let rr_draw = rrDraw();
+      let rr_draw = rrDraw({ dfx });
       let tree_draw = treeDraw().dfxOptions(env.drawFx);
 
       draws_context[display_context] = { roundrobin: rr_draw, tree: tree_draw };
@@ -365,7 +384,7 @@ export const tournamentDisplay = function() {
             saveTournament(tournament);
             schedulePublishState();
             scheduleActions();
-            displayGen.authState(container.authorize.element, result.authorized || false);
+            setUserAuth(result);
          }
       }
 
@@ -388,7 +407,7 @@ export const tournamentDisplay = function() {
                   tournament.schedule.up_to_date = true;
                   schedulePublishState();
                   saveTournament(tournament);
-                  displayGen.authState(container.authorize.element, result.authorized || false);
+                  setUserAuth(result);
                };
                coms.requestAcknowledgement({ uuid: tournament.tuid, callback: updatePublishState });
                coms.emitTmx({ tournamentOOP: schedule });
@@ -620,7 +639,7 @@ export const tournamentDisplay = function() {
             displayGen.pubStateTrnyInfo(container.pubStateTrnyInfo.element, tournament.infoPublished);
             displayGen.tournamentPublishState(container.push2cloud_state.element, tournament.pushed2cloud);
             saveTournament(tournament, false);
-            displayGen.authState(container.authorize.element, result.authorized || false);
+            setUserAuth(result);
          }
          coms.requestAcknowledgement({ uuid: tournament.tuid, callback: updateInfoPubState });
          tournament.pushed2cloud = new Date().getTime();
@@ -667,7 +686,7 @@ export const tournamentDisplay = function() {
          if (!visible) {
             let target_element = container.stat_charts.element;
             let { completed_matches } = mfx.tournamentEventMatches({ tournament });
-            tmxStats.processMatches(completed_matches, target_element);
+            tmxStats.processMatches({ completed_matches, target_element });
          }
       });
 
@@ -1928,7 +1947,7 @@ export const tournamentDisplay = function() {
             let revokeAuthorization = { tuid: tournament.tuid };
             coms.emitTmx({ revokeAuthorization });
             displayGen.closeModal();
-            displayGen.authState(container.authorize.element);
+            setUserAuth({ authorized: false });
          }
       }
 
@@ -1960,19 +1979,21 @@ export const tournamentDisplay = function() {
          let pushKey = {
             key_uuid,
             content: {
-                  "onetime": true,
-                  "directive": "authorize",
-                  "content": {
-                     "tuid": tournament.tuid,
-                     "tournament": CircularJSON.stringify(tournament)
-                  }
+               "onetime": true,
+               "directive": "authorize",
+               "content": {
+                  "tuid": tournament.tuid,
+                  "tournament": CircularJSON.stringify(tournament)
                }
+            },
+            checkAuth: {
+               admin: true
+            }
          };
 
          let ctext = (!env.device.isMobile) ? `<h2>${key_uuid}</h2><h2>${lang.tr('phrases.keycopied')}</h2>` : `<h2>${lang.tr('tournaments.key')}</h2>${key_uuid}`;
 
          coms.requestAcknowledgement({ uuid: key_uuid, callback: displayKey });
-         // TODO: server won't accept pushKey unless user uuuid in superuser cache on server
          coms.emitTmx({ pushKey });
          domFx.copyClick(key_uuid);
 
@@ -2015,13 +2036,16 @@ export const tournamentDisplay = function() {
          let pushKey = {
             key_uuid,
             content: {
-                  "onetime": true,
-                  "directive": "mobile",
-                  "content": {
-                     muid: match.muid,
-                     data: CircularJSON.stringify(content) 
-                  }
+               "onetime": true,
+               "directive": "mobile",
+               "content": {
+                  muid: match.muid,
+                  data: CircularJSON.stringify(content) 
                }
+            },
+            checkAuth: {
+               tuid: tournament.tuid
+            }
          };
 
          console.log('content:', content);
@@ -2111,13 +2135,16 @@ export const tournamentDisplay = function() {
          let pushKey = {
             key_uuid,
             content: {
-                  "onetime": true,
-                  "directive": "authorize",
-                  "content": {
-                     "tuid": tournament.tuid,
-                     "tournament": CircularJSON.stringify(tournament)
-                  }
+               "onetime": true,
+               "directive": "authorize",
+               "content": {
+                  "tuid": tournament.tuid,
+                  "tournament": CircularJSON.stringify(tournament)
                }
+            },
+            checkAuth: {
+               admin: true
+            }
          };
 
          coms.requestAcknowledgement({ uuid: key_uuid, callback: submitKey });
@@ -2131,8 +2158,8 @@ export const tournamentDisplay = function() {
          }
 
          function receiveAuth(t) {
-            let a4t = t.tuid == tournament.tuid;
-            displayGen.authState(container.authorize.element, a4t);
+            let authorized = t.tuid == tournament.tuid;
+            setUserAuth({ authorized });
          }
       }
 
@@ -7676,7 +7703,7 @@ export const tournamentDisplay = function() {
          if (visible && completed_matches.length) {
             let target_element = container.stat_charts.element;
             let { completed_matches } = mfx.tournamentEventMatches({ tournament });
-            tmxStats.processMatches(completed_matches, target_element);
+            tmxStats.processMatches({ completed_matches, target_element });
          }
 
          pointsTab(tournament, container, filters);
@@ -7894,7 +7921,7 @@ export const tournamentDisplay = function() {
             }
             saveTournament(tourny);
             enableTournamentOptions();
-            displayGen.authState(container.authorize.element, result.authorized || false);
+            setUserAuth(result);
             if (callback && typeof callback == 'function') callback();
          };
          coms.requestAcknowledgement({ uuid: evt.euid, callback: updateBroadcastStatus });
@@ -9450,7 +9477,7 @@ export const tournamentDisplay = function() {
 
                      if (p2_nodes.length && p2) {
                         // collect seeding information
-                        let p1_seeding = p1.opponent ? p1.opponent[0].seed : undefined;
+                        let p1_seeding = (p1 && p1.opponent) ? p1.opponent[0].seed : undefined;
                         let p2_seeding = p2.opponent ? p2.opponent[0].seed : undefined;
                         let remove_seeding = (p1_seeding && !p2_seeding) || (p2_seeding && !p1_seeding);
 
@@ -10145,6 +10172,7 @@ export const tournamentDisplay = function() {
                tournament.address.longitude = container.longitude.element.value;
                if (tournament.pushed2cloud) tournament.pushed2cloud = false;
                displayGen.tournamentPublishState(container.push2cloud_state.element, tournament.pushed2cloud);
+               saveTournament(tournament);
             }
          }
 
