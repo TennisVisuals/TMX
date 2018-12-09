@@ -1,6 +1,6 @@
 function puidHash(players) { return players.map(p=>p && p.puid).filter(f=>f).sort().join('-'); }
 
-export function rrDraw() {
+export function rrDraw({ dfx } = {}) {
 
    var o = {
       id: 'rrDraw',
@@ -69,7 +69,7 @@ export function rrDraw() {
    };
 
    var root;
-   var dfx = drawFx();
+   dfx = dfx || drawFx();
 
    var bracket_charts = [];
    var data = { brackets: [] };
@@ -101,7 +101,7 @@ export function rrDraw() {
          // to support legacy brackets
          if (!bracket.teams) { bracket.teams = bracket.players.map(p=>[p]); }
 
-         bracket_charts[i] = roundRobin()
+         bracket_charts[i] = roundRobin({ dfx })
             .bracketName(bracket.name)
             .bracketIndex(i)
             .events(events)
@@ -240,7 +240,7 @@ export function rrDraw() {
    return chart;
 }
 
-export function roundRobin() {
+export function roundRobin({ dfx } = {}) {
    var o = {
       selector: undefined,
       qualifying: undefined,
@@ -304,7 +304,7 @@ export function roundRobin() {
       }
    };
 
-   var dfx = drawFx();
+   dfx = dfx || drawFx();
 
    let datascan = {
       draw_positions: true,
@@ -365,7 +365,12 @@ export function roundRobin() {
                   games_won: tbr.team_results[puid_hash].games_won,
                   games_lost: tbr.team_results[puid_hash].games_lost,
                   points_won: tbr.team_results[puid_hash].points_won,
-                  points_lost: tbr.team_results[puid_hash].points_lost
+                  points_lost: tbr.team_results[puid_hash].points_lost,
+
+                  matches_ratio: tbr.team_results[puid_hash].matches_ratio,
+                  sets_ratio: tbr.team_results[puid_hash].sets_ratio,
+                  games_ratio: tbr.team_results[puid_hash].games_ratio,
+                  points_ratio: tbr.team_results[puid_hash].points_ratio
                };
                player.result = tbr.team_results[puid_hash].result;
                player.games = tbr.team_results[puid_hash].games;
@@ -1971,17 +1976,18 @@ export function drawFx(opts) {
    let numArr = (count) => [...Array(count)].map((_, i) => i);
    let unique = (arr) => arr.filter((item, i, s) => s.lastIndexOf(item) == i);
    let range = (start, end) => Array.from({length: (end - start)}, (v, k) => k + start);
-   // let indices = (val, arr) => arr.reduce((a, e, i) => { if (e === val) a.push(i); return a; }, []) 
+   let indices = (val, arr) => arr.reduce((a, e, i) => { if (e === val) a.push(i); return a; }, []);
    let occurrences = (val, arr) => arr.reduce((r,val) => { r[val] = 1+r[val] || 1; return r; },{})[val] || 0;
    let intersection = (a, b) => a.filter(n => b.indexOf(n) !== -1).filter((e, i, c) => c.indexOf(e) === i);
    let randomPop = (array) => array.length ? array.splice(Math.floor(Math.random()*array.length), 1)[0] : undefined;
-   // let subSort = (arr, i, n, sortFx) => [].concat(...arr.slice(0, i), ...arr.slice(i, i + n).sort(sortFx), ...arr.slice(i + n, arr.length));
+   let subSort = (arr, i, n, sortFx) => [].concat(...arr.slice(0, i), ...arr.slice(i, i + n).sort(sortFx), ...arr.slice(i + n, arr.length));
 
    var standard_draws = [2, 4, 8, 16, 32, 64, 128, 256];
    var draw_sizes = [2, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128, 224, 256];
    var validDrawSize = (players) => draw_sizes.indexOf(players) >= 0;
 
    var o = {
+      rr_h2h_priority: false,
       seed_limits: [ [0, 0], [4, 2], [11, 4], [21, 8], [41, 16], [97, 32] ],
       bye_placement: {
          "8": [2, 7, 5],
@@ -1994,7 +2000,7 @@ export function drawFx(opts) {
       },
       compressed_draw_formats: true,
       fixed_bye_order: false,
-      "seedPositions": {
+      seedPositions: {
          "1" : [["1", "0"]],
          "2" : [["0", "1"]],
          "3" : [["1", ".250"], ["0", ".750"]],
@@ -3873,6 +3879,7 @@ export function drawFx(opts) {
       let disqualified = [];
       let team_results = {};
       let match_result_order = {};
+      let h2h = o.rr_h2h_priority;
 
       if (!matches) return;
 
@@ -3903,6 +3910,8 @@ export function drawFx(opts) {
 
             team_results[wH].matches_won += 1;
             team_results[lH].matches_lost += 1;
+            team_results[lH].defeats.push(wH);
+            team_results[wH].victories.push(lH);
 
             let sets_tally = countSets(match.score, 0, match.score_format);
             team_results[wH].sets_won += sets_tally[0];
@@ -3930,6 +3939,8 @@ export function drawFx(opts) {
          if (!team_results[puid_hash]) team_results[puid_hash] = {
             matches_won: 0,
             matches_lost: 0,
+            victories: [],
+            defeats: [],
             matches_cancelled: 0,
             sets_won: 0,
             sets_lost: 0,
@@ -4100,7 +4111,28 @@ export function drawFx(opts) {
          complete.forEach(p => p.order_hash = orderHash(p));
          complete.forEach(p => p.ratio_hash = ratioHash(p));
 
-         complete.sort((a, b) => b.order_hash - a.order_hash);
+         // START ORDER HASH
+         if (h2h) {
+            complete.sort((a, b) => (b.results.matches_won || 0) - (a.results.matches_won || 0));
+            let wins = complete.map(p=>p.results.matches_won);
+            let counts = unique(wins);
+            counts.forEach(count => {
+               let i = indices(count, wins);
+               if (i.length && i.length > 1) {
+                  let start = Math.min(...i);
+                  let end = Math.max(...i);
+                  let n = end-start+1;
+                  if (n == 2) {
+                     complete = subSort(complete, start, n, h2hOrder);
+                  } else {
+                     complete = subSort(complete, start, n, orderHashSort);
+                  }
+               }
+            });
+         } else {
+            complete.sort(orderHashSort);
+         }
+
          let hash_order = unique(complete.map(c=>c.order_hash));
          complete.forEach(p => p.hash_order = hash_order.indexOf(p.order_hash) + 1);
 
@@ -4114,12 +4146,33 @@ export function drawFx(opts) {
             }
             p.rank_order = rank_order;
          });
+         // END ORDER HASH
 
-         complete.sort((a, b) => b.ratio_hash - a.ratio_hash);
+         // START RATIO HASH
+         if (h2h) {
+            complete.sort((a, b) => (b.results.matches_won || 0) - (a.results.matches_won || 0));
+            let wins = complete.map(p=>p.results.matches_won);
+            let counts = unique(wins);
+            counts.forEach(count => {
+               let i = indices(count, wins);
+               if (i.length && i.length > 1) {
+                  let start = Math.min(...i);
+                  let end = Math.max(...i);
+                  let n = end-start+1;
+                  if (n == 2) {
+                     complete = subSort(complete, start, n, h2hRatio);
+                  } else {
+                     complete = subSort(complete, start, n, ratioHashSort);
+                  }
+               }
+            });
+         } else {
+            complete.sort(ratioHashSort);
+         }
+
          let ratio_order = unique(complete.map(c=>c.ratio_hash));
          complete.forEach(p => p.ratio_order = ratio_order.indexOf(p.ratio_hash) + 1);
 
-         // now account for equivalent ratio_order
          // points_order is used for awarding points and may differ from
          // rank_order if a player unable to advance due to walkover
          let points_order = 0;
@@ -4131,8 +4184,25 @@ export function drawFx(opts) {
             }
             p.points_order = points_order;
          });
+         // END RATIO HASH
 
          return complete;
+
+         function ratioHashSort(a, b) { return  b.ratio_hash - a.ratio_hash; }
+         function orderHashSort(a, b) { return  b.order_hash - a.order_hash; }
+         function h2hRatio(a, b) {
+            let h2h_a = a.results.victories.indexOf(b.puid) >= 0;
+            let h2h_b = b.results.victories.indexOf(a.puid) >= 0;
+            if (h2h_a || h2h_b) { return h2h_b ? 1 : -1; }
+            return b.ratio_hash - a.ratio_hash;
+         }
+
+         function h2hOrder(a, b) {
+            let h2h_a = a.results.victories.indexOf(b.puid) >= 0;
+            let h2h_b = b.results.victories.indexOf(a.puid) >= 0;
+            if (h2h_a || h2h_b) { return h2h_b ? 1 : -1; }
+            return b.order_hash - a.order_hash;
+         }
 
          function orderHash(p) {
             if (disqualified.indexOf(p.puid) >= 0) return 0;
