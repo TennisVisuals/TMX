@@ -228,6 +228,7 @@ export const lang = function() {
          matchesbefore: 'Matches Before Count',
          automatedbyes: 'Automatic Bye Placement',
          llallrounds: 'LL from All Qualifying Rounds',
+         rrh2hpriority: 'RR Head-to-Head priority',
          qualconsolation: 'Qualifying Consolation',
          consolationalts: 'Consolation Alternates',
          consolationseeds: 'Consolation Seeding',
