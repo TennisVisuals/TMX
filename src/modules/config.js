@@ -412,7 +412,7 @@ export const config = function() {
 
    fx.updateTournaments = updateTournaments;
    function updateTournaments({ merge }={}) {
-      if (!navigator.onLine) return;
+      if (!navigator.onLine && location.hostname != 'localhost') return displayGen.popUpMessage(lang.tr('phrases.noconnection')); 
       let id = displayGen.busy.message(`<p>${lang.tr('refresh.calendar')}...</p>`, searchBox.updateSearch);
       let done = () => {
          displayGen.busy.done(id);
@@ -478,7 +478,7 @@ export const config = function() {
    }
 
    function updateAction() { 
-      if (window.navigator.onLine) {
+      if (window.navigator.onLine || location.hostname == 'localhost') {
          if (searchBox.category == 'players') updatePlayers(); 
          if (searchBox.category == 'tournaments') updateTournaments(); 
          if (searchBox.category == 'clubs') updateClubs(); 
