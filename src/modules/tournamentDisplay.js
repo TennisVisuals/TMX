@@ -19,7 +19,6 @@ import { exportFx } from './exportFx';
 import { importFx } from './importFx';
 import { rankCalc } from './rankCalc';
 import { sharedFx } from './sharedFx';
-import { exportCSV } from './exportCSV';
 import { publishFx } from './publishFx';
 import { displayFx } from './displayFx';
 import { searchBox } from './searchBox';
@@ -175,7 +174,6 @@ export const tournamentDisplay = function() {
 
       util.addDev({displayed});
       util.addDev({tournament});
-      util.addDev({exportCSV});
       util.addDev({exportFx});
       util.addDev({tmxStats});
       util.addDev({env});
@@ -884,31 +882,7 @@ export const tournamentDisplay = function() {
          }
       });
 
-      container.export_matches.element.addEventListener('click', () => {
-         if (container.export_matches.element.firstChild.classList.contains('download')) {
-            let { completed_matches } = mfx.tournamentEventMatches({ tournament });
-            exportMatches(completed_matches);
-         }
-         function exportMatches(matches) {
-            let text = `${lang.tr('phrases.export')}: ${lang.tr('mts')}`;
-            let choices = displayGen.twoChoices({ text, option1: 'JSON', option2: 'UTR' });
-            displayGen.escapeModal();
-            choices.option1.element.addEventListener('click', () => {
-               let profile = env.org.abbr || lang.tr('unk');
-               exportFx.downloadJSON(`${profile}-${tournament.tuid}-matches.json`, matches);
-               displayGen.closeModal();
-            });
-            choices.option2.element.addEventListener('click', () => {
-               displayGen.closeModal();
-               if (env.exports.utr) {
-                  exportFx.downloadUTRmatches(tournament, matches);
-               } else {
-                  displayGen.popUpMessage('Not authorized to export UTR');
-               }
-            });
-         }
-      });
-
+      container.export_matches.element.addEventListener('click', () => { exportFx.matchExportOptions({ container, tournament }); });
       container.upload_matches.element.addEventListener('click', () => {
          // also send record of all MUIDs which may need to be deleted because // their events were deleted
          //
@@ -2015,8 +1989,11 @@ export const tournamentDisplay = function() {
             if (loc) coords = { latitude: loc.latitude, longitude: loc.longitude };
          }
 
+         let geolocation = (tournament.locations && tournament.locations.reduce((p, c) => (c.latitude && c.longitude) || p, undefined)) ? true : false;
+
          let content = {
-            location: coords,
+            geolocation,
+            coords,
             event: {
                name: evt.broadcast_name,
                euid: evt.euid,
@@ -2033,6 +2010,7 @@ export const tournamentDisplay = function() {
             match,
             score_format
          };
+
          let pushKey = {
             key_uuid,
             content: {
@@ -2048,16 +2026,18 @@ export const tournamentDisplay = function() {
             }
          };
 
-         console.log('content:', content);
-
          let ctext = (!env.device.isMobile) ? `<h2 class='title is-4'>${key_uuid}</h2><h2 class='subtitle is6'>${lang.tr('phrases.keycopied')}</h2>` : `<h2>${lang.tr('tournaments.key')}</h2>${key_uuid}`;
 
-         coms.requestAcknowledgement({ uuid: key_uuid, callback: displayKey });
-
-         coms.emitTmx({ pushKey });
-         domFx.copyClick(key_uuid);
+         if (!geolocation || (geolocation && coords)) {
+            coms.requestAcknowledgement({ uuid: key_uuid, callback: displayKey });
+            coms.emitTmx({ pushKey });
+            domFx.copyClick(key_uuid);
+         } else {
+            return displayGen.popUpMessage('Geolocation Active but no location defined...<p>Match must be Scheduled!');
+         }
 
          function displayKey() {
+            modalViews.closeModal();
             displayGen.escapeModal();
             displayGen.actionMessage({
                message: ctext,
@@ -2072,7 +2052,7 @@ export const tournamentDisplay = function() {
          function QRdelegation() {
             displayGen.closeModal();
 
-            let message = `${location.origin}/mobile/?key=${key_uuid}`;
+            let message = `${location.origin}/views/mmobile/?key=${key_uuid}`;
             let ctext = `
                <div><canvas id='qr'></canvas></div>
                <div id='msg' style='display: none;'>${lang.tr('phrases.linkcopied')}</div>
@@ -6049,7 +6029,7 @@ export const tournamentDisplay = function() {
             .reduce((p, c) => !isNaN(c.ms) && Math.abs(ms - c.ms) <= Math.abs(ms - p.ms) ? c : p, { i: 0, ms: 0 });
 
          let closest_day = date_range_ms.indexOf(closest_match_day.ms) >= 0 ? closest_match_day.ms : closest_schedule_ms;
-         displayed.schedule_day = dateFx.formatDate(dateFx.timeUTC(new Date(currently_selected_day || closest_day)));
+         displayed.schedule_day = currently_selected_day || dateFx.formatDate(dateFx.timeUTC(new Date(closest_day)));
 
          // create a list of all matches which are unscheduled or can be moved
          let search_list = all_matches;
@@ -6656,8 +6636,8 @@ export const tournamentDisplay = function() {
 
          function identifyMatch({ evt, target }) {
             if (!target) target = domFx.getParent(evt.target, 'schedule_box');
-            let muid = target.getAttribute('muid');
-            return { match: muid_key[muid], muid, target };
+            let muid = target && target.getAttribute('muid');
+            return { match: muid && muid_key[muid], muid, target };
          }
 
          // if not a mobile device then event support 'contextmenu'
@@ -6921,7 +6901,7 @@ export const tournamentDisplay = function() {
                }
             }
 
-            function unQualified(teams) { return teams.reduce((p, c) => !c[0].puid || p, false); }
+            function unQualified(teams) { return teams.reduce((p, c) => !c || !c[0].puid || p, false); }
          }
       }
 
