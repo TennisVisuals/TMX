@@ -115,7 +115,6 @@ export const coms = function() {
    };
 
    mod.connectSocket = () => {
-      // if (navigator.onLine && !oi.socket) {   
       if (!oi.socket) {   
          oi.socket = io.connect('/match', oi.connectionOptions);
          oi.socket.on('ack', receiveAcknowledgement);
@@ -129,8 +128,13 @@ export const coms = function() {
          oi.socket.on('tourny record', record => mod.fx.receiveTournament({ record, authorized: true }));
          oi.socket.on('tournament record', mod.fx.receiveTournamentRecord);
          oi.socket.on('tmx tournament events', mod.fx.receiveTournamentEvents);
+
+         /*
+         // not necessary... not used
          oi.socket.on('tmx_event', e => mod.fx.receiveEvent(e, true));
          oi.socket.on('noauth_event', e => mod.fx.receiveEvent(e, false));
+         */
+
          oi.socket.on('idioms available', list => fxRegister.invoke('receiveIdiomList', list));
          oi.socket.on('auth_org_trnys', t => mod.fx.receiveTournaments(t, true));
          oi.socket.on('noauth_org_trnys', mod.fx.receiveTournaments);
