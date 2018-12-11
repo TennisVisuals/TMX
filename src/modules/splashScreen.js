@@ -46,7 +46,7 @@ export const splashScreen = function() {
          courtHiveChallenge();
          coms.sendKey('players');
          env.first_time_user = false;
-         displayGen.okCancelMessage('Welcome!  Take the TMX Tour?', displayTour, () => displayGen.closeModal());
+         // displayGen.okCancelMessage('Welcome!  Take the TMX Tour?', displayTour, () => displayGen.closeModal());
       }
 
       if (env.org && env.org.name) { container.org.element.innerHTML = env.org.name; }
@@ -68,6 +68,14 @@ export const splashScreen = function() {
       }
    }
 
+   /*
+   function displayTour() {
+      modalViews.closeModal();
+      displayGen.closeModal();
+      tmxTour.splashTour();
+   }
+   */
+
    function courtHiveChallenge() {
       let trny = {
          "org":{},
@@ -87,13 +95,6 @@ export const splashScreen = function() {
          "categories": ["All"]
       };
       db.addTournament(trny);
-   }
-
-   function displayTour() {
-      coms.sendKey('players');
-      modalViews.closeModal();
-      displayGen.closeModal();
-      tmxTour.splashTour();
    }
 
    function newClub() {
