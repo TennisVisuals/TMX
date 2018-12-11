@@ -3,15 +3,16 @@ import { env } from './env';
 import { UUID } from './UUID';
 import { util } from './util';
 import { dateFx } from './dateFx';
-import { matchFx } from './matchFx';
-import { staging } from './staging';
+// import { staging } from './staging';
 import { lang } from './translator';
 import { playerFx } from './playerFx';
 import { importFx } from './importFx';
 import { stringFx } from './stringFx';
 import { rankCalc } from './rankCalc';
+import { exportCSV } from './exportCSV';
 import { scoreBoard } from './scoreBoard';
 import { displayGen } from './displayGen';
+import { matchFx as mfx } from './matchFx';
 import { tournamentFx } from './tournamentFx';
 import { rrDraw, treeDraw, drawFx } from './drawFx';
 
@@ -20,7 +21,6 @@ import { rrDraw, treeDraw, drawFx } from './drawFx';
 export const exportFx = function() {
    let exp = {};
    let dfx = drawFx();
-   let mfx = matchFx;
 
    // THIS IS A TEST CASE FOR BABEL UGLIFY
    // may need to: npm install --save-dev @babel/plugin-transform-async-to-generator
@@ -127,131 +127,6 @@ export const exportFx = function() {
        setTimeout(function() {
            window.URL.revokeObjectURL(url);
        }, 1000);
-   };
-
-   exp.json2csv = json2csv;
-   function json2csv(records, separator = ',') {
-      if (!records.length) return false;
-      let keys = Object.keys(records[0]);
-      let delimiter = (item) => `"${item}"`;
-      return keys.join(separator) + '\n' + records.map(record => keys.map(key => delimiter(record[key])).join(separator)).join('\n');
-   }
-
-   let zeroPad = (number) => number.toString()[1] ? number : "0" + number; 
-   let normalID = (id) => stringFx.replaceDiacritics(id).toUpperCase();
-   let dateFormatUTR = (timestamp) => { 
-      if (!timestamp) return '';
-      let date = new Date(timestamp);
-      return [zeroPad(date.getMonth() + 1), zeroPad(date.getDate()), date.getFullYear()].join('/');
-   };
-
-   exp.UTRmatchRecord = (match, tournament_players) => {
-      let getPlayerBirth = (player) => tournament_players.reduce((p, c) => p || (c.id == player.id ? c.birth : false), false) || '';
-      let winners = match.team_players[match.winner];
-      let losers = match.team_players[1 - match.winner];
-      let players = match.players;
-      let dbls = winners && winners.length > 1;
-      let category = staging.legacyCategory(match.tournament.category) || '';
-      let genders = match.players.map(p => p.sex).filter(f=>f).filter((item, i, s) => s.lastIndexOf(item) == i);
-      let player_gender = (sex) => ['M', 'B'].indexOf(sex) >= 0 ? 'M' : 'F';
-      let draw_gender = !genders.length ? '' : genders.length > 1 ? 'Mixed' : genders[0] == 'M' ? 'Male' : 'Female';
-      if (!match.round_name) console.log('no round name:', match);
-      let qualifying = match.round_name && match.round_name.indexOf('Q') == 0 && match.round_name.indexOf('QF') < 0;
-      let draw_type = match.consolation ? 'Consolation' : qualifying ? 'Qualifying' : 'Main';
-
-      let sanctioning = (env.org && env.org.name) || '';
-
-      let profileID = (profile_url) => {
-         let parts = profile_url && typeof profile_url == 'string' && profile_url.split('/');
-         return (!parts || parts.indexOf('myutr') < 0 && parts.indexOf('players') < 0) ? '' : parts.reverse()[0];
-      };
-
-      if (!winners) {
-         console.log('match:', match);
-         return;
-      }
-
-      let schedule_date = match.schedule && match.schedule.day && new Date(match.schedule.day);
-      let match_date = schedule_date && schedule_date <= match.tournament.end ? schedule_date : match.date > match.tournament.end ? match.tournament.end : match.date;
-
-      return {
-         "Date": dateFormatUTR(match_date),
-
-         "Winner 1 Name": stringFx.normalizeName(`${players[winners[0]].last_name}, ${players[winners[0]].first_name}`),
-         "Winner 1 Third Party ID": normalID(players[winners[0]].cropin || ''),
-         "Winner 1 UTR ID": profileID(players[winners[0]].profile),
-         "Winner 1 Gender": player_gender(players[winners[0]].sex),
-         "Winner 1 DOB": dateFormatUTR(getPlayerBirth(players[winners[0]])),
-         "Winner 1 City": stringFx.replaceDiacritics(players[winners[0]].city || ''),
-         "Winner 1 State": '',
-         "Winner 1 Country": players[winners[0]].ioc || '',
-         "Winner 1 College": '',
-         "Winner 2 Name": dbls ? stringFx.normalizeName(`${players[winners[1]].last_name}, ${players[winners[1]].first_name}`) : '',
-         "Winner 2 Third Party ID": normalID(dbls ? (players[winners[1]].cropin || '') : ''),
-         "Winner 2 UTR ID": profileID(players[winners[1]] && players[winners[1]].profile),
-         "Winner 2 Gender": dbls ? player_gender(players[winners[1]].sex) : '',
-         "Winner 2 DOB": dbls ? dateFormatUTR(getPlayerBirth(players[winners[1]])) : '',
-         "Winner 2 City": stringFx.replaceDiacritics(dbls ? (players[winners[0]].city || '') : ''),
-         "Winner 2 State": '',
-         "Winner 2 Country": dbls ? (players[winners[1]].ioc || '') : '',
-         "Winner 2 College": '',
-
-         "Loser 1 Name": stringFx.normalizeName(`${players[losers[0]].last_name}, ${players[losers[0]].first_name}`),
-         "Loser 1 Third Party ID": normalID(players[losers[0]].cropin || ''),
-         "Loser 1 UTR ID": profileID(players[losers[0]].profile),
-         "Loser 1 Gender": player_gender(players[losers[0]].sex),
-         "Loser 1 DOB": dateFormatUTR(getPlayerBirth(players[losers[0]])),
-         "Loser 1 City": stringFx.replaceDiacritics(players[losers[0]].city || ''),
-         "Loser 1 State": '',
-         "Loser 1 Country": players[losers[0]].ioc || '',
-         "Loser 1 College": '',
-         "Loser 2 Name": dbls ? stringFx.normalizeName(`${players[losers[1]].last_name}, ${players[losers[1]].first_name}`) : '',
-         "Loser 2 Third Party ID": normalID(dbls ? (players[losers[1]].cropin || '') : ''),
-         "Loser 2 UTR ID": profileID(players[losers[1]] && players[losers[1]].profile),
-         "Loser 2 Gender": dbls ? player_gender(players[losers[1]].sex) : '',
-         "Loser 2 DOB": dbls ? dateFormatUTR(getPlayerBirth(players[losers[1]])) : '',
-         "Loser 2 City": stringFx.replaceDiacritics(dbls ? (players[losers[0]].city || '') : ''),
-         "Loser 2 State": '',
-         "Loser 2 Country": dbls ? (players[losers[1]].ioc || '') : '',
-         "Loser 2 College": '',
-
-         "Score": match.score,
-         "Id Type": 'UTR',
-         "Draw Name": match.tournament.draw || '',
-         "Draw Gender": draw_gender,
-         "Draw Team Type": stringFx.normalizeName(match.format) || '',
-         "Draw Bracket Type": '',
-         "Draw Bracket Value": category,
-         "Draw Type": draw_type,
-         "Tournament Name": match.tournament.name || '',
-         "Tournament URL": '',
-         "Tournament Start Date": dateFormatUTR(new Date(match.tournament.start).getTime()),
-         "Tournament End Date": dateFormatUTR(new Date(match.tournament.end).getTime()),
-         "Tournament City": '',
-         "Tournament State": '',
-         "Tournament Country": '',
-         "Tournament Country Code": '',
-         "Tournament Host": '',
-         "Tournament Location Type": '',
-         "Tournament Surface": '',
-         "Tournament Event Type": 'Tournament',
-         "Tournament Event Category": category == 'Seniors' || category == 'S' ? 'Seniors' : 'Juniors',
-         "Tournament Import Source": 'CourtHive',
-         "Tournament Sanction Body": sanctioning,
-         "Match ID": match.muid,
-         "Tournament Event Grade": ''
-      };
-   };
-
-   exp.downloadUTRmatches = (tournament, matches) => {
-      let profile = env.org.abbr || lang.tr('unk');
-      let match_records = exp.UTRmatchRecords({ matches, players: tournament.players });
-      let csv = exp.json2csv(match_records);
-      exp.downloadText(`UTR-${profile}-${tournament.tuid}-U${tournament.category}.csv`, csv);
-   };
-
-   exp.UTRmatchRecords = ({ matches, players }) => {
-      return matches.map(m => exp.UTRmatchRecord(m, players)).filter(r=>r);
    };
 
    /************************* Database Table Export **************************/
@@ -369,7 +244,7 @@ export const exportFx = function() {
 
    exp.rankListCSV = (ranklist) => {
       ranklist.list.forEach(player => player.points = player.points.total);
-      let csv = json2csv(ranklist.list);
+      let csv = exportCSV.json2csv(ranklist.list);
       exp.downloadText(`${ranklist.year}-Week${ranklist.week}-${ranklist.category}-${ranklist.gender}.csv`, csv);
    };
 
@@ -2383,103 +2258,44 @@ export const exportFx = function() {
       }
    };
 
+   exp.matchExportOptions = ({ container, tournament }) => {
+      if (container.export_matches.element.firstChild.classList.contains('download')) {
+         let { completed_matches } = mfx.tournamentEventMatches({ tournament });
+         exportMatches(completed_matches);
+      }
+      function exportMatches(matches) {
+
+         let message = `<h3 class='title is-4'>${lang.tr('phrases.export')}: ${lang.tr('mts')}</h3>`;
+         let keys = ['JSON', 'UTR', 'ITF'];
+         displayGen.buttonSelect({
+            message,
+            buttons: keys,
+            actionFx: choice => goScrape(choice, matches),
+            cancelAction: () => displayGen.closeModal()
+         });
+      }
+
+      function goScrape(choice, matches) {
+         displayGen.closeModal();
+         if (choice == 'JSON') {
+            let profile = env.org.abbr || lang.tr('unk');
+            exp.downloadJSON(`${profile}-${tournament.tuid}-matches.json`, matches);
+         } else if (choice == 'UTR') {
+            if (env.exports.utr) {
+               exportCSV.downloadUTRmatches(tournament, matches);
+            } else {
+               displayGen.popUpMessage('Not authorized to export UTR');
+            }
+         } else if (choice == 'ITF') {
+            if (env.exports.itf) {
+               exportCSV.downloadITFmatches(tournament, matches);
+            } else {
+               displayGen.popUpMessage('Not authorized to export ITF');
+            }
+         }
+      }
+   };
+
    return exp;
  
 }();
-
-/*
- // PDFMAKE EXAMPLES
-
-   docDefinition = {
-      pageOrientation: 'portrait',
-      content: [
-        {text: 'Text on Portrait'},
-        {text: 'Text on Landscape', pageOrientation: 'landscape', pageBreak: 'before'},
-        {text: 'Text on Landscape 2', pageOrientation: 'portrait', pageBreak: 'after'},
-        {text: 'Text on Portrait 2'},
-      ]
-    }
-
-     pageBreakBefore: function(currentNode, followingNodesOnPage, nodesOnNextPage, previousNodesOnPage) {
-        var pageInnerHeight = currentNode.startPosition.pageInnerHeight;
-        var top = (currentNode.startPosition.top) ? currentNode.startPosition.top : 0;
-        var footerHeight = 30;
-        var nodeHeight = 0;
-        if (followingNodesOnPage && followingNodesOnPage.length) {
-           nodeHeight = followingNodesOnPage[0].startPosition.top - top;
-        }
-
-        if (currentNode.headlineLevel === 'footer') return false;
-
-        return (currentNode.image && (top + nodeHeight + footerHeight > pageInnerHeight))
-           || (currentNode.headlineLevel === 'longField' && (top + nodeHeight + footerHeight > pageInnerHeight))
-           || currentNode.startPosition.verticalRatio >= 0.95;
-     }
-
-// https://github.com/bpampuch/pdfmake/releases/tag/0.1.17
-
-var dd = {
-  content: [
-    {text: '1 Headline', headlineLevel: 1},
-    'Some long text of variable length ...',
-    {text: '2 Headline', headlineLevel: 1},
-    'Some long text of variable length ...',
-    {text: '3 Headline', headlineLevel: 1},
-    'Some long text of variable length ...',
-  ],
-  pageBreakBefore: function(currentNode, followingNodesOnPage, nodesOnNextPage, previousNodesOnPage) {
-    return currentNode.headlineLevel === 1 && followingNodesOnPage.length === 0;
-  }
-}
-
-// If pageBreakBefore returns true, a page break will be added before the currentNode. Current node has the following information attached:
-{
- id: '<as specified in doc definition>', 
- headlineLevel: '<as specified in doc definition>',
- text: '<as specified in doc definition>', 
- ul: '<as specified in doc definition>', 
- ol: '<as specified in doc definition>', 
- table: '<as specified in doc definition>', 
- image: '<as specified in doc definition>', 
- qr: '<as specified in doc definition>', 
- canvas: '<as specified in doc definition>', 
- columns: '<as specified in doc definition>', 
- style: '<as specified in doc definition>', 
- pageOrientation '<as specified in doc definition>',
- pageNumbers: [2, 3], // The pages this element is visible on (e.g. multi-line text could be on more than one page)
- pages: 6, // the total number of pages of this document
- stack: false, // if this is an element which encapsulates multiple sub-objects
- startPosition: {
-   pageNumber: 2, // the page this node starts on
-   pageOrientation: 'landscape', // the orientation of this page
-   left: 60, // the left position
-   right: 60, // the right position
-   verticalRatio: 0.2, // the ratio of space used vertically in this document (excluding margins)
-   horizontalRatio: 0.0  // the ratio of space used horizontally in this document (excluding margins)
- }
-}
-*/
-
-/*
-
-   // get all matches
-   db.db.matches.toArray(d=>matches=d);
-
-   // exclude Tennis Europe Matches
-   nte = matches.filter(m=>!m.tournament.name.match(/- Te$/));
-
-   // exclude matches with score issues
-   gs = nte.filter(m=>cleanScore.normalize(m.score))
-   gs.forEach(m=>m.score = cleanScore.normalize(m.score).join(' '));
-
-   // bad scores can be fixed by hand
-   bs = nte.filter(m=>!cleanScore.normalize(m.score))
-
-   // ended normally
-   en = gs.filter(m=>!cleanScore.endedEarly(m.score))
-   en.forEach(m=>m.score = cleanScore.normalize(m.score).join(' '));
-
-   // export matches
-   em = [].concat(...gs, ...fixed)
-
-*/
