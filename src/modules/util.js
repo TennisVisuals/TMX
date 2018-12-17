@@ -145,6 +145,7 @@ export const util = function() {
 
    util.log2 = (val) => Math.log(val) / Math.LN2;
    util.nearestPow2 = (val) => Math.pow(2, Math.round( Math.log(val) / Math.log(2)));
+   util.randomInt = (max) => Math.floor(Math.random() * Math.floor(max));
 
    util.catchTab = (evt) => { if (evt.which == 9) { evt.preventDefault(); } };
    util.createFx = createFx;
