@@ -62,7 +62,7 @@ export const exportCSV = function() {
       function getSuperTiebreak(arr, i) { return Array.isArray(arr) && arr[i] && arr[i].supertiebreak || ''; }
    }
 
-   fx.ITFmatchRecord = ({ match, tournament }) => {
+   fx.ITFmatchRecord = ({ match, tournament={} }) => {
       if (match.winner_index == undefined) { return console.log('match:', match); }
       let match_type = match.players.length > 2 ? 'D' : 'S';
 
@@ -70,6 +70,8 @@ export const exportCSV = function() {
       let p2 = match.players[match.team_players[0][1]];
       let p3 = match.players[match.team_players[1][0]];
       let p4 = match.players[match.team_players[1][1]];
+
+      let inout = match.tournament.inout || tournament.inout;
 
       let match_record = {
          "MatchID": match.muid,
@@ -94,7 +96,7 @@ export const exportCSV = function() {
          "TournamentEndDate"  : match.tournament.end && new Date(match.tournament.end).toISOString() || '',
 
          "AgeCategoryCode"    : match.event.category,
-         "IndoorFlag"         : tournament.inout == 'i' ? 'true' : '',
+         "IndoorFlag"         : inout == 'i' ? 'true' : inout == 'o' ? 'false' : '',
          "Grade"              : match.tournament.rank || '',
          "MatchFormat"        : '' 
       };
@@ -106,7 +108,7 @@ export const exportCSV = function() {
       return match_record;
    };
 
-   fx.downloadITFmatches = (tournament, matches) => {
+   fx.downloadITFmatches = (tournament={tuid:''}, matches) => {
       let profile = env.org.abbr || 'Unknown';
       let match_records = fx.ITFmatchRecords({ matches, tournament });
       let csv = fx.json2csv(match_records);
