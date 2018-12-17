@@ -1332,6 +1332,11 @@ export const tournamentFx = function() {
       return (b[0].category_ranking || 9999) - (a[0].category_ranking || 9999);
    }
 
+   // TODO: this needs to be reconsidered.  
+   // if there are two players tied for first qualifier
+   // and two players tied for second qualifier
+   // then current approach won't accurately determine 3rd qualifier
+   // unless the 3rd and 4th players are tied for 3rd... which would be logical
    fx.firstQualifiers = (evt) => {
       if (!evt || !evt.draw) return [];
       let opponents = evt.draw.opponents;
@@ -1369,13 +1374,27 @@ export const tournamentFx = function() {
       .sort(rrQualSort);
    };
 
+   fx.fourthQualifiers = (evt) => {
+      if (!evt || !evt.draw) return [];
+      let opponents = evt.draw.opponents;
+      return opponents
+         .filter(o => {
+               if (o[0].qorder == 1 && o[0].sub_order == 4) return true;
+               if (o[0].qorder == 2 && o[0].sub_order == 3) return true;
+               if (o[0].qorder == 3 && o[0].sub_order == 2) return true;
+               if (o[0].qorder == 4 && !o[0].sub_order) return true;
+               if (o[0].qorder == 4 && o[0].sub_order == 1) return true;
+         })
+      .sort(rrQualSort);
+   };
+
    fx.determineRRqualifiers = (tournament, e) => {
       var event_complete = false;
       // 1st qualifiers from each bracket
       var qualified_teams = fx.firstQualifiers(e);
 
       if (fx.allBracketsComplete(e)) {
-         let other_qualifiers = [].concat(...fx.thirdQualifiers(e), ...fx.secondQualifiers(e));
+         let other_qualifiers = [].concat(...fx.fourthQualifiers(e), ...fx.thirdQualifiers(e), ...fx.secondQualifiers(e));
          while (qualified_teams.length < e.qualifiers && other_qualifiers.length) qualified_teams.push([other_qualifiers.pop()]);
          event_complete = true;
       }
