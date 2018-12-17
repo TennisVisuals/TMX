@@ -3788,7 +3788,7 @@ export const tournamentDisplay = function() {
             let previous_link = e.links[linkType(type)];
             let linked_event = tfx.findEventByID(tournament, value);
 
-            if (e.draw_type == 'R' && e.draw && ['E', 'S'].indexOf(linked_event.draw_type) >= 0) {
+            if (linked_event && e.draw_type == 'R' && e.draw && ['E', 'S'].indexOf(linked_event.draw_type) >= 0) {
                dfx.tallyBracketAndModifyPlayers({ matches: e.matches, qualifying: true });
             }
 
@@ -3880,9 +3880,9 @@ export const tournamentDisplay = function() {
 
       function qualifyingDrawSizeOptions(e) {
          let approved_count = e.approved && e.approved.length ? Math.max(e.approved.length, 1) : 1;
-         // for round robin draws its possible to qualify all players
          // for normal qualification pre-rounds its possible to approved_count-1
          // range function returns 0 through upper_range-1
+         // for round robin draws its possible to qualify all players
          let upper_range = e.draw_type == 'R' ? approved_count + 1: Math.min(16, approved_count);
          let range = util.range(0, upper_range);
          let qbs = env.drawFx.qualifying_bracket_seeding;
@@ -3943,8 +3943,9 @@ export const tournamentDisplay = function() {
 
       function setRRqualifierRange(e) {
          if (!e) return;
-         let min_qualifiers = (e.approved && e.approved.length ? 1 : 0) * e.brackets;
-         let max_qualifiers = min_qualifiers * 3;
+         let approved = e.approved && e.approved.length || 0;
+         let min_qualifiers = (approved ? 1 : 0) * e.brackets;
+         let max_qualifiers = min_qualifiers * 4; // tournamentFx only calculates up to fourthQualifiers
          let range = util.range(min_qualifiers, max_qualifiers + 1);
          let options = range.map(c => ({ key: c, value: c }));
          event_config.qualifiers.ddlb.setOptions(options);
@@ -5150,7 +5151,7 @@ export const tournamentDisplay = function() {
             details.draw_type.ddlb.lock();
             if (event_config) {
                Object.keys(event_config).forEach(key => { 
-                  let lock = (state.edit && ['R', 'E', 'S'].indexOf(e.draw_type) >= 0 && key == 'qualifiers') ? false : true;
+                  let lock = (state.edit && ['R', 'E', 'S'].indexOf(e.draw_type) >= 0 && key == 'qualifiers' && !e.active) ? false : true;
                   if (event_config[key].ddlb && lock) { event_config[key].ddlb.lock(); }
                });
             }
