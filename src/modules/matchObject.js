@@ -594,7 +594,7 @@ export const matchObject = function() {
       match.scoreboard = (perspective) => { 
          if (!match.children.length) return '0-0';
          if (perspective == undefined) perspective = match.set.perspectiveScore() ? match.nextService() : undefined;
-         return match.children.map(child => child.scoreboard(perspective)).join(', '); 
+         return match.children.map(child => child.scoreboard(perspective)).join(' '); 
       };
 
       return { 
