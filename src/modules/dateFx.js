@@ -93,6 +93,11 @@ export const dateFx = function() {
 
    fx.timeUTC = (date) => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 
+   fx.dateFromDay = (year, day) => {
+     var date = new Date(year, 0); // initialize a date in `year-01-01`
+     return new Date(date.setDate(day)); // add the number of days
+   };
+   fx.randomDate = (start, end) => new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
    fx.dateRange = (startDt, endDt) => {
       let error = ((fx.isDate(endDt)) && (fx.isDate(startDt)) && isValidDateRange(startDt, endDt)) ? false : true;
       let between = [];
