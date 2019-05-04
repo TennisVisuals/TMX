@@ -2,7 +2,7 @@ import { db } from './db';
 import { env } from './env';
 import { util } from './util';
 import { rankCalc } from './rankCalc';
-import { exportFx } from './exportFx';
+import { exportCSV } from './exportCSV';
 
 export const pointsFx = function() {
 
@@ -66,9 +66,9 @@ export const pointsFx = function() {
 
       let date_format = exp.date_format ? `_${exp.date_format}` || '' : '';
       while (cursor < formatted_points.length) {
-         let csv = exportFx.json2csv(formatted_points.slice(cursor, cursor + group_size)) + '\n';
+         let csv = exportCSV.json2csv(formatted_points.slice(cursor, cursor + group_size)) + '\n';
          let tuid_string = tuid ? `_${tuid}` : '';
-         exportFx.downloadText(`${org_abbr}_format_points${tuid_string}${date_format}.csv`, csv);
+         exportCSV.downloadText(`${org_abbr}_format_points${tuid_string}${date_format}.csv`, csv);
          cursor += group_size;
       }
    }

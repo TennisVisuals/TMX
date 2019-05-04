@@ -159,6 +159,7 @@ export const fetchFx = function() {
                         delete new_player.name;
                         delete new_player.withdrawn;
                         delete new_player.alternate;
+                        delete new_player.acceptance;
                         delete new_player.category_ranking;
                         delete new_player.category_dbls;
 
